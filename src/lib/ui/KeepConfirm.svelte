@@ -1,13 +1,14 @@
 <!--
   The inline flash confirmation, the only confirmation on the site: rendered by
   DestinationZone.svelte while install.confirmOpen, IN PLACE OF its Store on ZONA,
-  so the two are never on the screen together (WCAG 2.5.3). One prop, onclose
-  (NOT NOW and Escape; the zone dismisses and moves focus back). Focus lands on
-  the block itself (tabindex="-1", role="group"), never on a button: no key press
-  commits without a deliberate move. Not a dialog, no trap; focus leaving does not
-  close a pending decision. The affirmative is bordered, never accent-filled (the
-  fill is Apply's alone); no colour on the block - the red means one thing on this
-  panel (Z-01). Every word is install-copy's; CONFIRM_WAY_BACK names the header's Clear.
+  so the two are never on the screen together (WCAG 2.5.3). Three props: config
+  and name (what the affirmative hands install.keepOnDevice, 2026-09-16) and
+  onclose (NOT NOW and Escape; the zone dismisses and moves focus back). Focus
+  lands on the block itself (tabindex="-1", role="group"), never on a button: no
+  key press commits without a deliberate move. Not a dialog, no trap; focus leaving
+  does not close a pending decision. The affirmative is bordered, never filled; no
+  colour on the block - the red means one thing on this panel (Z-01). Every word is
+  install-copy's; CONFIRM_WAY_BACK names the header's Clear.
   Decided at 07-10 (07-UI-SPEC D-15, Z-01; 13.1-CONTEXT D-07); see .planning/phases/07-install-flow/07-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -26,8 +27,22 @@
   } from "$lib/device/install-copy";
 
   let {
+    config,
+    name,
     onclose,
   }: {
+    /** The five strings the affirmative writes and stores - the zone's own prop, or undefined while the caller measures. */
+    config?:
+      | {
+          systemTimer: string;
+          system: string;
+          systemUtility: string;
+          setup: string;
+          timer: string;
+        }
+      | undefined;
+    /** The store's label for the write: the entry's or the surface's name. */
+    name: string;
     /** NOT NOW and Escape land here: the zone closes the store's confirmation and returns focus to its Store on ZONA. */
     onclose: () => void;
   } = $props();
@@ -43,7 +58,7 @@
     session.identity?.otherModules.map((m) => m.moduleType ?? "module") ?? [],
   );
   const rig = $derived(confirmRig(others));
-  /** The page the confirmation names, as the module reports it (the copy adds one); the confirmation opens only after an apply, so a snapshot exists. */
+  /** The page the confirmation names, as the module reports it (the copy adds one); the confirmation opens only while the store is armed, so a snapshot exists. */
   const page = $derived(install.snapshotPage ?? 0);
   /** Sentences 2 and 3, and 4 when it exists. */
   const sentenceIds = $derived(
@@ -66,7 +81,7 @@
   }
 
   function keep(): void {
-    void install.keepOnDevice();
+    void install.keepOnDevice(config, name);
   }
 </script>
 

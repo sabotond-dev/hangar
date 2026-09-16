@@ -179,7 +179,7 @@ export const SAVE_REFUSED = "Your browser refused to store the copy.";
 
 // ---------------------------------------------------------------------------
 // The install and the share (13-17; Bible sections 9 and 11; 13-CONTEXT D-14
-// Q7, D-18, D-19). `Apply to ZONA` is page-target.ts's APPLY_LABEL; the rest are
+// Q7, D-18, D-19). `Store on ZONA` is install-copy.ts's KEEP_LABEL; the rest are
 // HANGAR's, ledgered under "From 13-17".
 
 // STORE_LABEL (`Store on ZONA`, section 9's word, verbatim) IS RETIRED BY

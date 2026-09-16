@@ -36,7 +36,7 @@
 
   /**
    * The entry's shape as the front door carries one, built here because tpad is not in that row. Since
-   * 13.1-06 only its name is read: the disabled control over budget is the context bar's Apply to ZONA
+   * 13.1-06 only its name is read: the disabled control over budget is the context bar's Store on ZONA
    * (DestinationZone.svelte), which takes the name, the pair (none here - this probe never writes) and
    * the refusal. `motion` is the value front-door.spec.ts derives for tpad: it lights nothing.
    */

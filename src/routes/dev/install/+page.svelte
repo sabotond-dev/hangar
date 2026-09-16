@@ -18,7 +18,7 @@
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
 
-  /** The name TRY ON DEVICE announces. A test asserting the settled sentence spells the same word. */
+  /** The name TRY ON DEVICE and the store hand the install store. A test asserting the settled or the unconfirmed sentence spells the same word. */
   const NAME = "Probe";
 
   /**
@@ -52,7 +52,10 @@
   const capable = $derived(
     session.phase !== "unsupported" && session.phase !== "insecure",
   );
-  const keepReason = $derived(install.keepReason(capable) ?? "live");
+  /** The record's reason, else `live` when the store is armed and `no reason` when it is not (2026-09-16: the two are different facts). */
+  const keepReason = $derived(
+    install.keepReason(capable) ?? (install.armed ? "live" : "no reason"),
+  );
   const putBack = $derived(install.putBackState());
 
   /**
@@ -252,7 +255,7 @@
   <button
     type="button"
     data-testid="install-keep-yes"
-    onclick={() => void install.keepOnDevice()}
+    onclick={() => void install.keepOnDevice(pair(), NAME)}
   >
     Keep, yes
   </button>

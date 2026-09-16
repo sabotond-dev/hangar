@@ -204,7 +204,7 @@
       cost = measured;
       landing = landed;
       measuring = false;
-      // An over-budget landing is never observed: Apply is disabled on the
+      // An over-budget landing is never observed: Store is disabled on the
       // refusal and the store is not told about strings it must not write.
       install.observeConfig(
         landed.refusal === undefined ? landed.config : undefined,
@@ -549,7 +549,7 @@
   {/if}
 {/snippet}
 
-<!-- The context bar's destination zone (13-12; 13-17; 13.1-06): the page target, Apply to ZONA, Store on ZONA - the one component both routes mount. -->
+<!-- The context bar's destination zone (13-12; 13-17; 13.1-06; Apply gone 2026-09-16): the page target, Store on ZONA - the one component both routes mount. -->
 {#snippet destination()}
   <DestinationZone {name} config={landing?.config} {refusal} />
 {/snippet}

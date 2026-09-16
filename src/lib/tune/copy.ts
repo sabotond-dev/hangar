@@ -293,12 +293,13 @@ export function backOffLadder(
 }
 
 /**
- * The reason beside a disabled Apply to ZONA: the budget, then the way back;
- * the register's own verb ("apply") stands for the control. No cap governs it
- * (the ledger's HONESTY_CAP).
+ * The reason beside a disabled Store on ZONA: the budget, then the way back;
+ * the register's own verb ("store") stands for the control (since 2026-09-16,
+ * when Apply to ZONA left; "apply" before). No cap governs it (the ledger's
+ * HONESTY_CAP). The name keeps its history.
  */
 export function tryOnBudgetReason(events: BudgetEvents): string {
-  return `Over the 908-character budget on ${events}. Turn something down to apply it.`;
+  return `Over the 908-character budget on ${events}. Turn something down to store it.`;
 }
 
 // ---------------------------------------------------------------------------

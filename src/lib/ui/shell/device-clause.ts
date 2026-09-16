@@ -18,6 +18,7 @@ import {
   IDENTIFIED_CAPTION,
   SNAPSHOTTING_CAPTION,
   clearedCaption,
+  keepingLabel,
   keptCaption,
   keptMismatchBlock,
   lostBlock,
@@ -28,7 +29,6 @@ import {
   settledCaption,
   snapshotFailedBlock,
   unconfirmedBlock,
-  writingLabel,
 } from "$lib/device/install-copy";
 
 /**
@@ -75,7 +75,7 @@ export function deviceClause(
     case "ready":
       return IDENTIFIED_CAPTION;
     case "writing":
-      return writingLabel(page);
+      return keepingLabel(page);
     case "settled":
       return settledCaption(page);
     case "restored":
@@ -95,7 +95,7 @@ export function deviceClause(
         0,
       ).title;
     case "nothing-landed":
-      return nothingLandedBlock("try", 0).title;
+      return nothingLandedBlock("store", 0).title;
     case "restored-unconfirmed":
       return restoredUnconfirmedBlock(0).title;
     case "lost":

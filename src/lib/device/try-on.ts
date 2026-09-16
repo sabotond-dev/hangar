@@ -20,12 +20,6 @@ import {
   newIdentifyState,
 } from "$lib/transport";
 
-// The control's name lives in install-copy.ts (section 9's `Apply to ZONA`
-// since 13-18, D-23) beside the other write clicks, so WRITE_CLICKS and the
-// button cannot drift; re-exported here so every caller of this module keeps
-// its import.
-export { TRY_ON_LABEL } from "./install-copy";
-
 // capabilityOf lives in session-copy.ts, which imports nothing, so the session
 // can decide the capability synchronously in the first hydrated frame rather
 // than after a dynamic import has landed. Re-exported here so every existing

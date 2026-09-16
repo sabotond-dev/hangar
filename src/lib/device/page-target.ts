@@ -311,6 +311,10 @@ export const unverifiedLine = (
  * PUT BACK'S TWO PAGE LINES ARE RETIRED BY NAME, 2026-09-12 (13.1-06,
  * 13.1-CONTEXT D-07; ledgered in 13.1-COPY-NEW.md): putBackPageLine and
  * putBackPageLineAfterKeep, the lines under the Put back control.
+ *
+ * THE BAR'S APPLY LABEL IS RETIRED BY NAME, 2026-09-16 (BENCH-2026-09-16.txt
+ * section 1, the user's word): APPLY_LABEL (`Apply to ZONA`, PDF pages 3 and
+ * 5). The zone's one write control is install-copy.ts's KEEP_LABEL.
  */
 
 /**
@@ -319,9 +323,6 @@ export const unverifiedLine = (
  * install-copy.spec.ts pins the twin equal to this.
  */
 export const TARGET_LABEL = "Target";
-
-/** The bar's action, PDF pages 3 and 5, verbatim. */
-export const APPLY_LABEL = "Apply to ZONA";
 
 /** The firmware-native revert's label: ledgered I.3.9; ships on the /dev/install/ probe until bench row I. */
 export const DISCARD_LABEL = "Revert to what’s stored";

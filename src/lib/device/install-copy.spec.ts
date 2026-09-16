@@ -1,12 +1,14 @@
 // The install flow's copy contract, made executable: six gates over install-copy.ts.
 //
-// Test 2 reads the four documents that author every string from disk - the Bible
-// (sections 9 and 16), 13-18-BATCH.md, 13-CONTEXT.md's D-23 and 13.1-COPY-NEW.md -
+// Test 2 reads the five documents that author every string from disk - the Bible
+// (sections 9 and 16), 13-18-BATCH.md, 13-CONTEXT.md's D-23, 13.1-COPY-NEW.md and
+// BENCH-2026-09-16.txt (Apply to ZONA gone, every Store clearing first) -
 // and holds every export and every builder's sample against them; a string in
 // none of them is red by name. The same file holds the retirements by name and
 // date: section 9's reset label (13.1-05, D-04), Put back's strings and the six
-// success bodies (13.1-06, D-06 / D-07), the review's two labels (13.1-02) and the
-// honesty caps (13-18; test 3 asserts their absence and every rule that stayed).
+// success bodies (13.1-06, D-06 / D-07), the review's two labels (13.1-02), the
+// honesty caps (13-18; test 3 asserts their absence and every rule that stayed)
+// and Apply to ZONA's strings (2026-09-16).
 // Non-vacuity first (identity.spec.ts); needles assembled from fragments so this
 // file cannot fail itself (forbidden-instructions.spec.ts).
 //
@@ -19,7 +21,6 @@ import {
   CLEAR_LABEL,
   CLEAR_REASONS,
   CONFIRM_WAY_BACK,
-  HONESTY_NO_SESSION,
   HONESTY_SNAPSHOTTING,
   IDENTIFIED_CAPTION,
   KEEP_LABEL,
@@ -28,14 +29,12 @@ import {
   NEEDS_ZONA,
   STILL_WRITING_LINE,
   TARGET_CLICK,
-  TRY_ON_LABEL,
   WRITE_CLICKS,
   announceTitle,
   clearLine,
   clearedCaption,
   clearingLabel,
   confirmRig,
-  honestyReady,
   keptCaption,
   keptMismatchBlock,
   liveCleared,
@@ -70,12 +69,14 @@ const read = (relative: string) =>
 const installCopySource = () => read("./install-copy.ts");
 
 /**
- * The four documents that author the words, read from disk: src/lib/device/
+ * The five documents that author the words, read from disk: src/lib/device/
  * is three levels below the root. Each is checked for length and for a
  * heading before it is searched, because a containment check over a document
  * that failed to load is a gate that passes everything. The fourth is Phase
  * 13.1's ledger (13.1-CONTEXT D-12): every string this phase writes is in
- * D-05's register and in that file, for the gate's batch.
+ * D-05's register and in that file, for the gate's batch. The fifth is the
+ * record of 2026-09-16's changes outside the GSD cycle: change 1 (Apply to
+ * ZONA gone, every Store clearing first) ledgers its strings there.
  */
 const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
   [
@@ -98,6 +99,12 @@ const DOCUMENTS: readonly { path: string; heading: string; atLeast: number }[] =
       path: "../../../.planning/phases/13.1-bench-corrections-four/13.1-COPY-NEW.md",
       heading: "### Retired and rewritten by 13.1-06 (D-06, D-07)",
       atLeast: 10_000,
+    },
+    {
+      path: "../../../BENCH-2026-09-16.txt",
+      heading:
+        "## 1. Apply to ZONA goes; Store stays; every Store clears first",
+      atLeast: 3_000,
     },
   ];
 
@@ -160,6 +167,13 @@ const RETIRED_BODIES = [
 ];
 /** Assembled: the retired control's verb, which no visitor-facing string may carry (the probe's two excepted by name). */
 const PUT_BACK_WORD = ["put", " back"].join("");
+/** Assembled: Apply to ZONA's four names, retired 2026-09-16 by the user's word - not exported, named in the header. */
+const RETIRED_APPLY = [
+  ["TRY_ON", "_LABEL"].join(""),
+  ["writing", "Label"].join(""),
+  ["HONESTY_", "NO_SESSION"].join(""),
+  ["honesty", "Ready"].join(""),
+];
 
 /** The catalog's title-case name (D-14 Q11b), as the batch's samples read. */
 const NAME = "Arc";
@@ -175,10 +189,8 @@ const HEADER_LABEL = "Connect ZONA";
  */
 const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   pageName: [PAGE],
-  writingLabel: [PAGE],
   keepingLabel: [PAGE],
   clearingLabel: [PAGE],
-  honestyReady: [PAGE],
   settledCaption: [PAGE],
   restoredCaption: [PAGE],
   keptCaption: [PAGE],
@@ -187,7 +199,7 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   keptMismatchBlock: [PAGE],
   unconfirmedBlock: [NAME, PAGE],
   restoredUnconfirmedBlock: [PAGE],
-  nothingLandedBlock: ["try", PAGE],
+  nothingLandedBlock: ["store", PAGE],
   partialBlock: [
     "The system timer, the page init, the utility script and the Timer",
     "the Setup",
@@ -215,7 +227,7 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
  */
 const OTHER_BRANCHES: readonly [string, unknown][] = [
   ["nothingLandedBlock(put-back)", nothingLandedBlock("put-back", PAGE)],
-  ["lostBlock(store leg)", lostBlock(true, TRY_ON_LABEL, PAGE)],
+  ["lostBlock(store leg)", lostBlock(true, KEEP_LABEL, PAGE)],
   ["confirmRig(several)", confirmRig(["EN16", "PBF4"])],
   [
     "partialBlock(utility only)",
@@ -267,7 +279,7 @@ const PLACEHOLDERS: readonly [string, string][] = [
     "{landed} reached your ZONA and {failed}",
   ],
   [`Click ${HEADER_LABEL} again`, "Click {label} again"],
-  [`Click ${TRY_ON_LABEL} again`, "Click {label} again"],
+  [`Click ${KEEP_LABEL} again`, "Click {label} again"],
 ];
 
 const templated = (text: string) =>
@@ -315,7 +327,7 @@ const failureBlocks = (): readonly [string, InstallBlock][] => [
   ["keptMismatchBlock", keptMismatchBlock(PAGE)],
   ["unconfirmedBlock", unconfirmedBlock(NAME, PAGE)],
   ["restoredUnconfirmedBlock", restoredUnconfirmedBlock(PAGE)],
-  ["nothingLandedBlock", nothingLandedBlock("try", PAGE)],
+  ["nothingLandedBlock", nothingLandedBlock("store", PAGE)],
   [
     "partialBlock",
     partialBlock(
@@ -374,7 +386,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "the stripped source is still the module and not only its comments",
     ).toBeGreaterThan(4000);
     expect(source, "the stripper ate the code").toContain(
-      "export const HONESTY_NO_SESSION",
+      "export const HONESTY_SNAPSHOTTING",
     );
 
     expect(source.includes('from "'), "install-copy.ts imports").toBe(false);
@@ -399,7 +411,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         `${DOCUMENTS[i].path} is not the document it claims to be`,
       ).toContain(DOCUMENTS[i].heading);
     });
-    const [bible, batch, context, ledger] = docs;
+    const [bible, batch, context, ledger, record] = docs;
     // D-23 is the answer, and it is the one word the plan asked for.
     const d23 = context.slice(context.indexOf(DOCUMENTS[2].heading));
     expect(d23, "D-23 records the answer").toContain('> *"approve"*');
@@ -407,20 +419,19 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "six transfer\nlines stay six",
     );
 
-    // THE SIX SECTION-16 LINES THIS MODULE TAKES VERBATIM, and section 9's
-    // labels: each is in the Bible character for character, and the module
-    // produces it character for character. The Bible writes curly quotes
-    // around its rows; the string inside them is what is matched.
+    // THE SECTION-16 LINES THIS MODULE TAKES VERBATIM (Apply's two left on
+    // 2026-09-16), and section 9's labels: each is in the Bible character for
+    // character, and the module produces it character for character. The
+    // Bible writes curly quotes around its rows; the string inside them is
+    // what is matched.
     const verbatim: readonly [string, string][] = [
       [
         "settledCaption",
         "Applied to Page 2. Store on ZONA to keep it after power-off.",
       ],
       ["keptCaption", "Stored on ZONA · Page 2"],
-      ["TRY_ON_LABEL", "Apply to ZONA"],
       ["KEEP_LABEL", "Store on ZONA"],
       ["IDENTIFIED_CAPTION", "ZONA connected"],
-      ["writingLabel", "Applying to Page 2…"],
       ["keepingLabel", "Storing on Page 2…"],
     ];
     const produced = new Map(
@@ -485,12 +496,13 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         ({ text }) =>
           !batch.includes(templated(text)) &&
           !bible.includes(text) &&
-          !ledger.includes(text),
+          !ledger.includes(text) &&
+          !record.includes(text),
       )
       .map(({ name, text }) => `${name}: ${templated(text)}`);
     expect(
       misses,
-      "strings neither the Bible, the batch nor the 13.1 ledger carries",
+      "strings neither the Bible, the batch, the 13.1 ledger nor the 2026-09-16 record carries",
     ).toEqual([]);
     // And the ledger is not a blanket: the strings it carries are exactly
     // the ones 13.1-06 rewrote, each with its old form struck beside it -
@@ -498,7 +510,10 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     // defaults), the four Clear strings that say the store and the one name
     // the unconfirmed row reads, each in the same shape.
     const ledgered = strings.filter(
-      ({ text }) => !batch.includes(templated(text)) && !bible.includes(text),
+      ({ text }) =>
+        !batch.includes(templated(text)) &&
+        !bible.includes(text) &&
+        ledger.includes(text),
     );
     expect(
       ledgered.map(({ name }) => name).sort(),
@@ -516,7 +531,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         "keptMismatchBlock.steps[1]",
         "unconfirmedBlock.steps[1]",
         "restoredUnconfirmedBlock.steps[0]",
-        "nothingLandedBlock.detail",
         "nothingLandedBlock(put-back).steps[0]",
         "partialBlock.steps[1]",
         "partialBlock(utility only).steps[1]",
@@ -526,12 +540,54 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         "lostBlock(store leg).steps[2]",
         "snapshotFailedBlock.title",
         "CONFIRM_WAY_BACK",
-        "KEEP_REASONS.after-partial",
       ].sort(),
     );
     expect(ledger).toContain(
       "~~`Or click Put back to restore what was there when you connected`~~",
     );
+    // Nor is the record: the strings only BENCH-2026-09-16.txt carries are
+    // change 1's - Store's description, its already-kept reason, the
+    // confirmation's sentence, the store form of the nothing-landed block and
+    // the three steps that named Apply - each with its old form struck.
+    const recorded = strings.filter(
+      ({ text }) =>
+        !batch.includes(templated(text)) &&
+        !bible.includes(text) &&
+        !ledger.includes(text),
+    );
+    expect(
+      recorded.map(({ name }) => name).sort(),
+      "the strings only the 2026-09-16 record carries are change 1's, and no other",
+    ).toEqual(
+      [
+        "keepLineEnabled",
+        "KEEP_REASONS.already-kept",
+        "confirmReplaces",
+        "nothingLandedBlock.detail",
+        "nothingLandedBlock.steps[0]",
+        "partialBlock.steps[0]",
+        "partialBlock(utility only).steps[0]",
+        "partialBlock(page init only).steps[0]",
+        "partialBlock(system timer only).steps[0]",
+        "snapshotFailedBlock.steps[0]",
+      ].sort(),
+    );
+    expect(record).toContain(
+      "~~`Click Apply to ZONA to send all five again`~~",
+    );
+    expect(installCopySource()).toContain(
+      "APPLY TO ZONA'S STRINGS ARE RETIRED BY NAME, 2026-09-16",
+    );
+    for (const retired of RETIRED_APPLY) {
+      expect(
+        Object.keys(copy).includes(retired),
+        `${retired} is still exported`,
+      ).toBe(false);
+      expect(
+        installCopySource().includes(retired),
+        `${retired} is retired without being named`,
+      ).toBe(true);
+    }
 
     // The two-form builders' other branches were walked too, so both forms
     // of each are held - not only the sampled one.
@@ -578,7 +634,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         `${sentence}: the landed prefix and the rest do not partition the five`,
       ).toEqual([...SLOT_NAMES_IN_WRITE_ORDER]);
       expect(partialBlock(landed, failed, PAGE).steps[0]).toBe(
-        `Click ${TRY_ON_LABEL} to send all five again`,
+        `Click ${KEEP_LABEL} to send all five again`,
       );
     }
     // THE FIFTH FACT, in the confirmation: a store carries the page's own
@@ -657,8 +713,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(CONFIRM_WAY_BACK).toBe(
       `${CLEAR_LABEL} still returns the page to its firmware default.`,
     );
-    expect(KEEP_REASONS["after-partial"]).toBe(
-      `Not after a partial apply. ${TRY_ON_LABEL} again, or click ${CLEAR_LABEL}.`,
+    expect(KEEP_REASONS["already-kept"]).toBe(
+      "Already stored on ZONA. Change something to store it again.",
     );
     expect(snapshotFailedBlock(PAGE).title).toBe("Nothing copied yet");
     // The two probe-only steps name the probe's action, not a click on a
@@ -712,26 +768,23 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       ).not.toMatch(/Page (?:0|1|3)\b/);
     }
 
-    // Z-08, ASSERTED RATHER THAN COMMENTED. "about a second" is the site's one
-    // promise about how long a write takes, and it belongs to the two honesty
-    // strings a visitor reads BEFORE clicking - and nowhere else. Over the
-    // module first, then over the whole of src/, because a second promise
-    // would most naturally be written somewhere else. .spec.ts files are
-    // excluded and that is not a loophole: a copy gate has to quote the
-    // sentence it pins. src/routes/dev/type/+page.svelte is an EXPECTED row,
-    // not an offender: it is the unlinked type probe plan 10-01 measured
-    // CH_PER_LINE on, and its copy of the sentence is a measurement sample.
+    // Z-08, ASSERTED RATHER THAN COMMENTED. "about a second" was the site's one
+    // promise about how long a write takes, and it belonged to the two honesty
+    // strings of the RAM write a visitor read BEFORE clicking. The RAM write
+    // left on 2026-09-16 and the promise with it: a store waits for the
+    // module's own proof, and no string promises a time. Over the module
+    // first, then over the whole of src/, because a promise would most
+    // naturally be written somewhere else. .spec.ts files are excluded and
+    // that is not a loophole: a copy gate has to quote the sentence it pins.
+    // src/routes/dev/type/+page.svelte is an EXPECTED row, not an offender:
+    // it is the unlinked type probe plan 10-01 measured CH_PER_LINE on, and
+    // its copy of the sentence is a measurement sample.
     const occurrences = source.toLowerCase().split("about a second").length - 1;
-    expect(occurrences, "Z-08: 'about a second' twice in the module").toBe(2);
-    expect(HONESTY_NO_SESSION.toLowerCase()).toContain("about a second");
-    expect(honestyReady(PAGE).toLowerCase()).toContain("about a second");
+    expect(occurrences, "Z-08: 'about a second' nowhere in the module").toBe(0);
     const speed = everyString()
       .filter(({ text }) => /about a second/i.test(text))
       .map(({ name }) => name);
-    expect(speed, "about a second appears only in the honesty slot").toEqual([
-      "HONESTY_NO_SESSION",
-      "honestyReady",
-    ]);
+    expect(speed, "no string promises a time").toEqual([]);
     const SRC = fileURLToPath(new URL("../..", import.meta.url));
     const counted: Record<string, number> = {};
     for (const entry of readdirSync(SRC, { recursive: true })) {
@@ -751,7 +804,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       counted,
       "Z-08: 'about a second' is somewhere it does not belong, or has left somewhere it does",
     ).toEqual({
-      "lib/device/install-copy.ts": 2,
       "routes/dev/type/+page.svelte": 1,
     });
 
@@ -775,9 +827,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       ["stepOrClear", stepOrClear(PAGE)],
       ["CONFIRM_WAY_BACK", CONFIRM_WAY_BACK],
       ["lostBlock.steps[2]", lostBlock(false, HEADER_LABEL, PAGE).steps[2]],
-      ["KEEP_REASONS.after-partial", KEEP_REASONS["after-partial"]],
     ];
-    expect(clearStrings.length, "the scan has strings to scan").toBe(12);
+    expect(clearStrings.length, "the scan has strings to scan").toBe(11);
     for (const [name, text] of clearStrings) {
       for (const stem of STEMS) {
         expect(
@@ -812,7 +863,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         )
         .map(([name, build]) => [name, build(PAGE)] as [string, string]),
     ];
-    expect(labels.length, "four constants and three progress labels").toBe(7);
+    expect(labels.length, "three constants and two progress labels").toBe(5);
     for (const [name, label] of labels) {
       expect(label, `${name} shouts`).not.toBe(label.toUpperCase());
       expect(label[0], `${name} is sentence case`).toBe(label[0].toUpperCase());
@@ -831,15 +882,16 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     // the twin is pinned by reading the other module, as the three pageName
     // twins are - and the review's two labels are gone from the exports and
     // retired in the header by name, with the date and the decision.
-    // FOUR SINCE 13.1-06: Put back removed by the user's word (D-07).
+    // FOUR SINCE 13.1-06: Put back removed by the user's word (D-07). THREE
+    // SINCE 2026-09-16: Apply to ZONA removed by the user's word
+    // (BENCH-2026-09-16.txt section 1).
     expect([...WRITE_CLICKS], "a write click is not a control label").toEqual([
-      TRY_ON_LABEL,
       KEEP_LABEL,
       CLEAR_LABEL,
       TARGET_CLICK,
     ]);
-    expect(WRITE_CLICKS.length, "four write clicks").toBe(4);
-    expect(new Set(WRITE_CLICKS).size, "four distinct").toBe(4);
+    expect(WRITE_CLICKS.length, "three write clicks").toBe(3);
+    expect(new Set(WRITE_CLICKS).size, "three distinct").toBe(3);
     expect(TARGET_CLICK).toBe("Target");
     expect(TARGET_CLICK, "the twin of page-target.ts's TARGET_LABEL").toBe(
       TARGET_LABEL,
@@ -937,14 +989,10 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
 
     // NO CONTROL LABEL PARAPHRASED IN PROSE, as the narrower thing that can be
     // asserted: every sentence that tells the visitor to click something
-    // names a control exactly as the control reads - one of the five write
+    // names a control exactly as the control reads - one of the three write
     // clicks, or the label the surface handed in. A step that said "press the
-    // apply button" would be red here by its own words.
-    const allowed = new Set<string>([
-      ...WRITE_CLICKS,
-      HEADER_LABEL,
-      TRY_ON_LABEL,
-    ]);
+    // store button" would be red here by its own words.
+    const allowed = new Set<string>([...WRITE_CLICKS, HEADER_LABEL]);
     const click = /[Cc]lick /g;
     let named = 0;
     for (const { name, text } of strings) {
@@ -978,33 +1026,33 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(raw.includes(ENGINE), "install-copy.ts names an engine").toBe(false);
   });
 
-  it("the closed sets: six reasons, three more, thirteen utterances, and titles that end without a full stop", () => {
+  it("the closed sets: three reasons, three more, thirteen utterances, and titles that end without a full stop", () => {
+    // THREE SINCE 2026-09-16 (six until Apply to ZONA left): no apply exists
+    // to be first, stale, partial or mismatched against, so those four rows
+    // are retired by name and the store is the retry from every failure.
     const reasons: readonly KeepReason[] = [
-      "never-tried",
-      "knobs-moved",
-      "after-partial",
+      "no-session",
       "already-kept",
-      "after-mismatch",
       "incapable",
     ];
-    expect(Object.keys(KEEP_REASONS).sort(), "exactly six reasons").toEqual(
+    expect(Object.keys(KEEP_REASONS).sort(), "exactly three reasons").toEqual(
       [...reasons].sort(),
     );
-    expect(new Set(Object.values(KEEP_REASONS)).size, "six distinct").toBe(6);
-    expect(KEEP_REASONS["never-tried"]).toBe(
-      `${TRY_ON_LABEL} first, then store it.`,
+    expect(new Set(Object.values(KEEP_REASONS)).size, "three distinct").toBe(3);
+    expect(KEEP_REASONS["no-session"], "the no-session sentence, reused").toBe(
+      NEEDS_ZONA,
     );
-    // Every reason that points at the apply names it as the button reads.
-    for (const reason of [
-      "never-tried",
-      "knobs-moved",
-      "after-partial",
-      "after-mismatch",
-    ] as const) {
-      expect(KEEP_REASONS[reason], `${reason} names the apply`).toContain(
-        TRY_ON_LABEL,
-      );
+    // No reason names a control: the one that points anywhere says what to do
+    // in the register's own words.
+    for (const reason of reasons) {
+      for (const label of WRITE_CLICKS) {
+        expect(
+          KEEP_REASONS[reason].includes(label),
+          `${reason} names ${label}`,
+        ).toBe(false);
+      }
     }
+    expect(KEEP_REASONS["already-kept"]).toContain("Change something");
 
     // The reset's three, closed the same way, and TWO OF THEM ARE REFERENCES
     // RATHER THAN RETYPED SENTENCES - asserted by identity, so a rewrite of
@@ -1123,37 +1171,33 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(two?.endsWith("at once.")).toBe(true);
     expect(confirmRig([]), "no other module, no fourth row").toBeUndefined();
 
-    expect(nothingLandedBlock("try", PAGE).steps[0]).toBe(
-      `Click ${TRY_ON_LABEL} to send it again`,
+    expect(nothingLandedBlock("store", PAGE).steps[0]).toBe(
+      `Click ${KEEP_LABEL} to send it again`,
     );
     expect(
       nothingLandedBlock("put-back", PAGE).steps[0],
       "the probe's form names the probe's action (13.1-06)",
     ).toBe("Send the restore again");
-    expect(nothingLandedBlock("try", PAGE).detail).not.toBe(
+    expect(nothingLandedBlock("store", PAGE).detail).not.toBe(
       nothingLandedBlock("put-back", PAGE).detail,
     );
-    expect(nothingLandedBlock("try", 2).detail).toContain("Page 3");
+    expect(nothingLandedBlock("store", 2).detail).toContain("Page 3");
 
     expect(lostBlock(false, HEADER_LABEL, PAGE).steps[1]).toBe(
       `Click ${HEADER_LABEL} again`,
     );
-    expect(lostBlock(false, TRY_ON_LABEL, PAGE).steps[1]).toBe(
-      `Click ${TRY_ON_LABEL} again`,
+    expect(lostBlock(false, KEEP_LABEL, PAGE).steps[1]).toBe(
+      `Click ${KEEP_LABEL} again`,
     );
     expect(
-      lostBlock(true, TRY_ON_LABEL, PAGE).detail.startsWith(
-        "The store was sent",
-      ),
+      lostBlock(true, KEEP_LABEL, PAGE).detail.startsWith("The store was sent"),
     ).toBe(true);
     expect(
-      lostBlock(false, TRY_ON_LABEL, PAGE).detail.includes(
-        "Nothing was stored",
-      ),
+      lostBlock(false, KEEP_LABEL, PAGE).detail.includes("Nothing was stored"),
       "Z-11: said only where it is true",
     ).toBe(true);
     expect(
-      lostBlock(true, TRY_ON_LABEL, PAGE).detail.includes("Nothing was stored"),
+      lostBlock(true, KEEP_LABEL, PAGE).detail.includes("Nothing was stored"),
       "Z-11: not said on a store leg",
     ).toBe(false);
 

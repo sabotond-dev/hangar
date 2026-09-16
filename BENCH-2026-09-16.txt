@@ -14,3 +14,44 @@ read-back proof - one flash write per click, the page defaulted underneath it. T
 confirmation on Store (SAFE-05) stays. The browser preview is the audition. PROJECT.md's "flash
 writes stay separate from RAM auditions" and SAFE-02 / SAFE-05's RAM-before-flash wording are
 retired by the user's word; the gate that amends them is whichever phase next runs a gate.
+
+### The strings change 1 wrote, verbatim (D-05's register), and the ones it retired
+
+New or rewritten, each in `src/lib/device/install-copy.ts` unless named otherwise; the sample page
+is wire 1, read as `Page 2`, as the batch writes it:
+
+- `keepLineEnabled` (Store on ZONA's description while connected, I.6.1 rewritten):
+  `Returns Page 2 to its firmware default, then writes this and stores it, so it stays after power-off.`
+  ~~`Stores this on Page 2 so it stays after power-off.`~~
+- `KEEP_REASONS.already-kept`: `Already stored on ZONA. Change something to store it again.`
+  ~~`Already stored on ZONA. Turn a knob and apply it again to store a new one.`~~
+- `KEEP_REASONS.no-session`: `Needs your ZONA connected.` (NEEDS_ZONA, referenced, not retyped)
+- `confirmReplaces` (the confirmation's second sentence, I.5.9 rewritten):
+  `This returns Page 2 to its firmware default, then writes this configuration — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and stores it, so it stays after power-off.`
+  ~~`This replaces what Page 2 holds on your ZONA — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and it stays after power-off.`~~
+- `nothingLandedBlock("store")` (the form a Store's RAM leg takes, I.5.5):
+  detail `Nothing of this reached Page 2, and nothing was stored.`
+  step `Click Store on ZONA to send it again`
+  ~~`Nothing got through. Page 2 is unchanged, so your own configuration is still playing.`~~
+  ~~`Click Apply to ZONA to send it again`~~
+- `keptMismatchBlock.steps[0]`: `Click Store on ZONA again`
+  ~~`Click Apply to ZONA, then Store on ZONA again`~~
+- `partialBlock.steps[0]`: `Click Store on ZONA to send all five again`
+  ~~`Click Apply to ZONA to send all five again`~~
+- `snapshotFailedBlock.steps[0]`: `Click Store on ZONA to read it again`
+  ~~`Click Apply to ZONA to read it again`~~
+- `src/lib/tune/copy.ts` `tryOnBudgetReason` (the name keeps its history):
+  `Over the 908-character budget on Setup. Turn something down to store it.`
+  ~~`Over the 908-character budget on Setup. Turn something down to apply it.`~~
+- the bar's busy clause (`device-clause.ts`, `writing`) is `keepingLabel`: `Storing on Page 2…`
+  ~~`writingLabel`: `Applying to Page 2…`~~
+
+Retired by name (the ledger block in `install-copy.ts`, "APPLY TO ZONA'S STRINGS ARE RETIRED BY NAME,
+2026-09-16"): `TRY_ON_LABEL` (`Apply to ZONA`), `writingLabel`, `HONESTY_NO_SESSION` (`Connects to your
+ZONA and applies this to its active page. About a second.`), `honestyReady` (`Applies this to Page 2 in
+about a second. It stays until power-off unless you store it.`), `KEEP_REASONS.never-tried` (`Apply to
+ZONA first, then store it.`), `KEEP_REASONS.knobs-moved` (`The knobs moved since it was applied. Apply
+to ZONA again first.`), `KEEP_REASONS.after-partial` (`Not after a partial apply. Apply to ZONA again,
+or click Clear.`), `KEEP_REASONS.after-mismatch` (`Apply to ZONA again first, then store it again.`),
+`nothingLandedBlock`'s `try` form; and `page-target.ts`'s `APPLY_LABEL` (`Apply to ZONA`), its own
+ledger line. Kept by name, the probe's alone: `settledCaption`, `liveSettled`.

@@ -17,8 +17,8 @@ Use Chrome, Edge or desktop Firefox 151 or newer. Plug the ZONA in, close Grid
 Editor and any other tab that holds the port, then click Connect ZONA in the
 header. Nothing is written to the module without a click.
 
-- Apply to ZONA writes to the module's memory; it is gone at power-off.
-- Store on ZONA writes it to flash so it stays.
+- Store on ZONA returns the page to its firmware default, writes the
+  configuration and stores it to flash so it stays after power-off.
 - Clear returns the current page to the firmware default and stores that.
 
 ## Licence

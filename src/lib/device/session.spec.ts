@@ -37,7 +37,7 @@ import {
   DeviceSession,
   type SerialLike,
 } from "./session.svelte";
-import { TRY_ON_LABEL } from "./try-on";
+import { KEEP_LABEL } from "./install-copy";
 import { stripComments } from "../../test-support/source";
 
 // ---------------------------------------------------------------------------
@@ -402,10 +402,10 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
     const b = new DeviceSession();
     b.start({ hasSerial: true, secure: false, serial: insecure.serial });
     expect(b.phase).toBe("insecure");
-    const block = b.failureFor(TRY_ON_LABEL);
+    const block = b.failureFor(KEEP_LABEL);
     expect(block?.title).toBe("This page needs HTTPS");
     expect(block?.steps, "the steps name the surface's own button").toContain(
-      `Click ${TRY_ON_LABEL} again`,
+      `Click ${KEEP_LABEL} again`,
     );
 
     for (const { calls, listeners } of [unsupported, insecure]) {
@@ -732,8 +732,8 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       header?.steps,
       "Y-14's amended steps, with the header's label",
     ).toEqual(["Plug in a ZONA", `Click ${CONNECT_LABEL} again`]);
-    expect(s.failureFor(TRY_ON_LABEL)?.steps[1], "and the panel's label").toBe(
-      `Click ${TRY_ON_LABEL} again`,
+    expect(s.failureFor(KEEP_LABEL)?.steps[1], "and the panel's label").toBe(
+      `Click ${KEEP_LABEL} again`,
     );
 
     // Both recovery lists say try again, which a port this page still held
@@ -1525,7 +1525,7 @@ describe("DeviceSession: capability, the offer, the chooser, identification (D-0
       expect(s.phase).toBe("unplugged-while-connected");
       expect(s.unpluggedWhileWriting).toBe(true);
       expect(s.failureFor(CONNECT_LABEL)?.detail).toBe(UNPLUGGED_WHILE_WRITING);
-      expect(s.failureFor(TRY_ON_LABEL)?.detail).toBe(UNPLUGGED_WHILE_WRITING);
+      expect(s.failureFor(KEEP_LABEL)?.detail).toBe(UNPLUGGED_WHILE_WRITING);
       await vi.advanceTimersByTimeAsync(2000);
       expect(utterances, "the session spoke under the lock").toEqual([
         connectedLine,

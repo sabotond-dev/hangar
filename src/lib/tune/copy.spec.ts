@@ -646,17 +646,17 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "Stop drawing the ZONA control on the pad. Puts Setup at 702 of 908.",
     );
 
-    // The reason beside a disabled Apply to ZONA: the budget, the event, and
-    // the way back. The three forms move together because the interpolation
-    // sits inside one sentence.
+    // The reason beside a disabled Store on ZONA (Apply until 2026-09-16): the
+    // budget, the event, and the way back. The three forms move together
+    // because the interpolation sits inside one sentence.
     expect(tryOnBudgetReason("Setup")).toBe(
-      "Over the 908-character budget on Setup. Turn something down to apply it.",
+      "Over the 908-character budget on Setup. Turn something down to store it.",
     );
     expect(tryOnBudgetReason("Timer")).toBe(
-      "Over the 908-character budget on Timer. Turn something down to apply it.",
+      "Over the 908-character budget on Timer. Turn something down to store it.",
     );
     expect(tryOnBudgetReason("Setup and Timer")).toBe(
-      "Over the 908-character budget on Setup and Timer. Turn something down to apply it.",
+      "Over the 908-character budget on Setup and Timer. Turn something down to store it.",
     );
 
     // The other disabled control's reason. It names the STATE and never the

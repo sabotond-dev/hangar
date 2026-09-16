@@ -141,7 +141,7 @@ export const pageName = (page: number): string => `Page ${page + 1}`;
 
 /**
  * The header's connect control - the PDF's page-1 control, verbatim - beside
- * try-on.ts's TRY_ON_LABEL, so the two surfaces' recovery steps each name
+ * install-copy.ts's KEEP_LABEL, so the two surfaces' recovery steps each name
  * their own button and neither can drift from it (Y-13). It reads the same at
  * rest and hovered (batch row I.2.1): NO_ZONA_LABEL, Phase 10's resting form,
  * is retired - a control announces what it does, never what it is not.

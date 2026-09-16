@@ -68,8 +68,8 @@ import {
 } from "../transport/fixtures/synthetic";
 import {
   FIRMWARE_DEFAULT_NAME,
+  KEEP_LABEL,
   LIVE_STILL_WRITING,
-  TRY_ON_LABEL,
   announceTitle,
   confirmRig,
   keptMismatchBlock,
@@ -577,11 +577,37 @@ async function throughStore(
   return fedAt;
 }
 
-/** A settled try-on of the pair, the road every flash-leg gate starts from. */
+/** A settled try-on of the pair: the /dev/install/ probe's TRY, which no route calls since 2026-09-16. */
 async function triedOn(rig: Rig, name = "Aurora"): Promise<void> {
   rig.store.observeConfig(PAIR);
   await drive(rig.store.tryOnDevice(PAIR, name));
   expect(rig.store.phase).toBe("settled");
+}
+
+/**
+ * The five firmware defaults, read through the pin: what every Store writes
+ * first since 2026-09-16 (BENCH-2026-09-16.txt section 1) and what CLEAR
+ * writes alone.
+ */
+const DEFAULTS: ConfigStrings = {
+  systemTimer: SYSTEM_DEFAULT_TIMER,
+  system: SYSTEM_DEFAULT_SETUP,
+  systemUtility: SYSTEM_DEFAULT_UTILITY,
+  setup: TOUCH_DEFAULT_SETUP,
+  timer: TOUCH_DEFAULT_TIMER,
+};
+
+/**
+ * One Store on ZONA of the pair, the routes' one write: the pair observed, the
+ * confirmation opened, the click driven through the store leg with the
+ * heartbeat fed, landing `kept`.
+ */
+async function storedOn(rig: Rig, name = "Aurora"): Promise<void> {
+  rig.store.observeConfig(PAIR);
+  rig.store.openConfirm();
+  expect(rig.store.confirmOpen, "the confirmation opened").toBe(true);
+  await throughStore(rig, rig.store.keepOnDevice(PAIR, name));
+  expect(rig.store.phase).toBe("kept");
 }
 
 /** The step ids and outcomes, in order. */
@@ -676,6 +702,48 @@ const ramLegFrames = (strings: ConfigStrings) => [
       type: 255,
     },
   ],
+];
+
+/**
+ * A Store click's wire shape since 2026-09-16, EIGHTEEN frames: the five
+ * defaults and the restore heartbeat (a RAM leg), the configuration's five
+ * and the restore (a second RAM leg - every RAM leg restores, sequence.ts),
+ * one PAGESTORE/EXECUTE, then the proof's five CONFIG/FETCH in SLOTS order.
+ * The first twelve by full shape, the last six by class (a fetch carries no
+ * action string).
+ */
+const storeClickRamFrames = (strings: ConfigStrings) => [
+  ...ramLegFrames(DEFAULTS),
+  ...ramLegFrames(strings),
+];
+const STORE_CLICK_TAIL = [
+  "PAGESTORE/EXECUTE",
+  "CONFIG/FETCH",
+  "CONFIG/FETCH",
+  "CONFIG/FETCH",
+  "CONFIG/FETCH",
+  "CONFIG/FETCH",
+];
+/** The same click as the capture reads it: eighteen steps, one per frame. */
+const STORE_CLICK_STEPS: [string, string][] = [
+  ["write-system-timer", "ok"],
+  ["write-system", "ok"],
+  ["write-system-utility", "ok"],
+  ["write-timer", "ok"],
+  ["write-setup", "ok"],
+  ["restore-page-change", "sent"],
+  ["write-system-timer", "ok"],
+  ["write-system", "ok"],
+  ["write-system-utility", "ok"],
+  ["write-timer", "ok"],
+  ["write-setup", "ok"],
+  ["restore-page-change", "sent"],
+  ["store", "ok"],
+  ["refetch-system-timer", "ok"],
+  ["refetch-system", "ok"],
+  ["refetch-system-utility", "ok"],
+  ["refetch-timer", "ok"],
+  ["refetch-setup", "ok"],
 ];
 
 /**
@@ -893,6 +961,33 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "fetch-setup",
     ]);
 
+    // Store on ZONA does the same (2026-09-16): armed from `snapshot-failed`
+    // - the click re-reads first - the confirmation opens, the click reads
+    // the module again, and writes nothing while the copy is refused.
+    store.observeConfig(PAIR);
+    expect(store.armed, "Store is armed from snapshot-failed").toBe(true);
+    store.openConfirm();
+    expect(store.confirmOpen).toBe(true);
+    await drive(store.keepOnDevice(PAIR, "x"));
+    expect(store.confirmOpen, "the click was taken").toBe(false);
+    expect(store.phase).toBe("snapshot-failed");
+    expect(
+      writesOf("CONFIG", "EXECUTE"),
+      "a Store over an uncopied module",
+    ).toBe(0);
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(
+      store.steps.map((s) => s.id),
+      "the Store read the module again",
+    ).toEqual([
+      "fetch-serial",
+      "fetch-system-timer",
+      "fetch-system",
+      "fetch-system-utility",
+      "fetch-timer",
+      "fetch-setup",
+    ]);
+
     // Fix the module - it is on the page its heartbeat reported - and retry.
     state.activePage = ACTIVE_PAGE;
     await drive(store.retrySnapshot());
@@ -904,22 +999,36 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(writesOf("CONFIG", "EXECUTE"), "the retry is a read").toBe(0);
   });
 
-  it("nothing is written without a click, and TRY ON DEVICE writes exactly five, the system timer first and the utility third, verbatim", async () => {
-    // FOUR CLICKS SINCE PLAN 10-12, and this assertion did not change - which
-    // is the finding rather than an omission (G-06, and A-53 correcting the
-    // spec text that said otherwise). The count is BY CLASS, and CLEAR writes
+  it("nothing is written without a click, armed means Store may write, and the probe's TRY ON DEVICE writes exactly five, the system timer first and the utility third, verbatim", async () => {
+    // FOUR CLICKS SINCE PLAN 10-12, THREE SINCE 2026-09-16 (Apply to ZONA
+    // gone), and this assertion did not change - which is the finding rather
+    // than an omission (G-06, and A-53 correcting the spec text that said
+    // otherwise). The count is BY CLASS, and every click writes
     // CONFIG/EXECUTE - the class already counted - so its reach was already
-    // total and widening the enumeration would have been work that proved
-    // nothing. What actually widened is InstallAction, and the compiler
+    // total. What widened over the phases is InstallAction, and the compiler
     // enforces that for free.
     const { store, fake, state, session, writesOf } = await connected();
     const locks = record(session, "writeLock");
 
-    // Knob moves: the pair arrives, twice, and nothing goes out.
+    // Knob moves: the pair arrives, twice, and nothing goes out. `armed` is
+    // Store's readiness since 2026-09-16 - a session, a writable phase, the
+    // page at rest, a pair inside 908 - so it is TRUE here with nothing
+    // written, and the closed record names no reason.
+    expect(store.armed, "nothing published yet").toBe(false);
     store.observeConfig(PAIR);
     store.observeConfig(PAIR);
     expect(writesOf("CONFIG", "EXECUTE"), "a knob move wrote").toBe(0);
-    expect(store.armed, "armed before anything was written").toBe(false);
+    expect(writesOf("PAGESTORE", "EXECUTE"), "a knob move stored").toBe(0);
+    expect(store.armed, "Store may write, and nothing has").toBe(true);
+    expect(store.keepReason(true), "no reason in the record").toBeUndefined();
+    expect(store.lastWritten, "nothing landed").toBeUndefined();
+    // Over budget, or withdrawn while measuring, disarms; back inside, arms.
+    store.observeConfig({ ...PAIR, setup: "a".repeat(909) });
+    expect(store.armed, "over 908 disarms").toBe(false);
+    store.observeConfig(undefined);
+    expect(store.armed, "measuring disarms").toBe(false);
+    store.observeConfig(PAIR);
+    expect(store.armed).toBe(true);
     const framesBefore = fake.writes.length;
 
     await drive(store.tryOnDevice(PAIR, "Aurora"));
@@ -947,7 +1056,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.leg).toBe("ram");
     expect(store.cause).toBeUndefined();
     expect(store.lastWritten).toEqual(PAIR);
-    expect(store.armed, "the module holds the pair on screen").toBe(true);
+    expect(store.armed, "Store may write from settled").toBe(true);
     expect(store.name).toBe("Aurora");
     expect(state.configs[EVENT_SETUP], "the fake's RAM").toBe(PAIR.setup);
     expect(state.configs[EVENT_TIMER]).toBe(PAIR.timer);
@@ -966,21 +1075,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     await after(500);
     expect(session.speech).toBe(liveSettled(ACTIVE_PAGE));
 
-    // A knob move onto different strings disarms; onto the same strings, not.
+    // A knob move onto different strings keeps Store armed (the click writes
+    // what the screen shows), and writes nothing.
     store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
-    expect(store.armed).toBe(false);
-    // And on the THIRD string too: a system string that is not what landed
-    // disarms exactly as a moved knob does. 12-07 is where it can differ by
-    // entry; the rule is asserted here, before there is a way to reach it.
+    expect(store.armed).toBe(true);
     store.observeConfig({ ...PAIR, system: MODULE_SYSTEM });
-    expect(store.armed, "a different page init is not what is playing").toBe(
-      false,
-    );
-    // And on the FIFTH: a utility body that is not what landed disarms too.
-    store.observeConfig({ ...PAIR, systemUtility: MODULE_SYSTEM_UTILITY });
-    expect(store.armed, "a different utility is not what is playing").toBe(
-      false,
-    );
+    expect(store.armed).toBe(true);
     store.observeConfig({ ...PAIR });
     expect(store.armed).toBe(true);
     expect(
@@ -1019,7 +1119,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
 
     expect(store.phase).toBe("restored");
     expect(store.action).toBe("put-back");
-    expect(store.armed).toBe(false);
+    expect(store.armed, "Store may write from restored").toBe(true);
     expect(store.lastWritten).toBeUndefined();
     expect(store.name).toBeUndefined();
     expect(store.snapshot, "the way back is still there").toEqual(ORIGINAL);
@@ -1214,8 +1314,33 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.steps, "an action started").toBe(stepsBefore);
     expect(store.steps).toHaveLength(7);
     expect(store.lastWritten).toBeUndefined();
-    expect(store.armed).toBe(false);
     expect(session.writeLock).toBe(false);
+
+    // And Store on ZONA, the routes' click: never armed over budget or while
+    // measuring, so the confirmation cannot open; a click forced through a
+    // confirmation that is open anyway is refused by the store on its own
+    // (TUNE-05, D-10) before the queue hears of it.
+    store.observeConfig({ ...PAIR, setup: "a".repeat(909) });
+    expect(store.armed, "over budget").toBe(false);
+    store.openConfirm();
+    expect(store.confirmOpen, "the confirmation refused").toBe(false);
+    store.observeConfig(undefined);
+    expect(store.armed, "measuring").toBe(false);
+    store.openConfirm();
+    expect(store.confirmOpen).toBe(false);
+    store.confirmOpen = true;
+    store.armed = true;
+    await drive(store.keepOnDevice({ ...PAIR, timer: "a".repeat(909) }, "x"));
+    expect(fake.writes.length, "an over-budget Store reached the wire").toBe(
+      framesBefore,
+    );
+    expect(store.confirmOpen, "the click was taken").toBe(false);
+    store.confirmOpen = true;
+    await drive(store.keepOnDevice(undefined, "x"));
+    expect(fake.writes.length, "undefined reached the wire").toBe(framesBefore);
+    expect(store.phase).toBe("ready");
+    expect(store.steps).toBe(stepsBefore);
+    expect(store.confirmOpen).toBe(false);
   });
 
   it("the file's shape: four specifiers, no raw onData, no direct write, no interval, no derived", () => {
@@ -1285,33 +1410,67 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   // -------------------------------------------------------------------------
   // The flash leg, the taxonomy and the bounds (07-07; SAFE-05 to SAFE-09).
 
-  it("kept is said after the store acknowledgement, a heartbeat, and a matching re-fetch", async () => {
+  it("a Store returns the page to its firmware default, writes the configuration, stores it, and kept is said after the acknowledgement, a heartbeat and a matching re-fetch - eighteen frames, one click", async () => {
+    // THE ROUTES' ONE WRITE SINCE 2026-09-16 (BENCH-2026-09-16.txt section 1,
+    // the user's word: "only Store stays. also every Store should send a
+    // Clear before Storing"). No RAM audition before it: the pair is observed,
+    // the confirmation opens, the click runs three legs.
     const rig = await connected();
-    const { store, state, session, writesOf } = rig;
-    await triedOn(rig);
-    expect(
-      store.keepReason(true),
-      "live after a settled try-on",
-    ).toBeUndefined();
+    const { store, fake, state, session, writesOf } = rig;
+    store.observeConfig(PAIR);
+    expect(store.armed, "Store is armed from ready").toBe(true);
+    expect(store.keepReason(true), "and the record names no reason").toBe(
+      undefined,
+    );
+    expect(store.storedThisSession).toBe(false);
+    const framesBefore = fake.writes.length;
     const locks = record(session, "writeLock");
     const spoken = record(session, "speech");
 
     store.openConfirm();
     expect(store.confirmOpen).toBe(true);
-    const fedAt = await throughStore(rig, store.keepOnDevice());
+    const fedAt = await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
     expect(store.confirmOpen, "the confirmation closed on the click").toBe(
       false,
     );
-    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(1);
-    expect(outcomes(store.steps)).toEqual([
-      ["store", "ok"],
-      ["refetch-system-timer", "ok"],
-      ["refetch-system", "ok"],
-      ["refetch-system-utility", "ok"],
-      ["refetch-timer", "ok"],
-      ["refetch-setup", "ok"],
+    // BY CLASS: two RAM legs of five, two restores, one store, one proof round
+    // of five - every class the click may reach, and no other.
+    const frames = written(fake);
+    expect(
+      [
+        ...new Set(
+          frames
+            .slice(framesBefore)
+            .flat()
+            .map((c) => `${c.class_name}/${c.class_instr}`),
+        ),
+      ].sort(),
+    ).toEqual([
+      "CONFIG/EXECUTE",
+      "CONFIG/FETCH",
+      "HEARTBEAT/EXECUTE",
+      "PAGESTORE/EXECUTE",
     ]);
+    expect(writesOf("CONFIG", "EXECUTE"), "five defaults, five strings").toBe(
+      10,
+    );
+    expect(writesOf("HEARTBEAT", "EXECUTE"), "one restore per RAM leg").toBe(2);
+    expect(writesOf("PAGESTORE", "EXECUTE"), "one store per click").toBe(1);
+    expect(
+      writesOf("CONFIG", "FETCH"),
+      "the snapshot's five, the proof's five",
+    ).toBe(10);
+    // THE SEQUENCE, frame by frame: the five defaults VERBATIM in SLOTS order
+    // and the restore - the same six frames CLEAR sends - then the pair's five
+    // and the restore, then the store, then the proof. Eighteen.
+    const clicked = frames.slice(framesBefore).map(shape);
+    expect(clicked, "frames the click produced").toHaveLength(18);
+    expect(clicked.slice(0, 12)).toEqual(storeClickRamFrames(PAIR));
+    expect(clicked.slice(12).map((f) => f[0].cls)).toEqual(STORE_CLICK_TAIL);
+    // The capture reads the whole click: eighteen steps, `steps` reset by the
+    // first leg alone.
+    expect(outcomes(store.steps)).toEqual(STORE_CLICK_STEPS);
 
     // D-12 through Pitfall 6: the re-fetch went out only AFTER the heartbeat
     // was fed - at the feed's clock reading or later (the send is the
@@ -1327,14 +1486,31 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     }
 
     expect(store.phase).toBe("kept");
-    expect(store.action).toBe("keep");
-    expect(store.leg).toBe("store");
+    expect(store.action, "one action for the whole click").toBe("keep");
+    expect(store.leg, "the leg that ended").toBe("store");
     expect(store.cause).toBeUndefined();
     expect(store.storedThisSession).toBe(true);
     expect(store.refetchRounds).toBe(1);
+    expect(store.lastWritten, "memory holds the pair").toEqual(PAIR);
+    expect(store.name).toBe("Aurora");
+    // The record's one row after a store: the module holds the pair on
+    // screen, so a second click would store the same bytes. A change on
+    // screen makes Store live again; `armed` itself stays true (kept is
+    // writable).
     expect(store.keepReason(true)).toBe("already-kept");
-    expect(store.armed).toBe(false);
+    expect(store.armed).toBe(true);
+    store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
+    expect(store.keepReason(true), "a change: the store is live").toBe(
+      undefined,
+    );
+    store.observeConfig(PAIR);
+    expect(store.keepReason(true)).toBe("already-kept");
     expect(store.slow).toBe(false);
+    // RAM and flash both hold the pair on both elements; the defaults were
+    // overwritten in memory before the store, so nothing of them is in flash
+    // and nothing of the module's own page either.
+    expect(state.configs[EVENT_SETUP], "the fake's RAM").toBe(PAIR.setup);
+    expect(state.system?.[EVENT_UTILITY]).toBe(PAIR.systemUtility);
     expect(state.flash, "the fake's flash holds the pair").toEqual({
       [EVENT_SETUP]: PAIR.setup,
       [EVENT_TIMER]: PAIR.timer,
@@ -1347,7 +1523,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       [EVENT_TIMER]: PAIR.systemTimer,
       [EVENT_UTILITY]: PAIR.systemUtility,
     });
-    expect(locks).toEqual([true, false]);
+    // The header lock closed over each of the three legs.
+    expect(locks).toEqual([true, false, true, false, true, false]);
     expect(session.writeLock).toBe(false);
     await after(500);
     expect(session.speech).toBe(liveKept(ACTIVE_PAGE));
@@ -1355,6 +1532,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       spoken.filter((s) => s === liveKept(ACTIVE_PAGE)),
       "spoken once - not for the ACK and again for the proof",
     ).toHaveLength(1);
+    expect(
+      spoken.includes(liveSettled(ACTIVE_PAGE)),
+      "no RAM landing is spoken inside a Store",
+    ).toBe(false);
+    expect(
+      spoken.includes(liveCleared(ACTIVE_PAGE)),
+      "nor is the reset - one click, one utterance",
+    ).toBe(false);
   });
 
   it("a read-back that never matches is kept-mismatch after three rounds", async () => {
@@ -1400,13 +1585,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       },
     });
     const { store, session } = rig;
-    await triedOn(rig);
+    store.observeConfig(PAIR);
     store.openConfirm();
-    await throughStore(rig, store.keepOnDevice());
+    await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
-    // Exactly three rounds, each of all five events, a backoff after each.
+    // The two RAM legs, then exactly three rounds, each of all five events, a
+    // backoff after each.
     expect(outcomes(store.steps)).toEqual([
-      ["store", "ok"],
+      ...STORE_CLICK_STEPS.slice(0, 13),
       ["refetch-system-timer", "ok"],
       ["refetch-system", "ok"],
       ["refetch-system-utility", "ok"],
@@ -1433,9 +1619,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.phase).toBe("kept-mismatch");
     expect(store.cause).toBe("mismatch");
     expect(store.storedThisSession, "not called kept").toBe(false);
-    expect(store.keepReason(true)).toBe("after-mismatch");
+    // The store is the retry: armed, no reason in the record.
+    expect(store.keepReason(true)).toBeUndefined();
+    expect(store.armed).toBe(true);
     expect(store.putBackState()).toBe("enabled");
-    expect(store.armed).toBe(false);
     expect(session.writeLock).toBe(false);
     await after(500);
     expect(session.speech).toBe(
@@ -1444,7 +1631,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(session.speech.endsWith(".")).toBe(true);
   });
 
-  it("a store that never acknowledges is unconfirmed, and KEEP ON DEVICE stays live", async () => {
+  it("a store that never acknowledges is unconfirmed, and Store on ZONA stays live", async () => {
     const rig = await connected({
       faults: [
         {
@@ -1454,13 +1641,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       ],
     });
     const { store, session, writesOf } = rig;
-    await triedOn(rig);
+    store.observeConfig(PAIR);
     store.openConfirm();
     const started = clock.t;
-    const fedAt = await throughStore(rig, store.keepOnDevice());
+    const fedAt = await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
-    // Three bounded attempts at pagestoreMs each, two backoffs between, and
-    // no heartbeat was ever waited for because no acknowledgement came.
+    // The two RAM legs land at speed; then three bounded attempts at
+    // pagestoreMs each, two backoffs between, and no heartbeat was ever
+    // waited for because no acknowledgement came.
     expect(fedAt).toBeUndefined();
     expect(clock.t - started).toBeGreaterThanOrEqual(
       RETRY_ATTEMPTS * TIMEOUTS.pagestoreMs +
@@ -1468,13 +1656,20 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         retryBackoffMs(1),
     );
     expect(writesOf("PAGESTORE", "EXECUTE")).toBe(RETRY_ATTEMPTS);
-    expect(outcomes(store.steps)).toEqual([["store", "timeout"]]);
-    expect(store.steps[0].attempts).toBe(RETRY_ATTEMPTS);
+    expect(writesOf("CONFIG", "EXECUTE"), "both RAM legs landed").toBe(10);
+    expect(outcomes(store.steps)).toEqual([
+      ...STORE_CLICK_STEPS.slice(0, 12),
+      ["store", "timeout"],
+    ]);
+    expect(store.steps[12].attempts).toBe(RETRY_ATTEMPTS);
 
     expect(store.phase).toBe("unconfirmed");
     expect(store.cause).toBe("timeout");
     expect(store.storedThisSession).toBe(false);
-    // Memory still holds what was heard, so the store may be sent again.
+    // Memory holds the pair - the block names it - so the store may be sent
+    // again: armed, no reason in the record.
+    expect(store.lastWritten).toEqual(PAIR);
+    expect(store.name).toBe("Aurora");
     expect(store.armed).toBe(true);
     expect(store.keepReason(true)).toBeUndefined();
     expect(store.putBackState()).toBe("enabled");
@@ -1493,9 +1688,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // Part one: the store lands and is proved.
     const rig = await connected();
     const { store, fake, state, session, writesOf } = rig;
-    await triedOn(rig);
-    store.openConfirm();
-    await throughStore(rig, store.keepOnDevice());
+    await storedOn(rig);
     expect(store.phase).toBe("kept");
     const framesBefore = fake.writes.length;
     const spoken = record(session, "speech");
@@ -1566,9 +1759,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     const second = await connected({
       faults: dropThreeAcksFrom("PAGESTORE", 2),
     });
-    await triedOn(second);
-    second.store.openConfirm();
-    await throughStore(second, second.store.keepOnDevice());
+    await storedOn(second);
     expect(second.store.phase).toBe("kept");
     const spokenSecond = record(second.session, "speech");
 
@@ -1591,7 +1782,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "still set: the store did not prove",
     ).toBe(true);
     expect(second.store.putBackState()).toBe("enabled");
-    expect(second.store.keepReason(true)).toBe("never-tried");
+    expect(second.store.keepReason(true), "the store is live").toBeUndefined();
     // RAM is the original. The fake's flash is not asserted: zonaResponder
     // stores before the fault drops its acknowledgement, so what the fake's
     // flash holds is exactly what HANGAR cannot know - the sentence I12 speaks.
@@ -1607,7 +1798,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBe(false);
   });
 
-  it("one landed script is partial, and it names what landed", async () => {
+  it("one landed script is partial, and it names what landed - on the probe's TRY and on a Store's second leg, whose classifier reads that leg alone", async () => {
     // A RAM LEG IS FIVE WRITES SINCE 13-17, so the drop list moved again and
     // the number is derived rather than copied: acknowledgement 1 is the
     // system timer, 2 the page init, 3 the utility and 4 the Timer - all four
@@ -1651,8 +1842,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ]);
     expect(store.failedSlots).toEqual(["Setup"]);
     expect(store.cause).toBe("timeout");
-    expect(store.keepReason(true)).toBe("after-partial");
-    expect(store.armed, "never armed from partial").toBe(false);
+    expect(store.keepReason(true), "the store is the retry").toBeUndefined();
+    expect(store.armed, "the store is the retry: armed from partial").toBe(
+      true,
+    );
     expect(store.putBackState()).toBe("enabled");
     expect(store.lastWritten, "nothing counts as written").toBeUndefined();
     expect(state.configs[EVENT_TIMER], "the Timer landed").toBe(PAIR.timer);
@@ -1693,6 +1886,76 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.landedSlots).toEqual([]);
     expect(store.failedSlots).toEqual([]);
     expect(writesOf("CONFIG", "EXECUTE"), "7 + 5").toBe(12);
+
+    // A STORE'S SECOND LEG (2026-09-16). The defaults leg takes
+    // acknowledgements 1 to 5 and lands; the configuration leg's Setup is the
+    // tenth, and its three attempts - 10, 11 and 12 - are dropped. The
+    // classifier reads the SECOND leg's steps alone: had it read the click's
+    // whole capture, the first leg's five `ok` writes would have counted every
+    // slot as landed and indexed a sixth partial that does not exist. Nothing
+    // is stored after a partial: the store leg runs only after every
+    // acknowledgement, as a clear's does.
+    const second = await connected({
+      faults: dropThreeAcksFrom("CONFIG", 10),
+    });
+    second.store.observeConfig(PAIR);
+    second.store.openConfirm();
+    await drive(second.store.keepOnDevice(PAIR, "Aurora"));
+    expect(outcomes(second.store.steps)).toEqual([
+      ...STORE_CLICK_STEPS.slice(0, 6),
+      ["write-system-timer", "ok"],
+      ["write-system", "ok"],
+      ["write-system-utility", "ok"],
+      ["write-timer", "ok"],
+      ["write-setup", "timeout"],
+      ["restore-page-change", "sent"],
+    ]);
+    expect(second.store.phase).toBe("partial");
+    expect(second.store.action).toBe("keep");
+    expect(second.store.leg).toBe("ram");
+    expect(second.store.landed).toBe(
+      "The system timer, the page init, the utility script and the Timer",
+    );
+    expect(second.store.failed).toBe("the Setup");
+    expect(second.store.landedSlots).toEqual([
+      "System timer",
+      "System",
+      "System utility",
+      "Timer",
+    ]);
+    expect(second.store.failedSlots).toEqual(["Setup"]);
+    expect(
+      second.writesOf("CONFIG", "EXECUTE"),
+      "five defaults, then the pair's four once and the Setup three times",
+    ).toBe(12);
+    expect(
+      second.writesOf("PAGESTORE", "EXECUTE"),
+      "no store after a partial",
+    ).toBe(0);
+    expect(
+      second.store.lastWritten,
+      "nothing counts as written",
+    ).toBeUndefined();
+    expect(second.store.storedThisSession).toBe(false);
+    // The store is the retry: armed, no reason in the record.
+    expect(second.store.armed).toBe(true);
+    expect(second.store.keepReason(true)).toBeUndefined();
+    // The fake's flash is untouched: the module's own page survives a partial
+    // Store, whatever memory holds.
+    expect(second.state.flash?.[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(second.state.systemFlash?.[EVENT_UTILITY]).toBe(
+      MODULE_SYSTEM_UTILITY,
+    );
+    await after(500);
+    expect(second.session.speech).toBe(
+      announceTitle(
+        partialBlock(
+          "The system timer, the page init, the utility script and the Timer",
+          "the Setup",
+          ACTIVE_PAGE,
+        ).title,
+      ),
+    );
   });
 
   it("none landed is nothing-landed - by refusal with one attempt, by timeout with three, and the timeout escalates the pacing", async () => {
@@ -1723,7 +1986,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(refused.store.cause).toBe("nack");
     expect(refused.store.pacingEscalated, "a NACK was seen").toBe(false);
     expect(refused.store.landed).toBeUndefined();
-    expect(refused.store.keepReason(true)).toBe("never-tried");
+    expect(
+      refused.store.keepReason(true),
+      "the store is the retry",
+    ).toBeUndefined();
     expect(refused.store.putBackState()).toBe("enabled");
     expect(refused.state.configs[EVENT_TIMER], "nothing changed").toBe(
       MODULE_TIMER,
@@ -1740,7 +2006,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     await after(500);
     expect(refused.session.speech).toBe(
-      announceTitle(nothingLandedBlock("try", ACTIVE_PAGE).title),
+      announceTitle(nothingLandedBlock("put-back", ACTIVE_PAGE).title),
     );
 
     // Part two: every acknowledgement arrives later than executeMs, so the
@@ -1825,7 +2091,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     await after(500);
     expect(session.speech).toBe(
-      announceTitle(lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title),
+      announceTitle(lostBlock(false, KEEP_LABEL, ACTIVE_PAGE).title),
     );
     expect(
       spoken.some((s) => s.includes("Nothing was written")),
@@ -1862,14 +2128,14 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       [1, "EN16"],
       [2, "BU16"],
     ]);
-    await triedOn(rig);
+    store.observeConfig(PAIR);
     store.openConfirm();
     expect(store.confirmOpen, "the store is allowed on a rig").toBe(true);
     const acksBefore = received()
       .flat()
       .filter((c) => c.class_name === "PAGESTORE").length;
 
-    await throughStore(rig, store.keepOnDevice());
+    await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
     // One store on the wire, three acknowledgements back, one resolution.
     expect(writesOf("PAGESTORE", "EXECUTE")).toBe(1);
@@ -1893,28 +2159,44 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
   });
 
-  it("flash only what you have heard - the confirmation closes on a knob move and a session drop, a page change re-snapshots, and the select's change is switchPage: the heartbeat then exactly one switch in that order, refused where it must be, and never parked at requested", async () => {
-    // The four exits of the confirmation, two of them here: a knob move that
-    // disarms, and the session dropping.
+  it("flash only what you have heard - the confirmation stays open on a change inside the budget, closes when the pair is withdrawn and on a session drop, a page change re-snapshots, and the select's change is switchPage: the heartbeat then exactly one switch in that order, refused where it must be, and never parked at requested", async () => {
+    // The confirmation's exits, two of them here: the pair withdrawn (over
+    // budget, or measuring) - a knob move inside 908 is NOT one since
+    // 2026-09-16, because the click writes what the screen shows - and the
+    // session dropping.
     const first = await connected();
-    await triedOn(first);
+    first.store.observeConfig(PAIR);
     first.store.openConfirm();
     expect(first.store.confirmOpen).toBe(true);
     first.store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
-    expect(first.store.confirmOpen, "closed by the knob move").toBe(false);
+    expect(first.store.confirmOpen, "open across a change in budget").toBe(
+      true,
+    );
+    expect(first.store.armed).toBe(true);
+    first.store.observeConfig({ ...PAIR, timer: "a".repeat(909) });
+    expect(first.store.confirmOpen, "closed by the pair going over").toBe(
+      false,
+    );
     expect(first.store.armed).toBe(false);
-    expect(first.store.keepReason(true)).toBe("knobs-moved");
     expect(first.store.openConfirm(), "refused while disarmed").toBeUndefined();
     expect(first.store.confirmOpen).toBe(false);
     first.store.observeConfig({ ...PAIR });
-    expect(first.store.armed, "identical strings arm again").toBe(true);
+    expect(first.store.armed, "inside 908 arms again").toBe(true);
+    first.store.openConfirm();
+    expect(first.store.confirmOpen).toBe(true);
+    first.store.observeConfig(undefined);
+    expect(first.store.confirmOpen, "closed by the pair withdrawn").toBe(false);
+    first.store.observeConfig(PAIR);
     first.store.openConfirm();
     expect(first.store.confirmOpen).toBe(true);
     expect(first.writesOf("PAGESTORE", "EXECUTE"), "opening wrote").toBe(0);
+    expect(first.writesOf("CONFIG", "EXECUTE"), "opening wrote").toBe(0);
     first.fire("disconnect", first.port);
     await until(() => first.session.phase !== "connected", "the unplug");
     expect(first.store.confirmOpen, "closed by the session drop").toBe(false);
     expect(first.store.phase).toBe("idle");
+    expect(first.store.armed, "no session, not armed").toBe(false);
+    expect(first.store.keepReason(true)).toBe("no-session");
     expect(first.writesOf("PAGESTORE", "EXECUTE")).toBe(0);
 
     // A page change on the module, seen from the heartbeat, re-snapshots for
@@ -2100,22 +2382,23 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       ],
     });
     const { store, session } = rig;
-    await triedOn(rig);
+    store.observeConfig(PAIR);
     store.openConfirm();
     const spoken = record(session, "speech");
 
-    const finish = begin(store.keepOnDevice());
-    // Let the leg arm its timer at this clock reading before any time passes.
-    await settle();
+    const finish = begin(store.keepOnDevice(PAIR, "Aurora"));
+    // The two RAM legs land at speed under the fake; the store leg arms its
+    // own timer when it starts. until() polls every STEP_MS, so the leg's
+    // start is read at most 5 ms late: the line is asserted still off at
+    // 1985 ms after the reading (1990 at most after the start) and on by 2005.
+    await until(() => store.leg === "store", "the store leg");
     expect(store.phase).toBe("writing");
-    expect(store.leg).toBe("store");
     expect(store.slow).toBe(false);
 
-    await after(1995);
-    await tick(4);
-    expect(store.slow, "at 1999 ms").toBe(false);
-    await tick(1);
-    expect(store.slow, "at 2000 ms").toBe(true);
+    await after(1985);
+    expect(store.slow, "at most 1990 ms into the store leg").toBe(false);
+    await tick(20);
+    expect(store.slow, "at least 2005 ms into the store leg").toBe(true);
     expect(store.phase, "still in flight, not failed").toBe("writing");
     await after(500);
     expect(session.speech).toBe(LIVE_STILL_WRITING);
@@ -2125,7 +2408,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       () => store.steps.some((s) => s.id === "store" && s.outcome === "ok"),
       "the delayed acknowledgement",
     );
-    expect(store.steps[0].attempts).toBe(1);
+    expect(store.steps[12].id).toBe("store");
+    expect(store.steps[12].attempts).toBe(1);
     rig.heartbeat();
     await finish();
 
@@ -2310,9 +2594,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // snapshot is the one taken at connect, and a clear takes no new one.
     expect(store.lastWritten).toBeUndefined();
     expect(store.name).toBeUndefined();
-    expect(store.armed).toBe(false);
-    expect(store.keepReason(true), "the closed set's own answer").toBe(
-      "never-tried",
+    expect(store.armed, "Store is live from cleared").toBe(true);
+    expect(store.keepReason(true), "the closed set names no reason").toBe(
+      undefined,
     );
     expect(store.putBackState(), "a snapshot exists by construction").toBe(
       "enabled",
@@ -2402,7 +2686,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.action).toBe("clear");
     expect(store.cause).toBe("mismatch");
     expect(store.storedThisSession, "not called stored").toBe(false);
-    expect(store.keepReason(true)).toBe("after-mismatch");
+    expect(store.keepReason(true), "the store is the retry").toBeUndefined();
     expect(
       store.clearEnabled(true),
       "and Clear is one click from a retry",
@@ -2454,11 +2738,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       FIRMWARE_DEFAULT_NAME,
     );
     expect(store.lastWritten).toBeUndefined();
-    expect(store.armed).toBe(false);
+    expect(store.armed, "Store is live from unconfirmed").toBe(true);
     expect(
       store.keepReason(true),
-      "the eighth row: not knobs-moved, no knob moved",
-    ).toBe("never-tried");
+      "no row: the store is the retry, and nothing of the visitor's is on the module to be already kept",
+    ).toBeUndefined();
     expect(store.clearEnabled(true), "Clear is the retry").toBe(true);
     expect(state.configs[EVENT_SETUP], "the RAM leg did land").toBe(
       TOUCH_DEFAULT_SETUP,
@@ -2634,16 +2918,15 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ).toBe("enabled");
     expect(
       store.keepReason(true),
-      "KEEP ON DEVICE after a clear - the closed set of six answers this phase without a seventh member, because a clear leaves nothing of the visitor's on the module to keep",
-    ).toBe("never-tried");
+      "Store on ZONA after a clear - the closed set of three names no reason, because the store is the way to put a configuration on a cleared page (2026-09-16)",
+    ).toBeUndefined();
     expect(store.clearEnabled(true), "and a clear is idempotent (A-50)").toBe(
       true,
     );
-    // TRY ON DEVICE has no predicate here on purpose: its enablement is the
-    // component's, derived from `writing`, `snapshotting` and a missing
-    // config, so `cleared` enables it by not being either of the two phases.
-    // device-ui.spec.ts holds that from the other side, by asserting the
-    // primary names no phase this plan added.
+    // Store on ZONA's own predicate is `armed` (#storeRefusal: the writable
+    // phases plus snapshot-failed, a session, the page at rest, a pair inside
+    // 908); the probe's TRY has none here on purpose - its enablement is the
+    // probe's. device-ui.spec.ts holds the zone from the other side.
 
     for (const phase of ENABLED) {
       store.phase = phase;
@@ -2793,12 +3076,34 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.lastWritten?.system).toBe(SYSTEM_DEFAULT_SETUP);
     expect(store.lastWritten?.systemUtility).toBe(SYSTEM_DEFAULT_UTILITY);
 
-    // THE STORE PROOF, after a KEEP, fetches FIVE per round and compares
-    // five. One round, five re-fetches, in the fetcher's own order - SLOTS'.
-    await triedOn(rig);
+    // A STORE with the same landing: the substitution reaches the wire on
+    // the click's SECOND leg as it did on the probe's TRY - after the five
+    // defaults - and the proof, after the store, fetches FIVE per round and
+    // compares five. One round, five re-fetches, in the fetcher's own order -
+    // SLOTS'.
+    const beforeStore = writesOf("CONFIG", "EXECUTE");
     store.openConfirm();
-    await throughStore(rig, store.keepOnDevice());
+    await throughStore(rig, store.keepOnDevice(none, "Aurora"));
     expect(store.phase).toBe("kept");
+    expect(configOrder().slice(beforeStore)).toEqual([
+      [ELEMENT_SYSTEM, EVENT_TIMER, SYSTEM_DEFAULT_TIMER],
+      [ELEMENT_SYSTEM, EVENT_SETUP, SYSTEM_DEFAULT_SETUP],
+      [ELEMENT_SYSTEM, EVENT_UTILITY, SYSTEM_DEFAULT_UTILITY],
+      [ELEMENT_TOUCH, EVENT_TIMER, TOUCH_DEFAULT_TIMER],
+      [ELEMENT_TOUCH, EVENT_SETUP, TOUCH_DEFAULT_SETUP],
+      [ELEMENT_SYSTEM, EVENT_TIMER, SYSTEM_DEFAULT_TIMER],
+      [ELEMENT_SYSTEM, EVENT_SETUP, SYSTEM_DEFAULT_SETUP],
+      [ELEMENT_SYSTEM, EVENT_UTILITY, SYSTEM_DEFAULT_UTILITY],
+      [ELEMENT_TOUCH, EVENT_TIMER, none.timer],
+      [ELEMENT_TOUCH, EVENT_SETUP, none.setup],
+    ]);
+    expect(store.lastWritten?.system, "substituted, never empty").toBe(
+      SYSTEM_DEFAULT_SETUP,
+    );
+    expect(
+      store.keepReason(true),
+      "the module holds what the screen shows",
+    ).toBe("already-kept");
     expect(store.refetchRounds).toBe(1);
     expect(
       store.steps.filter((s) => s.id.startsWith("refetch")).map((s) => s.id),
@@ -2811,7 +3116,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ]);
   });
 
-  it("a partial names which of the five landed, and the partial that cannot happen does not", async () => {
+  it("a partial names which of the five landed on a Store's second leg, and the partial that cannot happen does not", async () => {
     // THE WRITER IS SEQUENTIAL AND ABORTS ON THE FIRST FAILURE, in SLOTS'
     // order - the system timer, the page init, the utility, the Timer, the
     // Setup - so exactly five outcomes exist and this test walks all five by
@@ -2821,7 +3126,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // UNREACHABLE with this writer, and the classifier's comment says so; the
     // assertion at the end is the one a reader looking for that state will
     // find. The labels are asserted against SLOTS itself, not against a copy
-    // of the list kept here.
+    // of the list kept here. SINCE 2026-09-16 THE WALK IS A STORE'S: the click
+    // writes the five defaults first (writes 1 to 5, all landing), so the
+    // refused write is the nth of the configuration's leg - the (5 + n)th on
+    // the wire - and the slots the refusal stopped hold the DEFAULTS, not the
+    // module's own.
     const refuseNth = async (nth: number) => {
       let seen = 0;
       const rig = await connected({
@@ -2829,18 +3138,21 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
           const isWrite =
             outbound.class_name === "CONFIG" &&
             outbound.class_instr === "EXECUTE";
-          if (isWrite && ++seen === nth) {
+          if (isWrite && ++seen === 5 + nth) {
             return [configNackFrame({ sx: 0, sy: 0, lastheader: requestId })];
           }
           return inner(outbound, requestId);
         },
       });
       rig.store.observeConfig(PAIR);
-      await drive(rig.store.tryOnDevice(PAIR, "Aurora"));
+      rig.store.openConfirm();
+      await drive(rig.store.keepOnDevice(PAIR, "Aurora"));
+      expect(rig.writesOf("PAGESTORE", "EXECUTE"), "no store after").toBe(0);
       return rig;
     };
     const labels = SLOTS.map((s) => s.label);
-
+    /** The second leg's steps: the capture holds the defaults' six first. */
+    const legOutcomes = (rig: Rig) => outcomes(rig.store.steps).slice(6);
     // 1. The Setup refused after four OKs: all but the Setup landed.
     const lastRefused = await refuseNth(5);
     expect(lastRefused.store.phase).toBe("partial");
@@ -2851,7 +3163,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(lastRefused.store.failed).toBe("the Setup");
     expect(lastRefused.store.landedSlots).toEqual(labels.slice(0, 4));
     expect(lastRefused.store.failedSlots).toEqual(labels.slice(4));
-    expect(outcomes(lastRefused.store.steps)).toEqual([
+    expect(legOutcomes(lastRefused)).toEqual([
       ["write-system-timer", "ok"],
       ["write-system", "ok"],
       ["write-system-utility", "ok"],
@@ -2865,8 +3177,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(lastRefused.state.configs[EVENT_TIMER]).toBe(PAIR.timer);
     expect(
       lastRefused.state.configs[EVENT_SETUP],
-      "the refused Setup never reached the module",
-    ).toBe(MODULE_SETUP);
+      "the refused Setup never reached the module: the default the first leg wrote is still there",
+    ).toBe(TOUCH_DEFAULT_SETUP);
     await after(500);
     expect(lastRefused.session.speech).toBe(
       announceTitle(
@@ -2887,7 +3199,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(timerRefused.store.failed).toBe("the Timer and the Setup");
     expect(timerRefused.store.landedSlots).toEqual(labels.slice(0, 3));
     expect(timerRefused.store.failedSlots).toEqual(labels.slice(3));
-    expect(outcomes(timerRefused.store.steps)).toEqual([
+    expect(legOutcomes(timerRefused)).toEqual([
       ["write-system-timer", "ok"],
       ["write-system", "ok"],
       ["write-system-utility", "ok"],
@@ -2897,8 +3209,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(timerRefused.state.system?.[EVENT_TIMER]).toBe(PAIR.systemTimer);
     expect(timerRefused.state.system?.[EVENT_SETUP]).toBe(PAIR.system);
     expect(timerRefused.state.system?.[EVENT_UTILITY]).toBe(PAIR.systemUtility);
-    expect(timerRefused.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
-    expect(timerRefused.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(timerRefused.state.configs[EVENT_TIMER]).toBe(TOUCH_DEFAULT_TIMER);
+    expect(timerRefused.state.configs[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
 
     // 3. The utility refused after two OKs: the two library halves landed -
     // the partial 13-17 adds, and the pairing the closed unions gained for
@@ -2913,7 +3225,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     expect(utilityRefused.store.landedSlots).toEqual(labels.slice(0, 2));
     expect(utilityRefused.store.failedSlots).toEqual(labels.slice(2));
-    expect(outcomes(utilityRefused.store.steps)).toEqual([
+    expect(legOutcomes(utilityRefused)).toEqual([
       ["write-system-timer", "ok"],
       ["write-system", "ok"],
       ["write-system-utility", "nack"],
@@ -2922,10 +3234,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(utilityRefused.state.system?.[EVENT_TIMER]).toBe(PAIR.systemTimer);
     expect(utilityRefused.state.system?.[EVENT_SETUP]).toBe(PAIR.system);
     expect(utilityRefused.state.system?.[EVENT_UTILITY]).toBe(
-      MODULE_SYSTEM_UTILITY,
+      SYSTEM_DEFAULT_UTILITY,
     );
-    expect(utilityRefused.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
-    expect(utilityRefused.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(utilityRefused.state.configs[EVENT_TIMER]).toBe(TOUCH_DEFAULT_TIMER);
+    expect(utilityRefused.state.configs[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
 
     // 4. The page init refused after one OK: the system timer landed, and
     // only it - the partial 12.1-07 added, and the one pairing the closed
@@ -2938,18 +3250,20 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     );
     expect(systemRefused.store.landedSlots).toEqual(labels.slice(0, 1));
     expect(systemRefused.store.failedSlots).toEqual(labels.slice(1));
-    expect(outcomes(systemRefused.store.steps)).toEqual([
+    expect(legOutcomes(systemRefused)).toEqual([
       ["write-system-timer", "ok"],
       ["write-system", "nack"],
       ["restore-page-change", "sent"],
     ]);
     expect(systemRefused.state.system?.[EVENT_TIMER]).toBe(PAIR.systemTimer);
-    expect(systemRefused.state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
-    expect(systemRefused.state.system?.[EVENT_UTILITY]).toBe(
-      MODULE_SYSTEM_UTILITY,
+    expect(systemRefused.state.system?.[EVENT_SETUP]).toBe(
+      SYSTEM_DEFAULT_SETUP,
     );
-    expect(systemRefused.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
-    expect(systemRefused.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(systemRefused.state.system?.[EVENT_UTILITY]).toBe(
+      SYSTEM_DEFAULT_UTILITY,
+    );
+    expect(systemRefused.state.configs[EVENT_TIMER]).toBe(TOUCH_DEFAULT_TIMER);
+    expect(systemRefused.state.configs[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
     await after(500);
     expect(systemRefused.session.speech).toBe(
       announceTitle(
@@ -2971,17 +3285,20 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(firstRefused.store.failed).toBeUndefined();
     expect(firstRefused.store.landedSlots).toEqual([]);
     expect(firstRefused.store.failedSlots).toEqual([]);
-    expect(outcomes(firstRefused.store.steps)).toEqual([
+    expect(legOutcomes(firstRefused)).toEqual([
       ["write-system-timer", "nack"],
       ["restore-page-change", "sent"],
     ]);
-    expect(firstRefused.writesOf("CONFIG", "EXECUTE")).toBe(1);
-    expect(firstRefused.state.system?.[EVENT_TIMER]).toBe(MODULE_SYSTEM_TIMER);
-    expect(firstRefused.state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
+    expect(
+      firstRefused.writesOf("CONFIG", "EXECUTE"),
+      "the five defaults and the one refused write",
+    ).toBe(6);
+    expect(firstRefused.state.system?.[EVENT_TIMER]).toBe(SYSTEM_DEFAULT_TIMER);
+    expect(firstRefused.state.system?.[EVENT_SETUP]).toBe(SYSTEM_DEFAULT_SETUP);
     expect(firstRefused.state.system?.[EVENT_UTILITY]).toBe(
-      MODULE_SYSTEM_UTILITY,
+      SYSTEM_DEFAULT_UTILITY,
     );
-    expect(firstRefused.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    expect(firstRefused.state.configs[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
 
     // The unreachable state, asserted as unreachable over all five runs and
     // stated on the LIST: what the module holds of the tuner's, read back
@@ -3273,28 +3590,39 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       );
 
       // THE PATH. A surface's landing and an entry-shaped one, through the
-      // same store: the same step ids in the same order, the same six frames
-      // in SLOTS order, the same phases, the same arming, the same keep
-      // reason. Not the payload - the consumption.
+      // same store and the routes' one click (a Store, 2026-09-16): the same
+      // step ids in the same order, the same eighteen frames - the defaults,
+      // the landing in SLOTS order, the store, the proof - the same phases,
+      // the same arming, the same keep reason. Not the payload - the
+      // consumption.
       const fromSurface = await connected();
       const fromEntry = await connected();
       const phasesBefore = [fromSurface.phases.length, fromEntry.phases.length];
       fromSurface.store.observeConfig(three.config);
       fromEntry.store.observeConfig(PAIR);
-      await drive(fromSurface.store.tryOnDevice(three.config, three.label));
-      await drive(fromEntry.store.tryOnDevice(PAIR, "Aurora"));
+      fromSurface.store.openConfirm();
+      fromEntry.store.openConfirm();
+      await throughStore(
+        fromSurface,
+        fromSurface.store.keepOnDevice(three.config, three.label),
+      );
+      await throughStore(
+        fromEntry,
+        fromEntry.store.keepOnDevice(PAIR, "Aurora"),
+      );
       expect(outcomes(fromSurface.store.steps)).toEqual(
         outcomes(fromEntry.store.steps),
       );
+      expect(outcomes(fromSurface.store.steps)).toEqual(STORE_CLICK_STEPS);
       expect(fromSurface.phases.slice(phasesBefore[0])).toEqual(
         fromEntry.phases.slice(phasesBefore[1]),
       );
-      expect(fromSurface.store.phase).toBe("settled");
-      expect(written(fromSurface.fake).slice(-6).map(shape)).toEqual(
-        ramLegFrames(three.config),
+      expect(fromSurface.store.phase).toBe("kept");
+      expect(written(fromSurface.fake).slice(-18, -6).map(shape)).toEqual(
+        storeClickRamFrames(three.config),
       );
-      expect(written(fromEntry.fake).slice(-6).map(shape)).toEqual(
-        ramLegFrames(PAIR),
+      expect(written(fromEntry.fake).slice(-18, -6).map(shape)).toEqual(
+        storeClickRamFrames(PAIR),
       );
       expect(fromSurface.store.name).toBe("Page 3");
       expect(fromSurface.store.armed).toBe(fromEntry.store.armed);
@@ -3302,30 +3630,39 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       expect(fromSurface.store.keepReason(true)).toBe(
         fromEntry.store.keepReason(true),
       );
-      expect(fromSurface.store.keepReason(true)).toBeUndefined();
+      expect(fromSurface.store.keepReason(true)).toBe("already-kept");
       // The fake holds the surface's five - the runtime in 255/4 among them -
-      // and PUT BACK restores the module's own five, the utility included.
+      // in RAM and in flash, and PUT BACK (the probe's) restores the module's
+      // own five, the utility included, storing them too after a store.
       const { state } = fromSurface;
       expect(state.system?.[EVENT_UTILITY]).toBe(three.config.systemUtility);
       expect(state.system?.[EVENT_SETUP]).toBe(TOUCH_LIBRARY);
       expect(state.system?.[EVENT_TIMER]).toBe(TOUCH_LIBRARY_TIMER);
       expect(state.configs[EVENT_SETUP]).toBe(three.config.setup);
       expect(state.configs[EVENT_TIMER]).toBe(three.config.timer);
-      await drive(fromSurface.store.putBack());
+      expect(state.systemFlash?.[EVENT_UTILITY]).toBe(
+        three.config.systemUtility,
+      );
+      await throughStore(fromSurface, fromSurface.store.putBack());
       expect(fromSurface.store.phase).toBe("restored");
       expect(state.system?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
       expect(state.system?.[EVENT_SETUP]).toBe(MODULE_SYSTEM);
       expect(state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+      expect(state.systemFlash?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
 
       // THE STRUCTURAL HALF: the store's code names no surface, no sandbox
-      // and no kind, and tryOnDevice takes a config and a name - a label,
-      // never a branch. And the landing's module stays on the tuner's side
-      // of ladder.spec.ts's line: it reaches no protocol, transport or
-      // device module, so a firmware default can never be typed into it.
+      // and no kind, and keepOnDevice - like the probe's tryOnDevice - takes
+      // a config and a name - a label, never a branch. And the landing's
+      // module stays on the tuner's side of ladder.spec.ts's line: it reaches
+      // no protocol, transport or device module, so a firmware default can
+      // never be typed into it.
       const store = stripComments(sourceOf("./install.svelte.ts"));
       for (const needle of ["sandbox", "Surface", "surface", ".kind"]) {
         expect(store.includes(needle), `the store names ${needle}`).toBe(false);
       }
+      expect(store).toContain(
+        "async keepOnDevice(\n    config: ConfigStrings | undefined,\n    name: string,\n  )",
+      );
       expect(store).toContain(
         "async tryOnDevice(\n    config: ConfigStrings | undefined,\n    name: string,\n  )",
       );
@@ -3423,7 +3760,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       }
     }, 30_000);
 
-    it("over budget refuses before the wire: a surface over 908 disables Apply, names the cause, and sends zero frames", async () => {
+    it("over budget refuses before the wire: a surface over 908 disables Store, names the cause, and sends zero frames", async () => {
       // THE SAME SURFACE ON TWO SLOTS does not fit (13-15's ceiling: page 3
       // at two slots is over by hundreds), and the landing says which string
       // and by how much, first in write order; the meter's sentence names
@@ -3446,12 +3783,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         `Timer is ${two.refusal!.used} of 908, ${two.refusal!.over} over. Remove the last element to fit.`,
       );
       console.log(`page 3 at two slots: ${sentence}`);
-
-      // APPLY IS DISABLED BEFORE THE CLICK, described by the sentence: the
+      // STORE IS DISABLED BEFORE THE CLICK, described by the sentence: the
       // destination zone (DestinationZone.svelte since 13.1-06 - the one
-      // component the Sandbox and the workspace both mount) rendered with the
-      // refusal carries a real disabled attribute on Apply and the sentence
-      // under it, named in Apply's description beside the honesty line.
+      // component the Sandbox and the workspace both mount; Store its one
+      // write since 2026-09-16) rendered with the refusal carries a real
+      // disabled attribute on Store and the sentence under it, named in
+      // Store's description beside the honesty line and the reason line.
       const html = render(DestinationZone, {
         props: {
           name: two.label,
@@ -3459,35 +3796,51 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
           refusal: sentence,
         },
       }).body;
-      const apply = /<button[^>]*data-testid="apply-to-zona"[^>]*>/.exec(html);
-      expect(apply, "Apply to ZONA is rendered").not.toBeNull();
-      expect(apply?.[0]).toContain(" disabled");
-      expect(apply?.[0]).toMatch(/aria-describedby="[^"]*-refusal"/);
-      expect(html).toContain(`data-testid="apply-refusal"`);
+      const storeTag = /<button[^>]*data-testid="store-on-zona"[^>]*>/.exec(
+        html,
+      );
+      expect(storeTag, "Store on ZONA is rendered").not.toBeNull();
+      expect(storeTag?.[0]).toContain(" disabled");
+      expect(storeTag?.[0]).toMatch(/aria-describedby="[^"]*-refusal"/);
+      expect(html).toContain(`data-testid="store-refusal"`);
       expect(html).toContain(sentence);
+      expect(html, "no Apply on the zone").not.toContain("apply-to-zona");
 
-      // AND ZERO FRAMES: were the click to happen anyway, the store refuses
-      // the over-budget Timer on its own (TUNE-05, D-10) and the transport
-      // never hears of it - the frame count is the assertion.
+      // AND ZERO FRAMES: the store is never armed over budget, so the
+      // confirmation cannot open; were the click to happen anyway, the store
+      // refuses the over-budget Timer on its own (TUNE-05, D-10) and the
+      // transport never hears of it - the frame count is the assertion.
       const rig = await connected();
       const framesBefore = rig.fake.writes.length;
       const stepsBefore = rig.store.steps;
-      rig.store.observeConfig(undefined);
-      await drive(rig.store.tryOnDevice(two.config, two.label));
+      rig.store.observeConfig(two.config);
+      expect(rig.store.armed, "over budget is never armed").toBe(false);
+      rig.store.openConfirm();
+      expect(rig.store.confirmOpen).toBe(false);
+      rig.store.confirmOpen = true;
+      rig.store.armed = true;
+      await drive(rig.store.keepOnDevice(two.config, two.label));
       expect(rig.fake.writes.length, "frames the refusal produced").toBe(
         framesBefore,
       );
       expect(rig.writesOf("CONFIG", "EXECUTE"), "config writes").toBe(0);
       expect(rig.writesOf("HEARTBEAT", "EXECUTE"), "restores").toBe(0);
+      expect(rig.writesOf("PAGESTORE", "EXECUTE"), "stores").toBe(0);
       expect(rig.store.phase).toBe("ready");
       expect(rig.store.steps, "an action started").toBe(stepsBefore);
       expect(rig.store.lastWritten).toBeUndefined();
-      expect(rig.store.armed).toBe(false);
-      // The same surface on three slots fits, and the same click writes five.
+      // The same surface on three slots fits, and the same click writes the
+      // defaults, the five, and stores.
       rig.store.observeConfig(three.config);
-      await drive(rig.store.tryOnDevice(three.config, three.label));
-      expect(rig.store.phase).toBe("settled");
-      expect(rig.writesOf("CONFIG", "EXECUTE")).toBe(5);
+      expect(rig.store.armed).toBe(true);
+      rig.store.openConfirm();
+      await throughStore(
+        rig,
+        rig.store.keepOnDevice(three.config, three.label),
+      );
+      expect(rig.store.phase).toBe("kept");
+      expect(rig.writesOf("CONFIG", "EXECUTE")).toBe(10);
+      expect(rig.writesOf("PAGESTORE", "EXECUTE")).toBe(1);
     }, 30_000);
   });
 });

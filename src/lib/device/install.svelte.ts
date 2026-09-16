@@ -1,10 +1,11 @@
-// The install store: the snapshot at connect, the two RAM clicks, the way
-// back, the flash store and its proof, and every way a write can go wrong
-// (Phase 7, SAFE-01, SAFE-03 to SAFE-09). Every write on the site lives here
-// and never in the session (session.spec.ts "writes nothing across a whole
-// visit, and cannot" scans the session for eleven write-shaped needles).
-// Components read the singleton `install`; every node test constructs its
-// own `new InstallStore(session)` and never touches it.
+// The install store: the snapshot at connect, the flash store - the page's
+// five defaults, the configuration's five strings, the page store, the proof
+// - the header's Clear, the probe's RAM legs (TRY, PUT BACK, the discard) and
+// every way a write can go wrong (Phase 7, SAFE-01, SAFE-03 to SAFE-09).
+// Every write on the site lives here and never in the session
+// (session.spec.ts "writes nothing across a whole visit, and cannot" scans the
+// session for eleven write-shaped needles). Components read the singleton
+// `install`; every node test constructs its own `new InstallStore(session)`.
 //
 // Decided at 07-04 (07-CONTEXT D-16); see .planning/phases/07-install-flow/07-04-SUMMARY.md
 //
@@ -27,16 +28,16 @@
 // CONTENTS, the class's banners in order: reactive fields - NOT reactive
 // record - start - the connection lifecycle - the snapshot - the tuner's pair
 // and armed - the two closed decisions - the inline confirmation - the page
-// target - the two RAM clicks - the fourth click, CLEAR - the flash store and
-// the proof - the 2000 ms line - the singleton.
+// target - the probe's RAM clicks - the header's click, CLEAR - the flash
+// store, STORE ON ZONA, and the proof - the 2000 ms line - the singleton.
 import {
   type ClearReason,
   type FailedWords,
   FIRMWARE_DEFAULT_NAME,
+  KEEP_LABEL,
   type KeepReason,
   type LandedWords,
   LIVE_STILL_WRITING,
-  TRY_ON_LABEL,
   announceTitle,
   keptMismatchBlock,
   liveCleared,
@@ -80,7 +81,9 @@ type DecodedClass = import("$lib/protocol").DecodedClass;
  * own default, which neither `settled` nor `restored` describes truthfully
  * (A-50, D-20). `snapshot-failed` is I9's cause 4; the other I9 causes are
  * read off the session, the tuner's budget and `snapshotting` / `writing`
- * by the component.
+ * by the component. Since 2026-09-16 `settled` is the /dev/install/ probe's
+ * alone, like `restored`: no route reaches a RAM-only landing (the bar's
+ * clause and the anti-collapse test keep it in the union by name).
  */
 export type InstallPhase =
   | "idle"
@@ -229,7 +232,13 @@ export class InstallStore {
   lastWritten = $state.raw<ConfigStrings | undefined>(undefined);
   /** The tuner's current pair, or undefined while measuring (07-05, D-17). */
   config = $state.raw<ConfigStrings | undefined>(undefined);
-  /** True exactly when the module holds the pair the visitor is looking at (Z-05). */
+  /**
+   * True exactly when Store on ZONA may write (2026-09-16): a session with a
+   * queue, a writable phase (or `snapshot-failed`, which the click re-reads
+   * first), the page target at rest, the pair published and inside 908. Until
+   * 2026-09-16 it meant "the module holds the pair on screen" (Z-05); that
+   * predicate is `keepReason()`'s already-kept row now.
+   */
   armed = $state(false);
   /** True from a proved keep - or, since round 4c, a proved clear - until a put-back that stored (Z-04). */
   storedThisSession = $state(false);
@@ -315,13 +324,14 @@ export class InstallStore {
     this.#session = session;
   }
 
-  /** The target's mirror: one assignment per field, from one view. */
+  /** The target's mirror: one assignment per field, from one view; `armed` reads the target, so it is recomputed here too. */
   #mirrorTarget(view: PageTargetView): void {
     this.pageStatus = view.status;
     this.pageReported = view.reported;
     this.pageRequested = view.requested;
     this.pages = view.pages;
     this.applyReady = this.#target?.canApply() ?? false;
+    this.#recomputeArmed();
   }
 
   /** The target, built on first need with the protocol module's window. */
@@ -531,6 +541,7 @@ export class InstallStore {
    */
   async #snapshot(id: Identity, q: RequestQueue, gen: number): Promise<void> {
     this.phase = "snapshotting";
+    this.#recomputeArmed();
     this.steps = [];
     const { protocolLib, transportLib } = await heavyModules();
 
@@ -603,8 +614,8 @@ export class InstallStore {
           systemUtility: protocolLib.SYSTEM_DEFAULT_UTILITY,
         })
       : undefined;
-    // An existing original WINS over a fresh fetch: after TRY ON DEVICE a
-    // re-connect fetches HANGAR's own configuration.
+    // An existing original WINS over a fresh fetch: after a Store (or the
+    // probe's TRY) a re-connect fetches HANGAR's own configuration.
     this.snapshot = record
       ? {
           systemTimer: record.systemTimer,
@@ -657,29 +668,49 @@ export class InstallStore {
   observeConfig(config: ConfigStrings | undefined): void {
     this.config = config;
     this.#recomputeArmed();
-    // Flash only what you have heard (Z-05, Z-21): a knob move that disarms
-    // closes the confirmation - one of its four exits.
-    if (this.confirmOpen && !this.armed) this.confirmOpen = false;
+    // Flash only what you have heard (Z-21): a change that would disable the
+    // control - the pair withdrawn while measuring, over budget, or back to
+    // the pair already stored - closes the confirmation, one of its four
+    // exits. A change that keeps Store live leaves it open: the click writes
+    // what the screen shows at that moment.
+    if (
+      this.confirmOpen &&
+      (!this.armed || this.keepReason(this.#capable()) !== undefined)
+    ) {
+      this.confirmOpen = false;
+    }
   }
 
   /**
-   * Z-05: the module holds the pair the visitor is looking at. Recomputed
-   * here and after every leg, never derived (the header's rule); a knob move
-   * that lands on identical strings keeps it armed. Arms only from `settled`
-   * or `unconfirmed` - there memory still holds what was heard (I11).
+   * Store on ZONA may write (2026-09-16): #storeRefusal's list is empty.
+   * Recomputed here, after every leg and on every target mirror, never
+   * derived (the header's rule). False before the protocol module is in hand
+   * - no queue, so nothing to write with.
    */
   #recomputeArmed(): void {
+    const lib = this.#modules?.protocolLib;
+    this.armed =
+      lib !== undefined &&
+      this.#storeRefusal(this.config, lib.CONFIG_MAX) === undefined;
+  }
+
+  /**
+   * The module holds the pair the visitor is looking at: the last landed RAM
+   * leg's five strings against the published pair, substituted (Z-05's old
+   * `armed`). Read by keepReason()'s already-kept row alone.
+   */
+  #holdsConfig(): boolean {
     const written = this.lastWritten;
     const current = this.config;
-    this.armed =
-      (this.phase === "settled" || this.phase === "unconfirmed") &&
+    return (
       written !== undefined &&
       current !== undefined &&
       this.#systemStringOr(current, 6) === written.systemTimer &&
       this.#systemStringOr(current, 0) === written.system &&
       this.#systemStringOr(current, 4) === written.systemUtility &&
       current.setup === written.setup &&
-      current.timer === written.timer;
+      current.timer === written.timer
+    );
   }
 
   /**
@@ -716,35 +747,37 @@ export class InstallStore {
   // --- the two closed decisions the components render ----------------------
 
   /**
-   * Why KEEP ON DEVICE is disabled, or undefined when it is live (Z-05, Z-21).
-   * One function, eight rows, first match wins:
+   * Why Store on ZONA is disabled with a sentence, or undefined when nothing
+   * in the closed record applies (Z-05, Z-21; 2026-09-16). One function, four
+   * rows, first match wins:
    *
    *   !capable                                   incapable
-   *   partial                                    after-partial
-   *   kept                                       already-kept
-   *   kept-mismatch                              after-mismatch
-   *   unconfirmed after a clear                  never-tried
-   *   settled | unconfirmed, armed               undefined - live
-   *   settled | unconfirmed, not armed           knobs-moved
-   *   anything else                              never-tried
+   *   no queue, or the session not connected     no-session
+   *   kept, and the module holds the pair        already-kept
+   *   anything else                              undefined
    *
-   * The clear row (round 4c): a clear whose store never acknowledged leaves
-   * nothing of the visitor's to store, so the reason is the first-apply one,
-   * not `knobs-moved`. `capable` is the session's (not `unsupported`, not
-   * `insecure`).
+   * Every other disabled moment - measuring, over budget, the snapshot or a
+   * leg in flight, the page target not at rest - is `armed` false with no
+   * sentence of this record's; the zone disables on `armed`. From `partial`,
+   * `kept-mismatch`, `unconfirmed`, `nothing-landed` and `cleared` the store
+   * IS the retry, so none of them is a row. `capable` is the session's (not
+   * `unsupported`, not `insecure`).
    */
   keepReason(capable: boolean): KeepReason | undefined {
     if (!capable) return "incapable";
+    // `phase` is read FIRST and unconditionally: a $derived over this method
+    // tracks it, and the queue (not a rune) is built before the phase leaves
+    // `idle`, so the no-session row lifts when the phase moves.
     const phase = this.phase;
-    if (phase === "partial") return "after-partial";
-    if (phase === "kept") return "already-kept";
-    if (phase === "kept-mismatch") return "after-mismatch";
-    if (phase === "unconfirmed" && this.action === "clear")
-      return "never-tried";
-    if (phase === "settled" || phase === "unconfirmed") {
-      return this.armed ? undefined : "knobs-moved";
+    if (
+      phase === "idle" ||
+      !this.#queue ||
+      this.#session.phase !== "connected"
+    ) {
+      return "no-session";
     }
-    return "never-tried";
+    if (phase === "kept" && this.#holdsConfig()) return "already-kept";
+    return undefined;
   }
 
   /**
@@ -808,11 +841,10 @@ export class InstallStore {
 
   // --- the inline confirmation: the only confirmation on the site (SAFE-05) -
 
-  /** Opens the inline confirmation. Refused unless keepReason() is undefined. */
+  /** Opens the inline confirmation. Refused unless the store is armed and keepReason() is undefined. */
   openConfirm(): void {
+    if (!this.armed) return;
     if (this.keepReason(this.#capable()) !== undefined) return;
-    // 13-12: not while the page target is pending.
-    if (!this.pageSettled()) return;
     this.confirmOpen = true;
   }
 
@@ -829,7 +861,7 @@ export class InstallStore {
    * the switch LEFT (the target is `switching` after confirmPage()); false
    * with nothing sent when requestPage() refused or confirmPage()
    * early-returned on its own guards - then the target is taken back with
-   * cancelPage() so Apply is not parked disabled at `requested`
+   * cancelPage() so Store is not parked disabled at `requested`
    * (13.1-PLAN-CHECK W-04). The routes snap the select back on false.
    */
   async switchPage(page: number): Promise<boolean> {
@@ -910,6 +942,7 @@ export class InstallStore {
     this.leg = "ram";
     this.cause = undefined;
     this.phase = "writing";
+    this.#recomputeArmed();
     this.steps = [];
     this.#inFlight = true;
     this.#session.writeLock = true;
@@ -931,7 +964,7 @@ export class InstallStore {
         this.#fail(
           "lost",
           "aborted",
-          lostBlock(false, TRY_ON_LABEL, this.#page()).title,
+          lostBlock(false, KEEP_LABEL, this.#page()).title,
         );
         return;
       }
@@ -951,19 +984,26 @@ export class InstallStore {
     }
   }
 
-  // --- the two RAM clicks ----------------------------------------------------
+  // --- the probe's RAM clicks: TRY, PUT BACK ---------------------------------
 
   /**
-   * The refusal list, first match wins. Over budget never reaches the queue
-   * (TUNE-05, D-10): `configMax` is CONFIG_MAX from the awaited protocol
-   * module, and sendConfig refuses at the same constant from the other side.
+   * The refusal list every write reads, first match wins. Over budget never
+   * reaches the queue (TUNE-05, D-10): `configMax` is CONFIG_MAX from the
+   * awaited protocol module, and sendConfig refuses at the same constant from
+   * the other side.
    */
   #tryRefusal(
     config: ConfigStrings | undefined,
     configMax: number,
+    rereads = false,
   ): TryRefusal | undefined {
     if (config === undefined) return "measuring";
-    if (!WRITABLE_PHASES.includes(this.phase)) return "not-writable";
+    if (
+      !WRITABLE_PHASES.includes(this.phase) &&
+      !(rereads && this.phase === "snapshot-failed")
+    ) {
+      return "not-writable";
+    }
     if (!this.#queue || this.#session.phase !== "connected")
       return "no-session";
     // 13-12: nothing writes while the page target is not at rest.
@@ -974,11 +1014,25 @@ export class InstallStore {
   }
 
   /**
-   * TRY ON DEVICE: the five strings, the three system slots substituted
-   * through #systemStringOr (12-03, 12.1-07, 13-17), through #ramLeg in SLOTS
-   * order, landing `settled` with `lastWritten` and `name` set. Refuses on
-   * #tryRefusal's list without touching the queue; from `snapshot-failed` it
-   * reads the module again first and writes only if that lands `ready`.
+   * Store on ZONA's refusal list - `armed`'s predicate: #tryRefusal's, with
+   * `snapshot-failed` admitted because the click re-reads the module first
+   * and writes only if that lands `ready` (SAFE-03 by the retry).
+   */
+  #storeRefusal(
+    config: ConfigStrings | undefined,
+    configMax: number,
+  ): TryRefusal | undefined {
+    return this.#tryRefusal(config, configMax, true);
+  }
+
+  /**
+   * TRY ON DEVICE - the /dev/install/ probe's alone since 2026-09-16 (no
+   * route calls it; Store on ZONA is the routes' one write): the five strings,
+   * the three system slots substituted through #systemStringOr (12-03,
+   * 12.1-07, 13-17), through #ramLeg in SLOTS order, landing `settled` with
+   * `lastWritten` and `name` set. Refuses on #tryRefusal's list without
+   * touching the queue; from `snapshot-failed` it reads the module again
+   * first and writes only if that lands `ready`.
    */
   async tryOnDevice(
     config: ConfigStrings | undefined,
@@ -1052,7 +1106,7 @@ export class InstallStore {
     this.#session.announce(liveRestored(this.#page()));
   }
 
-  // --- the fourth click: CLEAR ---------------------------------------------
+  // --- the header's click: CLEAR ---------------------------------------------
 
   /**
    * CLEAR: the firmware's own five defaults - the strings the Editor's
@@ -1064,7 +1118,7 @@ export class InstallStore {
    * `storedThisSession` on a proved store; `kept-mismatch` (reused, the
    * block's sentence is exactly true of a clear's store) when the rounds run
    * out; `unconfirmed` with FIRMWARE_DEFAULT_NAME as the name when no ACK
-   * came, and keepReason() then reads `never-tried`.
+   * came; Store on ZONA is live from every one of them (the store is the retry).
    *
    * Both elements are reset (D-21, 12-03): the line beside the control names
    * the whole page, and HANGAR writes the system element's three slots too.
@@ -1094,8 +1148,8 @@ export class InstallStore {
     };
     const ok = await this.#ramLeg("clear", defaults);
     if (!ok) return;
-    // Nothing of the visitor's or HANGAR's is on the module: nothing to arm,
-    // nothing to keep; keepReason() reads `never-tried` from here.
+    // Nothing of the visitor's or HANGAR's is on the module: nothing the
+    // already-kept row could match; Store on ZONA is live from `cleared`.
     this.lastWritten = undefined;
     this.name = undefined;
     // Round 4c: the store leg Store on ZONA runs, proved against the five
@@ -1132,24 +1186,65 @@ export class InstallStore {
     );
   }
 
-  // --- the flash store: KEEP ON DEVICE, and the proof ----------------------
+  // --- the flash store: STORE ON ZONA, and the proof -----------------------
 
   /**
-   * The confirmation's affirmative: one PAGESTORE/EXECUTE of the pair the
-   * module is playing (`lastWritten`, never `config`) through #storeLeg,
-   * landing `kept` only after the proof (D-12), else `kept-mismatch` or
-   * `unconfirmed`. Refused unless the confirmation is open, the module is
-   * armed and the page target is at rest. `armed` is recomputed after each
-   * outcome and is live again only in `unconfirmed`.
+   * The confirmation's affirmative, and the routes' one write since
+   * 2026-09-16 (BENCH-2026-09-16.txt section 1): the page's five firmware
+   * defaults through #ramLeg (the same five writes Clear sends), then the
+   * configuration's five strings - the three system slots substituted through
+   * #systemStringOr - through #ramLeg again, then one PAGESTORE/EXECUTE
+   * through #storeLeg and the proof (D-12): eighteen frames on the fake -
+   * five writes, the restore heartbeat, five writes, the restore, the store,
+   * five fetches. Lands `kept` only after the proof, else `kept-mismatch` or
+   * `unconfirmed`; a RAM leg that fails lands `partial`, `nothing-landed` or
+   * `lost` as any RAM leg does, and stores nothing. Refused unless the
+   * confirmation is open and the store is armed; from `snapshot-failed` it
+   * reads the module again first and writes only if that lands `ready`. The
+   * whole click is one action, `keep`, and one capture (`steps` is reset by
+   * the first leg alone).
    */
-  async keepOnDevice(): Promise<void> {
+  async keepOnDevice(
+    config: ConfigStrings | undefined,
+    name: string,
+  ): Promise<void> {
     if (!this.confirmOpen || !this.armed) return;
-    if (!this.pageSettled()) return;
-    const sent = this.lastWritten;
-    const name = this.name ?? "";
-    if (!sent || !this.#queue || this.#session.phase !== "connected") return;
+    // The click was taken: the confirmation leaves whatever follows.
     this.confirmOpen = false;
-    this.steps = [];
+    if (this.phase === "snapshot-failed" && config !== undefined) {
+      await this.retrySnapshot();
+    }
+    // In hand since #attach (armed implies a queue); no await before the
+    // first leg publishes `writing`.
+    const protocolLib = this.#modules?.protocolLib;
+    if (!protocolLib) return;
+    if (this.#tryRefusal(config, protocolLib.CONFIG_MAX) !== undefined) return;
+    if (config === undefined) return;
+    const defaults: ConfigStrings = {
+      systemTimer: protocolLib.SYSTEM_DEFAULT_TIMER,
+      system: protocolLib.SYSTEM_DEFAULT_SETUP,
+      systemUtility: protocolLib.SYSTEM_DEFAULT_UTILITY,
+      setup: protocolLib.TOUCH_DEFAULT_SETUP,
+      timer: protocolLib.TOUCH_DEFAULT_TIMER,
+    };
+    const sent: ConfigStrings = {
+      systemTimer: this.#systemStringOr(config, 6, protocolLib),
+      system: this.#systemStringOr(config, 0, protocolLib),
+      systemUtility: this.#systemStringOr(config, 4, protocolLib),
+      setup: config.setup,
+      timer: config.timer,
+    };
+    // The page's default first: what a Store leaves in flash is never a mix
+    // of the visitor's page and this configuration.
+    if (!(await this.#ramLeg("keep", defaults))) return;
+    // Nothing of the earlier landing is on the module now.
+    this.lastWritten = undefined;
+    this.name = undefined;
+    if (!(await this.#ramLeg("keep", sent, true))) return;
+    // Memory holds the configuration: `unconfirmed` names it, and a store
+    // that proves lands `kept` over it.
+    this.lastWritten = sent;
+    this.name = name;
     const outcome = await this.#storeLeg("keep", sent);
     if (outcome === false) return;
     if (outcome === "kept") {
@@ -1199,6 +1294,7 @@ export class InstallStore {
     this.leg = "store";
     this.cause = undefined;
     this.phase = "writing";
+    this.#recomputeArmed();
     this.refetchRounds = 0;
     this.#inFlight = true;
     this.#session.writeLock = true;
@@ -1237,7 +1333,7 @@ export class InstallStore {
         this.#fail(
           "lost",
           "aborted",
-          lostBlock(true, TRY_ON_LABEL, this.#page()).title,
+          lostBlock(true, KEEP_LABEL, this.#page()).title,
         );
         return false;
       }
@@ -1254,18 +1350,23 @@ export class InstallStore {
    * The shape every RAM action shares: true when every acknowledgement
    * arrived and the generation is still ours; false on every other path with
    * the phase already classified. The restore heartbeat and the lock release
-   * are in the `finally`, whatever happened.
+   * are in the `finally`, whatever happened. `keepSteps` (a Store's second
+   * leg) appends to the click's capture instead of starting one; the
+   * classifier reads this leg's steps alone either way.
    */
   async #ramLeg(
     action: InstallAction,
     strings: ConfigStrings,
+    keepSteps = false,
   ): Promise<boolean> {
     const gen = this.#generation;
     const q = this.#queue;
     const id = this.#session.identity;
     if (!q || !id) return false;
-    const modules = await heavyModules();
-    const { transportLib } = modules;
+    // The leg is published synchronously, before any await: a component
+    // deciding where focus goes when the confirmation closes reads `writing`
+    // and a disabled control in the same flush as the click, never an enabled
+    // one that disables a tick later.
     this.action = action;
     this.leg = "ram";
     this.cause = undefined;
@@ -1274,10 +1375,15 @@ export class InstallStore {
     this.landedSlots = [];
     this.failedSlots = [];
     this.phase = "writing";
-    this.steps = [];
+    this.#recomputeArmed();
+    if (!keepSteps) this.steps = [];
+    const from = this.steps.length;
     this.#inFlight = true;
     this.#session.writeLock = true;
     this.#armSlow();
+    // In hand since #attach built the queue; the await is the cold path no click reaches.
+    const modules = this.#modules ?? (await heavyModules());
+    const { transportLib } = modules;
     try {
       // 255/6, 255/0, 255/4, 0/6, 0/0, ACK each - sequence.ts writeAll over
       // SLOTS owns the order. Verbatim.
@@ -1288,11 +1394,11 @@ export class InstallStore {
       // The link died under us: `lost` whatever the generation says - the
       // "closed" that bumped it left the phase to this catch (Pitfall 11).
       if (err instanceof transportLib.AbortedError) {
-        this.#classify(err, modules, action);
+        this.#classify(err, modules, action, from);
         return false;
       }
       if (gen !== this.#generation) return false;
-      this.#classify(err, modules, action);
+      this.#classify(err, modules, action, from);
       return false;
     } finally {
       // MANDATORY on every path (sequence.ts restorePageChange): a successful
@@ -1333,25 +1439,33 @@ export class InstallStore {
    * HANGAR does produces it). The words are install-copy.ts's closed unions
    * indexed by the prefix length (12.1-08, 13-17); the labels are published
    * as `landedSlots` / `failedSlots`. A timeout cause asks the pacing rule.
+   * `from` is where this leg's steps start in the click's capture: a Store's
+   * second leg follows five landed writes it must not count.
    */
-  #classify(err: unknown, modules: HeavyModules, action: InstallAction): void {
+  #classify(
+    err: unknown,
+    modules: HeavyModules,
+    action: InstallAction,
+    from: number,
+  ): void {
     const { transportLib } = modules;
-    // A-28: the failure states and their copy are reused. A clear that got
-    // nothing through takes PUT BACK's form - "what was playing is still
-    // playing" is true of a clear where the try-on's sentence would not be.
-    const after = action === "try" ? "try" : "put-back";
+    // A-28: the failure states and their copy are reused. A Store's leg takes
+    // the store form; a clear or a probe leg that got nothing through takes
+    // PUT BACK's - "what was playing is still playing" is true of those.
+    const after = action === "keep" ? "store" : "put-back";
     if (err instanceof transportLib.AbortedError) {
       this.#fail(
         "lost",
         "aborted",
-        lostBlock(false, TRY_ON_LABEL, this.#page()).title,
+        lostBlock(false, KEEP_LABEL, this.#page()).title,
       );
       return;
     }
     const cause: InstallCause =
       err instanceof transportLib.NackError ? "nack" : "timeout";
+    const legSteps = this.steps.slice(from);
     const landedStep = (id: string): boolean =>
-      this.steps.some((s) => s.id === id && s.outcome === "ok");
+      legSteps.some((s) => s.id === id && s.outcome === "ok");
     // The landed PREFIX of SLOTS: the writer stops at the first failure.
     let landedCount = 0;
     while (

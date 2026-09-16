@@ -4,10 +4,10 @@
 // disclosure names this module on the first paint of `/`. install-copy.spec.ts
 // pins that and holds every string against its documents: the Bible's section 9
 // and 16 lines verbatim, `Clear` the user's word (13.1-05), the rest 13-18-BATCH's
-// (D-23), ledgered in 13-COPY-NEW.md and 13.1-COPY-NEW.md. The register is D-05's:
+// (D-23), ledgered in 13-COPY-NEW.md, 13.1-COPY-NEW.md and BENCH-2026-09-16.txt. The register is D-05's:
 // sentence case, second person, one literal per sentence, real apostrophe /
 // ellipsis / em dash, never "Error" or "loading", no engine named, no control label
-// paraphrased. Pages are numbered from one (pageName); WRITE_CLICKS is four.
+// paraphrased. Pages are numbered from one (pageName); WRITE_CLICKS is three.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
@@ -15,6 +15,20 @@
 // The retirement ledger: what this module used to export, by name and date.
 // Each entry keeps its heading and its names; the argument is in the SUMMARY
 // it points at (13.2-CONTEXT D-05).
+//
+// APPLY TO ZONA'S STRINGS ARE RETIRED BY NAME, 2026-09-16 (BENCH-2026-09-16.txt
+// section 1, the user's word: "we dont need the apply to ZONA, only Store
+// stays"): TRY_ON_LABEL (`Apply to ZONA`), writingLabel (`Applying to Page N…`
+// - the bar's busy clause is keepingLabel now), HONESTY_NO_SESSION and
+// honestyReady (Apply's description; Store's is keepLineEnabled, NEEDS_ZONA
+// without a session), KEEP_REASONS' never-tried, knobs-moved, after-partial
+// and after-mismatch rows (no apply exists to be first, stale, partial or
+// mismatched against; already-kept keeps its key with a new sentence), and
+// nothingLandedBlock's `try` form (the `store` form is Store's). WRITE_CLICKS
+// is THREE. Every Store returns the page to its firmware default first, then
+// writes the configuration, then stores; the probe's TRY keeps settledCaption
+// and liveSettled by name. Z-08's "about a second" is retired with the RAM
+// promise: a store waits for the module's own proof.
 //
 // THE HONESTY CAPS ARE RETIRED BY NAME, 2026-09-12 (13-18, D-05). HONESTY_CAP
 // (86), PUT_BACK_CAP (129), KEEP_CAP (86) and CLEAR_CAP (86) were `lines x
@@ -112,12 +126,7 @@ export const pageName = (page: number): string => `Page ${page + 1}`;
 // ---------------------------------------------------------------------------
 // The labels. Verbs, plainly, in sentence case (D-05); never the wire's words.
 
-/** Section 9's own label for the RAM write. */
-export const TRY_ON_LABEL = "Apply to ZONA";
-/** Section 9's progress label for the RAM write. */
-export const writingLabel = (page: number): string =>
-  `Applying to ${pageName(page)}…`;
-/** Section 9's progress label for the flash write. */
+/** Section 9's progress label for the flash write: the bar's busy clause for every write since 2026-09-16 (device-clause.ts). */
 export const keepingLabel = (page: number): string =>
   `Storing on ${pageName(page)}…`;
 /** Section 9's own label for the flash write. */
@@ -144,25 +153,16 @@ export const TARGET_CLICK = "Target";
 
 /**
  * The number of write clicks, as a constant rather than as a word in prose.
- * FOUR since 13.1-06 (Put back removed, D-07); REQUIREMENTS.md's SAFE-01 names
- * this constant, so a fifth write control is a change here first.
+ * THREE since 2026-09-16 (Apply to ZONA removed; four since 13.1-06, D-07);
+ * REQUIREMENTS.md's SAFE-01 names this constant, so a fourth write control is
+ * a change here first.
  */
-export const WRITE_CLICKS = [
-  TRY_ON_LABEL,
-  KEEP_LABEL,
-  CLEAR_LABEL,
-  TARGET_CLICK,
-] as const;
+export const WRITE_CLICKS = [KEEP_LABEL, CLEAR_LABEL, TARGET_CLICK] as const;
 
 // ---------------------------------------------------------------------------
-// The honesty line: Apply to ZONA's accessible description, by state (I.4.1-I.4.4).
+// The honesty line: Store on ZONA's accessible description, by state (I.4.1-I.4.4).
+// The ready form is keepLineEnabled, below; without a session it is NEEDS_ZONA.
 
-/** No session yet: the click connects first. Z-08's "about a second", once of twice. */
-export const HONESTY_NO_SESSION =
-  "Connects to your ZONA and applies this to its active page. About a second.";
-/** Ready: the first fact, RAM against flash, before the click. Z-08's second "about a second". */
-export const honestyReady = (page: number): string =>
-  `Applies this to ${pageName(page)} in about a second. It stays until power-off unless you store it.`;
 /** While the snapshot is read: the second fact, said before it is needed (I.4.3, reworded at 13.1-06 - the copy is a safety feature, not a control). */
 export const HONESTY_SNAPSHOTTING = "Reading what your ZONA holds first.";
 /** On a browser that cannot write (DEGR-02): the standing line would be a lie. */
@@ -185,7 +185,7 @@ export const IDENTIFIED_CAPTION = "ZONA connected";
 export const STILL_WRITING_LINE =
   "Still writing. Your ZONA is taking longer than usual.";
 
-/** Section 16's own line for a RAM apply: the first fact, after the click. */
+/** Section 16's own line for a RAM apply: the /dev/install/ probe's TRY alone since 2026-09-16 (no route reaches `settled`); kept by name for the bar's clause. */
 export const settledCaption = (page: number): string =>
   `Applied to ${pageName(page)}. Store on ZONA to keep it after power-off.`;
 
@@ -238,10 +238,7 @@ export function keptMismatchBlock(page: number): InstallBlock {
   return {
     title: KEPT_MISMATCH_TITLE,
     detail: `Your ZONA acknowledged the store, but reading ${pageName(page)} back gave something different. HANGAR won’t call that stored.`,
-    steps: [
-      `Click ${TRY_ON_LABEL}, then ${KEEP_LABEL} again`,
-      stepOrClear(page),
-    ],
+    steps: [`Click ${KEEP_LABEL} again`, stepOrClear(page)],
   };
 }
 
@@ -268,22 +265,24 @@ export function restoredUnconfirmedBlock(page: number): InstallBlock {
 }
 
 /**
- * None of the five landed, in its two forms (I.5.5): after an apply the
- * module's own configuration is still playing; after a restore, what was
+ * None of the five landed, in its two forms (I.5.5): after a Store's first
+ * write nothing of the configuration reached the page and nothing was stored
+ * (true of either of its two RAM legs, 2026-09-16); after a restore, what was
  * playing is still playing. A NACK is the signature of a silent discard
  * (docs/SKELETON-RESULTS.md). The restore form is the /dev/install/ probe's
- * alone since 13.1-06 (D-07), so its step names the probe's action.
+ * alone since 13.1-06 (D-07), so its step names the probe's action; the
+ * header's Clear renders it too (its detail is true of a clear).
  */
 export function nothingLandedBlock(
-  after: "try" | "put-back",
+  after: "store" | "put-back",
   page: number,
 ): InstallBlock {
   const cable = "If it happens twice, check the cable is seated at both ends";
-  return after === "try"
+  return after === "store"
     ? {
         title: NOTHING_LANDED_TITLE,
-        detail: `Nothing got through. ${pageName(page)} is unchanged, so your own configuration is still playing.`,
-        steps: [`Click ${TRY_ON_LABEL} to send it again`, cable],
+        detail: `Nothing of this reached ${pageName(page)}, and nothing was stored.`,
+        steps: [`Click ${KEEP_LABEL} to send it again`, cable],
       }
     : {
         title: NOTHING_LANDED_TITLE,
@@ -304,7 +303,7 @@ export function partialBlock(
   return {
     title: PARTIAL_TITLE,
     detail: `${landed} reached your ZONA and ${failed} didn’t. ${pageName(page)} now holds part of this configuration and part of your own.`,
-    steps: [`Click ${TRY_ON_LABEL} to send all five again`, stepOrClear(page)],
+    steps: [`Click ${KEEP_LABEL} to send all five again`, stepOrClear(page)],
   };
 }
 
@@ -336,7 +335,7 @@ export function snapshotFailedBlock(page: number): InstallBlock {
   return {
     title: SNAPSHOT_FAILED_TITLE,
     detail: `HANGAR couldn’t read what ${pageName(page)} holds, and it won’t write over something it hasn’t copied. Nothing was written.`,
-    steps: [`Click ${TRY_ON_LABEL} to read it again`],
+    steps: [`Click ${KEEP_LABEL} to read it again`],
   };
 }
 
@@ -348,11 +347,13 @@ export const confirmCaption = (page: number): string =>
   `Store this on ZONA · ${pageName(page)}?`;
 /**
  * The one string on the site allowed to name the touch element, because
- * SAFE-05 requires exactly that; and the fifth fact - a store carries the
- * page's own init, timer and utility scripts too (12.1-08, 13-17; I.5.9).
+ * SAFE-05 requires exactly that; the fifth fact - a store carries the page's
+ * own init, timer and utility scripts too (12.1-08, 13-17; I.5.9) - and,
+ * since 2026-09-16, what a store does first: the page returns to its
+ * firmware default before the configuration is written and stored.
  */
 export const confirmReplaces = (page: number): string =>
-  `This replaces what ${pageName(page)} holds on your ZONA — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and it stays after power-off.`;
+  `This returns ${pageName(page)} to its firmware default, then writes this configuration — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and stores it, so it stays after power-off.`;
 /** The way back beside the confirmation (I.5.10, rewritten at 13.1-06 under D-07): the header's Clear, the one that exists. */
 export const CONFIRM_WAY_BACK = `${CLEAR_LABEL} still returns the page to its firmware default.`;
 
@@ -385,33 +386,29 @@ export function confirmRig(others: readonly string[]): string | undefined {
 export const NEEDS_ZONA = "Needs your ZONA connected.";
 
 // ---------------------------------------------------------------------------
-// The Store on ZONA control: the enabled line and the six closed reasons.
-
-/** The first fact, flash side, before the click (I.6.1). */
-export const keepLineEnabled = (page: number): string =>
-  `Stores this on ${pageName(page)} so it stays after power-off.`;
+// The Store on ZONA control: the enabled line and the three closed reasons.
 
 /**
- * The six reasons Store on ZONA can be disabled for, and no seventh. Every
- * state row that reads "present, disabled" without naming one means
- * `never-tried`.
+ * The first fact, before the click (I.6.1): Store on ZONA's accessible
+ * description while a session is connected (DestinationZone.svelte). Since
+ * 2026-09-16 it says the whole click - the page's default first, then this
+ * configuration written and stored.
  */
-export type KeepReason =
-  | "never-tried"
-  | "knobs-moved"
-  | "after-partial"
-  | "already-kept"
-  | "after-mismatch"
-  | "incapable";
+export const keepLineEnabled = (page: number): string =>
+  `Returns ${pageName(page)} to its firmware default, then writes this and stores it, so it stays after power-off.`;
 
-/** Closed over KeepReason: a seventh key is a type error (Z-05, Z-21). Each names the control it points at verbatim (I.6.2). */
+/**
+ * The three reasons Store on ZONA can be disabled for, and no fourth
+ * (2026-09-16; six until Apply to ZONA left). A disabled Store that names no
+ * reason is the zone's own: measuring, over budget, the snapshot in flight, a
+ * write in flight, the page target not at rest.
+ */
+export type KeepReason = "no-session" | "already-kept" | "incapable";
+
+/** Closed over KeepReason: a fourth key is a type error (Z-05, Z-21). Two are references to sentences written once. */
 export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
-  "never-tried": `${TRY_ON_LABEL} first, then store it.`,
-  "knobs-moved": `The knobs moved since it was applied. ${TRY_ON_LABEL} again first.`,
-  "after-partial": `Not after a partial apply. ${TRY_ON_LABEL} again, or click ${CLEAR_LABEL}.`,
-  "already-kept":
-    "Already stored on ZONA. Turn a knob and apply it again to store a new one.",
-  "after-mismatch": `${TRY_ON_LABEL} again first, then store it again.`,
+  "no-session": NEEDS_ZONA,
+  "already-kept": "Already stored on ZONA. Change something to store it again.",
   incapable: "This browser can’t write to a ZONA.",
 };
 

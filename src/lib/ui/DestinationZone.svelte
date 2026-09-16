@@ -1,12 +1,13 @@
 <!--
   The context bar's destination zone, one component for both routes: Target over
-  the pages the module enumerated, Apply to ZONA, Store on ZONA, the lines beneath
-  and a failure's block. Props: name (the write's label), config (the five strings,
+  the pages the module enumerated, Store on ZONA, the lines beneath and a
+  failure's block. Props: name (the write's label), config (the five strings,
   undefined while measuring), refusal (the caller's over-budget sentence).
-  Nothing here is a second write path: Apply is install.tryOnDevice, Store is
-  install.openConfirm (KeepConfirm renders in its place), the select's change is
-  install.switchPage - the one call, no review. No Put back on either route (D-07).
-  The honesty line is Apply's sr-only description, never a painted block.
+  Nothing here is a second write path: Store is install.openConfirm (KeepConfirm
+  renders in its place and is handed the same config and name for its click),
+  the select's change is install.switchPage - the one call, no review. No Apply
+  since 2026-09-16 (BENCH-2026-09-16.txt section 1), no Put back (D-07). The
+  honesty line is Store's sr-only description, never a painted block.
   Every sentence is install-copy.ts's or page-target.ts's; square everywhere (D-01).
   Decided at 13.1-06 (13.1-CONTEXT D-06, D-07); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
@@ -16,12 +17,12 @@
   import { tick } from "svelte";
   import {
     HONESTY_INCAPABLE,
-    HONESTY_NO_SESSION,
     HONESTY_SNAPSHOTTING,
     KEEP_LABEL,
     KEEP_REASONS,
+    NEEDS_ZONA,
     STILL_WRITING_LINE,
-    honestyReady,
+    keepLineEnabled,
     keptMismatchBlock,
     lostBlock,
     nothingLandedBlock,
@@ -34,7 +35,6 @@
   } from "$lib/device/install-copy";
   import { install, type InstallPhase } from "$lib/device/install.svelte";
   import {
-    APPLY_LABEL,
     TARGET_LABEL,
     pageName,
     switchingLine,
@@ -61,7 +61,7 @@
           timer: string;
         }
       | undefined;
-    /** The caller's over-budget sentence while a string is over 908; Apply is disabled on it. */
+    /** The caller's over-budget sentence while a string is over 908; Store is disabled on it. */
     refusal?: string | undefined;
   } = $props();
 
@@ -84,13 +84,6 @@
   const targetValue = $derived(install.pageRequested ?? reportedPage);
   const targetPending = $derived(install.pageStatus !== "reported");
   const writing = $derived(install.phase === "writing");
-  const applyDisabled = $derived(
-    !install.applyReady ||
-      refusal !== undefined ||
-      config === undefined ||
-      writing ||
-      install.phase === "snapshotting",
-  );
   /** Store on ZONA's reason (install-copy.ts's KEEP_REASONS); `held` keeps the last non-writing one through a write. */
   const capable = $derived(
     session.phase !== "unsupported" && session.phase !== "insecure",
@@ -101,15 +94,28 @@
     if (install.phase !== "writing") held = storeReason;
   });
   const shownReason = $derived(writing ? held : storeReason);
-  const storeDisabled = $derived(storeReason !== undefined || writing);
+  /**
+   * Store is disabled when the store is not armed (no session, a leg or the
+   * snapshot in flight, the page target not at rest, the pair withdrawn or
+   * over 908), when the closed record names a reason, or on the caller's
+   * refusal - a real disabled, never aria-disabled alone (TUNE-05).
+   */
+  const storeDisabled = $derived(
+    !install.armed ||
+      storeReason !== undefined ||
+      refusal !== undefined ||
+      config === undefined ||
+      writing,
+  );
 
   /** The page every line names, as the module reports it: the snapshot's page, else identify's; 0 before a ZONA has identified itself. */
   const page = $derived(install.snapshotPage ?? reportedPage ?? 0);
 
   /**
-   * Apply's description, in precedence: a browser that cannot write, the snapshot in
-   * flight, the ready form with a session, the pre-connect form. The refusal is named
-   * separately in aria-describedby.
+   * Store's description, in precedence: a browser that cannot write, the snapshot
+   * in flight, the ready form with a session (the whole click: the default first,
+   * then this written and stored), the no-session sentence. The refusal and the
+   * reason line are named separately in aria-describedby.
    */
   const honesty = $derived(
     !capable
@@ -117,11 +123,13 @@
       : install.phase === "snapshotting"
         ? HONESTY_SNAPSHOTTING
         : session.phase === "connected"
-          ? honestyReady(page)
-          : HONESTY_NO_SESSION,
+          ? keepLineEnabled(page)
+          : NEEDS_ZONA,
   );
-  const applyDescribedBy = $derived(
-    refusal === undefined ? honestyId : `${honestyId} ${refusalId}`,
+  const storeDescribedBy = $derived(
+    refusal === undefined
+      ? `${honestyId} ${storeLineId}`
+      : `${honestyId} ${storeLineId} ${refusalId}`,
   );
 
   /** The failure block through a write: `heldPhase` is the last phase that was not `writing`, so a step cannot vanish under a hand reaching for it. The effect writes it and never reads `shown`. */
@@ -136,7 +144,8 @@
    * The seven failure-shaped phases, one builder each (device-ui.spec.ts reads that the
    * four uncertain outcomes keep four bodies); the six success phases return nothing -
    * their captions are the bar's device clause. The two restore phases are the
-   * /dev/install/ probe's since 13.1-06.
+   * /dev/install/ probe's since 13.1-06. A Store's leg takes the store form of the
+   * nothing-landed block; the header's Clear keeps the form it had.
    */
   const failure = $derived.by((): InstallBlock | undefined => {
     switch (shown) {
@@ -153,13 +162,13 @@
         );
       case "nothing-landed":
         return nothingLandedBlock(
-          install.action === "try" ? "try" : "put-back",
+          install.action === "keep" ? "store" : "put-back",
           page,
         );
       case "restored-unconfirmed":
         return restoredUnconfirmedBlock(page);
       case "lost":
-        return lostBlock(install.leg === "store", APPLY_LABEL, page);
+        return lostBlock(install.leg === "store", KEEP_LABEL, page);
       case "snapshot-failed":
         return snapshotFailedBlock(page);
       default:
@@ -196,14 +205,9 @@
     }
   }
 
-  /** Apply to ZONA: the one RAM write, with the caller's name as its label. */
-  function apply(): void {
-    if (applyDisabled) return;
-    void install.tryOnDevice(config, name);
-  }
-
   /** Store on ZONA: opens the site's one confirmation and writes nothing. */
   function store(): void {
+    if (storeDisabled) return;
     install.openConfirm();
   }
 
@@ -239,22 +243,12 @@
         </option>
       {/each}
     </select>
-    <button
-      class="destination-apply"
-      type="button"
-      data-testid="apply-to-zona"
-      disabled={applyDisabled}
-      aria-describedby={applyDescribedBy}
-      onclick={apply}
-    >
-      {APPLY_LABEL}
-    </button>
-    <span class="sr-only" id={honestyId} data-testid="apply-honesty"
+    <span class="sr-only" id={honestyId} data-testid="store-honesty"
       >{honesty}</span
     >
     {#if install.confirmOpen}
       <div class="confirm" data-testid="store-confirm">
-        <KeepConfirm onclose={closeConfirm} />
+        <KeepConfirm {config} {name} onclose={closeConfirm} />
       </div>
     {:else}
       <button
@@ -263,14 +257,14 @@
         type="button"
         data-testid="store-on-zona"
         disabled={storeDisabled}
-        aria-describedby={storeLineId}
+        aria-describedby={storeDescribedBy}
         onclick={store}
       >
         {KEEP_LABEL}
       </button>
     {/if}
   </div>
-  <!-- Store on ZONA's reason, KEEP ON DEVICE's own seven; hidden when the control is live. -->
+  <!-- Store on ZONA's reason, the closed record's three; hidden when the record names none. -->
   <p
     class="destination-line"
     id={storeLineId}
@@ -283,7 +277,7 @@
     <p
       class="destination-line refusal"
       id={refusalId}
-      data-testid="apply-refusal"
+      data-testid="store-refusal"
     >
       {refusal}
     </p>
@@ -314,7 +308,7 @@
 </div>
 
 <style>
-  /* The zone as the workspace drew it (13-12): label, select, the filled Apply, Store on ZONA (bordered, never filled) on one row; the lines; a failure's block last. No corner (D-01). */
+  /* The zone as the workspace drew it (13-12), less Apply since 2026-09-16: label, select, Store on ZONA (bordered, never filled) on one row; the lines; a failure's block last. No corner (D-01). */
   .destination {
     display: flex;
     flex-direction: column;
@@ -359,30 +353,7 @@
     cursor: not-allowed;
   }
 
-  .destination-apply {
-    appearance: none;
-    min-block-size: 44px;
-    min-inline-size: 194px;
-    padding-inline: 24px;
-    border: 1px solid var(--color-action);
-    border-radius: 0;
-    background: var(--color-action);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--color-workspace);
-    cursor: pointer;
-  }
-
-  .destination-apply:disabled {
-    border-color: var(--color-boundary);
-    background: transparent;
-    color: var(--color-ink-quiet);
-    cursor: not-allowed;
-  }
-
-  /* Store on ZONA: bordered, never filled, never Apply's size (Phase 4's rule for the two install controls). */
+  /* Store on ZONA: bordered, never filled (Phase 4's rule for the flash write; the filled Apply left at 2026-09-16 and nothing took its fill). */
   .destination-store {
     appearance: none;
     min-block-size: 44px;

@@ -19,15 +19,15 @@ import {
   CLEAR_REASONS,
   type ClearReason,
   HONESTY_INCAPABLE,
-  HONESTY_NO_SESSION,
   HONESTY_SNAPSHOTTING,
   KEEP_LABEL,
   KEEP_REASONS,
+  NEEDS_ZONA,
   STILL_WRITING_LINE,
   clearLine,
   clearedCaption,
   clearingLabel,
-  honestyReady,
+  keepLineEnabled,
   keptCaption,
   keptMismatchBlock,
   nothingLandedBlock,
@@ -595,12 +595,15 @@ describe("the device UI's structural rules", () => {
     ).toBeGreaterThan(occurrences(code(tuning), LIVE));
   });
 
-  it("the destination zone: one component for both routes - Target, Apply described by the honesty line, Store or its confirmation in the same place, the reason, the refusal, the switching or unverified line, a failure's block; no Put back; a group that is not a dialog", () => {
+  it("the destination zone: one component for both routes - Target, Store described by the honesty line or its confirmation in the same place, the reason, the refusal, the switching or unverified line, a failure's block; no Apply, no Put back; a group that is not a dialog", () => {
     // Plan 13.1-06; 13.1-CONTEXT D-06 and D-07 (bench line 6: "the second
     // row in the page (so under the logo) the right side should look like
     // this: Target PAGE 1 on ZONA selector, Apply to ZONA button, Store on
     // ZONA button"; "we dont even need the Put back function"). Absorbs what
-    // the two deleted column tests held that still has a subject.
+    // the two deleted column tests held that still has a subject. APPLY LEFT
+    // ON 2026-09-16 (BENCH-2026-09-16.txt section 1: "we dont need the apply
+    // to ZONA, only Store stays"): the zone is Target and Store, the honesty
+    // line is Store's description, the refusal disables Store.
     const present = new Set(
       readdirSync(repo(UI_DIR))
         .map(String)
@@ -621,21 +624,20 @@ describe("the device UI's structural rules", () => {
       expect(present.has(gone), `${gone} is still on disk`).toBe(false);
     }
 
-    // THE SOURCE. The four test ids; no put-back; no dialog; Apply described;
-    // the failure block; the 44px floor on every control's own class; every
-    // border-radius zero; the honesty line derived, not retyped.
+    // THE SOURCE. The test ids; no Apply; no put-back; no dialog; Store
+    // described; the failure block; the 44px floor on every control's own
+    // class; every border-radius zero; the honesty line derived, not retyped.
     const zone = code(componentPath("DestinationZone.svelte"));
     expect(zone.length, "the zone's code was read").toBeGreaterThan(3000);
     for (const id of [
       "destination",
       "destination-page",
-      "apply-to-zona",
       "store-on-zona",
       "store-confirm",
       "store-on-zona-line",
-      "apply-refusal",
+      "store-refusal",
       "destination-line",
-      "apply-honesty",
+      "store-honesty",
       "still-writing",
     ]) {
       expect(
@@ -644,6 +646,16 @@ describe("the device UI's structural rules", () => {
       ).toBe(id === "destination-line" ? 2 : 1);
     }
     expect(zone).toContain('testid="install-failure"');
+    const APPLY_ID = ["apply", "-to-zona"].join("");
+    for (const gone of [
+      `data-testid="${APPLY_ID}"`,
+      'data-testid="apply-honesty"',
+      'data-testid="apply-refusal"',
+      "install.tryOnDevice(",
+      "destination-apply",
+    ]) {
+      expect(occurrences(zone, gone), `the zone still carries ${gone}`).toBe(0);
+    }
     const PUT_BACK_ID = ["put", "-back"].join("");
     expect(
       occurrences(zone, `data-testid="${PUT_BACK_ID}"`),
@@ -661,29 +673,30 @@ describe("the device UI's structural rules", () => {
     for (const needle of [DIALOG, MODAL, LABEL, INTERVAL]) {
       expect(occurrences(zone, needle), `the zone carries ${needle}`).toBe(0);
     }
-    expect(zone, "Apply is described").toMatch(
-      /data-testid="apply-to-zona"[^>]*aria-describedby=\{applyDescribedBy\}/,
+    expect(zone, "Store is described").toMatch(
+      /data-testid="store-on-zona"[^>]*aria-describedby=\{storeDescribedBy\}/,
     );
     expect(zone).toContain("<FailureBlock block={failure}");
-    expect(zone).toContain("install.tryOnDevice(config, name)");
     expect(zone).toContain("install.openConfirm()");
     expect(zone).toContain("install.switchPage(value)");
-    expect(zone).toContain("<KeepConfirm onclose={closeConfirm} />");
+    expect(zone).toContain(
+      "<KeepConfirm {config} {name} onclose={closeConfirm} />",
+    );
     for (const constant of [
       "HONESTY_INCAPABLE",
       "HONESTY_SNAPSHOTTING",
-      "HONESTY_NO_SESSION",
-      "honestyReady(page)",
+      "NEEDS_ZONA",
+      "keepLineEnabled(page)",
       "STILL_WRITING_LINE",
     ]) {
       expect(zone, `the zone reads ${constant}`).toContain(constant);
     }
+    // And the confirmation's affirmative hands the same config and name to
+    // the store's one write: no second write path.
+    const confirm = code(componentPath("KeepConfirm.svelte"));
+    expect(confirm).toContain("install.keepOnDevice(config, name)");
     const rules = rulesOf(zone);
-    for (const cls of [
-      "destination-select",
-      "destination-apply",
-      "destination-store",
-    ]) {
+    for (const cls of ["destination-select", "destination-store"]) {
       const body = rules
         .filter((r) => r.selector.trim() === `.${cls}`)
         .map((r) => r.body)
@@ -746,6 +759,10 @@ describe("the device UI's structural rules", () => {
         occurrences(source, `data-testid="${PUT_BACK_ID}"`),
         `${file} draws a Put back`,
       ).toBe(0);
+      expect(
+        occurrences(source, "install.tryOnDevice("),
+        `${file} calls the probe's TRY`,
+      ).toBe(0);
     }
     const workspace = code(WORKSPACE);
     for (const gone of [
@@ -769,8 +786,9 @@ describe("the device UI's structural rules", () => {
       "SurfaceActions still carries a destination half",
     ).toBe(0);
     expect(occurrences(actions, "zone"), "the zone prop is gone").toBe(0);
-    // NOTHING UNDER src/lib/ui/ OR THE ROUTES DRAWS A PUT BACK CONTROL. The
-    // probe under src/routes/dev/ keeps its own button for the machinery.
+    // NOTHING UNDER src/lib/ui/ OR THE ROUTES DRAWS A PUT BACK CONTROL OR
+    // CALLS THE PROBE'S TRY. The probe under src/routes/dev/ keeps its own
+    // buttons for the machinery.
     const walk = (dir: string, out: string[] = []): string[] => {
       for (const entry of readdirSync(repo(dir), { withFileTypes: true })) {
         const rel = `${dir}/${entry.name}`;
@@ -793,15 +811,38 @@ describe("the device UI's structural rules", () => {
       "a component or route outside the probe calls the restore",
     ).toEqual([]);
     expect(
-      occurrences(
-        code("src/routes/dev/install/+page.svelte"),
-        "install.putBack(",
+      drawn.filter(
+        (file) => occurrences(code(file), "install.tryOnDevice(") > 0,
       ),
+      "a component or route outside the probe calls the RAM audition (2026-09-16)",
+    ).toEqual([]);
+    expect(
+      drawn.filter(
+        (file) => occurrences(code(file), `data-testid="${APPLY_ID}"`) > 0,
+      ),
+      "a component or route outside the probe draws an Apply control",
+    ).toEqual([]);
+    const probe = code("src/routes/dev/install/+page.svelte");
+    expect(
+      occurrences(probe, "install.putBack("),
       "the probe keeps its restore button",
     ).toBe(1);
     expect(
-      occurrences(code("src/lib/device/install.svelte.ts"), "async putBack()"),
+      occurrences(probe, "install.tryOnDevice("),
+      "the probe keeps its TRY button",
+    ).toBe(1);
+    expect(
+      occurrences(probe, "install.keepOnDevice(pair(), NAME)"),
+      "the probe's Keep hands the store the pair and the name",
+    ).toBe(1);
+    const storeSource = code("src/lib/device/install.svelte.ts");
+    expect(
+      occurrences(storeSource, "async putBack()"),
       "the store keeps putBack()",
+    ).toBe(1);
+    expect(
+      occurrences(storeSource, "async tryOnDevice("),
+      "the store keeps tryOnDevice() for the probe",
     ).toBe(1);
 
     // RENDERED, over the real singletons, under a hand-set mirror. Every
@@ -823,6 +864,8 @@ describe("the device UI's structural rules", () => {
       );
       return m ? decode(m[1].replace(/<[^>]+>/g, "").trim()) : undefined;
     };
+    const storeTag = (body: string) =>
+      /<button[^>]*data-testid="store-on-zona"[^>]*>/.exec(body)?.[0];
     const before = {
       session: session.phase,
       identity: session.identity,
@@ -832,6 +875,7 @@ describe("the device UI's structural rules", () => {
       snapshot: install.snapshot,
       snapshotPage: install.snapshotPage,
       applyReady: install.applyReady,
+      armed: install.armed,
       slow: install.slow,
       confirmOpen: install.confirmOpen,
     };
@@ -840,95 +884,106 @@ describe("the device UI's structural rules", () => {
       install.snapshotPage = PAGE;
       install.snapshot = snapshot;
       install.applyReady = true;
+      install.armed = true;
       install.action = undefined;
       install.name = undefined;
       install.confirmOpen = false;
       install.slow = false;
 
-      // READY: the honesty line is Apply's description, Store is disabled
-      // with the never-tried reason, no failure block, no still-writing line.
+      // READY: the honesty line is Store's description; no Apply; no failure
+      // block; no still-writing line. The singleton has no queue in node, so
+      // keepReason reads no-session and Store is a real disabled with that
+      // sentence on its line - the live form is install.spec.ts's, on a rig.
       install.phase = "ready";
       const ready = render(DestinationZone, { props }).body;
-      expect(ready).toContain('data-testid="apply-to-zona"');
+      expect(ready).not.toContain(`data-testid="${APPLY_ID}"`);
       expect(ready).toContain('data-testid="store-on-zona"');
       expect(ready).toContain('data-testid="destination-page"');
       expect(ready).not.toContain(`data-testid="${PUT_BACK_ID}"`);
-      expect(spanText(ready, "apply-honesty"), "ready: the honesty line").toBe(
-        honestyReady(PAGE),
+      expect(spanText(ready, "store-honesty"), "ready: the honesty line").toBe(
+        keepLineEnabled(PAGE),
       );
-      const applyTag = /<button[^>]*data-testid="apply-to-zona"[^>]*>/.exec(
-        ready,
-      )?.[0];
-      expect(applyTag, "Apply renders").toBeDefined();
-      const honestyId = /id="([^"]+)" data-testid="apply-honesty"/.exec(
+      const readyTag = storeTag(ready);
+      expect(readyTag, "Store renders").toBeDefined();
+      const honestyId = /id="([^"]+)" data-testid="store-honesty"/.exec(
         ready,
       )?.[1];
       expect(honestyId, "the honesty span has an id").toBeDefined();
-      expect(applyTag, "Apply is described by the honesty line").toContain(
-        `aria-describedby="${honestyId}"`,
-      );
+      const lineId = /id="([^"]+)" data-testid="store-on-zona-line"/.exec(
+        ready,
+      )?.[1];
+      expect(lineId, "the reason line has an id").toBeDefined();
+      expect(
+        readyTag,
+        "Store is described by the honesty line and the reason line",
+      ).toContain(`aria-describedby="${honestyId} ${lineId}"`);
       expect(ready).toContain(KEEP_LABEL);
-      expect(decode(ready)).toContain(KEEP_REASONS["never-tried"]);
+      expect(readyTag).toContain(" disabled");
+      expect(decode(ready)).toContain(KEEP_REASONS["no-session"]);
       expect(ready).not.toContain('data-testid="install-failure"');
       expect(ready).not.toContain('data-testid="still-writing"');
       expect(ready).not.toContain(DIALOG);
 
-      // OVER BUDGET: Apply is a real disabled, described by the honesty line
-      // AND the refusal, and the refusal is on the screen.
+      // OVER BUDGET: Store is a real disabled, described by the honesty line,
+      // the reason line AND the refusal, and the refusal is on the screen.
       const refused = render(DestinationZone, {
         props: { ...props, refusal: "Setup is 910 of 908, 2 over." },
       }).body;
-      const refusedTag = /<button[^>]*data-testid="apply-to-zona"[^>]*>/.exec(
-        refused,
-      )?.[0];
+      const refusedTag = storeTag(refused);
       expect(refusedTag).toContain(" disabled");
       expect(refusedTag).toMatch(
-        /aria-describedby="[^"]+-honesty [^"]+-refusal"/,
+        /aria-describedby="[^"]+-honesty [^"]+-store-line [^"]+-refusal"/,
       );
-      expect(refused).toContain('data-testid="apply-refusal"');
+      expect(refused).toContain('data-testid="store-refusal"');
       expect(refused).toContain("Setup is 910 of 908, 2 over.");
 
       // THE HONESTY LINE'S OTHER FORMS: no session, snapshotting, incapable.
       session.phase = "idle";
       install.phase = "idle";
       expect(
-        spanText(render(DestinationZone, { props }).body, "apply-honesty"),
+        spanText(render(DestinationZone, { props }).body, "store-honesty"),
         "no session",
-      ).toBe(HONESTY_NO_SESSION);
+      ).toBe(NEEDS_ZONA);
       session.phase = "connected";
       install.phase = "snapshotting";
       expect(
-        spanText(render(DestinationZone, { props }).body, "apply-honesty"),
+        spanText(render(DestinationZone, { props }).body, "store-honesty"),
         "snapshotting",
       ).toBe(HONESTY_SNAPSHOTTING);
       session.phase = "unsupported";
       install.phase = "idle";
       expect(
-        spanText(render(DestinationZone, { props }).body, "apply-honesty"),
+        spanText(render(DestinationZone, { props }).body, "store-honesty"),
         "incapable",
       ).toBe(HONESTY_INCAPABLE);
       session.phase = "connected";
 
       // NOTHING LANDED (W-12): the block under install-failure with its
-      // title and its two steps, and the steps name Apply to ZONA and the
-      // cable; the way back to the firmware default is the header's Clear,
-      // which the other three failure blocks' second step names since
-      // 13.1-06 (install-copy.spec.ts holds every step against the write
-      // clicks - the words are that module's contract, not this one's).
+      // title and its two steps; after a Store the steps name Store on ZONA
+      // and the cable (the store form, 2026-09-16); the way back to the
+      // firmware default is the header's Clear, which the other three failure
+      // blocks' second step names since 13.1-06 (install-copy.spec.ts holds
+      // every step against the write clicks - the words are that module's
+      // contract, not this one's).
       install.phase = "nothing-landed";
-      install.action = "try";
+      install.action = "keep";
       const landed = render(DestinationZone, { props }).body;
       expect(landed).toContain('data-testid="install-failure"');
-      const block = nothingLandedBlock("try", PAGE);
+      const block = nothingLandedBlock("store", PAGE);
       expect(decode(landed)).toContain(block.title);
       expect(decode(landed)).toContain(block.detail);
       for (const step of block.steps) expect(decode(landed)).toContain(step);
-      expect(block.steps[0]).toContain("Apply to ZONA");
+      expect(block.steps[0]).toContain(KEEP_LABEL);
       expect(
         (landed.match(/<li>/g) ?? []).length,
         "two steps, as a real list",
       ).toBe(2);
       expect(decode(landed)).not.toContain(["Put", " back"].join(""));
+      // The header's Clear keeps the form it had.
+      install.action = "clear";
+      expect(decode(render(DestinationZone, { props }).body)).toContain(
+        nothingLandedBlock("put-back", PAGE).detail,
+      );
       // And a failure whose way back is the firmware default names Clear.
       install.phase = "kept-mismatch";
       const mismatch = decode(render(DestinationZone, { props }).body);
@@ -937,7 +992,7 @@ describe("the device UI's structural rules", () => {
       // STILL WRITING (W-11, SAFE-08's visible half): the line beneath the
       // row while the store's flag is set, and not otherwise.
       install.phase = "writing";
-      install.action = "try";
+      install.action = "keep";
       install.slow = true;
       const slow = render(DestinationZone, { props }).body;
       expect(slow).toContain('data-testid="still-writing"');
@@ -948,7 +1003,7 @@ describe("the device UI's structural rules", () => {
       );
 
       // THE CONFIRMATION IN STORE'S PLACE: never both on the screen.
-      install.phase = "settled";
+      install.phase = "ready";
       install.confirmOpen = true;
       const confirming = render(DestinationZone, { props }).body;
       expect(confirming).toContain('data-testid="store-confirm"');
@@ -965,6 +1020,7 @@ describe("the device UI's structural rules", () => {
       install.snapshot = before.snapshot;
       install.snapshotPage = before.snapshotPage;
       install.applyReady = before.applyReady;
+      install.armed = before.armed;
       install.slow = before.slow;
       install.confirmOpen = before.confirmOpen;
     }
@@ -1682,7 +1738,7 @@ describe("the device UI's structural rules", () => {
         "the utility script, the Timer and the Setup",
         0,
       ).title,
-      nothingLandedBlock("try", 0).title,
+      nothingLandedBlock("store", 0).title,
     ];
     expect(
       new Set(titles).size,
