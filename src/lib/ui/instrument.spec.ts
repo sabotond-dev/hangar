@@ -246,11 +246,10 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   // "remove". The bar's Apply to ZONA and Store on ZONA are
   // DestinationZone.svelte's own rectangles (13-12's shape, no pill), so the
   // derived walk finds two pilled controls fewer and this list says so.
-  [
-    "KeepConfirm.svelte",
-    "secondary",
-    "Secondary - the confirmation's affirmative",
-  ],
+  // ONE ROW LEFT ON 2026-09-16 (change 2, BENCH-2026-09-16.txt section 2):
+  // KeepConfirm.svelte's "secondary" (Secondary - the confirmation's
+  // affirmative) went with its file when Store on ZONA became one click; the
+  // walk finds one pilled control fewer and the list says so.
   ["CopyLink.svelte", "control", "Secondary"],
   ["BudgetMessage.svelte", "back-off", "Secondary - TURN IT DOWN"],
   // MixTwo.svelte's row ("mix-two", Secondary) left with the file at 13-10
@@ -296,8 +295,9 @@ const QUIET: ReadonlyArray<readonly [string, string, string]> = [
   // (13.1-CONTEXT D-06), Store on ZONA is the bar's bordered control
   // (DestinationZone.svelte) and Disconnect ZONA is Device actions' quiet
   // control (DeviceDetails.svelte, 13-11). The list says so in the same
-  // commit; NOT NOW is the tier's install member now.
-  ["KeepConfirm.svelte", "quiet-control", "NOT NOW"],
+  // commit. NOT NOW (KeepConfirm.svelte -> .quiet-control) was the tier's
+  // install member from then until 2026-09-16 change 2, when the
+  // confirmation left with its file: the tier has no install member now.
   ["Knob.svelte", "lock", "HOLD / HELD"],
   ["BrowseToolbar.svelte", "clear", "the search field's own CLEAR"],
 ];
@@ -655,7 +655,6 @@ describe("IDENT-01 the instrument register (10-UI-SPEC 19.1g)", () => {
     for (const name of [
       "Clear.svelte",
       "DestinationZone.svelte",
-      "KeepConfirm.svelte",
       "DeviceSlot.svelte",
       "DeviceNote.svelte",
     ]) {

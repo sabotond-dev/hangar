@@ -16,6 +16,20 @@
 // Each entry keeps its heading and its names; the argument is in the SUMMARY
 // it points at (13.2-CONTEXT D-05).
 //
+// THE STORE CONFIRMATION'S STRINGS ARE RETIRED BY NAME, 2026-09-16
+// (BENCH-2026-09-16.txt section 2, the user's word: "no opting when pressing
+// ZONA, nothing opens down under storing, it just stores it with one click"):
+// NOT_NOW_LABEL (`Not now`), confirmCaption (`Store this on ZONA · Page N?`),
+// confirmReplaces (the one string that named the touch element; its fact -
+// the default first, then this written and stored, so it stays after
+// power-off - is keepLineEnabled's, Store's own description), CONFIRM_WAY_BACK
+// (`Clear still returns the page to its firmware default.`), and confirmRig
+// with its formatter moduleList (SAFE-06's rig sentence, with no home once
+// the confirmation left; SAFE-05 and SAFE-06 are the next gate's to amend).
+// Store on ZONA is one click: the routes' one write runs from the click
+// itself (DestinationZone.svelte). KEEP_LABEL stays - it is Store's own.
+// WRITE_CLICKS is still THREE: the affirmative was never a click in the list.
+//
 // APPLY TO ZONA'S STRINGS ARE RETIRED BY NAME, 2026-09-16 (BENCH-2026-09-16.txt
 // section 1, the user's word: "we dont need the apply to ZONA, only Store
 // stays"): TRY_ON_LABEL (`Apply to ZONA`), writingLabel (`Applying to Page N…`
@@ -129,10 +143,8 @@ export const pageName = (page: number): string => `Page ${page + 1}`;
 /** Section 9's progress label for the flash write: the bar's busy clause for every write since 2026-09-16 (device-clause.ts). */
 export const keepingLabel = (page: number): string =>
   `Storing on ${pageName(page)}…`;
-/** Section 9's own label for the flash write. */
+/** Section 9's own label for the flash write: one click, no confirmation (2026-09-16). */
 export const KEEP_LABEL = "Store on ZONA";
-/** The store confirmation's negative (I.4.19). */
-export const NOT_NOW_LABEL = "Not now";
 /** The user's own word for the firmware default (13.1-05, D-04), in D-05's case; what it does is said in clearLine, the control's description. */
 export const CLEAR_LABEL = "Clear";
 /**
@@ -340,45 +352,6 @@ export function snapshotFailedBlock(page: number): InstallBlock {
 }
 
 // ---------------------------------------------------------------------------
-// The store confirmation (SAFE-05, SAFE-06).
-
-/** The confirmation's title, in section 16's review shape (I.4.18). */
-export const confirmCaption = (page: number): string =>
-  `Store this on ZONA · ${pageName(page)}?`;
-/**
- * The one string on the site allowed to name the touch element, because
- * SAFE-05 requires exactly that; the fifth fact - a store carries the page's
- * own init, timer and utility scripts too (12.1-08, 13-17; I.5.9) - and,
- * since 2026-09-16, what a store does first: the page returns to its
- * firmware default before the configuration is written and stored.
- */
-export const confirmReplaces = (page: number): string =>
-  `This returns ${pageName(page)} to its firmware default, then writes this configuration — its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and stores it, so it stays after power-off.`;
-/** The way back beside the confirmation (I.5.10, rewritten at 13.1-06 under D-07): the header's Clear, the one that exists. */
-export const CONFIRM_WAY_BACK = `${CLEAR_LABEL} still returns the page to its firmware default.`;
-
-/**
- * The other modules on the cable, as a sentence would list them: `EN16`,
- * `EN16 and BU16`, `EN16, BU16 and PO16`. No Oxford comma.
- */
-export function moduleList(names: readonly string[]): string {
-  if (names.length === 0) return "";
-  if (names.length === 1) return names[0];
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
-
-/**
- * SAFE-06 in full (I.5.11): the other modules named, their pages being stored
- * stated as a fact about the protocol, and nothing when there are none.
- */
-export function confirmRig(others: readonly string[]): string | undefined {
-  if (others.length === 0) return undefined;
-  return others.length === 1
-    ? `Your ${moduleList(others)} is on the same cable. Its current page is stored too, because the store reaches every module at once.`
-    : `Your ${moduleList(others)} are on the same cable. Their current pages are stored too, because the store reaches every module at once.`;
-}
-
-// ---------------------------------------------------------------------------
 // The no-session sentence (I.3.4): the header's Clear reason for no session,
 // through CLEAR_REASONS below. Written once, referenced.
 
@@ -392,7 +365,8 @@ export const NEEDS_ZONA = "Needs your ZONA connected.";
  * The first fact, before the click (I.6.1): Store on ZONA's accessible
  * description while a session is connected (DestinationZone.svelte). Since
  * 2026-09-16 it says the whole click - the page's default first, then this
- * configuration written and stored.
+ * configuration written and stored - and the click is the whole write:
+ * nothing opens between it and the wire (change 2).
  */
 export const keepLineEnabled = (page: number): string =>
   `Returns ${pageName(page)} to its firmware default, then writes this and stores it, so it stays after power-off.`;

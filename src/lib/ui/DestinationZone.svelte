@@ -3,18 +3,17 @@
   the pages the module enumerated, Store on ZONA, the lines beneath and a
   failure's block. Props: name (the write's label), config (the five strings,
   undefined while measuring), refusal (the caller's over-budget sentence).
-  Nothing here is a second write path: Store is install.openConfirm (KeepConfirm
-  renders in its place and is handed the same config and name for its click),
-  the select's change is install.switchPage - the one call, no review. No Apply
-  since 2026-09-16 (BENCH-2026-09-16.txt section 1), no Put back (D-07). The
-  honesty line is Store's sr-only description, never a painted block.
+  Nothing here is a second write path: Store's click is install.keepOnDevice -
+  one click, nothing opens (BENCH-2026-09-16.txt section 2) - and the select's
+  change is install.switchPage - the one call, no review. No Apply since
+  2026-09-16 (section 1), no Put back (D-07). The honesty line is Store's
+  sr-only description, never a painted block.
   Every sentence is install-copy.ts's or page-target.ts's; square everywhere (D-01).
   Decided at 13.1-06 (13.1-CONTEXT D-06, D-07); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { tick } from "svelte";
   import {
     HONESTY_INCAPABLE,
     HONESTY_SNAPSHOTTING,
@@ -42,7 +41,6 @@
   } from "$lib/device/page-target";
   import { session } from "$lib/device/session.svelte";
   import FailureBlock from "./FailureBlock.svelte";
-  import KeepConfirm from "./KeepConfirm.svelte";
 
   let {
     name,
@@ -177,24 +175,6 @@
   });
 
   let targetSelect = $state<HTMLSelectElement | null>(null);
-  let storeButton = $state<HTMLButtonElement | null>(null);
-  let root = $state<HTMLDivElement | null>(null);
-
-  /** Focus when the confirmation leaves: Store on ZONA when live, else the zone itself (tabindex="-1"). `wasOpen` is a plain local so the effect reads one rune and writes none. */
-  let wasOpen = false;
-  $effect(() => {
-    const open = install.confirmOpen;
-    if (open) {
-      wasOpen = true;
-      return;
-    }
-    if (!wasOpen) return;
-    wasOpen = false;
-    void tick().then(() => {
-      if (storeButton && !storeButton.disabled) storeButton.focus();
-      else root?.focus();
-    });
-  });
 
   /** The select changed: the switch, in one call (13.1 D-05). A change that did not leave the wire snaps the select back. */
   async function onTargetChange(event: Event): Promise<void> {
@@ -205,25 +185,17 @@
     }
   }
 
-  /** Store on ZONA: opens the site's one confirmation and writes nothing. */
+  /** Store on ZONA: the one click is the whole write (the defaults, the configuration, the store, the proof). */
   function store(): void {
     if (storeDisabled) return;
-    install.openConfirm();
-  }
-
-  /** The confirmation closed without a store: focus returns to the control it replaced (KeepConfirm's one focus rule). */
-  function closeConfirm(): void {
-    install.dismissConfirm();
-    void tick().then(() => storeButton?.focus());
+    void install.keepOnDevice(config, name);
   }
 </script>
 
 <div
-  bind:this={root}
   class="destination"
   data-testid="destination"
   data-status={install.pageStatus}
-  tabindex="-1"
 >
   <div class="destination-row">
     <label class="destination-label" for={targetId}>{TARGET_LABEL}</label>
@@ -246,23 +218,16 @@
     <span class="sr-only" id={honestyId} data-testid="store-honesty"
       >{honesty}</span
     >
-    {#if install.confirmOpen}
-      <div class="confirm" data-testid="store-confirm">
-        <KeepConfirm {config} {name} onclose={closeConfirm} />
-      </div>
-    {:else}
-      <button
-        bind:this={storeButton}
-        class="destination-store"
-        type="button"
-        data-testid="store-on-zona"
-        disabled={storeDisabled}
-        aria-describedby={storeDescribedBy}
-        onclick={store}
-      >
-        {KEEP_LABEL}
-      </button>
-    {/if}
+    <button
+      class="destination-store"
+      type="button"
+      data-testid="store-on-zona"
+      disabled={storeDisabled}
+      aria-describedby={storeDescribedBy}
+      onclick={store}
+    >
+      {KEEP_LABEL}
+    </button>
   </div>
   <!-- Store on ZONA's reason, the closed record's three; hidden when the record names none. -->
   <p
@@ -378,11 +343,7 @@
     cursor: not-allowed;
   }
 
-  .confirm {
-    min-inline-size: 0;
-  }
-
-  /* The lines beneath: the bar's quiet 13px; the unverified one at full ink; never the alarm red (KeepConfirm.svelte says why). */
+  /* The lines beneath: the bar's quiet 13px; the unverified one at full ink; never the alarm red (Z-01: the red means one thing on this panel). */
   .destination-line {
     margin: 0;
     max-inline-size: 420px;

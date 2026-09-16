@@ -322,14 +322,12 @@
         query.sort,
       ).map((entry) => entry.id);
     }
-    window.addEventListener("keydown", onWindowKeyDown);
   });
 
   onDestroy(() => {
     if (!mounted) return;
     mounted = false;
     generation += 1;
-    window.removeEventListener("keydown", onWindowKeyDown);
     if (saveTimer !== undefined) clearTimeout(saveTimer);
     host?.destroy();
     host = undefined;
@@ -414,19 +412,6 @@
       saveTimer = undefined;
       saved = false;
     }, CONFIRM_MS);
-  }
-
-  /**
-   * Escape, from anywhere on the page (07-UI-SPEC Z-10, I3 rule 9): nothing while the install store is
-   * writing (a pause, not a trap); closes the flash confirmation while it is open; nothing else.
-   */
-  function onWindowKeyDown(event: KeyboardEvent): void {
-    if (event.key !== "Escape") return;
-    if (install.phase === "writing") return;
-    if (install.confirmOpen) {
-      event.preventDefault();
-      install.dismissConfirm();
-    }
   }
 
   /**

@@ -35,8 +35,7 @@ import {
  * How the bar's dot reads a phase: `live` for a state the module confirmed
  * (the action colour), `busy` for a leg in flight, `uncertain` for the six
  * titles that end without a confirmation (full ink, never the alarm red -
- * KeepConfirm.svelte says why the red means one thing on this page), `none`
- * for idle.
+ * Z-01: the red means one thing on this page), `none` for idle.
  */
 export type DeviceTone = "none" | "busy" | "live" | "uncertain";
 

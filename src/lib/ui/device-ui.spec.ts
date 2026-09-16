@@ -107,18 +107,15 @@ const SENTENCE_COMPONENTS: readonly string[] = [
 ];
 
 /**
- * The install leaves: TWO since 13.1-06. Plan 07-09 added three - InstallState,
- * KeepConfirm and PutBack - and 13.1-06 deleted two of them with the column
- * and TryOnDevice (13.1-CONTEXT D-06, D-07); what renders the install store on
- * a visitor's screen now is the context bar's destination zone and the
- * confirmation it mounts in Store on ZONA's place. Listed, like the seven
- * above, so a rename is a visible omission; checked against the directory in
- * the zone test.
+ * The install leaves: ONE since 2026-09-16 (change 2). Plan 07-09 added three
+ * - InstallState, KeepConfirm and PutBack - 13.1-06 deleted two of them with
+ * the column and TryOnDevice (13.1-CONTEXT D-06, D-07), and KeepConfirm left
+ * by the user's word (BENCH-2026-09-16.txt section 2: Store is one click);
+ * what renders the install store on a visitor's screen now is the context
+ * bar's destination zone alone. Listed, like the seven above, so a rename is
+ * a visible omission; checked against the directory in the zone test.
  */
-const INSTALL_LEAVES: readonly string[] = [
-  "DestinationZone.svelte",
-  "KeepConfirm.svelte",
-];
+const INSTALL_LEAVES: readonly string[] = ["DestinationZone.svelte"];
 
 /**
  * COMPILER_MARKERS and the PERMITTED specifiers are config-shape.spec.ts's,
@@ -595,7 +592,7 @@ describe("the device UI's structural rules", () => {
     ).toBeGreaterThan(occurrences(code(tuning), LIVE));
   });
 
-  it("the destination zone: one component for both routes - Target, Store described by the honesty line or its confirmation in the same place, the reason, the refusal, the switching or unverified line, a failure's block; no Apply, no Put back; a group that is not a dialog", () => {
+  it("the destination zone: one component for both routes - Target, Store described by the honesty line and stored on one click with nothing opening in its place, the reason, the refusal, the switching or unverified line, a failure's block; no Apply, no Put back, no confirmation; nothing that is a dialog", () => {
     // Plan 13.1-06; 13.1-CONTEXT D-06 and D-07 (bench line 6: "the second
     // row in the page (so under the logo) the right side should look like
     // this: Target PAGE 1 on ZONA selector, Apply to ZONA button, Store on
@@ -603,23 +600,27 @@ describe("the device UI's structural rules", () => {
     // the two deleted column tests held that still has a subject. APPLY LEFT
     // ON 2026-09-16 (BENCH-2026-09-16.txt section 1: "we dont need the apply
     // to ZONA, only Store stays"): the zone is Target and Store, the honesty
-    // line is Store's description, the refusal disables Store.
+    // line is Store's description, the refusal disables Store. THE
+    // CONFIRMATION LEFT THE SAME DAY (section 2: "nothing opens down under
+    // storing, it just stores it with one click"): Store's click is the
+    // store's one write, and KeepConfirm.svelte is gone from disk.
     const present = new Set(
       readdirSync(repo(UI_DIR))
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(INSTALL_LEAVES.length, "two leaves were listed").toBe(2);
+    expect(INSTALL_LEAVES.length, "one leaf was listed").toBe(1);
     expect(
       INSTALL_LEAVES.filter((name) => !present.has(name)),
       "a listed install leaf is not on disk",
     ).toEqual([]);
-    // THE FOUR ARE GONE, not left mounted nowhere (D-12's precedent).
+    // THE FIVE ARE GONE, not left mounted nowhere (D-12's precedent).
     for (const gone of [
       "TryOnDevice.svelte",
       "InstallState.svelte",
       "KeepOnDevice.svelte",
       "PutBack.svelte",
+      "KeepConfirm.svelte",
     ]) {
       expect(present.has(gone), `${gone} is still on disk`).toBe(false);
     }
@@ -633,7 +634,6 @@ describe("the device UI's structural rules", () => {
       "destination",
       "destination-page",
       "store-on-zona",
-      "store-confirm",
       "store-on-zona-line",
       "store-refusal",
       "destination-line",
@@ -647,12 +647,18 @@ describe("the device UI's structural rules", () => {
     }
     expect(zone).toContain('testid="install-failure"');
     const APPLY_ID = ["apply", "-to-zona"].join("");
+    const CONFIRM_ID = ["store", "-confirm"].join("");
     for (const gone of [
       `data-testid="${APPLY_ID}"`,
       'data-testid="apply-honesty"',
       'data-testid="apply-refusal"',
       "install.tryOnDevice(",
       "destination-apply",
+      `data-testid="${CONFIRM_ID}"`,
+      "<KeepConfirm",
+      "openConfirm",
+      "confirmOpen",
+      'tabindex="-1"',
     ]) {
       expect(occurrences(zone, gone), `the zone still carries ${gone}`).toBe(0);
     }
@@ -677,11 +683,16 @@ describe("the device UI's structural rules", () => {
       /data-testid="store-on-zona"[^>]*aria-describedby=\{storeDescribedBy\}/,
     );
     expect(zone).toContain("<FailureBlock block={failure}");
-    expect(zone).toContain("install.openConfirm()");
-    expect(zone).toContain("install.switchPage(value)");
-    expect(zone).toContain(
-      "<KeepConfirm {config} {name} onclose={closeConfirm} />",
+    // THE ONE CLICK IS THE WRITE: Store's handler hands the zone's own config
+    // and name to the store's one write, and nothing else in the zone does.
+    expect(
+      occurrences(zone, "install.keepOnDevice(config, name)"),
+      "Store's click is the store's one write, once",
+    ).toBe(1);
+    expect(zone).toMatch(
+      /data-testid="store-on-zona"[^>]*disabled=\{storeDisabled\}[^>]*onclick=\{store\}/,
     );
+    expect(zone).toContain("install.switchPage(value)");
     for (const constant of [
       "HONESTY_INCAPABLE",
       "HONESTY_SNAPSHOTTING",
@@ -691,10 +702,6 @@ describe("the device UI's structural rules", () => {
     ]) {
       expect(zone, `the zone reads ${constant}`).toContain(constant);
     }
-    // And the confirmation's affirmative hands the same config and name to
-    // the store's one write: no second write path.
-    const confirm = code(componentPath("KeepConfirm.svelte"));
-    expect(confirm).toContain("install.keepOnDevice(config, name)");
     const rules = rulesOf(zone);
     for (const cls of ["destination-select", "destination-store"]) {
       const body = rules
@@ -755,6 +762,10 @@ describe("the device UI's structural rules", () => {
       ]) {
         expect(occurrences(source, tag), `${file} mounts ${tag}`).toBe(0);
       }
+      expect(
+        occurrences(source, "confirmOpen") + occurrences(source, "Confirm()"),
+        `${file} still reaches the store's confirmation`,
+      ).toBe(0);
       expect(
         occurrences(source, `data-testid="${PUT_BACK_ID}"`),
         `${file} draws a Put back`,
@@ -877,7 +888,6 @@ describe("the device UI's structural rules", () => {
       applyReady: install.applyReady,
       armed: install.armed,
       slow: install.slow,
-      confirmOpen: install.confirmOpen,
     };
     try {
       session.phase = "connected";
@@ -887,7 +897,6 @@ describe("the device UI's structural rules", () => {
       install.armed = true;
       install.action = undefined;
       install.name = undefined;
-      install.confirmOpen = false;
       install.slow = false;
 
       // READY: the honesty line is Store's description; no Apply; no failure
@@ -1002,15 +1011,15 @@ describe("the device UI's structural rules", () => {
         'data-testid="still-writing"',
       );
 
-      // THE CONFIRMATION IN STORE'S PLACE: never both on the screen.
+      // NOTHING IN STORE'S PLACE (2026-09-16 change 2): in every phase
+      // rendered above the zone carries Store itself, no group and no dialog
+      // - the click is the write.
       install.phase = "ready";
-      install.confirmOpen = true;
-      const confirming = render(DestinationZone, { props }).body;
-      expect(confirming).toContain('data-testid="store-confirm"');
-      expect(confirming).not.toContain('data-testid="store-on-zona"');
-      expect(confirming).toContain('role="group"');
-      expect(confirming).not.toContain(DIALOG);
-      install.confirmOpen = false;
+      const plain = render(DestinationZone, { props }).body;
+      expect(plain).toContain('data-testid="store-on-zona"');
+      expect(plain).not.toContain(`data-testid="${CONFIRM_ID}"`);
+      expect(plain).not.toContain('role="group"');
+      expect(plain).not.toContain(DIALOG);
     } finally {
       session.phase = before.session;
       session.identity = before.identity;
@@ -1022,23 +1031,20 @@ describe("the device UI's structural rules", () => {
       install.applyReady = before.applyReady;
       install.armed = before.armed;
       install.slow = before.slow;
-      install.confirmOpen = before.confirmOpen;
     }
   });
 
   it("every install sentence on screen comes from the copy modules", () => {
-    // Plan 07-09; re-aimed by 13.1-06 at the two leaves that remain. Three
-    // tells of a retyped install sentence - the three phrases nearly every
-    // one of them carries - must appear in neither leaf's code. They may
-    // appear in a header comment (the strip removes it) and they DO appear
-    // in install-copy.ts, which is what makes the tells real rather than
-    // arbitrary. The zone's markup authors no sentence: every line it shows
-    // is a builder's or a constant's.
-    const TELLS = [
-      ["your ", "ZONA"].join(""),
-      ["Setup and ", "Timer"].join(""),
-      ["power", "-off"].join(""),
-    ];
+    // Plan 07-09; re-aimed by 13.1-06 at the two leaves that remained and
+    // by 2026-09-16 change 2 at the one. Two tells of a retyped install
+    // sentence - the two phrases nearly every one of them carries - must not
+    // appear in the leaf's code. They may appear in a header comment (the
+    // strip removes it) and they DO appear in install-copy.ts, which is what
+    // makes the tells real rather than arbitrary. ("Setup and Timer" was a
+    // third tell until the confirmation's sentence, the one string that
+    // carried it, left with change 2.) The zone's markup authors no
+    // sentence: every line it shows is a builder's or a constant's.
+    const TELLS = [["your ", "ZONA"].join(""), ["power", "-off"].join("")];
     const copyModule = stripComments(
       readFileSync(repo("src/lib/device/install-copy.ts"), "utf8"),
     );
@@ -1061,7 +1067,7 @@ describe("the device UI's structural rules", () => {
         'from "$lib/device/install-copy"',
       );
     }
-    expect(read, "the two leaves' code was read").toBeGreaterThan(3000);
+    expect(read, "the leaf's code was read").toBeGreaterThan(3000);
     expect(
       retyped,
       "an install leaf retypes a sentence in its markup instead of importing it from install-copy",
@@ -1927,11 +1933,9 @@ describe("the device UI's structural rules", () => {
     expect(labelRule).toContain("min-block-size: 44px");
     expect(labelRule).toContain("min-inline-size: 44px");
 
-    // The allowlist's last two rows are cleared: no corner in either file.
+    // The allowlist's last two rows are cleared: no corner in the details
+    // (the other row's file, KeepConfirm.svelte, left on 2026-09-16 change 2).
     expect(occurrences(details, "border-radius")).toBe(0);
-    expect(
-      occurrences(code(componentPath("KeepConfirm.svelte")), "border-radius"),
-    ).toBe(0);
   });
 
   it("no destination review: a change on the Target select is the whole switch, nothing under src/lib/ui/ mounts a review, and the store's one caller of the target's confirm() is confirmPage", () => {
@@ -2041,7 +2045,9 @@ describe("the device UI's structural rules", () => {
       occurrences(store, "target.confirm("),
       "confirmPage is the only caller of the target's confirm()",
     ).toBe(1);
-    expect(store).toContain("const opened = target.request(page);");
+    // requestPage hands the target's answer straight back since 2026-09-16
+    // change 2 (it had a confirmation to close on the way).
+    expect(store).toContain("return target.request(page);");
     expect(target).toContain('if (this.status !== "requested") return;');
 
     // NOTHING TO REMEMBER, STILL. 13-12 forbade a "don't ask again" on the

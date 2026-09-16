@@ -27,9 +27,9 @@
 //
 // CONTENTS, the class's banners in order: reactive fields - NOT reactive
 // record - start - the connection lifecycle - the snapshot - the tuner's pair
-// and armed - the two closed decisions - the inline confirmation - the page
-// target - the probe's RAM clicks - the header's click, CLEAR - the flash
-// store, STORE ON ZONA, and the proof - the 2000 ms line - the singleton.
+// and armed - the two closed decisions - the page target - the probe's RAM
+// clicks - the header's click, CLEAR - the flash store, STORE ON ZONA, and
+// the proof - the 2000 ms line - the singleton.
 import {
   type ClearReason,
   type FailedWords,
@@ -242,7 +242,6 @@ export class InstallStore {
   armed = $state(false);
   /** True from a proved keep - or, since round 4c, a proved clear - until a put-back that stored (Z-04). */
   storedThisSession = $state(false);
-  confirmOpen = $state(false);
   /** partial's two lists as the words the block interpolates (I7); install-copy.ts's closed unions say which pairings the ONE writer can produce. */
   landed = $state.raw<LandedWords | undefined>(undefined);
   failed = $state.raw<FailedWords | undefined>(undefined);
@@ -397,9 +396,6 @@ export class InstallStore {
     this.#queue = undefined;
     // A store leg waiting for a heartbeat hears that the link is gone.
     this.#rejectHeartbeatWaiters("closed");
-    // Flash only what you have heard (Z-21): a session drop is one of the
-    // confirmation's four exits.
-    this.confirmOpen = false;
     // The page target knows nothing about a module that is gone (13-12); the
     // reconnect reports.
     this.#target?.reset();
@@ -668,17 +664,6 @@ export class InstallStore {
   observeConfig(config: ConfigStrings | undefined): void {
     this.config = config;
     this.#recomputeArmed();
-    // Flash only what you have heard (Z-21): a change that would disable the
-    // control - the pair withdrawn while measuring, over budget, or back to
-    // the pair already stored - closes the confirmation, one of its four
-    // exits. A change that keeps Store live leaves it open: the click writes
-    // what the screen shows at that moment.
-    if (
-      this.confirmOpen &&
-      (!this.armed || this.keepReason(this.#capable()) !== undefined)
-    ) {
-      this.confirmOpen = false;
-    }
   }
 
   /**
@@ -839,20 +824,6 @@ export class InstallStore {
     return "no-session";
   }
 
-  // --- the inline confirmation: the only confirmation on the site (SAFE-05) -
-
-  /** Opens the inline confirmation. Refused unless the store is armed and keepReason() is undefined. */
-  openConfirm(): void {
-    if (!this.armed) return;
-    if (this.keepReason(this.#capable()) !== undefined) return;
-    this.confirmOpen = true;
-  }
-
-  /** NOT NOW, Escape, a knob move, a session drop - all four exits land here or in their own branch. */
-  dismissConfirm(): void {
-    this.confirmOpen = false;
-  }
-
   // --- the page target: the change, the switch, the revert (13-12, D-06; 13.1 D-05) ---
 
   /**
@@ -885,17 +856,15 @@ export class InstallStore {
   /**
    * SET THE TARGET; sends nothing (install.e2e.ts counts the switch class at
    * zero across a cycle that opens the menu). switchPage() calls it first,
-   * the /dev/install/ probe alone. Closes the flash confirmation if open
-   * (Z-21). False while a switch is pending, before the module has reported,
-   * while a leg is in flight, and for the page the module is already on.
+   * the /dev/install/ probe alone. False while a switch is pending, before
+   * the module has reported, while a leg is in flight, and for the page the
+   * module is already on.
    */
   requestPage(page: number): boolean {
     if (this.#inFlight || this.phase === "writing") return false;
     const target = this.#target;
     if (!target || this.#session.phase !== "connected") return false;
-    const opened = target.request(page);
-    if (opened) this.confirmOpen = false;
-    return opened;
+    return target.request(page);
   }
 
   /** A refused change, a session drop, the probe, `unverified`'s programmatic way out: the target is the module's page again. Sends nothing. */
@@ -1189,8 +1158,8 @@ export class InstallStore {
   // --- the flash store: STORE ON ZONA, and the proof -----------------------
 
   /**
-   * The confirmation's affirmative, and the routes' one write since
-   * 2026-09-16 (BENCH-2026-09-16.txt section 1): the page's five firmware
+   * Store on ZONA's click, and the routes' one write since 2026-09-16
+   * (BENCH-2026-09-16.txt section 1): the page's five firmware
    * defaults through #ramLeg (the same five writes Clear sends), then the
    * configuration's five strings - the three system slots substituted through
    * #systemStringOr - through #ramLeg again, then one PAGESTORE/EXECUTE
@@ -1198,19 +1167,19 @@ export class InstallStore {
    * five writes, the restore heartbeat, five writes, the restore, the store,
    * five fetches. Lands `kept` only after the proof, else `kept-mismatch` or
    * `unconfirmed`; a RAM leg that fails lands `partial`, `nothing-landed` or
-   * `lost` as any RAM leg does, and stores nothing. Refused unless the
-   * confirmation is open and the store is armed; from `snapshot-failed` it
-   * reads the module again first and writes only if that lands `ready`. The
-   * whole click is one action, `keep`, and one capture (`steps` is reset by
-   * the first leg alone).
+   * `lost` as any RAM leg does, and stores nothing. One click and nothing
+   * opens (BENCH-2026-09-16.txt section 2): refused unless the store is armed
+   * and keepReason() names nothing; from `snapshot-failed` it reads the
+   * module again first and writes only if that lands `ready`. The whole
+   * click is one action, `keep`, and one capture (`steps` is reset by the
+   * first leg alone).
    */
   async keepOnDevice(
     config: ConfigStrings | undefined,
     name: string,
   ): Promise<void> {
-    if (!this.confirmOpen || !this.armed) return;
-    // The click was taken: the confirmation leaves whatever follows.
-    this.confirmOpen = false;
+    if (!this.armed) return;
+    if (this.keepReason(this.#capable()) !== undefined) return;
     if (this.phase === "snapshot-failed" && config !== undefined) {
       await this.retrySnapshot();
     }
@@ -1363,10 +1332,9 @@ export class InstallStore {
     const q = this.#queue;
     const id = this.#session.identity;
     if (!q || !id) return false;
-    // The leg is published synchronously, before any await: a component
-    // deciding where focus goes when the confirmation closes reads `writing`
-    // and a disabled control in the same flush as the click, never an enabled
-    // one that disables a tick later.
+    // The leg is published synchronously, before any await: the zone reads
+    // `writing` and a disabled Store in the same flush as the click, never an
+    // enabled one that disables a tick later.
     this.action = action;
     this.leg = "ram";
     this.cause = undefined;

@@ -71,7 +71,6 @@ import {
   KEEP_LABEL,
   LIVE_STILL_WRITING,
   announceTitle,
-  confirmRig,
   keptMismatchBlock,
   liveCleared,
   liveKept,
@@ -599,13 +598,11 @@ const DEFAULTS: ConfigStrings = {
 
 /**
  * One Store on ZONA of the pair, the routes' one write: the pair observed, the
- * confirmation opened, the click driven through the store leg with the
- * heartbeat fed, landing `kept`.
+ * one click driven through the store leg with the heartbeat fed, landing
+ * `kept`. Nothing opens between the click and the wire (2026-09-16).
  */
 async function storedOn(rig: Rig, name = "Aurora"): Promise<void> {
   rig.store.observeConfig(PAIR);
-  rig.store.openConfirm();
-  expect(rig.store.confirmOpen, "the confirmation opened").toBe(true);
   await throughStore(rig, rig.store.keepOnDevice(PAIR, name));
   expect(rig.store.phase).toBe("kept");
 }
@@ -962,14 +959,11 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     ]);
 
     // Store on ZONA does the same (2026-09-16): armed from `snapshot-failed`
-    // - the click re-reads first - the confirmation opens, the click reads
-    // the module again, and writes nothing while the copy is refused.
+    // - the one click re-reads first - it reads the module again, and writes
+    // nothing while the copy is refused.
     store.observeConfig(PAIR);
     expect(store.armed, "Store is armed from snapshot-failed").toBe(true);
-    store.openConfirm();
-    expect(store.confirmOpen).toBe(true);
     await drive(store.keepOnDevice(PAIR, "x"));
-    expect(store.confirmOpen, "the click was taken").toBe(false);
     expect(store.phase).toBe("snapshot-failed");
     expect(
       writesOf("CONFIG", "EXECUTE"),
@@ -1316,31 +1310,32 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.lastWritten).toBeUndefined();
     expect(session.writeLock).toBe(false);
 
-    // And Store on ZONA, the routes' click: never armed over budget or while
-    // measuring, so the confirmation cannot open; a click forced through a
-    // confirmation that is open anyway is refused by the store on its own
-    // (TUNE-05, D-10) before the queue hears of it.
+    // And Store on ZONA, the routes' one click (no confirmation since
+    // 2026-09-16): never armed over budget or while measuring, so the click
+    // is refused at the door; a click forced through with `armed` set anyway
+    // is refused by the store on its own (TUNE-05, D-10) before the queue
+    // hears of it.
     store.observeConfig({ ...PAIR, setup: "a".repeat(909) });
     expect(store.armed, "over budget").toBe(false);
-    store.openConfirm();
-    expect(store.confirmOpen, "the confirmation refused").toBe(false);
+    await drive(store.keepOnDevice({ ...PAIR, setup: "a".repeat(909) }, "x"));
+    expect(fake.writes.length, "a refused click reached the wire").toBe(
+      framesBefore,
+    );
     store.observeConfig(undefined);
     expect(store.armed, "measuring").toBe(false);
-    store.openConfirm();
-    expect(store.confirmOpen).toBe(false);
-    store.confirmOpen = true;
+    await drive(store.keepOnDevice(undefined, "x"));
+    expect(fake.writes.length, "a measuring click reached the wire").toBe(
+      framesBefore,
+    );
     store.armed = true;
     await drive(store.keepOnDevice({ ...PAIR, timer: "a".repeat(909) }, "x"));
     expect(fake.writes.length, "an over-budget Store reached the wire").toBe(
       framesBefore,
     );
-    expect(store.confirmOpen, "the click was taken").toBe(false);
-    store.confirmOpen = true;
     await drive(store.keepOnDevice(undefined, "x"));
     expect(fake.writes.length, "undefined reached the wire").toBe(framesBefore);
     expect(store.phase).toBe("ready");
     expect(store.steps).toBe(stepsBefore);
-    expect(store.confirmOpen).toBe(false);
   });
 
   it("the file's shape: four specifiers, no raw onData, no direct write, no interval, no derived", () => {
@@ -1413,8 +1408,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
   it("a Store returns the page to its firmware default, writes the configuration, stores it, and kept is said after the acknowledgement, a heartbeat and a matching re-fetch - eighteen frames, one click", async () => {
     // THE ROUTES' ONE WRITE SINCE 2026-09-16 (BENCH-2026-09-16.txt section 1,
     // the user's word: "only Store stays. also every Store should send a
-    // Clear before Storing"). No RAM audition before it: the pair is observed,
-    // the confirmation opens, the click runs three legs.
+    // Clear before Storing"). No RAM audition before it and nothing opens
+    // (section 2): the pair is observed, the one click runs three legs.
     const rig = await connected();
     const { store, fake, state, session, writesOf } = rig;
     store.observeConfig(PAIR);
@@ -1427,13 +1422,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     const locks = record(session, "writeLock");
     const spoken = record(session, "speech");
 
-    store.openConfirm();
-    expect(store.confirmOpen).toBe(true);
     const fedAt = await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
-    expect(store.confirmOpen, "the confirmation closed on the click").toBe(
-      false,
-    );
     // BY CLASS: two RAM legs of five, two restores, one store, one proof round
     // of five - every class the click may reach, and no other.
     const frames = written(fake);
@@ -1586,7 +1576,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     });
     const { store, session } = rig;
     store.observeConfig(PAIR);
-    store.openConfirm();
     await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
     // The two RAM legs, then exactly three rounds, each of all five events, a
@@ -1642,7 +1631,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     });
     const { store, session, writesOf } = rig;
     store.observeConfig(PAIR);
-    store.openConfirm();
     const started = clock.t;
     const fedAt = await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"));
 
@@ -1679,9 +1667,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(session.speech).toBe(
       announceTitle(unconfirmedBlock("Aurora", ACTIVE_PAGE).title),
     );
-
-    store.openConfirm();
-    expect(store.confirmOpen, "the confirmation opens again").toBe(true);
   });
 
   it("after a keep, PUT BACK stores too; when its store never confirms, it is restored-unconfirmed", async () => {
@@ -1899,7 +1884,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       faults: dropThreeAcksFrom("CONFIG", 10),
     });
     second.store.observeConfig(PAIR);
-    second.store.openConfirm();
     await drive(second.store.keepOnDevice(PAIR, "Aurora"));
     expect(outcomes(second.store.steps)).toEqual([
       ...STORE_CLICK_STEPS.slice(0, 6),
@@ -2085,7 +2069,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(session.writeLock, "released with the leg").toBe(false);
     expect(session.unpluggedWhileWriting).toBe(true);
     expect(store.putBackState()).toBe("needs-zona");
-    expect(store.confirmOpen).toBe(false);
     expect(store.snapshot, "the way back survives the unplug").toEqual(
       ORIGINAL,
     );
@@ -2114,7 +2097,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(again.writesOf("CONFIG", "EXECUTE"), "a write on reconnect").toBe(0);
   });
 
-  it("on a rig the store is allowed, resolves once, and the confirmation names the others", async () => {
+  it("on a rig the store is allowed and resolves once", async () => {
     const rig = await connected({
       others: [
         { sx: 1, hwcfg: EN16_HWCFG },
@@ -2129,8 +2112,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       [2, "BU16"],
     ]);
     store.observeConfig(PAIR);
-    store.openConfirm();
-    expect(store.confirmOpen, "the store is allowed on a rig").toBe(true);
+    expect(store.armed, "the store is allowed on a rig").toBe(true);
+    expect(store.keepReason(true)).toBeUndefined();
     const acksBefore = received()
       .flat()
       .filter((c) => c.class_name === "PAGESTORE").length;
@@ -2150,50 +2133,46 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(storeStep?.outcome).toBe("ok");
     expect(store.phase).toBe("kept");
 
-    // SAFE-06: the confirmation names them in sx order, from the identity.
+    // SAFE-06's naming half left with the confirmation (2026-09-16, section
+    // 2; the next gate's to amend); the identity still lists them in sx order.
     const others = session.identity?.otherModules ?? [];
     const names = others.map((m) => m.moduleType ?? "module");
     expect(names).toEqual(["EN16", "BU16"]);
-    expect(confirmRig(names)).toContain(
-      "Your EN16 and BU16 are on the same cable.",
-    );
   });
 
-  it("flash only what you have heard - the confirmation stays open on a change inside the budget, closes when the pair is withdrawn and on a session drop, a page change re-snapshots, and the select's change is switchPage: the heartbeat then exactly one switch in that order, refused where it must be, and never parked at requested", async () => {
-    // The confirmation's exits, two of them here: the pair withdrawn (over
+  it("flash only what you have heard - Store stays armed on a change inside the budget, disarms when the pair is withdrawn and on a session drop, a refused click writes nothing, a page change re-snapshots, and the select's change is switchPage: the heartbeat then exactly one switch in that order, refused where it must be, and never parked at requested", async () => {
+    // Store's readiness, two of its exits here: the pair withdrawn (over
     // budget, or measuring) - a knob move inside 908 is NOT one since
     // 2026-09-16, because the click writes what the screen shows - and the
-    // session dropping.
+    // session dropping. No confirmation since 2026-09-16 (section 2): a click
+    // while disarmed is refused at the door and reaches no wire.
     const first = await connected();
     first.store.observeConfig(PAIR);
-    first.store.openConfirm();
-    expect(first.store.confirmOpen).toBe(true);
-    first.store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
-    expect(first.store.confirmOpen, "open across a change in budget").toBe(
-      true,
-    );
     expect(first.store.armed).toBe(true);
+    first.store.observeConfig({ ...PAIR, timer: MODULE_TIMER });
+    expect(first.store.armed, "armed across a change in budget").toBe(true);
     first.store.observeConfig({ ...PAIR, timer: "a".repeat(909) });
-    expect(first.store.confirmOpen, "closed by the pair going over").toBe(
-      false,
+    expect(first.store.armed, "disarmed by the pair going over").toBe(false);
+    await drive(
+      first.store.keepOnDevice({ ...PAIR, timer: "a".repeat(909) }, "Aurora"),
     );
-    expect(first.store.armed).toBe(false);
-    expect(first.store.openConfirm(), "refused while disarmed").toBeUndefined();
-    expect(first.store.confirmOpen).toBe(false);
+    expect(first.store.phase, "a refused click moved the phase").toBe("ready");
     first.store.observeConfig({ ...PAIR });
     expect(first.store.armed, "inside 908 arms again").toBe(true);
-    first.store.openConfirm();
-    expect(first.store.confirmOpen).toBe(true);
     first.store.observeConfig(undefined);
-    expect(first.store.confirmOpen, "closed by the pair withdrawn").toBe(false);
+    expect(first.store.armed, "disarmed by the pair withdrawn").toBe(false);
+    await drive(first.store.keepOnDevice(undefined, "Aurora"));
     first.store.observeConfig(PAIR);
-    first.store.openConfirm();
-    expect(first.store.confirmOpen).toBe(true);
-    expect(first.writesOf("PAGESTORE", "EXECUTE"), "opening wrote").toBe(0);
-    expect(first.writesOf("CONFIG", "EXECUTE"), "opening wrote").toBe(0);
+    expect(first.store.armed).toBe(true);
+    expect(
+      first.writesOf("PAGESTORE", "EXECUTE"),
+      "a refused click wrote",
+    ).toBe(0);
+    expect(first.writesOf("CONFIG", "EXECUTE"), "a refused click wrote").toBe(
+      0,
+    );
     first.fire("disconnect", first.port);
     await until(() => first.session.phase !== "connected", "the unplug");
-    expect(first.store.confirmOpen, "closed by the session drop").toBe(false);
     expect(first.store.phase).toBe("idle");
     expect(first.store.armed, "no session, not armed").toBe(false);
     expect(first.store.keepReason(true)).toBe("no-session");
@@ -2383,7 +2362,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     });
     const { store, session } = rig;
     store.observeConfig(PAIR);
-    store.openConfirm();
     const spoken = record(session, "speech");
 
     const finish = begin(store.keepOnDevice(PAIR, "Aurora"));
@@ -3082,7 +3060,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // compares five. One round, five re-fetches, in the fetcher's own order -
     // SLOTS'.
     const beforeStore = writesOf("CONFIG", "EXECUTE");
-    store.openConfirm();
     await throughStore(rig, store.keepOnDevice(none, "Aurora"));
     expect(store.phase).toBe("kept");
     expect(configOrder().slice(beforeStore)).toEqual([
@@ -3145,7 +3122,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
         },
       });
       rig.store.observeConfig(PAIR);
-      rig.store.openConfirm();
       await drive(rig.store.keepOnDevice(PAIR, "Aurora"));
       expect(rig.writesOf("PAGESTORE", "EXECUTE"), "no store after").toBe(0);
       return rig;
@@ -3600,8 +3576,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       const phasesBefore = [fromSurface.phases.length, fromEntry.phases.length];
       fromSurface.store.observeConfig(three.config);
       fromEntry.store.observeConfig(PAIR);
-      fromSurface.store.openConfirm();
-      fromEntry.store.openConfirm();
       await throughStore(
         fromSurface,
         fromSurface.store.keepOnDevice(three.config, three.label),
@@ -3806,8 +3780,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       expect(html).toContain(sentence);
       expect(html, "no Apply on the zone").not.toContain("apply-to-zona");
 
-      // AND ZERO FRAMES: the store is never armed over budget, so the
-      // confirmation cannot open; were the click to happen anyway, the store
+      // AND ZERO FRAMES: the store is never armed over budget, so the one
+      // click is refused at the door; were `armed` forced anyway, the store
       // refuses the over-budget Timer on its own (TUNE-05, D-10) and the
       // transport never hears of it - the frame count is the assertion.
       const rig = await connected();
@@ -3815,9 +3789,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       const stepsBefore = rig.store.steps;
       rig.store.observeConfig(two.config);
       expect(rig.store.armed, "over budget is never armed").toBe(false);
-      rig.store.openConfirm();
-      expect(rig.store.confirmOpen).toBe(false);
-      rig.store.confirmOpen = true;
+      await drive(rig.store.keepOnDevice(two.config, two.label));
+      expect(rig.fake.writes.length, "frames a refused click produced").toBe(
+        framesBefore,
+      );
       rig.store.armed = true;
       await drive(rig.store.keepOnDevice(two.config, two.label));
       expect(rig.fake.writes.length, "frames the refusal produced").toBe(
@@ -3833,7 +3808,6 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       // defaults, the five, and stores.
       rig.store.observeConfig(three.config);
       expect(rig.store.armed).toBe(true);
-      rig.store.openConfirm();
       await throughStore(
         rig,
         rig.store.keepOnDevice(three.config, three.label),

@@ -155,9 +155,6 @@
   <dt>armed</dt>
   <dd data-testid="install-armed">{install.armed}</dd>
 
-  <dt>confirm open</dt>
-  <dd data-testid="install-confirm">{install.confirmOpen}</dd>
-
   <dt>slow</dt>
   <dd data-testid="install-slow">{install.slow}</dd>
 
@@ -248,23 +245,9 @@
   <button
     type="button"
     data-testid="install-keep"
-    onclick={() => install.openConfirm()}
-  >
-    Keep on device
-  </button>
-  <button
-    type="button"
-    data-testid="install-keep-yes"
     onclick={() => void install.keepOnDevice(pair(), NAME)}
   >
-    Keep, yes
-  </button>
-  <button
-    type="button"
-    data-testid="install-keep-no"
-    onclick={() => install.dismissConfirm()}
-  >
-    Not now
+    Keep on device
   </button>
   <button
     type="button"
