@@ -20,10 +20,11 @@
 // THE NEXT FOUR (plan 07-12) run on /playground/aurora/ against the production build,
 // with the same shim and the same Node responder, and prove the things a
 // visitor meets that the probe cannot show: the bar's busy clause through a
-// write, the header lock engaging and releasing, the confirmation replacing
-// the control that opened it and moving focus deliberately, a second store
-// waiting for a change, the one live region speaking once per outcome,
-// and Escape doing nothing mid-write. SINCE 13.1-07 EVERY ONE OF THEM READS
+// write, the header lock engaging and releasing, Store on ZONA writing on
+// its one click with nothing opening in its place (the confirmation left on
+// 2026-09-16, BENCH-2026-09-16.txt section 2), a second store waiting for a
+// change, the one live region speaking once per outcome, and Escape doing
+// nothing mid-write. SINCE 13.1-07 EVERY ONE OF THEM READS
 // THE BAR'S DESTINATION ZONE (DestinationZone.svelte, 13.1-06; 13.1-CONTEXT
 // D-06, D-07): the install column under the surface is gone, Put back is on
 // no screen, and the subjects are store-on-zona and its line, store-honesty
@@ -180,7 +181,6 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   CLEAR_LABEL,
   CLEAR_REASONS,
-  CONFIRM_WAY_BACK,
   HONESTY_INCAPABLE,
   IDENTIFIED_CAPTION,
   KEEP_LABEL,
@@ -191,9 +191,6 @@ import {
   clearLine,
   clearedCaption,
   clearingLabel,
-  confirmCaption,
-  confirmReplaces,
-  confirmRig,
   keepLineEnabled,
   keepingLabel,
   keptCaption,
@@ -449,16 +446,13 @@ async function tryOn(page: Page, lands: string): Promise<void> {
   await expect(phase(page)).toHaveText(lands, { timeout: 10_000 });
 }
 
-/** Open the confirmation, take it, and pace heartbeats until the phase named. */
+/** One click on the probe's Keep (no confirmation since 2026-09-16), then pace heartbeats until the phase named. */
 async function keep(
   page: Page,
   zona: ExposedZona,
   lands: string,
 ): Promise<void> {
   await click(page, "install-keep");
-  await expect(readout(page, "install-confirm")).toHaveText("true");
-  await click(page, "install-keep-yes");
-  await expect(readout(page, "install-confirm")).toHaveText("false");
   await beatUntil(page, zona, 0, "install-phase", lands);
 }
 
@@ -695,12 +689,8 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await connectAndSnapshot(page, zona);
     const pair = await probePair(page);
     await tryOn(page, "settled");
-
-    // NOT NOW is one of the confirmation's exits, and it disables nothing.
-    await click(page, "install-keep");
-    await expect(readout(page, "install-confirm")).toHaveText("true");
-    await click(page, "install-keep-no");
-    await expect(readout(page, "install-confirm")).toHaveText("false");
+    // Nothing asks first (2026-09-16 change 2): the RAM landing sits at
+    // settled with no store on the wire until the one click.
     await expect(phase(page)).toHaveText("settled");
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
 
@@ -1049,8 +1039,6 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await connectAndSnapshot(page, zona);
     await tryOn(page, "settled");
     await click(page, "install-keep");
-    await expect(readout(page, "install-confirm")).toHaveText("true");
-    await click(page, "install-keep-yes");
     // Three pagestoreMs timeouts with backoff between: about 9.4 s.
     await expect(phase(page)).toHaveText("unconfirmed", { timeout: 20_000 });
     await expect(trace(page)).toHaveText(/> settled > writing > unconfirmed$/);
@@ -1448,14 +1436,13 @@ async function connectOnPage(
 }
 
 /**
- * The one write on the real page since 2026-09-16: open the confirmation,
- * commit it, and pace heartbeats until the bar reads KEPT - the store leg's
- * proof waits for the module's next heartbeat after the two RAM legs land.
+ * The one write on the real page since 2026-09-16: one click on Store (no
+ * confirmation since change 2), then pace heartbeats until the bar reads
+ * KEPT - the store leg's proof waits for the module's next heartbeat after
+ * the two RAM legs land.
  */
 async function keepOnPage(page: Page, zona: ExposedZona): Promise<number> {
   await keepControl(page).click();
-  await expect(page.getByTestId("keep-confirm")).toBeVisible();
-  await page.getByTestId("keep-confirm-yes").click();
   const beats = await beatUntilShows(
     page,
     zona,
@@ -1544,15 +1531,13 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     zona.script({ delayAckMs: { class_name: "CONFIG", byMs: 200 } });
     const clickedAt = Date.now();
     await keepControl(page).click();
-    await expect(page.getByTestId("keep-confirm")).toBeVisible();
-    await page.getByTestId("keep-confirm-yes").click();
 
     // Inside the window: the bar's busy clause (device-clause.ts reads
     // keepingLabel for the store's writing phase since 2026-09-16), and
     // everything I3 says around it, read in one snapshot so the round trips
     // do not spend the window. The busy label is the BAR's, not a button's:
-    // the confirmation has left, the zone's Store is back at its resting
-    // word and disabled.
+    // the zone's Store stays at its resting word and is disabled, and
+    // nothing opened in its place (change 2).
     await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
     const busySeenAt = Date.now() - clickedAt;
     const during = await page.evaluate(() => {
@@ -1565,7 +1550,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
         device: q("status-dotted")?.getAttribute("data-device") ?? null,
         label: store?.textContent?.trim() ?? null,
         disabled: store?.disabled ?? null,
-        confirmOpen: q("keep-confirm") !== null,
+        confirmation: q("store-confirm") !== null,
         targetDisabled:
           (q("destination-page") as HTMLSelectElement | null)?.disabled ?? null,
         honesty: q("store-honesty")?.textContent?.trim() ?? null,
@@ -1579,7 +1564,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(during.device).toBe("writing");
     expect(during.label).toBe(KEEP_LABEL);
     expect(during.disabled).toBe(true);
-    expect(during.confirmOpen).toBe(false);
+    expect(during.confirmation).toBe(false);
     // I3 rule 3: every write control disabled, whichever was clicked - the
     // zone's two (Store, the Target select).
     expect(during.targetDisabled).toBe(true);
@@ -1666,89 +1651,58 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(consoleErrors).toEqual([]);
   });
 
-  test("the flash confirmation replaces the control, names what it replaces, and moves focus deliberately", async ({
+  test("Store on ZONA is one click: nothing opens in its place, the click is the whole write, and on a rig the click stores too", async ({
     context,
     page,
   }) => {
+    // THE CONFIRMATION LEFT ON 2026-09-16 (BENCH-2026-09-16.txt section 2,
+    // the user's word: "nothing opens down under storing, it just stores it
+    // with one click"). This title held the block - its three sentences, the
+    // group focus, NOT NOW, Escape, the rig's fourth sentence - and holds
+    // their absence now.
     const consoleErrors = collectErrors(page);
     const zona = await openReal(page, moduleState(13));
     await connectOnPage(page, zona);
     // Store is live from ready since 2026-09-16: no RAM audition before it.
     await expect(keepControl(page)).toBeEnabled();
 
-    // Open: the block is where the control was, never both on screen, and
-    // focus is on the GROUP, not on either button - so no key press commits
-    // without a deliberate move.
-    await keepControl(page).click();
-    const confirm = page.getByTestId("keep-confirm");
-    await expect(confirm).toBeVisible();
-    await expect(keepControl(page)).toHaveCount(0);
-    await expect(confirm).toBeFocused();
-    await expect(confirm).toHaveAttribute("role", "group");
-    await expect(confirm).toHaveAttribute("tabindex", "-1");
+    // Nothing on the page asks first: no dialog, nothing modal, no block in
+    // Store's place, and the control is a plain button the Target select
+    // tabs straight into.
     expect(await page.locator('[role="dialog"]').count()).toBe(0);
     expect(await page.locator("[aria-modal]").count()).toBe(0);
-    const sentences = confirm.locator("p");
-    await expect(sentences).toHaveCount(3);
-    await expect(sentences.nth(0)).toHaveText(confirmCaption(ACTIVE_PAGE));
-    await expect(sentences.nth(1)).toHaveText(confirmReplaces(ACTIVE_PAGE));
-    expect(confirmReplaces(ACTIVE_PAGE)).toContain("touch element");
-    expect(confirmReplaces(ACTIVE_PAGE)).toContain("stays after power-off");
-    await expect(sentences.nth(2)).toHaveText(CONFIRM_WAY_BACK);
-    // The group is labelled by the caption and described by its sentences.
-    const captionId = await sentences.nth(0).getAttribute("id");
-    expect(await confirm.getAttribute("aria-labelledby")).toBe(captionId);
-    expect(
-      (await confirm.getAttribute("aria-describedby"))?.split(" "),
-    ).toEqual([
-      await sentences.nth(1).getAttribute("id"),
-      await sentences.nth(2).getAttribute("id"),
-    ]);
-
-    // The first Tab reaches the affirmative, the second NOT NOW.
+    expect(await page.getByTestId("store-confirm").count()).toBe(0);
+    await expect(keepControl(page)).toHaveAttribute("type", "button");
+    await page.getByTestId("destination-page").focus();
     await page.keyboard.press("Tab");
-    await expect(page.getByTestId("keep-confirm-yes")).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(page.getByTestId("keep-confirm-no")).toBeFocused();
-
-    // NOT NOW: the block leaves, the row's control is back and holds focus,
-    // and nothing was sent.
-    await page.getByTestId("keep-confirm-no").click();
-    await expect(confirm).toHaveCount(0);
-    await expect(keepControl(page)).toBeVisible();
-    await expect(keepControl(page)).toBeFocused();
-    await expect(keepControl(page)).toBeEnabled();
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-
-    // Escape inside the block is NOT NOW; the workspace stays (Z-10).
-    await keepControl(page).click();
-    await expect(confirm).toBeVisible();
-    await expect(confirm).toBeFocused();
-    await page.keyboard.press("Escape");
-    await expect(confirm).toHaveCount(0);
-    await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(keepControl(page)).toBeFocused();
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
 
-    // The commit: KEPT in the bar after the acknowledgement, the ZONA's
-    // heartbeat and the re-fetch proof; focus went to the ZONE (13.1-07: the
-    // zone's own focus rule, tabindex -1) because the row's control came
-    // back disabled and a commit must not drop focus on the body; no Put
-    // back line to say anything (D-07).
-    await keepControl(page).click();
-    await expect(confirm).toBeVisible();
-    await page.getByTestId("keep-confirm-yes").click();
-    await expect(confirm).toHaveCount(0);
-    await expect(page.getByTestId("destination")).toBeFocused();
+    // THE CLICK IS THE WRITE. Enter on the focused control is the click; in
+    // the same flush the bar reads the busy clause, Store is disabled and
+    // nothing has appeared in its place. The store leg then waits for the
+    // module's heartbeat, which this loop pushes.
+    await page.keyboard.press("Enter");
+    await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
+    await expect(keepControl(page)).toBeDisabled();
+    expect(await page.getByTestId("store-confirm").count()).toBe(0);
     const beats = await beatUntilShows(
       page,
       zona,
       0,
       barShows(keptCaption(ACTIVE_PAGE)),
     );
-    console.log(`test 8: KEPT after ${beats} heartbeat(s)`);
+    const focused = await page.evaluate(
+      () =>
+        document.activeElement?.getAttribute("data-testid") ??
+        document.activeElement?.tagName ??
+        null,
+    );
+    console.log(
+      `test 8: KEPT after ${beats} heartbeat(s); focus after the click sits on ${focused}`,
+    );
     await expect(statusDevice(page)).toHaveText(keptCaption(ACTIVE_PAGE));
-    await expect(page.getByTestId("destination")).toBeFocused();
     await expect(keepControl(page)).toBeDisabled();
     await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
     expect(await page.getByTestId("put-back").count()).toBe(0);
@@ -1757,10 +1711,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
     expect(zona.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
 
-    // On a rig, the fourth sentence names the others and says their pages are
-    // stored too (SAFE-06). The others reach the identity only on the ZONA's
-    // heartbeat after theirs (deferred item 13), so the rig's beats ride
-    // along with every ZONA beat here.
+    // On a rig the click is allowed and stores at once (SAFE-06's action
+    // half; the sentence that named the others left with the confirmation):
+    // one PAGESTORE on the wire, answered by every module, one resolution.
+    // The others reach the identity only on the ZONA's heartbeat after
+    // theirs (deferred item 13), so the rig's beats ride along here.
     const second = await context.newPage();
     const secondErrors = collectErrors(second);
     const rigBeats = [
@@ -1771,31 +1726,22 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       rig: [rigModule(1), rigModule(2)],
     });
     await connectOnPage(second, rig, rigBeats);
+    await expect(keepControl(second)).toBeEnabled();
     await keepControl(second).click();
-    const rigConfirm = second.getByTestId("keep-confirm");
-    await expect(rigConfirm).toBeVisible();
-    await beatUntilShows(
+    await expect(statusDevice(second)).toHaveText(keepingLabel(ACTIVE_PAGE));
+    expect(await second.getByTestId("store-confirm").count()).toBe(0);
+    const rigStoreBeats = await beatUntilShows(
       second,
       rig,
       0,
-      { selector: '[data-testid="keep-confirm"]', includes: "same cable" },
+      barShows(keptCaption(ACTIVE_PAGE)),
       12,
       rigBeats,
     );
-    const rigSentences = rigConfirm.locator("p");
-    await expect(rigSentences).toHaveCount(4);
-    await expect(rigSentences.nth(3)).toHaveText(
-      confirmRig(["EN16", "BU16"]) ?? "",
-    );
-    expect(
-      (await rigConfirm.getAttribute("aria-describedby"))?.split(" "),
-    ).toHaveLength(3);
-    // Nothing stored on the rig page: the confirmation was read, not taken.
-    await second.getByTestId("keep-confirm-no").click();
-    await expect(rigConfirm).toHaveCount(0);
-    expect(rig.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    // No write at all: the confirmation is not a click on the wire.
-    expect(rig.seen("CONFIG", "EXECUTE")).toBe(0);
+    console.log(`test 8: the rig's KEPT after ${rigStoreBeats} heartbeat(s)`);
+    expect(rig.seen("PAGESTORE", "EXECUTE")).toBe(1);
+    expect(rig.seen("CONFIG", "EXECUTE")).toBe(10);
+    expect(rig.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
 
     expect(consoleErrors).toEqual([]);
     expect(secondErrors).toEqual([]);
@@ -1822,9 +1768,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(clearControl(page)).toBeEnabled();
 
     // Flash only what you have heard (Z-05): a knob turn makes Store live
-    // again - the pair on screen is no longer the pair stored; the
-    // confirmation opens; the knob turned back to the stored pair closes the
-    // block and the reason names the store again.
+    // again - the pair on screen is no longer the pair stored; the knob
+    // turned back to the stored pair disables it and the reason names the
+    // store again. Nothing opens on the way (2026-09-16 change 2): the
+    // second click below is the second store.
     zona.script({});
     await turnRail(page, 0);
     await expect(
@@ -1832,15 +1779,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       "a knob moved after a store: the store is live",
     ).toBeEnabled();
     await expect(storeLine(page)).toBeHidden();
-    await keepControl(page).click();
-    await expect(page.getByTestId("keep-confirm")).toBeVisible();
     await turnRail(page, 0, "ArrowLeft");
-    await expect(page.getByTestId("keep-confirm")).toHaveCount(0);
     await expect(keepControl(page)).toBeDisabled();
     await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
-    // A change closing the confirmation from outside sends focus to the
-    // zone (13.1-07's rule: Store cannot hold it, and the body must not).
-    await expect(page.getByTestId("destination")).toBeFocused();
+    expect(zona.seen("PAGESTORE", "EXECUTE"), "a knob turn stored").toBe(1);
 
     // A change, then the second store lands: two stores in all.
     await turnRail(page, 0);
@@ -1870,21 +1812,17 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // THE SLOW LINE, on the Store's STORE leg - never a RAM leg, where a
     // 2500 ms hold would make every acknowledgement stale at executeMs 250.
-    // The script is switched after the confirmation opens and before the
-    // commit; the two RAM legs land at speed under it and the hold covers
-    // exactly one acknowledgement, the PAGESTORE's.
-    await keepControl(page).click();
-    const confirm = page.getByTestId("keep-confirm");
-    await expect(confirm).toBeVisible();
+    // The script is switched before the one click; the two RAM legs land at
+    // speed under it and the hold covers exactly one acknowledgement, the
+    // PAGESTORE's.
     zona.script({ delayAckMs: { class_name: "PAGESTORE", byMs: 2500 } });
     const committedAt = Date.now();
-    await page.getByTestId("keep-confirm-yes").click();
+    await keepControl(page).click();
     // Z-19, as the bar carries it since 13-11: the device clause reads the
     // busy label (device-clause.ts hands keepingLabel to every write since
     // 2026-09-16 - the one write is a store), because the control that was
-    // clicked has left the screen.
+    // clicked is disabled under the hand.
     await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
-    await expect(confirm).toHaveCount(0);
     await expect(keepControl(page)).toBeDisabled();
     // At 2000 ms into the store leg: one Body line under the zone's row, and
     // one polite word.
@@ -1970,8 +1908,6 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       n,
     );
     await keepControl(page).click();
-    await expect(page.getByTestId("keep-confirm")).toBeVisible();
-    await page.getByTestId("keep-confirm-yes").click();
     await expect(sessionLive(page)).toHaveText(LOST_ON_PAGE, {
       timeout: 10_000,
     });

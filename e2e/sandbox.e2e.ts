@@ -17,8 +17,9 @@
 // The fourth (13-17) is the whole loop on a fake ZONA: a two-element surface
 // exported as a file through transfer.ts, re-imported on My configs, opened
 // onto a fresh surface, applied to the fake as five acknowledged writes in
-// SLOTS order - 255/4 carrying the runtime's second slot - and the store
-// confirmation opened and closed with nothing stored; the codec is asserted
+// SLOTS order - 255/4 carrying the runtime's second slot - stored on the
+// fake's one click (the confirmation left on 2026-09-16, BENCH-2026-09-16.txt
+// section 2; until then the title opened and closed it first); the codec is asserted
 // untouched on the way (D-14 Q7). Nothing here claims a module would answer
 // the same: runbook row M is where that is asked. THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
@@ -504,7 +505,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await context.addInitScript(FAKE_SERIAL);
   });
 
-  test("the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, stored on the fake ZONA - the five defaults, five acknowledged writes with 255/4 among them, the store proved - after the confirmation was first refused", async ({
+  test("the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, stored on the fake ZONA on one click - the five defaults, five acknowledged writes with 255/4 among them, the store proved - with nothing opening first", async ({
     page,
   }) => {
     // Plan 13-17 (13-CONTEXT D-03, D-14 Q7, D-18, D-19; BUILD-03, BUILD-05,
@@ -686,27 +687,21 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     );
     expect(await page.getByTestId("store-refusal").count()).toBe(0);
 
-    // STORE ON ZONA: enabled once the landing is measured; the click opens
-    // the site's one confirmation in its place and writes nothing; NOT NOW
-    // closes it and the control is back.
-    await page.getByTestId("store-on-zona").click();
-    await expect(page.getByTestId("store-confirm")).toBeVisible();
-    expect(await page.getByTestId("store-on-zona").count()).toBe(0);
+    // STORE ON ZONA: enabled once the landing is measured; nothing is on
+    // the wire before the click and nothing opens in the control's place
+    // (2026-09-16 change 2).
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    await page.getByTestId("keep-confirm-no").click();
-    await expect(page.getByTestId("store-on-zona")).toBeVisible();
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(await page.getByTestId("store-confirm").count()).toBe(0);
 
-    // THE STORE, TAKEN (2026-09-16: the routes' one write): the five firmware
-    // defaults into memory, then the surface's five in SLOTS order - the
-    // library's two halves, the runtime's second slot in 255/4, the packed
-    // Timer, the data-half Setup calling ele[#ele]:map() - then one store,
-    // proved by the read-back after a heartbeat this loop has to push. The
-    // fake's two RAMs and its two flashes hold the surface's five.
+    // THE STORE, ON ONE CLICK (2026-09-16: the routes' one write): the five
+    // firmware defaults into memory, then the surface's five in SLOTS order
+    // - the library's two halves, the runtime's second slot in 255/4, the
+    // packed Timer, the data-half Setup calling ele[#ele]:map() - then one
+    // store, proved by the read-back after a heartbeat this loop has to
+    // push. The fake's two RAMs and its two flashes hold the surface's five.
     await page.getByTestId("store-on-zona").click();
-    await expect(page.getByTestId("store-confirm")).toBeVisible();
-    await page.getByTestId("keep-confirm-yes").click();
+    expect(await page.getByTestId("store-confirm").count()).toBe(0);
     await expect
       .poll(() => zona.seen("CONFIG", "EXECUTE"), { timeout: 10_000 })
       .toBe(10);
