@@ -658,7 +658,6 @@ describe("the device UI's structural rules", () => {
       "<KeepConfirm",
       "openConfirm",
       "confirmOpen",
-      'tabindex="-1"',
     ]) {
       expect(occurrences(zone, gone), `the zone still carries ${gone}`).toBe(0);
     }
@@ -691,6 +690,14 @@ describe("the device UI's structural rules", () => {
     ).toBe(1);
     expect(zone).toMatch(
       /data-testid="store-on-zona"[^>]*disabled=\{storeDisabled\}[^>]*onclick=\{store\}/,
+    );
+    // A COMMIT MUST NOT DROP FOCUS ON THE BODY (13.1-07's rule, re-aimed):
+    // Store disables in the click's flush, so the zone (tabindex -1) takes
+    // the focus the button held - in the click handler, synchronously,
+    // because the browser has moved focus before an effect can read it.
+    expect(zone).toMatch(/data-testid="destination"[^>]*tabindex="-1"/);
+    expect(zone).toContain(
+      'if (held && install.phase === "writing") root?.focus();',
     );
     expect(zone).toContain("install.switchPage(value)");
     for (const constant of [

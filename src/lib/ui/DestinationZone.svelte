@@ -175,6 +175,8 @@
   });
 
   let targetSelect = $state<HTMLSelectElement | null>(null);
+  let storeButton = $state<HTMLButtonElement | null>(null);
+  let root = $state<HTMLDivElement | null>(null);
 
   /** The select changed: the switch, in one call (13.1 D-05). A change that did not leave the wire snaps the select back. */
   async function onTargetChange(event: Event): Promise<void> {
@@ -185,17 +187,29 @@
     }
   }
 
-  /** Store on ZONA: the one click is the whole write (the defaults, the configuration, the store, the proof). */
+  /**
+   * Store on ZONA: the one click is the whole write (the defaults, the
+   * configuration, the store, the proof). A commit must not drop focus on
+   * the body (13.1-07's rule, re-aimed at the one click): the store publishes
+   * `writing` before its first await, so Store disables in this flush and
+   * the zone itself (tabindex="-1") takes the focus the button held - done
+   * here, synchronously, because the browser has already moved focus by the
+   * time an effect could read it.
+   */
   function store(): void {
     if (storeDisabled) return;
+    const held = document.activeElement === storeButton;
     void install.keepOnDevice(config, name);
+    if (held && install.phase === "writing") root?.focus();
   }
 </script>
 
 <div
+  bind:this={root}
   class="destination"
   data-testid="destination"
   data-status={install.pageStatus}
+  tabindex="-1"
 >
   <div class="destination-row">
     <label class="destination-label" for={targetId}>{TARGET_LABEL}</label>
@@ -219,6 +233,7 @@
       >{honesty}</span
     >
     <button
+      bind:this={storeButton}
       class="destination-store"
       type="button"
       data-testid="store-on-zona"

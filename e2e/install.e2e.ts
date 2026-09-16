@@ -1681,28 +1681,25 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
 
     // THE CLICK IS THE WRITE. Enter on the focused control is the click; in
     // the same flush the bar reads the busy clause, Store is disabled and
-    // nothing has appeared in its place. The store leg then waits for the
-    // module's heartbeat, which this loop pushes.
+    // nothing has appeared in its place; the ZONE holds focus (13.1-07's
+    // rule re-aimed at the one click - a keyboard commit must not drop focus
+    // on the body, which is where Chromium's fixup puts it when a focused
+    // button disables; measured at BODY before the rule). The store leg then
+    // waits for the module's heartbeat, which this loop pushes.
     await page.keyboard.press("Enter");
     await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
     await expect(keepControl(page)).toBeDisabled();
     expect(await page.getByTestId("store-confirm").count()).toBe(0);
+    await expect(page.getByTestId("destination")).toBeFocused();
     const beats = await beatUntilShows(
       page,
       zona,
       0,
       barShows(keptCaption(ACTIVE_PAGE)),
     );
-    const focused = await page.evaluate(
-      () =>
-        document.activeElement?.getAttribute("data-testid") ??
-        document.activeElement?.tagName ??
-        null,
-    );
-    console.log(
-      `test 8: KEPT after ${beats} heartbeat(s); focus after the click sits on ${focused}`,
-    );
+    console.log(`test 8: KEPT after ${beats} heartbeat(s)`);
     await expect(statusDevice(page)).toHaveText(keptCaption(ACTIVE_PAGE));
+    await expect(page.getByTestId("destination")).toBeFocused();
     await expect(keepControl(page)).toBeDisabled();
     await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
     expect(await page.getByTestId("put-back").count()).toBe(0);
