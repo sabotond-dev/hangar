@@ -158,3 +158,13 @@ cannot hold when a control with its own rules leaves (above); the defaults leg r
 because `install.spec.ts` pins that text byte-for-byte and TRY does still work from there on the
 probe. Next gate: amend SAFE-02 and SAFE-05 (RAM-before-flash) and PROJECT.md's "flash writes stay
 separate from RAM auditions"; CAT-04 stays `[ ]`.
+
+## 2. Store on ZONA stores on one click - no confirmation
+
+> next: no opting when pressing ZONA, nothing opens down under storing, it just stores it with one
+> click.
+
+Reading: the inline confirmation under Store on ZONA (KeepConfirm, Phase 7's SAFE-05 - "the only
+confirmation on the site") goes. One click on Store on ZONA runs the whole write: the defaults, the
+configuration, the store, the proof. Clear is already one click (13.1 D-04). No control on the site
+asks first; "nothing is written without a click" remains the rule.
