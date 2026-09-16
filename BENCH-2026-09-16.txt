@@ -1,0 +1,16 @@
+Changes asked one by one, 2026-09-16, outside the GSD cycle ("no need to GSD for these only if you
+think it's necessary"). Each is recorded here verbatim before it is made.
+
+## 1. Apply to ZONA goes; Store stays; every Store clears first
+
+> first: we dont need the apply to ZONA, only Store stays. also every Store should send a Clear
+> before Storing
+
+Reading, to be confirmed by the user if wrong: the RAM audition (Apply to ZONA, Phase 7's TRY ON
+DEVICE) leaves the interface everywhere - the workspace's bar, the Sandbox's bar, the probe pages
+keep their own controls. Store on ZONA is the one write, and it becomes: the five firmware defaults
+(the same five Clear writes), then the configuration's five strings, then the page store, then the
+read-back proof - one flash write per click, the page defaulted underneath it. The inline
+confirmation on Store (SAFE-05) stays. The browser preview is the audition. PROJECT.md's "flash
+writes stay separate from RAM auditions" and SAFE-02 / SAFE-05's RAM-before-flash wording are
+retired by the user's word; the gate that amends them is whichever phase next runs a gate.
