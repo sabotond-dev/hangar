@@ -629,7 +629,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     await expect(page.getByTestId("clear-line")).toHaveText(
       CLEAR_REASONS.incapable,
     );
-    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    expect(await page.getByTestId("store-on-zona").count()).toBe(0);
     await expect(page.locator('[data-zone="destination"]')).toContainText(
       "Preview",
     );

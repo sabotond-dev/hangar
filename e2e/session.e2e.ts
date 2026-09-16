@@ -1385,7 +1385,7 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
       CLEAR_REASONS.incapable,
     );
     expect(await page.getByTestId("destination").count()).toBe(0);
-    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    expect(await page.getByTestId("store-on-zona").count()).toBe(0);
     await expect(page.locator('[data-zone="destination"]')).toContainText(
       "Preview",
     );

@@ -42,7 +42,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../src/lib/catalog/library";
 import {
   IDENTIFIED_CAPTION,
-  settledCaption,
+  keptCaption,
 } from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER, EVENT_UTILITY } from "../src/lib/protocol";
 import {
@@ -504,7 +504,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await context.addInitScript(FAKE_SERIAL);
   });
 
-  test("the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, applied to the fake ZONA as five acknowledged writes with 255/4 among them, and the store refused", async ({
+  test("the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, stored on the fake ZONA - the five defaults, five acknowledged writes with 255/4 among them, the store proved - after the confirmation was first refused", async ({
     page,
   }) => {
     // Plan 13-17 (13-CONTEXT D-03, D-14 Q7, D-18, D-19; BUILD-03, BUILD-05,
@@ -673,34 +673,66 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("destination-page")).toHaveValue(
       String(ACTIVE_PAGE),
     );
-    await expect(page.getByTestId("store-on-zona")).toBeDisabled();
-    // No Put back anywhere on the page (13.1-06, D-07) - the zone is
-    // Target, Apply to ZONA, Store on ZONA and nothing else.
+    await expect(page.getByTestId("store-on-zona")).toBeEnabled({
+      timeout: 30_000,
+    });
+    // No Put back and no Apply anywhere on the page (13.1-06, D-07;
+    // 2026-09-16) - the zone is Target, Store on ZONA and nothing else.
     expect(await page.getByTestId("put-back").count()).toBe(0);
-    await expect(page.getByTestId("apply-to-zona")).toHaveAttribute(
+    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    await expect(page.getByTestId("store-on-zona")).toHaveAttribute(
       "aria-describedby",
-      /-honesty$/,
+      /-honesty [^ ]+-store-line$/,
     );
+    expect(await page.getByTestId("store-refusal").count()).toBe(0);
 
-    // APPLY TO ZONA: enabled once the landing is measured, one click, five
-    // acknowledged writes in SLOTS order and the restore heartbeat, PLAYING
-    // NOW in the bar - the same write as TRY ON DEVICE, through the one
-    // writer. The fake's two RAMs hold the surface's five: the library's two
-    // halves, the runtime's second slot in 255/4, the packed Timer, the
-    // data-half Setup calling ele[#ele]:map(). Its flash still holds its own.
-    const apply = page.getByTestId("apply-to-zona");
-    await expect(apply).toBeEnabled({ timeout: 30_000 });
-    expect(await page.getByTestId("apply-refusal").count()).toBe(0);
-    await apply.click();
-    await expect(page.getByTestId("status-device")).toHaveText(
-      settledCaption(ACTIVE_PAGE),
-      { timeout: 10_000 },
-    );
+    // STORE ON ZONA: enabled once the landing is measured; the click opens
+    // the site's one confirmation in its place and writes nothing; NOT NOW
+    // closes it and the control is back.
+    await page.getByTestId("store-on-zona").click();
+    await expect(page.getByTestId("store-confirm")).toBeVisible();
+    expect(await page.getByTestId("store-on-zona").count()).toBe(0);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    await page.getByTestId("keep-confirm-no").click();
+    await expect(page.getByTestId("store-on-zona")).toBeVisible();
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+
+    // THE STORE, TAKEN (2026-09-16: the routes' one write): the five firmware
+    // defaults into memory, then the surface's five in SLOTS order - the
+    // library's two halves, the runtime's second slot in 255/4, the packed
+    // Timer, the data-half Setup calling ele[#ele]:map() - then one store,
+    // proved by the read-back after a heartbeat this loop has to push. The
+    // fake's two RAMs and its two flashes hold the surface's five.
+    await page.getByTestId("store-on-zona").click();
+    await expect(page.getByTestId("store-confirm")).toBeVisible();
+    await page.getByTestId("keep-confirm-yes").click();
     await expect
       .poll(() => zona.seen("CONFIG", "EXECUTE"), { timeout: 10_000 })
-      .toBe(5);
-    expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(1);
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+      .toBe(10);
+    let storeBeats = 0;
+    for (; storeBeats < 24; storeBeats++) {
+      await page.evaluate(
+        (hex) => window.__hangarSerial.beat(0, hex),
+        zona.heartbeatHex(),
+      );
+      await page.waitForTimeout(120);
+      if (
+        (await page.getByTestId("status-device").textContent())?.trim() ===
+        keptCaption(ACTIVE_PAGE)
+      )
+        break;
+    }
+    await expect(page.getByTestId("status-device")).toHaveText(
+      keptCaption(ACTIVE_PAGE),
+    );
+    expect(zona.seen("CONFIG", "EXECUTE"), "the defaults and the five").toBe(
+      10,
+    );
+    expect(zona.seen("HEARTBEAT", "EXECUTE"), "one restore per RAM leg").toBe(
+      2,
+    );
+    expect(zona.seen("PAGESTORE", "EXECUTE"), "one store").toBe(1);
     expect(zona.state.system?.[EVENT_TIMER]).toBe(TOUCH_LIBRARY_TIMER);
     expect(zona.state.system?.[EVENT_SETUP]).toBe(TOUCH_LIBRARY);
     const utility = zona.state.system?.[EVENT_UTILITY] ?? "";
@@ -716,27 +748,14 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     const timer = zona.state.configs[EVENT_TIMER];
     expect(timer).toContain("gtt(0,100)");
     expect(timer).toContain("X(self,20)");
-    expect(zona.state.systemFlash?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
-    expect(zona.state.flash?.[EVENT_SETUP]).toBe(MODULE_SETUP);
-    await expect(page.getByTestId("store-on-zona")).toBeEnabled();
-
-    // STORE ON ZONA opens the site's one confirmation in its place and
-    // writes nothing; NOT NOW closes it and the control is back.
-    await page.getByTestId("store-on-zona").click();
-    await expect(page.getByTestId("store-confirm")).toBeVisible();
-    expect(await page.getByTestId("store-on-zona").count()).toBe(0);
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    await page.getByTestId("keep-confirm-no").click();
-    await expect(page.getByTestId("store-on-zona")).toBeVisible();
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    // And after the whole loop the fake still holds the surface's five in
-    // RAM and its own five in flash: no second write, nothing stored, and
-    // no control on the page that would put the module's own page back.
-    expect(zona.seen("CONFIG", "EXECUTE"), "five writes and no more").toBe(5);
-    expect(zona.state.systemFlash?.[EVENT_UTILITY]).toBe(MODULE_SYSTEM_UTILITY);
+    expect(zona.state.systemFlash?.[EVENT_UTILITY], "stored too").toBe(utility);
+    expect(zona.state.flash?.[EVENT_SETUP], "stored too").toBe(setup);
+    // The control is closed with the already-kept reason: the module holds
+    // the surface on screen, and nothing on the page would put its own back.
+    await expect(page.getByTestId("store-on-zona")).toBeDisabled();
     expect(await page.getByTestId("put-back").count()).toBe(0);
     console.log(
-      `the loop on the fake: ${beats + 1} heartbeat(s) to identify; 255/4 carried ${utility.length} characters; Setup ${setup.length}, Timer ${timer.length}`,
+      `the loop on the fake: ${beats + 1} heartbeat(s) to identify, ${storeBeats + 1} to prove the store; 255/4 carried ${utility.length} characters; Setup ${setup.length}, Timer ${timer.length}`,
     );
 
     expect(consoleErrors, "no console error on the whole loop").toEqual([]);

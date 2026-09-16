@@ -465,10 +465,9 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     await page.keyboard.press("Escape");
     await expect(drawer).toHaveCount(0);
 
-    // No zone without a module (13.1-06): no Apply, no Store, and the bar's
+    // No zone without a module (13.1-06): no Store (no Apply since 2026-09-16), and the bar's
     // preview-only line in their place. Put back is on no screen (D-07).
     expect(await page.getByTestId("destination").count()).toBe(0);
-    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
     expect(await page.getByTestId("store-on-zona").count()).toBe(0);
     await expect(page.locator('[data-zone="destination"]')).toContainText(
       "Preview",

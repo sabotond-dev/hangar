@@ -22,12 +22,12 @@
 // visitor meets that the probe cannot show: the bar's busy clause through a
 // write, the header lock engaging and releasing, the confirmation replacing
 // the control that opened it and moving focus deliberately, a second store
-// waiting for another apply, the one live region speaking once per outcome,
+// waiting for a change, the one live region speaking once per outcome,
 // and Escape doing nothing mid-write. SINCE 13.1-07 EVERY ONE OF THEM READS
 // THE BAR'S DESTINATION ZONE (DestinationZone.svelte, 13.1-06; 13.1-CONTEXT
 // D-06, D-07): the install column under the surface is gone, Put back is on
-// no screen, and the subjects are apply-to-zona, store-on-zona and its line,
-// apply-honesty (Apply's sr-only description), install-failure (a write's
+// no screen, and the subjects are store-on-zona and its line, store-honesty
+// (Store's sr-only description), install-failure (a write's
 // failure block under the row), still-writing, and the bar's status-device
 // clause for every success caption. The connect is the header's control. A RAM leg lands in about 40 ms
 // and the lock would be unobservable, so the tests that need to SEE `writing`
@@ -57,7 +57,7 @@
 // clearLine and its caption empty; one click sends with NO confirmation and
 // no element ever appears bearing the testid one would have had; CLEARING…
 // carries aria-busy through BOTH legs; the bar reads the reset's caption -
-// which says stored - and Store on ZONA closes with never-tried. THE CLEAR
+// which says stored - and Store on ZONA is live again. THE CLEAR
 // STORES SINCE ROUND 4C (2026-09-12; the user's word in BENCH-2026-09-12.txt:
 // "clear should not be RAM only though!! it should be like Store but with
 // Clear!"): the five defaults into RAM, then the same ACK-gated store leg
@@ -161,6 +161,17 @@
 // so each declares test.slow() on its first line and prints its wall time.
 // The timeouts under test are the shipped constants and are not shortened.
 //
+// APPLY TO ZONA LEFT ON 2026-09-16 (BENCH-2026-09-16.txt section 1, the
+// user's word: "we dont need the apply to ZONA, only Store stays. also every
+// Store should send a Clear before Storing"). Every real-page title that
+// clicked Apply clicks Store - the confirmation and its affirmative - and a
+// Store is EIGHTEEN frames on the fake: the five firmware defaults and the
+// restore heartbeat, the configuration's five and the restore, one
+// PAGESTORE/EXECUTE, the proof's five fetches; the probe's TRY stays on the
+// probe and its six titles still drive it, but the probe's Keep runs the same
+// eighteen. Every count below reads TEN CONFIG/EXECUTE per Store where it
+// read five per apply, and the bar's busy clause is keepingLabel.
+//
 // NEVER WRITES TO A DEVICE. Every byte a page writes lands in the shim; the
 // only ZONA here is a function in Node.
 //
@@ -172,10 +183,10 @@ import {
   CONFIRM_WAY_BACK,
   HONESTY_INCAPABLE,
   IDENTIFIED_CAPTION,
+  KEEP_LABEL,
   KEEP_REASONS,
   LIVE_STILL_WRITING,
   STILL_WRITING_LINE,
-  TRY_ON_LABEL,
   announceTitle,
   clearLine,
   clearedCaption,
@@ -183,7 +194,6 @@ import {
   confirmCaption,
   confirmReplaces,
   confirmRig,
-  honestyReady,
   keepLineEnabled,
   keepingLabel,
   keptCaption,
@@ -194,9 +204,7 @@ import {
   liveSnapshotSaved,
   lostBlock,
   pageName,
-  settledCaption,
   unconfirmedBlock,
-  writingLabel,
 } from "../src/lib/device/install-copy";
 // 13.1-06 (13.1-CONTEXT D-07): the eleven names this file imported from
 // install-copy.ts and page-target.ts for the install column and Put back
@@ -299,7 +307,7 @@ function moduleState(nth: number, over: Partial<ZonaState> = {}): ZonaState {
 
 /** The titles the store speaks, from the module that owns them, never a literal. */
 const LOST_SPOKEN = announceTitle(
-  lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title,
+  lostBlock(false, KEEP_LABEL, ACTIVE_PAGE).title,
 );
 const UNCONFIRMED_SPOKEN = announceTitle(
   unconfirmedBlock(NAME, ACTIVE_PAGE).title,
@@ -466,9 +474,9 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     const consoleErrors = collectErrors(page);
     const zona = await openProbe(page, moduleState(1));
     // Before any session: no snapshot, no remembered module, so PUT BACK is
-    // absent (I0) and KEEP ON DEVICE has its resting reason.
+    // absent (I0) and Store on ZONA reads the record's no-session row.
     await expect(putBack(page)).toHaveText("absent");
-    await expect(keepReason(page)).toHaveText("never-tried");
+    await expect(keepReason(page)).toHaveText("no-session");
 
     await click(page, "install-connect");
     const beats = await beatUntil(page, zona, 0, "session-phase", "connected");
@@ -489,7 +497,8 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       /^[0-9a-f]{32}$/,
     );
     await expect(putBack(page)).toHaveText("enabled");
-    await expect(keepReason(page)).toHaveText("never-tried");
+    // No pair observed yet: the record names nothing and the store is not armed.
+    await expect(keepReason(page)).toHaveText("no reason");
     await expect(readout(page, "install-armed")).toHaveText("false");
     await expect(cause(page)).toHaveText("none");
     await expect(speech(page)).toHaveText(liveSnapshotSaved(ACTIVE_PAGE));
@@ -592,10 +601,13 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       "and the fifth, third in write order, something else again",
     ).not.toBe(MODULE_SYSTEM_UTILITY);
 
-    // Observing the pair arms nothing on its own (Z-05: armed means the
-    // module HOLDS the pair).
+    // Observing the pair ARMS the store (2026-09-16: armed means Store may
+    // write - a session, the page at rest, a pair inside 908) and writes
+    // nothing; the record names no reason.
     await click(page, "install-observe");
-    await expect(readout(page, "install-armed")).toHaveText("false");
+    await expect(readout(page, "install-armed")).toHaveText("true");
+    await expect(keepReason(page)).toHaveText("live");
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
 
     await click(page, "install-try");
     await expect(phase(page)).toHaveText("settled");
@@ -642,8 +654,8 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(phase(page)).toHaveText("restored");
     await expect(trace(page)).toHaveText(/> settled > writing > restored$/);
     await expect(readout(page, "install-action")).toHaveText("put-back");
-    await expect(readout(page, "install-armed")).toHaveText("false");
-    await expect(keepReason(page)).toHaveText("never-tried");
+    await expect(readout(page, "install-armed")).toHaveText("true");
+    await expect(keepReason(page)).toHaveText("live");
     await expect(speech(page)).toHaveText(liveRestored(ACTIVE_PAGE));
     // The second restore-page-change line: one per RAM leg, read after each.
     expect(await stepLines(page)).toEqual([
@@ -674,7 +686,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(consoleErrors).toEqual([]);
   });
 
-  test("KEEP ON DEVICE is kept only after the read-back matches, and a mismatch is named", async ({
+  test("KEEP ON DEVICE returns the page to its default, writes the pair, and is kept only after the read-back matches; a mismatch is named", async ({
     context,
     page,
   }) => {
@@ -698,12 +710,26 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(readout(page, "install-leg")).toHaveText("store");
     await expect(cause(page)).toHaveText("none");
     await expect(keepReason(page)).toHaveText("already-kept");
-    await expect(readout(page, "install-armed")).toHaveText("false");
+    // Armed still (kept is writable); the record's row is what disables.
+    await expect(readout(page, "install-armed")).toHaveText("true");
     await expect(putBack(page)).toHaveText("enabled");
     await expect(speech(page)).toHaveText(liveKept(ACTIVE_PAGE));
-    // One store, one heartbeat waited for, one matching round of FIVE, in
-    // SLOTS order.
+    // THE WHOLE CLICK SINCE 2026-09-16, one capture: the five defaults and
+    // the restore, the pair's five and the restore, one store, one heartbeat
+    // waited for, one matching round of FIVE, in SLOTS order. Eighteen lines.
     expect(await stepLines(page)).toEqual([
+      "write-system-timer ok 1",
+      "write-system ok 1",
+      "write-system-utility ok 1",
+      "write-timer ok 1",
+      "write-setup ok 1",
+      "restore-page-change sent 1",
+      "write-system-timer ok 1",
+      "write-system ok 1",
+      "write-system-utility ok 1",
+      "write-timer ok 1",
+      "write-setup ok 1",
+      "restore-page-change sent 1",
       "store ok 1",
       "refetch-system-timer ok 1",
       "refetch-system ok 1",
@@ -712,8 +738,11 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       "refetch-setup ok 1",
     ]);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
-    // One RAM leg.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
+    // The probe's TRY (five), then the Store's two RAM legs (ten).
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
+    expect(zona.seen("HEARTBEAT", "EXECUTE"), "one restore per RAM leg").toBe(
+      3,
+    );
     // The snapshot s five, plus one refetch round of five.
     expect(zona.seen("CONFIG", "FETCH")).toBe(10);
     expect(zona.state.flash?.[EVENT_SETUP]).toBe(pair.setup);
@@ -745,10 +774,10 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       /> settled > writing > kept-mismatch$/,
     );
     await expect(cause(second)).toHaveText("mismatch");
-    await expect(keepReason(second)).toHaveText("after-mismatch");
+    await expect(keepReason(second)).toHaveText("live");
     await expect(putBack(second)).toHaveText("enabled");
     const lines = await stepLines(second);
-    expect(lines[0]).toBe("store ok 1");
+    expect(lines[12], "the store follows the two RAM legs").toBe("store ok 1");
     // THE 3 HERE IS THE ROUND COUNT AND IT DOES NOT MOVE - REFETCH_ROUNDS is
     // still three. What moved is that a round is five fetches (13-17; four
     // since 12.1-08, three since 12-03), so a fifth line joins the four.
@@ -763,8 +792,12 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     );
     expect(lines.filter((l) => l.startsWith("refetch-setup "))).toHaveLength(3);
     expect(lines.filter((l) => l.startsWith("refetch-timer "))).toHaveLength(3);
-    expect(liar.seen("PAGESTORE", "EXECUTE")).toBe(1);
-    expect(liar.seen("CONFIG", "EXECUTE")).toBe(5);
+    expect(liar.seen("CONFIG", "EXECUTE"), "the TRY, then the two legs").toBe(
+      15,
+    );
+    expect(liar.seen("CONFIG", "EXECUTE"), "the TRY, then the two legs").toBe(
+      15,
+    );
     // The snapshot s five, plus three rounds of five.
     expect(liar.seen("CONFIG", "FETCH")).toBe(5 + 15);
 
@@ -800,9 +833,12 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       /^idle > snapshotting > ready > writing > partial$/,
     );
     await expect(cause(page)).toHaveText("timeout");
-    await expect(keepReason(page)).toHaveText("after-partial");
+    await expect(keepReason(page)).toHaveText("live");
     await expect(putBack(page)).toHaveText("enabled");
-    await expect(readout(page, "install-armed")).toHaveText("false");
+    await expect(
+      readout(page, "install-armed"),
+      "the store is the retry",
+    ).toHaveText("true");
     // A timeout with no NACK anywhere in the action escalates the pacing.
     await expect(readout(page, "install-pacing")).toHaveText("true");
     expect(await stepLines(page)).toEqual([
@@ -847,7 +883,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     );
     await expect(cause(second)).toHaveText("nack");
     await expect(readout(second, "install-pacing")).toHaveText("false");
-    await expect(keepReason(second)).toHaveText("never-tried");
+    await expect(keepReason(second)).toHaveText("live");
     await expect(putBack(second)).toHaveText("enabled");
     const refusedLines = await stepLines(second);
     expect(refusedLines).toEqual([
@@ -889,7 +925,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await tryOn(third, "nothing-landed");
     await expect(cause(third)).toHaveText("timeout");
     await expect(readout(third, "install-pacing")).toHaveText("true");
-    await expect(keepReason(third)).toHaveText("never-tried");
+    await expect(keepReason(third)).toHaveText("live");
     await expect(putBack(third)).toHaveText("enabled");
     expect(await stepLines(third)).toEqual([
       "write-system-timer timeout 3",
@@ -1024,11 +1060,25 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(readout(page, "install-armed")).toHaveText("true");
     await expect(readout(page, "install-slow")).toHaveText("false");
     await expect(speech(page)).toHaveText(UNCONFIRMED_SPOKEN);
-    expect(await stepLines(page)).toEqual(["store timeout 3"]);
+    expect(await stepLines(page)).toEqual([
+      "write-system-timer ok 1",
+      "write-system ok 1",
+      "write-system-utility ok 1",
+      "write-timer ok 1",
+      "write-setup ok 1",
+      "restore-page-change sent 1",
+      "write-system-timer ok 1",
+      "write-system ok 1",
+      "write-system-utility ok 1",
+      "write-timer ok 1",
+      "write-setup ok 1",
+      "restore-page-change sent 1",
+      "store timeout 3",
+    ]);
     // A STORE leg is one write per attempt, so the PAGESTORE count does not
-    // move. The CONFIG count is one RAM leg of five.
+    // move. The CONFIG count is the TRY's five and the Store's two legs.
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(3);
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
     const firstLegMs = Date.now() - startedAt;
 
     // A keep that landed, then a put-back whose own store never confirms:
@@ -1058,7 +1108,7 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     await expect(readout(second, "install-action")).toHaveText("put-back");
     await expect(readout(second, "install-leg")).toHaveText("store");
     await expect(cause(second)).toHaveText("timeout");
-    await expect(keepReason(second)).toHaveText("never-tried");
+    await expect(keepReason(second)).toHaveText("live");
     await expect(putBack(second)).toHaveText("enabled");
     // Both legs of one put-back in one record: the RAM leg's SIX steps, then
     // the store that never confirmed.
@@ -1073,8 +1123,8 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     ]);
     // 1 + 3 store attempts, unmoved: a store leg is one write per attempt.
     expect(kept.seen("PAGESTORE", "EXECUTE")).toBe(1 + 3);
-    // Two RAM legs of five.
-    expect(kept.seen("CONFIG", "EXECUTE")).toBe(10);
+    // The TRY, the Store's two legs, the put-back: four RAM legs of five.
+    expect(kept.seen("CONFIG", "EXECUTE")).toBe(20);
     // RAM is the original again; what the fake's flash holds is exactly what
     // HANGAR cannot know, and is not asserted.
     expect(kept.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
@@ -1133,7 +1183,7 @@ const rigModule = (sx: number): ZonaState => ({
 
 /** The sentence a keep or a put-back speaks when the cable comes out mid-write. */
 const LOST_ON_PAGE = announceTitle(
-  lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title,
+  lostBlock(false, KEEP_LABEL, ACTIVE_PAGE).title,
 );
 
 const canvasOf = (id: string) => `[data-testid="pad-canvas-${id}"]`;
@@ -1225,15 +1275,15 @@ async function openPanel(page: Page, id: string = ENTRY): Promise<void> {
 }
 
 /**
- * Apply's description (13.1-06): the honesty sentence is an sr-only span the
- * bar's Apply points at through aria-describedby - never painted, so it is
- * read with toHaveText, never toBeVisible. The column's five sizing twins
- * and its `visibleLine` reader went with the column.
+ * Store's description (13.1-06; Store's since 2026-09-16, Apply's before):
+ * the honesty sentence is an sr-only span the bar's Store points at through
+ * aria-describedby - never painted, so it is read with toHaveText, never
+ * toBeVisible. The column's five sizing twins and its `visibleLine` reader
+ * went with the column.
  */
-const honesty = (page: Page) => page.getByTestId("apply-honesty");
+const honesty = (page: Page) => page.getByTestId("store-honesty");
 
-/** The bar's zone (DestinationZone.svelte): Apply to ZONA, Store on ZONA and Store's reason line. */
-const primary = (page: Page) => page.getByTestId("apply-to-zona");
+/** The bar's zone (DestinationZone.svelte): Store on ZONA and its reason line; Apply left on 2026-09-16. */
 const keepControl = (page: Page) => page.getByTestId("store-on-zona");
 /** Store on ZONA's reason: KEEP_REASONS' sentence while disabled, hidden (and empty) while live. */
 const storeLine = (page: Page) => page.getByTestId("store-on-zona-line");
@@ -1393,24 +1443,15 @@ async function connectOnPage(
     timeout: 10_000,
   });
   await expect(page.getByTestId("destination")).toBeVisible();
-  await expect(honesty(page)).toHaveText(honestyReady(ACTIVE_PAGE));
+  await expect(honesty(page)).toHaveText(keepLineEnabled(ACTIVE_PAGE));
   return beats;
 }
 
 /**
- * One apply on the real page, from ready or any settled state, to the bar's
- * settled caption. The name is the store's label for the write; the bar's
- * caption does not carry it (the success bodies that did retired with the
- * column, 13.1-06), so it is not read here.
+ * The one write on the real page since 2026-09-16: open the confirmation,
+ * commit it, and pace heartbeats until the bar reads KEPT - the store leg's
+ * proof waits for the module's next heartbeat after the two RAM legs land.
  */
-async function tryOnPage(page: Page): Promise<void> {
-  await primary(page).click();
-  await expect(statusDevice(page)).toHaveText(settledCaption(ACTIVE_PAGE), {
-    timeout: 10_000,
-  });
-}
-
-/** Open the confirmation, commit it, and pace heartbeats until the bar reads KEPT. */
 async function keepOnPage(page: Page, zona: ExposedZona): Promise<number> {
   await keepControl(page).click();
   await expect(page.getByTestId("keep-confirm")).toBeVisible();
@@ -1474,73 +1515,76 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await context.addInitScript(FAKE_SERIAL);
   });
 
-  test("the panel writes on a click, says PLAYING NOW, and locks the header while it writes", async ({
+  test("the bar writes on a click - the page's default, the configuration, the store - says storing, and locks the header while it writes", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
     const zona = await openReal(page, moduleState(12));
     await connectOnPage(page, zona);
 
-    // I2 on the page a visitor sees: the ready sentence as Apply's
-    // description, Store on ZONA waiting for an apply with its reason, and
-    // no Put back anywhere (13.1-06, D-07).
-    await expect(honesty(page)).toHaveText(honestyReady(ACTIVE_PAGE));
+    // I2 on the page a visitor sees: the ready sentence as Store's
+    // description (the whole click in one line: the default first, then this
+    // written and stored), Store live with its reason line hidden, no Apply
+    // (2026-09-16) and no Put back anywhere (13.1-06, D-07).
+    await expect(honesty(page)).toHaveText(keepLineEnabled(ACTIVE_PAGE));
     expect(await page.getByTestId("put-back").count()).toBe(0);
-    await expect(keepControl(page)).toBeDisabled();
-    await expect(storeLine(page)).toHaveText(KEEP_REASONS["never-tried"]);
-    await expect(primary(page)).toBeEnabled();
-    await expect(primary(page)).toHaveText(TRY_ON_LABEL);
-    await expect(primary(page)).toHaveAttribute(
+    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
+    await expect(keepControl(page)).toBeEnabled();
+    await expect(keepControl(page)).toHaveText(KEEP_LABEL);
+    await expect(storeLine(page)).toBeHidden();
+    await expect(keepControl(page)).toHaveAttribute(
       "aria-describedby",
-      /-honesty$/,
+      /-honesty [^ ]+-store-line$/,
     );
 
     // Hold each CONFIG acknowledgement 200 ms in Node - strictly under
-    // executeMs 250, so both events land on attempt 1 and the leg is a window
-    // of about 400 ms. Installed AFTER the connect sequence: the snapshot's
-    // reads are not what this test is about.
+    // executeMs 250, so every write lands on attempt 1 and the two RAM legs
+    // are a window of about two seconds. Installed AFTER the connect
+    // sequence: the snapshot's reads are not what this test is about.
     zona.script({ delayAckMs: { class_name: "CONFIG", byMs: 200 } });
     const clickedAt = Date.now();
-    await primary(page).click();
+    await keepControl(page).click();
+    await expect(page.getByTestId("keep-confirm")).toBeVisible();
+    await page.getByTestId("keep-confirm-yes").click();
 
     // Inside the window: the bar's busy clause (device-clause.ts reads
-    // writingLabel for the store's writing phase since 13-11), and
+    // keepingLabel for the store's writing phase since 2026-09-16), and
     // everything I3 says around it, read in one snapshot so the round trips
-    // do not spend the window. The busy label is the BAR's now, not a
-    // button's: the zone's Apply keeps its resting word and is disabled.
-    await expect(statusDevice(page)).toHaveText(writingLabel(ACTIVE_PAGE));
+    // do not spend the window. The busy label is the BAR's, not a button's:
+    // the confirmation has left, the zone's Store is back at its resting
+    // word and disabled.
+    await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
     const busySeenAt = Date.now() - clickedAt;
     const during = await page.evaluate(() => {
       const q = (id: string) =>
         document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
-      const primary = q("apply-to-zona") as HTMLButtonElement | null;
+      const store = q("store-on-zona") as HTMLButtonElement | null;
       const clause = q("status-device");
       return {
         clause: clause?.textContent?.trim() ?? null,
         device: q("status-dotted")?.getAttribute("data-device") ?? null,
-        label: primary?.textContent?.trim() ?? null,
-        disabled: primary?.disabled ?? null,
-        keepDisabled:
-          (q("store-on-zona") as HTMLButtonElement | null)?.disabled ?? null,
+        label: store?.textContent?.trim() ?? null,
+        disabled: store?.disabled ?? null,
+        confirmOpen: q("keep-confirm") !== null,
         targetDisabled:
           (q("destination-page") as HTMLSelectElement | null)?.disabled ?? null,
-        honesty: q("apply-honesty")?.textContent?.trim() ?? null,
+        honesty: q("store-honesty")?.textContent?.trim() ?? null,
         transition: clause ? getComputedStyle(clause).transitionDuration : null,
         inspectors: document.querySelectorAll('[data-testid="shell-inspector"]')
           .length,
       };
     });
     const snapshotAt = Date.now() - clickedAt;
-    expect(during.clause).toBe(writingLabel(ACTIVE_PAGE));
+    expect(during.clause).toBe(keepingLabel(ACTIVE_PAGE));
     expect(during.device).toBe("writing");
-    expect(during.label).toBe(TRY_ON_LABEL);
+    expect(during.label).toBe(KEEP_LABEL);
     expect(during.disabled).toBe(true);
+    expect(during.confirmOpen).toBe(false);
     // I3 rule 3: every write control disabled, whichever was clicked - the
-    // zone's three (Apply, Store, the Target select).
-    expect(during.keepDisabled).toBe(true);
+    // zone's two (Store, the Target select).
     expect(during.targetDisabled).toBe(true);
     // I3 rule 4: the description holds whatever string it was holding.
-    expect(during.honesty).toBe(honestyReady(ACTIVE_PAGE));
+    expect(during.honesty).toBe(keepLineEnabled(ACTIVE_PAGE));
     // I3 rule 1: the busy clause swaps with no transition.
     expect(during.transition).toBe("0s");
     expect(during.inspectors).toBe(1);
@@ -1575,38 +1619,50 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(locked.disconnectDescribedBy).toBe(locked.reasonId);
     expect(locked.forgetDescribedBy).toBe(locked.reasonId);
 
-    // Then it lands: the lock releases and the reason line leaves.
+    // THE LOCK HOLDS THROUGH THE WHOLE CLICK. Each leg releases it in its
+    // finally and the next leg takes it in the same flush - a gap no poll
+    // sees - and the store leg's proof waits for a heartbeat this harness has
+    // to push, so the release is observed AFTER the proof: heartbeats paced
+    // with the drawer open until the bar reads the stored caption.
+    zona.script({});
+    const beats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      barShows(keptCaption(ACTIVE_PAGE)),
+      24,
+    );
     await expect(disconnect).toBeEnabled();
     const releasedAt = Date.now() - clickedAt;
     await expect(forget).toBeEnabled();
     await expect(page.getByTestId("write-lock-reason")).toHaveCount(0);
     console.log(
-      `test 7 timing: WRITING at +${busySeenAt} ms, panel snapshot at +${snapshotAt} ms, header locked at +${lockSeenAt} ms, released at +${releasedAt} ms`,
+      `test 7 timing: STORING at +${busySeenAt} ms, zone snapshot at +${snapshotAt} ms, header locked at +${lockSeenAt} ms, KEPT after ${beats} heartbeat(s), released at +${releasedAt} ms`,
     );
 
-    // The drawer closed, the bar reads the settled state the write produced:
-    // the applied caption, Apply back at rest and enabled, Store on ZONA
-    // enabled with its reason line hidden - the one and only path to it (I4).
+    // The drawer closed: the bar reads the stored caption, Store back at rest
+    // and disabled with the already-kept reason - the module holds the pair
+    // on screen - and no failure block (I4).
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("tuning-region")).toBeVisible();
-    await expect(statusDevice(page)).toHaveText(settledCaption(ACTIVE_PAGE));
+    await expect(statusDevice(page)).toHaveText(keptCaption(ACTIVE_PAGE));
     await expect(page.getByTestId("status-dotted")).toHaveAttribute(
       "data-device",
-      "settled",
+      "kept",
     );
-    await expect(primary(page)).toHaveText(TRY_ON_LABEL);
-    await expect(primary(page)).toBeEnabled();
-    await expect(honesty(page)).toHaveText(honestyReady(ACTIVE_PAGE));
-    await expect(keepControl(page)).toBeEnabled();
-    await expect(storeLine(page)).toBeHidden();
-    expect(keepLineEnabled(ACTIVE_PAGE)).toContain("power-off");
+    await expect(keepControl(page)).toHaveText(KEEP_LABEL);
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
+    await expect(honesty(page)).toHaveText(keepLineEnabled(ACTIVE_PAGE));
     expect(await failureBlock(page).count(), "no failure block").toBe(0);
 
-    // The wire: one try-on, all five acknowledgements on attempt 1, nothing
-    // stored.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(1);
+    // The wire: one click - the five defaults, the pair's five, two restore
+    // heartbeats, one store - every acknowledgement on attempt 1; the fake's
+    // flash holds the pair.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
+    expect(zona.seen("HEARTBEAT", "EXECUTE")).toBe(2);
+    expect(zona.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -1617,7 +1673,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     const consoleErrors = collectErrors(page);
     const zona = await openReal(page, moduleState(13));
     await connectOnPage(page, zona);
-    await tryOnPage(page);
+    // Store is live from ready since 2026-09-16: no RAM audition before it.
     await expect(keepControl(page)).toBeEnabled();
 
     // Open: the block is where the control was, never both on screen, and
@@ -1697,8 +1753,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
     expect(await page.getByTestId("put-back").count()).toBe(0);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
-    // One try-on, five writes.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(5);
+    // One click: the five defaults and the pair's five.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
     expect(zona.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
 
     // On a rig, the fourth sentence names the others and says their pages are
@@ -1715,7 +1771,6 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       rig: [rigModule(1), rigModule(2)],
     });
     await connectOnPage(second, rig, rigBeats);
-    await tryOnPage(second);
     await keepControl(second).click();
     const rigConfirm = second.getByTestId("keep-confirm");
     await expect(rigConfirm).toBeVisible();
@@ -1739,25 +1794,23 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await second.getByTestId("keep-confirm-no").click();
     await expect(rigConfirm).toHaveCount(0);
     expect(rig.seen("PAGESTORE", "EXECUTE")).toBe(0);
-    // One try-on, five writes.
-    expect(rig.seen("CONFIG", "EXECUTE")).toBe(5);
+    // No write at all: the confirmation is not a click on the wire.
+    expect(rig.seen("CONFIG", "EXECUTE")).toBe(0);
 
     expect(consoleErrors).toEqual([]);
     expect(secondErrors).toEqual([]);
   });
 
-  test("after a store, a second store waits for another apply", async ({
-    page,
-  }) => {
+  test("after a store, a second store waits for a change", async ({ page }) => {
     // The put-back half of this title (PUT BACK storing too after a keep,
     // Z-04) left with the control at 13.1-06 (13.1-CONTEXT D-07): the store's
-    // putBack() is the probe's alone and test 2 above drives it. What stays
-    // is the store-waits half: after a store the control is closed with
-    // already-kept, and the way to a second store is another apply.
+    // putBack() is the probe's alone and test 2 above drives it. The
+    // apply half left on 2026-09-16 with Apply itself. What stays is the
+    // store-waits half: after a store the control is closed with
+    // already-kept, and the way to a second store is a change on screen.
     const consoleErrors = collectErrors(page);
     const zona = await openReal(page, moduleState(15));
     await connectOnPage(page, zona);
-    await tryOnPage(page);
     await keepOnPage(page, zona);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
     await expect(keepControl(page)).toBeDisabled();
@@ -1768,41 +1821,38 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(zona.state.flash?.[EVENT_SETUP]).not.toBe(MODULE_SETUP);
     await expect(clearControl(page)).toBeEnabled();
 
-    // Flash only what you have heard (Z-05): a knob turn, an apply, Store on
-    // ZONA live; the confirmation open; the knob turned back - the block
-    // closes and the reason names the knobs.
+    // Flash only what you have heard (Z-05): a knob turn makes Store live
+    // again - the pair on screen is no longer the pair stored; the
+    // confirmation opens; the knob turned back to the stored pair closes the
+    // block and the reason names the store again.
     zona.script({});
     await turnRail(page, 0);
-    // The store's precedence (KeepReason's seven-row table): already-kept
-    // outranks a knob move until another apply lands, so the reason names
-    // the store, not the knobs - and either way the control waits.
     await expect(
       keepControl(page),
-      "a knob moved after a store: the store waits for another apply",
-    ).toBeDisabled();
-    await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
-    await tryOnPage(page);
-    await expect(keepControl(page)).toBeEnabled();
+      "a knob moved after a store: the store is live",
+    ).toBeEnabled();
     await expect(storeLine(page)).toBeHidden();
     await keepControl(page).click();
     await expect(page.getByTestId("keep-confirm")).toBeVisible();
     await turnRail(page, 0, "ArrowLeft");
     await expect(page.getByTestId("keep-confirm")).toHaveCount(0);
     await expect(keepControl(page)).toBeDisabled();
-    await expect(storeLine(page)).toHaveText(KEEP_REASONS["knobs-moved"]);
-    // A knob move closing the confirmation from outside sends focus to the
+    await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
+    // A change closing the confirmation from outside sends focus to the
     // zone (13.1-07's rule: Store cannot hold it, and the body must not).
     await expect(page.getByTestId("destination")).toBeFocused();
 
-    // A second apply, then the second store lands: two stores in all.
-    await tryOnPage(page);
+    // A change, then the second store lands: two stores in all.
+    await turnRail(page, 0);
+    await expect(keepControl(page)).toBeEnabled();
     await keepOnPage(page, zona);
     await expect(keepControl(page)).toBeDisabled();
     await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
 
-    // The wire: two stores; three RAM legs (three applies), five writes each.
+    // The wire: two stores; two clicks of ten writes each (the defaults and
+    // the pair, twice); nothing between the clicks wrote.
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(20);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -1818,13 +1868,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // connect on a module that answers (07-08 deferred item 9).
     await expect(sessionLive(page)).toHaveText(liveSnapshotSaved(ACTIVE_PAGE));
 
-    await tryOnPage(page);
-    await expect(sessionLive(page)).toHaveText(liveSettled(ACTIVE_PAGE));
-
-    // THE SLOW LINE, on the keep's STORE leg - never a RAM leg, where a
+    // THE SLOW LINE, on the Store's STORE leg - never a RAM leg, where a
     // 2500 ms hold would make every acknowledgement stale at executeMs 250.
     // The script is switched after the confirmation opens and before the
-    // commit, so the hold covers exactly one acknowledgement.
+    // commit; the two RAM legs land at speed under it and the hold covers
+    // exactly one acknowledgement, the PAGESTORE's.
     await keepControl(page).click();
     const confirm = page.getByTestId("keep-confirm");
     await expect(confirm).toBeVisible();
@@ -1832,18 +1880,17 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     const committedAt = Date.now();
     await page.getByTestId("keep-confirm-yes").click();
     // Z-19, as the bar carries it since 13-11: the device clause reads the
-    // busy label (device-clause.ts hands writingLabel to every write; the
-    // store's own keepingLabel is not painted anywhere since the column
-    // went), because the control that was clicked has left the screen.
-    await expect(statusDevice(page)).toHaveText(writingLabel(ACTIVE_PAGE));
-    expect(keepingLabel(ACTIVE_PAGE)).not.toBe(writingLabel(ACTIVE_PAGE));
-    await expect(primary(page)).toBeDisabled();
+    // busy label (device-clause.ts hands keepingLabel to every write since
+    // 2026-09-16 - the one write is a store), because the control that was
+    // clicked has left the screen.
+    await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
     await expect(confirm).toHaveCount(0);
     await expect(keepControl(page)).toBeDisabled();
-    // At 2000 ms: one Body line under the zone's row, and one polite word.
+    // At 2000 ms into the store leg: one Body line under the zone's row, and
+    // one polite word.
     await expect(page.getByTestId("still-writing")).toHaveText(
       STILL_WRITING_LINE,
-      { timeout: 5_000 },
+      { timeout: 8_000 },
     );
     const slowLineAt = Date.now() - committedAt;
     await expect(sessionLive(page)).toHaveText(LIVE_STILL_WRITING, {
@@ -1854,7 +1901,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("tuning-region")).toBeVisible();
     await expect(page.getByTestId("destination")).toBeVisible();
-    await expect(statusDevice(page)).toHaveText(writingLabel(ACTIVE_PAGE));
+    await expect(statusDevice(page)).toHaveText(keepingLabel(ACTIVE_PAGE));
     await expect(page.getByTestId("still-writing")).toHaveText(
       STILL_WRITING_LINE,
     );
@@ -1872,41 +1919,39 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(sessionLive(page)).toHaveText(liveKept(ACTIVE_PAGE));
     await expect(page.getByTestId("still-writing")).toHaveCount(0);
     await expect(statusDevice(page)).toHaveText(keptCaption(ACTIVE_PAGE));
-    await expect(primary(page)).toBeEnabled();
+    await expect(keepControl(page)).toBeDisabled();
     console.log(
       `test 10: slow line at +${slowLineAt} ms, KEPT at +${keptAt} ms after ${keptBeats} heartbeat(s)`,
     );
 
-    // A second apply after the store, spoken exactly once - the put-back
-    // that stored too (Z-04) is the probe's alone since 13.1-06, so the
-    // outcome walked here is the apply's. The RAM leg lands at speed; the
-    // recorder is on before the click.
+    // A second store after a change, spoken exactly once for the whole
+    // click - never once per leg, never once for the acknowledgement and
+    // again for the proof. The recorder is on before the click.
     zona.script({});
+    await turnRail(page, 0);
+    await expect(keepControl(page)).toBeEnabled();
     await recordLiveRegions(page);
     const before = await liveTexts(page);
     expect(before.session).toBe(liveKept(ACTIVE_PAGE));
     expect(before.tuning).toBe("");
     expect(before.browse).toBeNull();
-    await primary(page).click();
-    await expect(statusDevice(page)).toHaveText(settledCaption(ACTIVE_PAGE), {
-      timeout: 10_000,
-    });
-    await expect(sessionLive(page)).toHaveText(liveSettled(ACTIVE_PAGE));
+    await keepOnPage(page, zona);
+    await expect(sessionLive(page)).toHaveText(liveKept(ACTIVE_PAGE));
     // A second of polling: the text never becomes anything else, and the
-    // record holds ONE utterance for the whole apply - never one per script.
+    // record holds ONE utterance for the whole click - never one per leg.
     for (let sampled = 0; sampled < 10; sampled++) {
-      await expect(sessionLive(page)).toHaveText(liveSettled(ACTIVE_PAGE));
+      await expect(sessionLive(page)).toHaveText(liveKept(ACTIVE_PAGE));
       await page.waitForTimeout(100);
     }
-    const afterApply = await liveTexts(page);
-    expect(afterApply.session).toBe(liveSettled(ACTIVE_PAGE));
-    expect(utterances(afterApply.log["session-live"])).toEqual([
-      liveSettled(ACTIVE_PAGE),
+    const afterStore = await liveTexts(page);
+    expect(afterStore.session).toBe(liveKept(ACTIVE_PAGE));
+    expect(utterances(afterStore.log["session-live"])).toEqual([
+      liveKept(ACTIVE_PAGE),
     ]);
-    expect(afterApply.tuning).toBe("");
-    expect(utterances(afterApply.log["tuning-live"])).toEqual([]);
-    expect(afterApply.browse).toBeNull();
-    expect(utterances(afterApply.log["browse-live"])).toEqual([]);
+    expect(afterStore.tuning).toBe("");
+    expect(utterances(afterStore.log["tuning-live"])).toEqual([]);
+    expect(afterStore.browse).toBeNull();
+    expect(utterances(afterStore.log["browse-live"])).toEqual([]);
 
     // An unplug mid-write: the lost title, spoken, and never the session's
     // "Nothing was written" (Z-11). THE ZONE LEAVES WITH THE SESSION
@@ -1915,19 +1960,24 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // an unplug - a finding for the gate's bench row, named in 13.1-07's
     // SUMMARY - and what the page keeps is the bar's clause reading the
     // lost title (device-clause.ts) and the header's Clear waiting for the
-    // module with its no-session reason.
+    // module with its no-session reason. The cable comes out under the
+    // click's first write - the defaults leg's.
+    await turnRail(page, 0);
+    await expect(keepControl(page)).toBeEnabled();
     const n = (await writesOf(page)).length + 1;
     await page.evaluate(
       (count) => window.__hangarSerial.unplugAfterWrites(0, count),
       n,
     );
-    await primary(page).click();
+    await keepControl(page).click();
+    await expect(page.getByTestId("keep-confirm")).toBeVisible();
+    await page.getByTestId("keep-confirm-yes").click();
     await expect(sessionLive(page)).toHaveText(LOST_ON_PAGE, {
       timeout: 10_000,
     });
     expect(LOST_ON_PAGE).toBe("Your ZONA was unplugged mid-write.");
     await expect(statusDevice(page)).toHaveText(
-      lostBlock(false, TRY_ON_LABEL, ACTIVE_PAGE).title,
+      lostBlock(false, KEEP_LABEL, ACTIVE_PAGE).title,
     );
     expect(
       await failureBlock(page).count(),
@@ -1946,10 +1996,10 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(utterances(afterLost.log["tuning-live"])).toEqual([]);
     expect(utterances(afterLost.log["browse-live"])).toEqual([]);
 
-    // The wire: the one store; the two settled RAM legs, five writes each;
-    // the write that caused the unplug never reached the module.
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
+    // The wire: the two stores; two clicks of ten writes each; the write
+    // that caused the unplug never reached the module.
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(20);
     console.log(`test 10 wall time ${Date.now() - startedAt} ms`);
     expect(consoleErrors).toEqual([]);
   });
@@ -1966,14 +2016,14 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     const zona = await openReal(page, moduleState(17));
     await connectOnPage(page, zona);
     await recordLiveRegions(page);
-    await tryOnPage(page);
+    await keepOnPage(page, zona);
 
-    // AT REST, AFTER AN APPLY, ON A BROWSER THAT CAN WRITE. CLEAR is live in
+    // AT REST, AFTER A STORE, ON A BROWSER THAT CAN WRITE. CLEAR is live in
     // the header's connection zone, left of the connection control (13.1-05,
     // D-04): its label is the user's word, its accessible name is the label
     // alone, its caption is EMPTY (the reason is a disabled control's), and
     // its description - the sr-only span the button points at - is clearLine
-    // with the page as the visitor reads it. The bar's Store on ZONA is live.
+    // with the page as the visitor reads it. The bar's Store on ZONA is closed with already-kept.
     await expect(clearControl(page)).toBeVisible();
     await expect(clearControl(page)).toBeEnabled();
     await expect(clearLabel(page)).toHaveText(CLEAR_LABEL);
@@ -1993,7 +2043,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
         .count(),
       "the one Clear is inside the header's connection zone",
     ).toBe(1);
-    await expect(keepControl(page)).toBeEnabled();
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
     expect(await noConfirmOnScreen(page)).toBe(true);
 
     // Hold each CONFIG acknowledgement 200 ms in Node - strictly under
@@ -2012,14 +2063,16 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // the COUNTER rather than on the panel - the counter is what the
     // assertion reads, so the counter is what has to have settled.
     //
-    // The wait implies completion: a try-on is five writes, so the counter
-    // reaching five IS "every frame of it has been answered in Node".
+    // The wait implies completion: a Store is ten writes (the defaults and
+    // the pair), so the counter reaching ten IS "every frame of it has been
+    // answered in Node" - and the store leg's proof already waited for the
+    // module's own report, so the counter has settled by construction.
     await expect
       .poll(() => zona.seen("CONFIG", "EXECUTE"), {
-        message: "every frame of the try-on has reached the Node fake",
+        message: "every frame of the store has reached the Node fake",
         timeout: 10_000,
       })
-      .toBe(5);
+      .toBe(10);
     const configBefore = zona.seen("CONFIG", "EXECUTE");
     await clearControl(page).click();
 
@@ -2058,10 +2111,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(clearCaption(page)).toHaveText("");
     await expect(clearDescription(page)).toHaveText(clearLine(ACTIVE_PAGE));
     expect(await page.getByTestId("put-back").count()).toBe(0);
-    // A clear leaves nothing of the visitor's on the module to keep, so the
-    // closed set of six answers the new phase without a seventh member.
-    await expect(keepControl(page)).toBeDisabled();
-    await expect(storeLine(page)).toHaveText(KEEP_REASONS["never-tried"]);
+    // A clear leaves nothing of the visitor's on the module, so the record's
+    // already-kept row no longer matches and Store on ZONA is live again
+    // (2026-09-16): the store is the way to put a configuration on the page.
+    await expect(keepControl(page)).toBeEnabled();
+    await expect(storeLine(page)).toBeHidden();
     expect(await noConfirmOnScreen(page)).toBe(true);
     // FIVE firmware defaults, and the page init, the page timer and the
     // utility are three of them: CLEAR resets BOTH elements (12-03, option
@@ -2074,12 +2128,13 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // read before the sentence exists.
     await expect(sessionLive(page)).toHaveText(liveCleared(ACTIVE_PAGE));
 
-    // THE WAY BACK after a clear is another apply (or Grid Editor): Put back
-    // is gone by the user's word (D-07), and CLEAR still needs no
-    // confirmation by the same user's word (D-04) - what it stores is the
-    // firmware's own configuration.
-    await tryOnPage(page);
-    await expect(sessionLive(page)).toHaveText(liveSettled(ACTIVE_PAGE));
+    // THE WAY BACK after a clear is another store (or Grid Editor): Put back
+    // is gone by the user's word (D-07), Apply by the same user's word
+    // (2026-09-16), and CLEAR still needs no confirmation (D-04) - what it
+    // stores is the firmware's own configuration.
+    zona.script({});
+    await keepOnPage(page, zona);
+    await expect(sessionLive(page)).toHaveText(liveKept(ACTIVE_PAGE));
 
     // The live region said the clear once and never called it an emptying.
     const after = await liveTexts(page);
@@ -2087,16 +2142,16 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(
       spoken.filter((line) => line === liveCleared(ACTIVE_PAGE)).length,
     ).toBe(1);
-    expect(spoken[spoken.length - 1]).toBe(liveSettled(ACTIVE_PAGE));
+    expect(spoken[spoken.length - 1]).toBe(liveKept(ACTIVE_PAGE));
     expect(utterances(after.log["tuning-live"])).toEqual([]);
 
-    // The wire, by class: the two applies and the clear are FIVE
-    // CONFIG/EXECUTE each (13-17; four since 12.1-08, three since 12-03), and
-    // the clear is the ONE PAGESTORE/EXECUTE on the wire (round 4c) - the
-    // applies store nothing, as ever. Read as fifteen and one, not as a
-    // delta, so a clear that stopped at RAM again would fail on the one.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(1);
+    // The wire, by class: the two stores are TEN CONFIG/EXECUTE each (the
+    // defaults and the pair, 2026-09-16) and the clear FIVE, and the three
+    // clicks are three PAGESTORE/EXECUTE - the clear's one among them (round
+    // 4c). Read as twenty-five and three, not as a delta, so a clear that
+    // stopped at RAM again would fail on the three.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(25);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(3);
     expect(consoleErrors).toEqual([]);
 
     // ------------------------------------------------------------------
@@ -2159,7 +2214,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // nothing here writes. Put back is absent everywhere (D-07) - trivially
     // here, asserted once so the count is on the record.
     expect(await bare.getByTestId("destination").count()).toBe(0);
-    expect(await bare.getByTestId("apply-to-zona").count()).toBe(0);
+    expect(await bare.getByTestId("store-on-zona").count()).toBe(0);
     expect(await bare.getByTestId("put-back").count()).toBe(0);
     await expect(
       bare.locator('[data-zone="destination"]'),
@@ -2176,7 +2231,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
   }) => {
     // THE OTHER HALF OF PLAN 12-01'S QUESTION. model.spec.ts proves the TUNER
     // lands a different pair for a different knob index; nothing until now
-    // proved that the pair TRY ON DEVICE puts on the wire is that one. The
+    // proved that the pair the write puts on the wire is that one. The
     // seam between them is four files - Coverflow's `onconfig={(config) =>
     // (configStrings = config)}`, the {#key} remount, the reset effect that
     // clears configStrings on a step, and TryOnDevice's $effect into
@@ -2225,10 +2280,9 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // The precondition: the module holds the probe's own strings, so anything
     // found there afterwards was put there by a click on this page.
     expect(zona.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
-
     // CLICK ONE, at the defaults.
-    await tryOnPage(page);
-    await expect(keepControl(page)).toBeEnabled();
+    // CLICK ONE, at the defaults: a Store, the one write since 2026-09-16.
+    await keepOnPage(page, zona);
     const atDefault = zona.state.configs[EVENT_SETUP];
     expect(typeof atDefault, "the module's RAM holds a Setup string").toBe(
       "string",
@@ -2263,21 +2317,20 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await turnRail(page, railIndex, "ArrowRight");
     await expect(rails(page).nth(railIndex)).toHaveValue(String(toIndex));
 
-    // The store SAW the move: the pair it holds is no longer the pair the
-    // module holds, so Store on ZONA goes out with the reason that names it.
-    // This is also the positive edge the second click is waited on against -
-    // the applied caption is already in the bar from click one, so a bare
-    // re-read of the caption would pass before the second write had happened
-    // at all (Phase 11 deferred item D-11-08.1-a).
-    await expect(keepControl(page)).toBeDisabled();
-    await expect(storeLine(page)).toHaveText(KEEP_REASONS["knobs-moved"]);
+    // The store SAW the move: the pair on screen is no longer the pair the
+    // module holds, so the already-kept row no longer matches and Store on
+    // ZONA is live again (2026-09-16; the knobs-moved row it used to name is
+    // retired). This is also the positive edge the second click is waited on
+    // against - the stored caption is already in the bar from click one, so
+    // a bare re-read of the caption would pass before the second write had
+    // happened at all (Phase 11 deferred item D-11-08.1-a).
+    await expect(keepControl(page)).toBeEnabled();
+    await expect(storeLine(page)).toBeHidden();
 
-    // CLICK TWO, with the knob turned.
-    await primary(page).click();
-    await expect(keepControl(page), "the second apply landed").toBeEnabled({
-      timeout: 10_000,
-    });
-    await expect(statusDevice(page)).toHaveText(settledCaption(ACTIVE_PAGE));
+    // CLICK TWO, with the knob turned: the store leg's proof is the edge.
+    await keepOnPage(page, zona);
+    await expect(keepControl(page)).toBeDisabled();
+    await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
     const tuned = zona.state.configs[EVENT_SETUP];
 
     // THE VERDICT, in bytes.
@@ -2299,16 +2352,17 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       `LUMEN on the wire: depth ${fromIndex} -> ${atDefault.length} characters carrying "${literalAt(fromIndex)}", depth ${toIndex} -> ${tuned.length} characters carrying "${literalAt(toIndex)}", differing`,
     );
 
-    // The wire, read only after the second settled state. Two clicks, FIVE
-    // events each since 13-17 (four since 12.1-07, three since 12-03 - which
-    // is the move 12-01 predicted here in this comment, by name). What
-    // changed is the composition of a click, not the number of clicks.
-    expect(zona.seen("CONFIG", "EXECUTE")).toBe(10);
-    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    // The wire, read only after the second stored state. Two clicks, TEN
+    // CONFIG/EXECUTE each since 2026-09-16 - the five defaults and the pair's
+    // five (five since 13-17, four since 12.1-07, three since 12-03) - and one
+    // store each. What changed is the composition of a click, not the number
+    // of clicks.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(20);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
     expect(consoleErrors).toEqual([]);
   });
 
-  test("the destination menu lists the pages the module reports and sends nothing on open; a change sends the heartbeat then exactly one switch with no review; Apply waits for the module's own report, and the store re-snapshots the new page", async ({
+  test("the destination menu lists the pages the module reports and sends nothing on open; a change sends the heartbeat then exactly one switch with no review; Store waits for the module's own report, and the store re-snapshots the new page", async ({
     page,
   }) => {
     // Plan 13-12 (13-CONTEXT D-06, every clause but the bench), re-written
@@ -2324,7 +2378,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // (grid_decode.c:302-357). Heartbeats here are PUSHED by the test, so
     // "the module has not reported yet" is a state this test can hold for
     // as long as it likes. The put-back clause left at 13.1-07 (D-07): what
-    // is proved of the new page now is the store's re-snapshot of it - Apply
+    // is proved of the new page now is the store's re-snapshot of it - Store
     // described by the ready sentence naming Page 4 - since no control
     // names the snapshot's page any more.
     const PAGE_SWITCH = ["PAGE", "ACTIVE"].join("");
@@ -2334,7 +2388,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await connectOnPage(page, zona);
 
     const select = page.getByTestId("destination-page");
-    const apply = page.getByTestId("apply-to-zona");
+    const store = page.getByTestId("store-on-zona");
     const destination = page.getByTestId("destination");
     // The review's testid, assembled: it must have count 0 throughout.
     const review = page.getByTestId(["destination", "-review"].join(""));
@@ -2357,7 +2411,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       pageName(3),
     ]);
     await expect(select).toHaveValue(String(ACTIVE_PAGE));
-    await expect(apply).toBeEnabled();
+    await expect(store).toBeEnabled();
     await select.focus();
     await select.click();
     expect(seenBefore()).toEqual({ switches: 0, heartbeats: 0, writes: 0 });
@@ -2399,21 +2453,20 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // The fake accepted it: its page moved, and the next heartbeat will say so.
     expect(zona.state.activePage).toBe(TO);
 
-    // THE ACK GATE: Apply stays disabled until the module's OWN report. The
+    // THE ACK GATE: Store stays disabled until the module's OWN report. The
     // module has not heartbeated since the switch, so the target is still
     // switching and every write control is shut - the select too, which is
     // what ends a run of arrow presses on a focused, closed select (each a
     // change in Chromium, each a switch) at the first one that leaves.
-    await expect(apply).toBeDisabled();
-    await expect(keepControl(page)).toBeDisabled();
+    await expect(store).toBeDisabled();
     await expect(select).toBeDisabled();
     await expect(clearControl(page)).toBeDisabled();
     await expect(review).toHaveCount(0);
 
     // The report: one heartbeat from the module, carrying page 3. The target
-    // settles, the select shows the new page as the module's, Apply is live
+    // settles, the select shows the new page as the module's, Store is live
     // again - and the store re-snapshots the NEW page (Pitfall 4's third
-    // layer), so Apply's description now NAMES Page 4 (wire 3, read as the
+    // layer), so Store's description now NAMES Page 4 (wire 3, read as the
     // visitor reads it) before any click.
     const beats = await beatUntilShows(page, zona, 0, {
       selector: '[data-testid="destination"]',
@@ -2428,11 +2481,11 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       pageName(ACTIVE_PAGE),
       `${pageName(TO)} · on ZONA`,
     ]);
-    await expect(apply).toBeEnabled();
-    await expect(honesty(page)).toHaveText(honestyReady(TO), {
+    await expect(store).toBeEnabled();
+    await expect(honesty(page)).toHaveText(keepLineEnabled(TO), {
       timeout: 10_000,
     });
-    expect(honestyReady(TO)).toContain(pageName(TO));
+    expect(keepLineEnabled(TO)).toContain(pageName(TO));
     expect(await page.getByTestId("put-back").count()).toBe(0);
 
     // The wire, whole: one switch, one heartbeat before it, no config write,
@@ -2498,7 +2551,6 @@ test.describe("the install controls on the engine that can never install", () =>
     expect(CLEAR_REASONS.incapable).toBe(KEEP_REASONS.incapable);
     expect(HONESTY_INCAPABLE).toContain("can’t write to a ZONA");
     expect(await page.getByTestId("destination").count()).toBe(0);
-    expect(await page.getByTestId("apply-to-zona").count()).toBe(0);
     expect(await page.getByTestId("store-on-zona").count()).toBe(0);
     await expect(page.locator('[data-zone="destination"]')).toContainText(
       "Preview",

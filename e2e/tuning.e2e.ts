@@ -14,7 +14,7 @@
 // data-setup, data-timer and data-busy, machine-readable and never painted,
 // so settled() and recomputed() below keep exactly the meaning the meters'
 // aria-busy and numerals gave them. TUNE-05 is read where it renders: the
-// zone's disabled Apply and its refusal line, and BudgetMessage's block. No title here carries the tag
+// zone's disabled Store (Apply until 2026-09-16) and its refusal line, and BudgetMessage's block. No title here carries the tag
 // playwright.config.ts greps the webkit-phone project by, so that project
 // still lists zero tests - wave 12 owns the phone journey in its own file.
 // The tag is deliberately not written out anywhere in this file: the gate
@@ -965,7 +965,7 @@ test.describe("a browser with no clipboard API", () => {
 // injects a cost, and the region has no test-only prop: what sets the refusal
 // is a budget the compiler really refused. Since 13.1-07 (D-10) nothing paints
 // the numbers; they are read off the region's data attributes, and TUNE-05 is
-// read where it renders - the zone's disabled Apply with its refusal line
+// read where it renders - the zone's disabled Store with its refusal line
 // (the probe mounts DestinationZone with the refusal alone, 13.1-06) and
 // BudgetMessage's block with its one-click back-off.
 //
@@ -1058,7 +1058,7 @@ async function remeasured(page: Page, was: number): Promise<void> {
 }
 
 test.describe("a configuration the compiler refuses", () => {
-  test("an over-budget configuration shows the refusal line and disables Apply", async ({
+  test("an over-budget configuration shows the refusal line and disables Store", async ({
     page,
   }) => {
     const consoleErrors = collectErrors(page);
@@ -1090,26 +1090,26 @@ test.describe("a configuration the compiler refuses", () => {
     expect(await page.getByText("TUNING", { exact: true }).count()).toBe(0);
 
     // TUNE-05: a real disabled button, never aria-disabled alone, never hidden,
-    // and the reason beside it - the zone's Apply to ZONA (13.1-06 mounts the
+    // and the reason beside it - the zone's Store on ZONA (13.1-06 mounts the
     // zone on the probe with the refusal alone) described by its refusal
     // line, which is the one place the cause is painted.
-    const apply = page.getByTestId("apply-to-zona");
-    await expect(apply).toBeVisible();
-    await expect(apply).toBeDisabled();
+    const store = page.getByTestId("store-on-zona");
+    await expect(store).toBeVisible();
+    await expect(store).toBeDisabled();
     const reason = tryOnBudgetReason("Setup");
     await expect(
       page.getByTestId("probe-budget-reason"),
       "the region reported the reason upward, which is what disables the control",
     ).toHaveText(reason);
-    const refusal = page.getByTestId("apply-refusal");
+    const refusal = page.getByTestId("store-refusal");
     await expect(
       refusal,
       "and the sentence is rendered beside the control, not only held in a prop",
     ).toBeVisible();
     await expect(refusal).toHaveText(reason);
     await expect(
-      apply,
-      "the refusal is Apply's description as well as its neighbour",
+      store,
+      "the refusal is Store's description as well as its neighbour",
     ).toHaveAttribute("aria-describedby", /-refusal$/);
 
     // TUNE-04's block. Nothing has been turned yet, so this is the ARRIVED
@@ -1162,9 +1162,9 @@ test.describe("a configuration the compiler refuses", () => {
     const inside = await measured(page, "setup");
     expect(inside, "one key press brings it back inside 908").toBeLessThan(908);
     await expect(page.getByTestId("budget-message")).toHaveText("");
-    // The probe has no session, so Apply stays disabled on that; what the
+    // The probe has no session, so Store stays disabled on that; what the
     // budget controls is the REFUSAL, which is gone inside 908.
-    await expect(page.getByTestId("apply-refusal")).toHaveCount(0);
+    await expect(page.getByTestId("store-refusal")).toHaveCount(0);
     await expect(page.getByTestId("probe-budget-reason")).toHaveText(
       "in budget",
     );
@@ -1187,10 +1187,10 @@ test.describe("a configuration the compiler refuses", () => {
     ).toHaveText(backOffKnob(SCROLL_LABEL, "Setup", inside));
 
     await expect(
-      page.getByTestId("apply-refusal"),
+      page.getByTestId("store-refusal"),
       "over budget the zone's refusal line names the cause",
     ).toHaveText(tryOnBudgetReason("Setup"));
-    await expect(page.getByTestId("apply-to-zona")).toBeDisabled();
+    await expect(page.getByTestId("store-on-zona")).toBeDisabled();
 
     await backOff.click();
     await remeasured(page, over);
@@ -1204,7 +1204,7 @@ test.describe("a configuration the compiler refuses", () => {
       "the block goes away rather than lingering as a warning about a state that has passed",
     ).toHaveText("");
     await expect(
-      page.getByTestId("apply-refusal"),
+      page.getByTestId("store-refusal"),
       "and the refusal with it",
     ).toHaveCount(0);
     await expect(page.getByTestId("probe-budget-reason")).toHaveText(
