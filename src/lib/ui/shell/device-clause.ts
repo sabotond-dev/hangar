@@ -4,12 +4,11 @@
  * `● {draft} · {device}`; the device half is the install store's phase as ONE
  * clause, every clause install-copy.ts's own caption, busy label or failure
  * title, so the bar and the install block cannot word a state differently.
- * Fourteen phases against the spec's twelve rows (fifteen until 2026-09-16,
- * when the store's `unconfirmed` left by the user's word): the session's
- * three rows are the header's control, "Draft differs" is the draft clause,
- * "Transfer uncertain" is THREE clauses (device-ui.spec.ts asserts them
- * pairwise distinct), and four phases the spec has no row for - restored,
- * restored-unconfirmed, cleared, snapshot-failed - are the safety rail.
+ * Fourteen phases (fifteen until 2026-09-16) against the spec's twelve rows:
+ * the session's three rows are the header's control, "Draft differs" is the
+ * draft clause, "Transfer uncertain" is THREE clauses (device-ui.spec.ts
+ * asserts them pairwise distinct), and four phases the spec has no row for -
+ * restored, restored-unconfirmed, cleared, snapshot-failed - are the safety rail.
  * Decided at 13-11; see .planning/phases/13-gui-overhaul/13-11-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
