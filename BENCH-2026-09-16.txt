@@ -168,3 +168,117 @@ Reading: the inline confirmation under Store on ZONA (KeepConfirm, Phase 7's SAF
 confirmation on the site") goes. One click on Store on ZONA runs the whole write: the defaults, the
 configuration, the store, the proof. Clear is already one click (13.1 D-04). No control on the site
 asks first; "nothing is written without a click" remains the rule.
+
+### Done, 2026-09-16
+
+Four commits, no push, no device, no deploy: `8e211d0` feat(install) - the store, the copy, the
+zone, `KeepConfirm.svelte` deleted (`git rm`), the workspace route's Escape handler, the probe's
+one Keep, the clause's comment and the four node specs; `459deed` test(e2e) - the two e2e files;
+`ad3f72e` fix(install) - the focus rule re-aimed at the one click (below); then this paragraph with
+`docs/TESTING.md`'s "2026-09-16 change 2", the runbook's dated label-map line, and the gate records
+`gate/change-2.*` / `gate/change-2-after.*`.
+
+**The interpretation taken.** `keepOnDevice(config, name)` runs from the click and carries the
+refusal `openConfirm()` used to make: `if (!this.armed) return; if (this.keepReason(this.#capable())
+!== undefined) return;` - so a click while disarmed or while the record names a reason writes
+nothing and moves no phase, and from `snapshot-failed` the click still re-reads first. `confirmOpen`,
+`openConfirm()`, `dismissConfirm()` are gone with the three branches that closed the confirmation
+(the detach, `observeConfig`, `requestPage` - which returns the target's answer straight). The probe
+does not use them: its `Keep on device` calls `keepOnDevice(pair(), NAME)` and `Keep, yes` / `Not
+now` / the `confirm open` readout left. The write itself is unchanged: the same three legs under
+one action `keep`, **18 frames per Store on the fake** (5 `CONFIG/EXECUTE` · 1 `HEARTBEAT/EXECUTE` ·
+5 `CONFIG/EXECUTE` · 1 `HEARTBEAT/EXECUTE` · 1 `PAGESTORE/EXECUTE` · 5 `CONFIG/FETCH`), 10
+`CONFIG/EXECUTE` and 1 `PAGESTORE/EXECUTE` per click on the shim; `WRITE_CLICKS` is still three
+(the affirmative was never in the list - verified). "Nothing is written without a click" holds.
+
+**The zone as shipped:** `Target` · `Store on ZONA` - a plain `<button type="button">`, bordered
+as before, `onclick` -> `install.keepOnDevice(config, name)`, disabled on `!armed`, a reason, the
+refusal, measuring or `writing`; nothing renders in its place in any phase (`device-ui.spec.ts`
+renders every phase and finds Store itself, no `role="group"`, no dialog). **The line under Store:**
+`store-honesty`, Store's sr-only description, is `keepLineEnabled(page)` while connected -
+`Returns Page 2 to its firmware default, then writes this and stores it, so it stays after
+power-off.` - which already carried the one-click fact from change 1, so no new sentence was written
+and `confirmReplaces`'s sentence was not reused (it named the touch element, which SAFE-05 alone
+required); `store-on-zona-line` is the record's three reasons, `store-refusal` the over-budget line.
+**The focus rule moved rather than left:** the brief read 13.1-07's rule as moot and its trigger (a
+confirmation leaving) is, but the first shim run of the rewritten e2e title logged `focus after the
+click sits on BODY` - Store disables in the click's flush and Chromium drops a disabled button's
+focus on the body, the keyboard regression 13.1-07 fixed under Rule 2. So `store()` reads whether
+Store held focus, calls the write, and focuses the zone (`tabindex="-1"` back on the root) when the
+store published `writing` in that flush; synchronous, because an `$effect` over `writing` ran after
+the browser had moved focus (measured red on the shim). From `snapshot-failed` the click awaits the
+re-read first and that path's focus is not held - named, not fixed.
+
+**Retired by name** (`install-copy.ts`'s ledger, "THE STORE CONFIRMATION'S STRINGS ARE RETIRED BY
+NAME, 2026-09-16"): `NOT_NOW_LABEL` (`Not now`), `confirmCaption` (`Store this on ZONA · Page N?`),
+`confirmReplaces` (`This returns Page 2 to its firmware default, then writes this configuration —
+its touch element’s Setup and Timer and the page’s own init, timer and utility scripts — and stores
+it, so it stays after power-off.`), `CONFIRM_WAY_BACK` (`Clear still returns the page to its
+firmware default.`), `confirmRig` (`Your EN16 and BU16 are on the same cable. Their current pages
+are stored too, because the store reaches every module at once.` and its singular) with its
+formatter `moduleList`. Kept by name: `KEEP_LABEL` (Store's own). No string written. SAFE-05 ("the
+only confirmation on the site") and SAFE-06 (the confirmation naming the other modules) are retired
+by the user's word; the next gate amends them, with change 1's SAFE-02 and PROJECT.md line.
+
+**Retitled and deleted tests** (`docs/TESTING.md` "2026-09-16 change 2" for the full old -> new
+list): two in `install.spec.ts` (the rig title; the flash-only-what-you-have-heard title), one in
+`install-copy.spec.ts` (the formatters), one in `device-ui.spec.ts` (the zone), one in
+`e2e/install.e2e.ts` (test 8, rewritten under a new title: the confirmation's absence, Enter as the
+write, the zone holding focus, and a rig's one-click store), one in `e2e/sandbox.e2e.ts`. **No test
+deleted:** `device-ui.spec.ts` has no standalone KeepConfirm test - the brief's "test 8" is the zone
+test (the file's eighth `it`), which held the no-trap assertions and is retitled with their
+absence asserted; the count term is `+0 / +0` for vitest (94 / 966) and `+0 / +0` for e2e (86
+titles / 101 runs); check is 655 -> 654, `-1` for the deleted component.
+
+**The census diff, by string** (`hash-strings.mjs --diff`, `gate/change-2-after.txt`): out - `Store
+this on ZONA · ${}?`, `This returns ${} to its firmware default, then writes this configuration — …
+— and stores it, so it stays after power-off.`, `${} still returns the page to its firmware
+default.`, `Your ${} is on the same cable. Its current page is stored too, …`, `Your ${} are on the
+same cable. Their current pages are stored too, …`, `${} and ${}` (moduleList's join), `Not now`
+(2 -> 0), `Keep, yes`, `confirm open`, the ids `${}-caption` / `${}-replaces` / `${}-way-back` /
+`${}-rig`, the classes `confirm`, `quiet-control`, `secondary pill`, `body quiet` 4 -> 2, the
+testids `keep-confirm` (2 -> 0), `keep-confirm-yes`, `keep-confirm-no`, `store-confirm`,
+`install-confirm`, `install-keep-yes`, `install-keep-no`; counts moved - `button` 97 -> 93,
+`Escape` 10 -> 8, `keydown` 4 -> 2, `group` 7 -> 6, `module` 2 -> 1, `body` 14 -> 13, `caption`
+6 -> 5, `actions` 6 -> 5, `, ` 7 -> 6, `${} ${} ${}` 4 -> 3; in - nothing. 2713 -> 2690 distinct
+literals, 192 -> 191 files; the testid set 319 -> 312 (the seven named); the copy exports: six
+left, none joined.
+
+**The gate's terms** (`--before change-2` at `93ddc6b`, `--after change-2 --against change-2
+--check 654` at `ad3f72e`): equal - the wire set `a24b256f…`, full `514cb2c7…`, the sandbox set
+`40b44316…`, the fixtures' four hash-objects, the OG (26 files, 154136 B, `2a9ccf80…`), the
+utilities (44 -> 44, the five markup-named intact), lint, quick 94 / 966, the build, the
+refuse-list `--stat` empty; moved - check 655 -> 654, the census, the copy exports, the testids, the
+titles (967 vitest and 101 playwright either side), the normalised JS, the SCOPED CSS `e8841c5f…` ->
+`661eab32…` (a `.svelte` file leaving must move it: `KeepConfirm.svelte`'s stylesheet is gone, and
+`DestinationZone.svelte` compiled with `svelte/compiler` at `93ddc6b` and at HEAD under one filename
+differs by exactly `.confirm.svelte-6l3wua { min-inline-size: 0; }` leaving, the scope hash and
+every other selector unchanged), the name-status of `src/` 10 modified / 0 added / 1 deleted
+(`KeepConfirm.svelte`) / 0 renamed. The script exits 1 at the census by design; the later terms were
+compared from the two records by hand. The first `--after` run read the quick suite against the
+build the tree had before the change (the script runs the suite before it builds; `radius.spec.ts`
+layer B refuses a stale build by design) and was rerun on the fresh build.
+
+**Chunks** (`scripts/gate/e2e-chunks.sh`, fresh detached servers, stopped through PowerShell, HTTP
+000 after each): c1 32 (first run at `ad3f72e`; `install.e2e.ts` alone ran twice before that
+commit - red once on the `$effect` form of the focus rule, green on the handler form), c2 22 on the
+third run at `--workers 1` (run one red on `browse:343`; run two on `browse:299` / `:343` / `:1186`
+/ `:1404` - the known hydration races and one more of their shape at `:1186`; the browse files are
+untouched by this change), c3 21, c4 15, c5 11. Counts: quick 94 / 966 (+0 / +0), check 654 (-1),
+e2e 86 titles / 101 runs (+0 / +0).
+
+**Questions for the user.** (a) On a rig, the fact that a store reaches every module on the cable
+(SAFE-06's sentence) is said nowhere now - should it join Store's sr-only description when the
+identity lists other modules, or stay retired? Retired here. (b) The focus rule: the zone takes
+focus after a keyboard commit (as before, when the confirmation left) - keep, or let the browser
+drop it? Kept. (c) `Store on ZONA`'s description is sr-only; with the confirmation gone no visible
+sentence says what the click does before it is clicked - is a visible line under Store wanted?
+None added. (d) Change 1's questions (a) to (g) still stand.
+
+**Not supported by the tree / departures from the brief:** `device-ui.spec.ts` has no standalone
+KeepConfirm test to delete (above), so the vitest delta is `+0`, not `-1`; the focus rule was
+re-aimed rather than removed (above, measured); `confirmRig` and `moduleList` were retired beyond
+the brief's `CONFIRM_*` and two labels because they were the confirmation's alone (SAFE-06 named);
+the workspace route's window Escape handler left whole because nothing remained for it to do. Next
+gate: amend SAFE-05 and SAFE-06 (this change), SAFE-02 and PROJECT.md's line (change 1); CAT-04
+stays `[ ]`.
