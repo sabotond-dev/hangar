@@ -12,10 +12,11 @@
 // a transient, and it is why every one of 07-UI-SPEC's fourteen states is
 // visited there before a panel exists to hide a transition in. Between them
 // the six tests own: idle, snapshotting, ready, writing, settled, restored,
-// kept, partial, lost, snapshot-failed, kept-mismatch, unconfirmed,
-// restored-unconfirmed and nothing-landed. Tests are isolated, so no
-// file-level union is asserted; each test asserts the states it owns and
-// 07-08-SUMMARY.md tabulates the fourteen against the six.
+// kept, partial, lost, snapshot-failed, kept-mismatch, restored-unconfirmed
+// and nothing-landed (unconfirmed left the union on 2026-09-16, change 3:
+// the store's acknowledgement decides nothing, the read-back does). Tests are
+// isolated, so no file-level union is asserted; each test asserts the states
+// it owns and 07-08-SUMMARY.md tabulates the fourteen against the six.
 //
 // THE NEXT FOUR (plan 07-12) run on /playground/aurora/ against the production build,
 // with the same shim and the same Node responder, and prove the things a
@@ -201,7 +202,6 @@ import {
   liveSnapshotSaved,
   lostBlock,
   pageName,
-  unconfirmedBlock,
 } from "../src/lib/device/install-copy";
 // 13.1-06 (13.1-CONTEXT D-07): the eleven names this file imported from
 // install-copy.ts and page-target.ts for the install column and Put back
@@ -246,9 +246,6 @@ declare global {
 }
 
 const PROBE = "/dev/install/";
-
-/** The name the probe hands TRY ON DEVICE; the settled and kept sentences carry it. */
-const NAME = "Probe";
 
 /** What the module holds when the visitor connects: the strings the snapshot must copy. */
 const MODULE_SETUP = "--[[@cb]]print(1)";
@@ -305,9 +302,6 @@ function moduleState(nth: number, over: Partial<ZonaState> = {}): ZonaState {
 /** The titles the store speaks, from the module that owns them, never a literal. */
 const LOST_SPOKEN = announceTitle(
   lostBlock(false, KEEP_LABEL, ACTIVE_PAGE).title,
-);
-const UNCONFIRMED_SPOKEN = announceTitle(
-  unconfirmedBlock(NAME, ACTIVE_PAGE).title,
 );
 
 /**
@@ -1021,10 +1015,19 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     expect(consoleErrors).toEqual([]);
   });
 
-  test("a store that never confirms, on both the keep and the put-back legs, is said out loud", async ({
+  test("a store whose acknowledgement never comes is proved by the read-back: kept on the keep leg, restored on the put-back leg", async ({
     context,
     page,
   }) => {
+    // 2026-09-16, change 3 (BENCH-2026-09-16.txt section 3, the user's word:
+    // a store the bench saw survive power-off was reported as unconfirmed).
+    // The acknowledgement decides nothing: the request runs to its bound -
+    // three attempts at pagestoreMs with two backoffs, about 9.4 s - and
+    // then the leg waits for the heartbeat and reads the page back, as it
+    // always did after an acknowledgement. The scripted module stored on the
+    // first attempt (the fault drops the ACK, never the store), so the
+    // read-back matches and the phase is `kept`; the timeout is one line of
+    // the capture. This is the walk the fifteenth phase used to own.
     test.slow();
     const startedAt = Date.now();
     const consoleErrors = collectErrors(page);
@@ -1038,16 +1041,18 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     });
     await connectAndSnapshot(page, zona);
     await tryOn(page, "settled");
+    // The beat loop paces heartbeats through the whole bound: a beat before
+    // the store waits is absorbed by the fold, and the first one after the
+    // timeout is the one the proof takes. About 9.4 s of beats at 4 Hz.
     await click(page, "install-keep");
-    // Three pagestoreMs timeouts with backoff between: about 9.4 s.
-    await expect(phase(page)).toHaveText("unconfirmed", { timeout: 20_000 });
-    await expect(trace(page)).toHaveText(/> settled > writing > unconfirmed$/);
-    await expect(cause(page)).toHaveText("timeout");
-    // KEEP ON DEVICE is live again: memory still holds what was heard (I11).
-    await expect(keepReason(page)).toHaveText("live");
+    const beats = await beatUntil(page, zona, 0, "install-phase", "kept", 120);
+    console.log(`late acknowledgement: kept after ${beats} heartbeat(s)`);
+    await expect(trace(page)).toHaveText(/> settled > writing > kept$/);
+    await expect(cause(page)).toHaveText("none");
+    await expect(keepReason(page)).toHaveText("already-kept");
     await expect(readout(page, "install-armed")).toHaveText("true");
     await expect(readout(page, "install-slow")).toHaveText("false");
-    await expect(speech(page)).toHaveText(UNCONFIRMED_SPOKEN);
+    await expect(speech(page)).toHaveText(liveKept(ACTIVE_PAGE));
     expect(await stepLines(page)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
@@ -1062,16 +1067,28 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       "write-setup ok 1",
       "restore-page-change sent 1",
       "store timeout 3",
+      "refetch-system-timer ok 1",
+      "refetch-system ok 1",
+      "refetch-system-utility ok 1",
+      "refetch-timer ok 1",
+      "refetch-setup ok 1",
     ]);
-    // A STORE leg is one write per attempt, so the PAGESTORE count does not
-    // move. The CONFIG count is the TRY's five and the Store's two legs.
+    // A STORE leg is one write per attempt, so the PAGESTORE count is the
+    // three attempts. The CONFIG count is the TRY's five, the Store's two
+    // legs and the one matching round of five fetches.
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(3);
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(15);
+    expect(zona.seen("CONFIG", "FETCH")).toBe(10);
+    // What the fake's flash holds is what HANGAR read back.
+    const pair = await probePair(page);
+    expect(zona.state.flash?.[EVENT_SETUP]).toBe(pair.setup);
+    expect(zona.state.flash?.[EVENT_TIMER]).toBe(pair.timer);
     const firstLegMs = Date.now() - startedAt;
 
-    // A keep that landed, then a put-back whose own store never confirms:
+    // A keep that landed, then a put-back whose own store never acknowledges:
     // the counter is cumulative, the keep took acknowledgement 1, so the
-    // put-back's three attempts lose 2, 3 and 4.
+    // put-back's three attempts lose 2, 3 and 4. The read-back is the
+    // snapshot's five, so the put-back lands `restored` all the same.
     const second = await context.newPage();
     const secondErrors = collectErrors(second);
     const kept = await openProbe(second, moduleState(11));
@@ -1087,19 +1104,26 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       ],
     });
     await click(second, "install-put-back-click");
-    await expect(phase(second)).toHaveText("restored-unconfirmed", {
-      timeout: 20_000,
-    });
-    await expect(trace(second)).toHaveText(
-      /> kept > writing > restored-unconfirmed$/,
+    const putBackBeats = await beatUntil(
+      second,
+      kept,
+      0,
+      "install-phase",
+      "restored",
+      120,
     );
+    console.log(
+      `put-back, late acknowledgement: restored after ${putBackBeats} heartbeat(s)`,
+    );
+    await expect(trace(second)).toHaveText(/> kept > writing > restored$/);
     await expect(readout(second, "install-action")).toHaveText("put-back");
     await expect(readout(second, "install-leg")).toHaveText("store");
-    await expect(cause(second)).toHaveText("timeout");
+    await expect(cause(second)).toHaveText("none");
     await expect(keepReason(second)).toHaveText("live");
     await expect(putBack(second)).toHaveText("enabled");
-    // Both legs of one put-back in one record: the RAM leg's SIX steps, then
-    // the store that never confirmed.
+    await expect(speech(second)).toHaveText(liveRestored(ACTIVE_PAGE));
+    // Both legs of one put-back in one record: the RAM leg's SIX steps, the
+    // store that ran to its bound, the one matching round.
     expect(await stepLines(second)).toEqual([
       "write-system-timer ok 1",
       "write-system ok 1",
@@ -1108,15 +1132,22 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
       "write-setup ok 1",
       "restore-page-change sent 1",
       "store timeout 3",
+      "refetch-system-timer ok 1",
+      "refetch-system ok 1",
+      "refetch-system-utility ok 1",
+      "refetch-timer ok 1",
+      "refetch-setup ok 1",
     ]);
-    // 1 + 3 store attempts, unmoved: a store leg is one write per attempt.
+    // 1 + 3 store attempts: a store leg is one write per attempt.
     expect(kept.seen("PAGESTORE", "EXECUTE")).toBe(1 + 3);
     // The TRY, the Store's two legs, the put-back: four RAM legs of five.
     expect(kept.seen("CONFIG", "EXECUTE")).toBe(20);
-    // RAM is the original again; what the fake's flash holds is exactly what
-    // HANGAR cannot know, and is not asserted.
+    // RAM is the original again, and so is the fake's flash - the put-back's
+    // store ran before its acknowledgement was dropped, and the read-back is
+    // how HANGAR knows.
     expect(kept.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
     expect(kept.state.configs[EVENT_TIMER]).toBe(MODULE_TIMER);
+    expect(kept.state.flash?.[EVENT_SETUP]).toBe(MODULE_SETUP);
 
     const wallMs = Date.now() - startedAt;
     console.log(
