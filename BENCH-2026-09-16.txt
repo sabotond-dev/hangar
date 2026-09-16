@@ -282,3 +282,20 @@ the brief's `CONFIRM_*` and two labels because they were the confirmation's alon
 the workspace route's window Escape handler left whole because nothing remained for it to do. Next
 gate: amend SAFE-05 and SAFE-06 (this change), SAFE-02 and PROJECT.md's line (change 1); CAT-04
 stays `[ ]`.
+
+## 3. The "Your ZONA didn't confirm the store" block goes
+
+Screenshot (attached): after a Store on ZONA that worked on the bench, the bar showed the
+`unconfirmed` block - "Your ZONA didn't confirm the store / Arc is still running on Page 4 in
+memory. No confirmation of the store came back, so HANGAR can't say whether it survives power-off.
+/ 1. Click Store on ZONA to send the store again / 2. Or click Clear to return Page 4 to its
+firmware default".
+
+> remove this, this is not a t rue bug report, it works fine
+
+Reading: the store's acknowledgement gate reports a failure the hardware does not have - the page
+stored and survives power-off. The `unconfirmed` outcome for a store leaves the interface: a Store
+whose writes were acknowledged lands `kept` when the read-back matches or when the store's
+acknowledgement is simply late or absent; only a read-back that returns DIFFERENT bytes still says
+so (kept-mismatch). SAFE-07's "acknowledged before done" is retired for the store leg by the user's
+word; the next gate amends it.
