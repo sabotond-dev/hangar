@@ -911,6 +911,98 @@ about 32, a quarter of 127); the blend reshapes around it so a corner still reac
 finger and the others fall toward 0, with the centre landing on the chosen value. Range and steps
 are the executor's to measure inside 908 (MORPH's Setup is at 814).
 
+### Done, 2026-09-18
+
+One source commit, no push, no device, no deploy: `54acb09` feat(catalog) - the entry, the VM
+proof, the two specs that moved with it, audition row 32, the entry's history; then this paragraph
+with `docs/TESTING.md`'s "2026-09-18 change 9" and the gate records `gate/change-9.*` (before, on
+an isolated worktree at `8d4364e`) and `gate/change-9-after.*`.
+
+**The reading built.** A sixth knob, **Centre**, a five-dot rail with a readout under Behavior:
+`0, 16, 32, 64, 96`, **default the 32 - today's behaviour**. THE FOUR WEIGHTS ARE UNTOUCHED and
+still sum to the full range (`w = {u*v//127, x*v//127, u*y//127, x*y//127}`); the knob is a map
+applied to each weight on its way OUT, which is the only reading a settable centre admits - a blend
+that put an arbitrary value in the middle could not sum to 127 at all, because dead centre all four
+weights are the same number. The map is two linear segments with the breakpoint at 32, the weight a
+finger reads dead centre: `z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95`, one
+insertion between reading the weight and testing it, and nothing else in the Setup moved. So 0
+stays 0 (the opposite corner is still silent), 127 stays 127 (a corner is still full under the
+finger), 32 lands on the knob's value, and the map is monotone at every position. The corner blocks
+are painted at the value SENT, not the raw weight - the picture is what the DAW hears, 11-08's own
+rule. Everything else survives by construction, because nothing reads a weight after that line: the
+one-message corner tap, the per-corner send-on-change, the dead margin, the comet, the
+single-contact rule.
+
+**AT THE DEFAULT THE MAP IS THE EXACT INTEGER IDENTITY** (`z*32//32` and `32+(z-32)*95//95` are
+both `z` at every one of the 128 weights, asserted rather than sampled), so an untouched MORPH is
+byte-identical in behaviour: the pinned 120-message centre-to-corner stroke captured at plan 12-09
+is UNMOVED, and so are `frames.json`, the golden frames and the OG image. The Setup STRING is 46
+characters longer, which is the one thing that could not be avoided - `renderLua` substitutes a
+value, not an expression - so the brief's "at the default the two MORPH records must be
+byte-identical" holds for the Timer (both `""`) and for the behaviour, but not for the Setup
+record. What replaces it is the per-string wire diff: **36 records moved, 1 removed, 11 added, and
+not one of them outside `E/morph/`**.
+
+**The cost, and no second slot.** Setup **814 -> 860** at the RGB444 picker corner (94 -> **48
+free**, 30 under the 890 error line), 810 -> **856** at the defaults, 853 at Centre 0. The Timer is
+still the empty string with 908 free, so the `self:tim()` pattern was not needed and the system
+slots - the last resort of section 7 - were not approached. The cheaper form was costed and
+rejected: `z=glim(z*@CENTRE//32,0,127)` is **+23** against **+46**, but it cannot express a centre
+below 32 at all (at 16 a corner reaches only 63, so "127 under the finger" fails at every position
+that makes the middle quieter) and above 32 it saturates early (at 96 the macro reads 127 from
+weight 43 onward). A branchless equivalent of the chosen map costs +51.
+
+**Measured dead centre, in the real Lua host** (the four raw weights there are 31, 31, 31, 32 -
+integer division's own split, the card's arithmetic since 11-08): silent at Centre 0,
+15/15/15/16 at 16, 31/31/31/32 at 32, 62/62/62/64 at 64, 93/93/93/96 at 96; a press on either
+extreme corner sends exactly one message, 127, at every position; a corner-block tap still sends
+exactly one, 77 / 83 / 90 / 102 / 114. **127 IS NOT OFFERED** and the rejection is arithmetic: its
+second segment is `127+(z-32)*0//95`, so every weight at or above 32 reads 127 - 33 distinct values
+over the whole travel against 128 at the default, each macro pinned full across the quadrant
+nearest its corner. **A CENTRE OF 0 IS KEPT**: the middle is silent and its four blocks are black,
+and nothing is stranded, because a corner the finger leaves still sends its single 0 on the way out.
+It is a question for you below.
+
+**Counts, carried + delta:** quick 95 / 980 + 1 todo -> **95 / 981 + 1 todo** (+0 / +1), green twice
+at `--maxWorkers=2` plus the gate's; check 658 -> **658** (+0), 0 / 0; lint clean; sweep `4 19`
+green (`lua-entries` 1,207 -> **1,212** combinations); e2e 88 titles / 103 runs -> **88 / 103**
+(+0 / +0), chunk c3 **21 passed** on a fresh detached server on 4173, stopped through PowerShell,
+HTTP 000 after (your 5173 untouched); audition rows 31 -> **32**; OG, `frames.json`, the golden
+frames and the preset baseline all byte-identical. Gate terms equal: the sandbox set, all four
+fixtures, the OG, the raw and scoped CSS, the utilities 44 -> 44 (0 appeared, 0 disappeared), the
+copy exports, the 317 testids, check, lint, the build, the refuse-list `--stat` empty, no rename,
+no deletion, no addition. Moved: the wire (above), the census `e12326a3…` -> `7ef5b807…` (2,721 ->
+2,724 literals; the diff is eight lines, all MORPH's), the titles 980 -> 981 (one added, none
+renamed), the JS. Chained onto change 6's record at `4ebb3d2`: the wire set `792c5de4…` ->
+`97a42874…`, full `94189b0c…` -> `5e357a90…`, 1,703 of 1,740 records byte-identical and **0 movers
+outside `/morph/`**.
+
+**Not supported by the tree / departures from the brief:** the default's Setup RECORD cannot be
+byte-identical (above; the behaviour is, and the pinned stroke proves it); the knob's top value is
+**96, not 127** (measured); the values are the brief's set with 127 replaced by its own suggested
+floor alternative, 16; `stamp.spec.ts` and `audition.spec.ts` were edited though the brief's file
+list did not name them (the first declares the older-link landing, without which the suite is red;
+the second carries the row count); the gate ran on an isolated worktree because a second executor's
+change 6 was in flight in the same working tree when this began, and only an isolated tree can show
+a MORPH-only wire diff. A finding out of scope, stated rather than fixed: `scripts/13.2-gate.sh`'s
+`QUICK_FILES=94` / `QUICK_TESTS=966` have been stale since change 5, so the gate's own quick term
+prints `quick exit 1` in every record since (`change-5b-after`, `change-6`, both `change-9`); it has
+never blocked anything and the suite is green.
+
+**Questions for the user.** (a) **THE 0 FLOOR, above all:** at Centre 0 the middle of the pad is
+silent and its four corner blocks black, each macro opening only as the finger moves into its half -
+four gated quadrant macros. Nothing is stuck. Say if the floor should be 16 instead, or if 0 should
+go. (b) 127 is not offered, for the reason above; say if you want it anyway as a deliberate
+"everything full" position. (c) The five positions are `0, 16, 32, 64, 96`; say if you would rather
+have an even ladder or a finer one - extra positions cost nothing on the wire. (d) Dead centre three
+corners land `C//32` under the knob's value and the fourth on it exactly (62/62/62/64 at 64), because
+the weights there are 31, 31, 31, 32; a breakpoint of 31 would put all four on the value exactly and
+would cost the byte-identical default. Say which you would rather have. (e) Every MORPH link shared
+before today lands **unreadable** and the card opens at its defaults - the stamp's payload-length
+rule for an added knob, the same price ARC paid at change 6. (f) The corner blocks are painted at
+the value SENT rather than the raw weight; say if you would rather the picture stayed the blend.
+(g) Changes 1 to 6's questions still stand.
+
 10. Sandbox feature set (queued for Fable, LAST - after ARC, Chorus, Orbit, Morph)
 --------------------------------------------------------------------------------
 

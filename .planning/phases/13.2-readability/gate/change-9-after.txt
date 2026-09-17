@@ -1,0 +1,128 @@
+# 13.2 gate --after change-9 --against change-9 --check 658
+HEAD 8d4364e (8d4364e2783d946dae8f171f1272f629bdfa9255); dirty (src e2e scripts docs) 3; free memory 6.79 GB; 2026-09-17T22:44:51Z
+before-record HEAD 8d4364e2783d946dae8f171f1272f629bdfa9255
+
+## the wire
+1711 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET b7d8a046753f545329b0434dc6501682d5f83387312198d471c48a2a536ab363
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL be9d843c7b3c998e285c9faf207d074c02ab420dc9946007297bc6a9ae4499d5
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+194 files; 2724 distinct literals (6387 occurrences); 7 copy modules; 317 data-testids
+literal census sha256 7ef5b807b82f01c74e724cc8c272da458359b98e15946e86ec6a2289d6813fd5
+copy exports   sha256 7ec85d4aa65ab112a811a9f6286bdc86dd832a79e9adb49626eb3a720cea9164
+data-testids   sha256 70dfe98a8a4783a27bbc73152e764757d928c240729dc849835c303f05c22abf
+- 1 -> 0	"--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end"
+- 8 -> 9	"16"
+- 1 -> 2	"32"
+- 1 -> 2	"64"
+- 28 -> 29	"amount"
+- 7 -> 8	"centre"
++ 0 -> 1	"--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95 if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end"
++ 0 -> 1	"96"
++ 0 -> 1	"@CENTRE"
++ 0 -> 1	"Centre"
+
+## the comment lines
+195 files; 46711 lines, 30048 code, 12872 comment, 3791 blank, 3982 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/morph.ts | 185 | 225 | 90 | 121 | 69 | 95 |
+| **totals (195 -> 195 files)** | 46671 | 46711 | 12841 | 12872 | 3956 | 3982 |
+
+1 file(s) moved
+
+## check and lint
+check: 1789685107334 COMPLETED 658 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 980 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: files: observed 95, expected 94; tests: observed 980, expected 966
+quick exit 1
+
+## the build
+build exit 0; stamp 8d4364e
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 5166ff6ce490e5ca3d15353e508ae2e475f22ef7 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 158642 B, sha256 f60a6363b4c5a0bb8909ac8402a9f9e16496d7ac078dff7244efe83000515dbb
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46
+SCOPED CSS sha256 7f88b4f4f10ef13a3af2bd30dd4b8f2d277569edd9b9a4687cedea5b5b76b7f2
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 d3ac54f32fc102edefc5ae0b0d9f3c22a0e42f892d2e6a6dd2bd4f71210a5f0d (72 files)
+
+## the titles
+TITLES sha256 1b4a7a79db0a2ac0d8ae4fda00537e32c99879f5d64746836cb273aa8d15f60c (981 vitest titles incl. todo, 103 playwright runs)
+
+## src/ against the before-record's HEAD 8d4364e2783d946dae8f171f1272f629bdfa9255
+git diff --name-status: 0 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-9
+wire moved: set 63e93f57e8d607afbd8de2d3f73f2ee9cf533145433d631ff50a8362520a7c26 -> b7d8a046753f545329b0434dc6501682d5f83387312198d471c48a2a536ab363; full c1a61f4cd8bab7d1f2e713d4feb585529dbf10b1c186086b6516a29ec83d6e49 -> be9d843c7b3c998e285c9faf207d074c02ab420dc9946007297bc6a9ae4499d5
+  ~ E/morph/defaults/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/corner/setup 178a6f9c6ee6488b -> 730b4c87bf7ca06a
+  ~ E/morph/knob trailColour=0/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob trailColour=1/setup 1184c06d43d239b4 -> f49dc729484d4a60
+  ~ E/morph/knob trailColour=2/setup 4ed472e2e1df2055 -> c434700fb501a4b8
+  ~ E/morph/knob trailColour=3/setup 756ec20fd53191f2 -> 5f51cc358cdd2073
+  ~ E/morph/knob trailColour=4/setup 04e04c748d5a7481 -> a60657cfbfcafa1f
+  ~ E/morph/knob hueSpread=0/setup da92500b48bcab7c -> b614dcbd64c76648
+  ~ E/morph/knob hueSpread=1/setup 6406c308a8d7962e -> 3987f171e6e728d0
+  ~ E/morph/knob hueSpread=2/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob hueSpread=3/setup 74a37364f66b3ebe -> e18b780ca9c5b68f
+  ~ E/morph/knob ccBase=0/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob ccBase=1/setup 859609adba91d4f3 -> f62a4ed718453980
+  ~ E/morph/knob ccBase=2/setup 03f2aa00eb7ab462 -> c456eb922a6d5e2d
+  ~ E/morph/knob ccBase=3/setup 214ce1f883177ffe -> 484a4c7530e47ea8
+  ~ E/morph/knob ccBase=4/setup 0a1bfd27acb6a8f6 -> 575263f5421a9ae7
+  ~ E/morph/knob trail=0/setup cea39b6e253fb73d -> 62dc7f2f45d35edd
+  ~ E/morph/knob trail=1/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob trail=2/setup c9a9df0cf85f189f -> 220f042470accb41
+  ~ E/morph/knob trail=3/setup 5e44bdeb466a9778 -> 30e61041e21d0ecb
+  ~ E/morph/knob channel=0/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob channel=1/setup 8943f7469467cdaa -> 2877697ec16b2739
+  ~ E/morph/knob channel=2/setup d61eeb46df666803 -> 8394961db93121bf
+  ~ E/morph/knob channel=3/setup 89b67f2f49a63f8f -> 3cc1f1c575cacc55
+  ~ E/morph/knob channel=4/setup 2e3305d129703776 -> 50cb623768cf936f
+  ~ E/morph/knob channel=5/setup 0119ddca5c18cd02 -> 1cf34bb0c5f28423
+  ~ E/morph/knob channel=6/setup 87bef863eab879de -> 48f2576aba363a79
+  ~ E/morph/knob channel=7/setup 22251274559877f6 -> 4eabb0e0be9dd975
+  ~ E/morph/knob channel=8/setup 5d49e64bae12d3d6 -> 65b324418d5f6ba7
+  ~ E/morph/knob channel=9/setup 2b682d43773b1ab8 -> 15855463689e8c4f
+  ~ E/morph/knob channel=10/setup 3373373cc6952f13 -> f7deba63016ed9a3
+  ~ E/morph/knob channel=11/setup ae1858807ff334c8 -> 4c60b5f20c0213a4
+  ~ E/morph/knob channel=12/setup 07f6ad14bd86ffbf -> d28b32e9f9ade56d
+  ~ E/morph/knob channel=13/setup 2c7a114b5558e29a -> 6cb5f4cc835c8d81
+  ~ E/morph/knob channel=14/setup 823b0fa0502fe611 -> 0d4695a979b92644
+  ~ E/morph/knob channel=15/setup 713222bcf900e3fa -> a353bef0279ee0bc
+  - E/morph/cross-product (6400 states)
+  + E/morph/knob centre=0/setup
+  + E/morph/knob centre=0/timer
+  + E/morph/knob centre=1/setup
+  + E/morph/knob centre=1/timer
+  + E/morph/knob centre=2/setup
+  + E/morph/knob centre=2/timer
+  + E/morph/knob centre=3/setup
+  + E/morph/knob centre=3/timer
+  + E/morph/knob centre=4/setup
+  + E/morph/knob centre=4/timer
+  + E/morph/cross-product (32000 states)
+FAIL: the wire
