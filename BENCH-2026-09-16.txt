@@ -809,3 +809,10 @@ measurement favours) so STEPS, RADAR POINTS and SONAR can take it later on the u
 Today the finger at dead centre gives each corner's CC a quarter of the range (about 32 of 127,
 the four weights summing to 127). A question put to the user on what "the value of the center"
 sets; answer recorded below.
+
+> a
+
+Recorded: a `Centre` knob - the CC value each corner sends when the finger is dead centre (today
+about 32, a quarter of 127); the blend reshapes around it so a corner still reaches 127 under the
+finger and the others fall toward 0, with the centre landing on the chosen value. Range and steps
+are the executor's to measure inside 908 (MORPH's Setup is at 814).
