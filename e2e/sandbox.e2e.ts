@@ -46,6 +46,8 @@ import {
   keptCaption,
 } from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER, EVENT_UTILITY } from "../src/lib/protocol";
+import { DRAFTS_KEY } from "../src/lib/store/schema";
+import { BRIGHTNESS_RANGE } from "../src/lib/tune/inspector-copy";
 import {
   HANGAR_FORMAT_LETTERS,
   HANGAR_FORMAT_LUA,
@@ -267,6 +269,87 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await page.getByTestId("library-open").click();
     await expect(page).toHaveURL(url);
     await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
+
+    expect(consoleErrors, "no console error on the whole walk").toEqual([]);
+  });
+
+  test("the surface's brightness is one field under Appearance with or without a selection: 128 lands in the draft and is recovered on a reload, 0 is refused with the range line and the last good value kept, Undo takes it back, and the reset drops the field", async ({
+    page,
+  }) => {
+    // CHANGE 5 (2026-09-17). sandbox-ui.spec.ts holds the editor's entry and
+    // the rendered shape; emit.spec.ts the scaled rows; this is the wiring
+    // in a browser: the field -> editor.setBrightness -> the draft in the
+    // visitor's store -> the same surface after a reload, and the two
+    // refusals the field makes on its own.
+    const consoleErrors = collectErrors(page);
+    await openFresh(page);
+    const field = page.getByTestId("brightness-field");
+    const input = page.getByTestId("brightness-field-input");
+    const reset = page.getByTestId("brightness-field-reset");
+    const message = page.getByTestId("brightness-field-message");
+
+    // With nothing selected the inspector carries the field alone, at 255.
+    await expect(field).toBeVisible();
+    await expect(input).toHaveValue("255");
+    await expect(field).toHaveAttribute("data-changed", "false");
+    await expect(reset).toBeDisabled();
+    await expect(page.getByTestId("region-swatch")).toHaveCount(0);
+
+    // With an element selected the same field sits under Appearance, after the swatch.
+    await page.getByTestId("starter-action").click();
+    await expect(page.getByTestId("surface-count")).toHaveText("1 element");
+    await expect(page.getByTestId("region-swatch")).toBeVisible();
+    await expect(field).toBeVisible();
+
+    // 128: the draft carries it, the marker and the reset come on.
+    await input.fill("128");
+    await expect(field).toHaveAttribute("data-value", "128");
+    await expect(field).toHaveAttribute("data-changed", "true");
+    await expect(reset).toBeEnabled();
+    await expect(input).not.toHaveAttribute("aria-invalid", "true");
+    await page.waitForTimeout(600);
+    const draft = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      DRAFTS_KEY,
+    );
+    expect(draft, "the draft was written").not.toBeNull();
+    expect(draft, "the draft carries the field").toMatch(/"brightness":128/);
+
+    // 0 is refused: aria-invalid, the range line, the model on 128 still.
+    await input.fill("0");
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await expect(message).toHaveText(BRIGHTNESS_RANGE);
+    await expect(field).toHaveAttribute("data-value", "128");
+    await input.fill("64");
+    await expect(message).toHaveCount(0);
+    await expect(field).toHaveAttribute("data-value", "64");
+
+    // Recovered: a reload lands on the same surface at 64.
+    await page.waitForTimeout(600);
+    await page.reload();
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    await expect(page.getByTestId("surface-count")).toHaveText("1 element");
+    await expect(page.getByTestId("brightness-field-input")).toHaveValue("64");
+    await expect(page.getByTestId("brightness-field")).toHaveAttribute(
+      "data-changed",
+      "true",
+    );
+
+    // The reset drops the field: 255 again, the draft without it.
+    await page.getByTestId("brightness-field-reset").click();
+    await expect(page.getByTestId("brightness-field-input")).toHaveValue("255");
+    await expect(page.getByTestId("brightness-field-reset")).toBeDisabled();
+    await page.waitForTimeout(600);
+    const back = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      DRAFTS_KEY,
+    );
+    expect(back, "a surface at 255 is written without the field").not.toMatch(
+      /"brightness"/,
+    );
+    // Undo takes the reset back: 64 again, one entry.
+    await page.getByTestId("undo").click();
+    await expect(page.getByTestId("brightness-field-input")).toHaveValue("64");
 
     expect(consoleErrors, "no console error on the whole walk").toEqual([]);
   });

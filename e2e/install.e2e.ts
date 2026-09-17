@@ -223,6 +223,11 @@ import {
 // DERIVED from the knob's own values and never typed here. lumen.ts imports
 // only a type from the vendored compiler, so this costs the runner nothing.
 import { LUMEN } from "../src/lib/catalog/entries/lumen";
+// Change 5's title: the entry whose Setup carries a literal colour, and the
+// scaler the landing applies - pure string arithmetic, nothing heavy for the runner.
+import { EUCLID } from "../src/lib/catalog/entries/euclid";
+import { scaleLua, sitesFor } from "../src/lib/catalog/brightness";
+import { BRIGHTNESS_RANGE } from "../src/lib/tune/inspector-copy";
 import {
   ELEMENT_SYSTEM,
   EVENT_SETUP,
@@ -2323,6 +2328,143 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // of clicks.
     expect(zona.seen("CONFIG", "EXECUTE")).toBe(20);
     expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(2);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("a brightness typed before the click is the pair the module receives - EUCLID at 128 dims the picture to about half and Store sends every colour scaled, byte for byte the landing's arithmetic; 300 is refused in the field and the reset puts 255 back", async ({
+    page,
+  }) => {
+    // CHANGE 5 (2026-09-17). model.spec.ts proves the tuner lands scaleLua's
+    // strings at a brightness; brightness.spec.ts proves the arithmetic on
+    // every entry. This is the seam pressed in a browser: the field under
+    // Appearance -> tuner.setBrightness -> the recompile -> the pair the
+    // store observes -> the fake ZONA's RAM. The picture is sampled off the
+    // canvas before and after: the brightest channel at 128 is about half of
+    // 255's. What is read is the module's RAM, as the LUMEN title above.
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(19), undefined, EUCLID.id);
+    await connectOnPage(page, zona);
+
+    // The Setup as shipped, derived from euclid.ts at its defaults - the same
+    // substitution renderLua makes, and what the module holds after click one.
+    expect(EUCLID.source.kind).toBe("lua");
+    let shipped = EUCLID.source.kind === "lua" ? EUCLID.source.setup : "";
+    for (const knob of EUCLID.knobs) {
+      shipped = shipped.split(knob.token).join(knob.values[knob.default]);
+    }
+    const dimmed = scaleLua(shipped, 128, sitesFor(EUCLID.id));
+    expect(dimmed, "128 moves EUCLID's Setup").not.toBe(shipped);
+    expect(dimmed.length).toBeLessThanOrEqual(shipped.length);
+
+    const brightest = async (): Promise<number> => {
+      // The brightest channel over a few frames: the ring animates, so one
+      // sample could catch a trough on either side.
+      let max = 0;
+      for (let i = 0; i < 6; i += 1) {
+        const at = await page.evaluate((sel) => {
+          const c = document.querySelector(sel) as HTMLCanvasElement | null;
+          const ctx = c?.getContext("2d");
+          if (!c || !ctx) return 0;
+          const data = ctx.getImageData(0, 0, c.width, c.height).data;
+          let m = 0;
+          for (let k = 0; k < data.length; k += 4) {
+            m = Math.max(m, data[k], data[k + 1], data[k + 2]);
+          }
+          return m;
+        }, canvasOf(EUCLID.id));
+        max = Math.max(max, at);
+        await page.waitForTimeout(80);
+      }
+      return max;
+    };
+
+    expect(zona.state.configs[EVENT_SETUP]).toBe(MODULE_SETUP);
+    await keepOnPage(page, zona);
+    expect(
+      zona.state.configs[EVENT_SETUP],
+      "click one: the Setup as shipped",
+    ).toBe(shipped);
+    const fullMax = await brightest();
+    expect(fullMax, "EUCLID lights something at rest").toBeGreaterThan(100);
+
+    // THE FIELD: under Appearance, at 255, nothing to reset.
+    const field = page.getByTestId("brightness-field");
+    const input = page.getByTestId("brightness-field-input");
+    const reset = page.getByTestId("brightness-field-reset");
+    const message = page.getByTestId("brightness-field-message");
+    await expect(input).toHaveValue("255");
+    await expect(field).toHaveAttribute("data-changed", "false");
+    await expect(reset).toBeDisabled();
+
+    // 128: the recompile runs, the marker and the reset come on, the picture dims.
+    await input.fill("128");
+    await recomputed(page);
+    await expect(field).toHaveAttribute("data-value", "128");
+    await expect(field).toHaveAttribute("data-changed", "true");
+    await expect(reset).toBeEnabled();
+    await expect(input).not.toHaveAttribute("aria-invalid", "true");
+    const dimMax = await brightest();
+    expect(
+      Math.abs(dimMax - Math.floor(fullMax / 2)),
+      `the picture at 128 is not about half of 255's (${fullMax} -> ${dimMax})`,
+    ).toBeLessThanOrEqual(6);
+
+    // The store saw the change: Store is live again, and click two sends the scaled bytes.
+    await expect(keepControl(page)).toBeEnabled();
+    await keepOnPage(page, zona);
+    const stored = zona.state.configs[EVENT_SETUP];
+    expect(stored, "click two: the Setup scaled to 128, byte for byte").toBe(
+      dimmed,
+    );
+    expect(stored).not.toBe(shipped);
+    expect(zona.state.configs[EVENT_TIMER]).toBe(
+      scaleLua(
+        (() => {
+          let t = EUCLID.source.kind === "lua" ? EUCLID.source.timer : "";
+          for (const knob of EUCLID.knobs) {
+            t = t.split(knob.token).join(knob.values[knob.default]);
+          }
+          return t;
+        })(),
+        128,
+        sitesFor(EUCLID.id),
+      ),
+    );
+    console.log(
+      `EUCLID on the wire: 255 -> ${shipped.length} characters, 128 -> ${dimmed.length} characters; the picture ${fullMax} -> ${dimMax}`,
+    );
+
+    // 300 is refused in the field: aria-invalid, the range line, the last
+    // good value kept (the region never goes busy), Store still armed on 128's pair.
+    await input.fill("300");
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await expect(message).toHaveText(BRIGHTNESS_RANGE);
+    expect(BRIGHTNESS_RANGE).toBe("Brightness is 1 to 255.");
+    await expect(field).toHaveAttribute("data-value", "128");
+    await expect(page.getByTestId("tuning-region")).toHaveAttribute(
+      "data-busy",
+      "false",
+    );
+    await expect(
+      keepControl(page),
+      "the pair on the module is the pair on screen",
+    ).toBeDisabled();
+
+    // The reset: 255 again, the recompile runs, and the shipped bytes are back on click three.
+    await reset.click();
+    await recomputed(page);
+    await expect(input).toHaveValue("255");
+    await expect(field).toHaveAttribute("data-changed", "false");
+    await expect(reset).toBeDisabled();
+    await expect(keepControl(page)).toBeEnabled();
+    await keepOnPage(page, zona);
+    expect(
+      zona.state.configs[EVENT_SETUP],
+      "click three: as shipped again",
+    ).toBe(shipped);
+
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(30);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(3);
     expect(consoleErrors).toEqual([]);
   });
 
