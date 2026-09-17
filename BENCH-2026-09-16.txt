@@ -780,3 +780,23 @@ messages: clock 0xF8 at 24 per quarter, start 0xFA, continue 0xFB, stop 0xFC) an
 the Editor's "MIDI rtm callback handler". "Sequencer profiles" read as every card that steps on
 the Timer: EUCLID (this change), STEPS, RADAR POINTS, SONAR - the others follow once the shape is
 proved here. Questions put to the user; answers recorded below.
+
+Answers, 2026-09-18:
+
+> 1) Orbit
+> 2) yes
+> 3) yes, step division knob
+> 4) sure
+> 5) typed names and numbers both
+> 6) not right after, we want to test it but save it as sequencer config if we'd decide to do
+>    this for the others as well
+
+Recorded: (1) EUCLID becomes ORBIT (id `orbit`; the address, the OG name and every literal move;
+the old id is the fourteenth dead link). (2) TUNE-01's six-knob rule is lifted for this card by
+the user's word; the next gate amends it. (3) `Sync: Internal / External` plus a `Division` knob
+(8th / 16th / 32nd - 12 / 6 / 3 clocks a step); under External the DAW's Start / Stop run the
+rings and the tempo knob is ignored. (4) Default notes inner to outer: 36, 38, 42, 46 (GM kick,
+snare, closed hat, open hat). (5) The note picker is a typed field taking `C#3` and `49` alike,
+C-2 (0) to G8 (127). (6) The sync is built on ORBIT alone and benched; the clock-handling shape
+is saved as a reusable sequencer piece (a library function or a documented idiom, whichever the
+measurement favours) so STEPS, RADAR POINTS and SONAR can take it later on the user's word.
