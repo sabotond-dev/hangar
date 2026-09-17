@@ -314,8 +314,14 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // to 89, `exempted` 27 to 28 and `guarded` 58 to 61. It still reconciles:
     // 61 + 28 is 89. The floor of 50 still guards with eleven to spare. The
     // member list is still "4 19".
+    //
+    // RE-COUNTED 2026-09-17 (TRACKPAD COMET, BENCH-2026-09-16.txt section 4),
+    // upwards by one entry and found the same way. FOUR knobs, TWO of them
+    // colour (the trail's and the head's), so the hand-authored knob total
+    // goes 89 to 93, `exempted` 28 to 30 and `guarded` 61 to 63. It still
+    // reconciles: 63 + 30 is 93. The member list is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(28);
+    expect(exempted, "the colour knobs, exempt by format").toBe(30);
 
     // PASS A. Every non-colour knob cross-producted, colour knobs at their
     // defaults, through the real encoder and the real decoder.
