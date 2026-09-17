@@ -428,3 +428,98 @@ scroll, tap-to-click, right-click on two) with the edge flash replaced by a come
 finger passes light under it and fade behind it. Painted from the Timer like the flash, through
 the library's decaying stamp K (12.1-08b - the presets' own comet), so the Setup stays at its 903.
 Provisional id `trackpad-comet`, name "Trackpad comet" - the user may rename.
+
+### Done, 2026-09-17
+
+Three source commits, no push, no device, no deploy: `3e7e780` feat(catalog) - the card, the
+catalog's wiring, the demo path, `frames.json`, the six specs whose counts moved and audition row
+29; `7e24c78` test(sim) - the VM proof; `f2f9a16` test(share) - the stamp sweep's colour exemption
+28 -> 30; then this paragraph with `docs/TESTING.md`'s "2026-09-17 change 4" and the gate record
+`gate/change-4-after.*`. **Id `trackpad-comet`, name "Trackpad comet"** - provisional, the user's to
+rename; appended after TRACKPAD, 27 = 8 + 19.
+
+**The two costs at the RGB444 picker corner**, measured under the pinned `compressScript` after
+`initLuaFormatter()` over all 96 knob states: **Setup 903** - TRACKPAD's string byte for byte, proved
+by `toBe` in `lua-smoke.spec.ts`, no knob token in it, 5 free, `s.u,s.v=f,h` carried unread; **Timer
+427** at the corner (both colours 255,255,255, tail 42, scroll `false` - the worst of the 96), 424 at
+the defaults, 481 free; every state a fixed point passing `checkSyntax`. Both Phase 11 gates: the
+recipe's three guards declared for the new id in `touch-guard.spec.ts` (nothing on code 9); no `Q`,
+so the Q-then-G order does not arise. Shape `9`, format `w`.
+
+**The shape, and where it departs from the brief.** The brief proposed the library's `K` (the
+presets' comet) stamped from the Timer. Measured first at 306 at the corner and driven in the VM: a
+stamp re-written every 20 ms at the cell's falling bilinear weight re-stamps a cell the finger is
+leaving DOWN to its last small start (6 or 12, gone in a tick or two), so a slow finger left almost
+no trail. The shipped Timer is GHOST's comet shape instead: `G(s,i,1,x,y,0,@H)` draws the bilinear
+finger on layer 0 and `D(N(x,y),1,@T*6)` re-arms the nearest calibrated cell on layer 1 at full,
+for every contact in `s.p` while `s.q<26 and(@S or s.n<2)`; blocks of contacts not drawn are cleared
+through `V` by the Timer's own sweep over `B`. A left cell decays from 252 at any speed; the
+head's softness is `G`'s; the layers add in the firmware's mix (one layer capping at 254/512), so the
+head reads brighter than the trail. The recipe's idle window (`s.q<26`) is the comet's: a lost lift
+fades inside 500 ms + the tail rather than glowing forever.
+
+**The knobs (four, all in the Timer; TUNE-01's three to six):** `colour` Trail colour `@C` (four
+swatches, the picker reaches the lattice); `head` Head colour `@H` (the same four, the same lime by
+default - the "head" the brief floated as the stamp's peak is impossible with `K` or `D`, whose peak
+IS the tail length, so it is the head's colour); `tail` Tail length `@T` 42 / 31 / 21 ticks (`*6` in
+the Lua, every start a multiple of six inside `D`'s ceiling); `scroll` Comet on scroll `@S` `true` /
+`false` (two comets under a scroll, or none, as TRACKPAD's flash). No token a prefix of another.
+
+**The VM proof** (`lua-smoke.spec.ts`, the 39th test): the Setup compared to TRACKPAD's; one gesture
+script (drag, lift, tap, fast tap, two-finger tap, two-finger scroll) run on both entries, the HID
+logs equal call for call (32 calls: gmms 25, gmbs 7); a landed finger drawn as `G`'s twin from KX /
+KY over the raw pair with its nearest cell armed at 252; a drag's trail rising toward the head
+(162, 198, 246); the head cleared inside one Timer call of the lift and the trail black after 38 more
+ticks with every cell on 0 on both layers; a still finger held at 47 ticks and gone past the 25-call
+idle window with the finger down; tail 21 black after 16; scroll `true` lights both fingers' cells
+and two heads, `false` lights nothing, the notches equal either way.
+
+**Counts, carried + delta:** catalog 26 -> 27 (8 + 18 -> 8 + 19); quick 94 / 966 -> **94 / 967**
+(+0 / +1), green twice at `--maxWorkers=2`; check 654 -> **655** (+1 file), 0 / 0; lint clean; sweep
+`4 19` -> **`4 19`** green (`lua-entries` 1,140 -> 1,201 combinations; the member list unmoved -
+the brief's `4 20` does not happen, no sweep test is per entry); audition rows 28 -> **29**; e2e 86
+titles / 101 runs -> **86 / 101** (+0 / +0); OG 26 -> **27** files (`trackpad-comet.png` 4,506 B,
+sha256 `a79a6387…`, 5 of 81 lit; 154136 -> 158642 B); `frames.json` `a581ef4c` -> `5166ff6c`, only
+the new block added, byte-identical on a second regeneration. Specs moved: `touch-guard` 4 -> 7
+rows, `colour-picker` `two` 6 -> 7, `filter.spec` entries 27 / `pointing` 3 / `precise` 8 / `still`
+7 (with `facets.ts`'s parentheticals), `demo.spec` four paths, `audition.spec` 29,
+`stamp-roundtrip.sweep` `exempted` 30; `surprise`, `wire-pin`, `reachability.sweep`,
+`catalog.spec`, `frames.spec`, `aesthetic.spec` pin nothing this moves and stand as they were.
+
+**The gate's terms** (`--after change-4 --against change-3-after --check 655` at `f2f9a16`; no
+`--before change-4` - change 3's after-record at `1e78f4b` IS the baseline, `git diff --stat
+1e78f4b e57e126 -- src scripts` empty, and the script accepted it by name): equal - the sandbox set
+`40b44316…`, the three other fixtures, **the SCOPED CSS `661eab32…` and the raw `fc20dd55…`**, the
+utilities 44 -> 44, the copy exports `25468f7e…`, the testids `cebf17b5…` (312), check 655, lint,
+the build, the refuse-list `--stat` empty; moved - the wire set `a24b256f…` -> `3f2531f7…` and full
+`514cb2c7…` -> `df9345d9…` with **1,761 records byte-identical, 0 moved, 0 removed, 31 added**
+(`hash-wire.mjs` per-string, the JSON diffed), the census `40660d18…` -> `b251cbba…` (2,685 ->
+2,699 literals, additions and count rises only), the titles `5b5a92bb…` -> `a0e65d2d…` (one added,
+one retitled: "twenty-eight" -> "twenty-nine"), the JS `d315d6dc…` -> `b4a972a3…`, `src/` 13
+modified / 1 added / 0 deleted / 0 renamed. The script exits 1 at the wire by design; the later
+terms compared from the two records. Its own quick run had one red - `install.spec.ts`'s snapshot
+test timing out on identification at 2.95 GB free straight after the sweep, the known load flake -
+against the two green counted runs.
+
+**Chunks** (fresh detached servers on 4173, stopped through PowerShell, HTTP 000 after each; the
+user's 5173 untouched): c4 **15 passed** (catalog, fidelity, first-experience's hero, library,
+sandbox); c2 18 / 4 at three workers (`browse:299`, `:343`, `:1263`, `:1404` - the grid read before
+hydration; the count line reads 27), **22 passed** at `--workers 1` on a fresh server, the split
+change 3 recorded. c1, c3, c5 not run - no file in them reads the catalog's length as a literal.
+
+**Questions for the user.** (a) The name and id - "Trackpad comet" / `trackpad-comet` are
+provisional. (b) The fourth knob, the head's colour - keep (white head over a lime trail is the
+classic comet), or three knobs with one colour. (c) The comet under a two-finger scroll defaults ON -
+say if the scroll should stay dark like TRACKPAD's flash. (d) `pointing` now carries three and sits
+last in the FOR row after `shortcuts` at two; the row's own rule is "descending by carriers" - move it
+before `shortcuts` (one line, a toolbar change) or leave it. (e) In the VM a still finger's comet
+goes dark after the recipe's 25 quiet Timer calls (500 ms), because a still finger sends nothing;
+on the module a resting finger wobbles every sample (Q1) so the head should stay - row 29(b) asks.
+(f) Changes 1 to 3's questions still stand.
+
+**Not supported by the tree / departures from the brief:** `K` alone does not make a comet at a slow
+finger's speed (above), so the Timer is `G` + `D(N)`, TRACKPAD's edge-flash `D` and GHOST's shape,
+not the presets' `K`; the `head` knob is a colour, not a peak; no `--before change-4` record (above);
+the sweep's member list stays `4 19`, not `4 20`; the audition's cost table was re-padded by prettier
+(twenty lines, no text moved) beside the append; `docs/entries/trackpad-comet.md` not written (no
+history yet); ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`.
