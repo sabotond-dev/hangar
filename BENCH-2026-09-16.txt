@@ -653,3 +653,14 @@ research decides what fits 908. (2) An offset fader on the right-hand column of 
 live at every moment - while the swirl runs, while it is stopped, while another finger drags the
 rate. Column 8 leaves the swirl's playing area; the offset fader lights where the finger is.
 Everything else about ARC stays.
+
+## 7. CHORUS - a chromatic key, the lowest chord bottom-left, octave pads, smart inversion (2026-09-18, queued for Fable 5.1 after ARC lands)
+
+> Chorus: remove the randomization adn lock options. left bottom corner should be the
+> legmélyebb hang.Keys options should have sharp keys. Key options should be from C to B
+> including sharp keys. Two of the keys on the module should always be octave up and octave
+> down because we only need 7 keys. Also research smart inversion and put a toggle option for it.
+> if you have any questions ask
+
+("legmélyebb hang" - the lowest note.) Questions put to the user before the brief is written;
+answers recorded below when they arrive.
