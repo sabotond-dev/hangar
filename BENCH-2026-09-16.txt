@@ -523,3 +523,16 @@ not the presets' `K`; the `head` knob is a colour, not a peak; no `--before chan
 the sweep's member list stays `4 19`, not `4 20`; the audition's cost table was re-padded by prettier
 (twenty lines, no text moved) beside the append; `docs/entries/trackpad-comet.md` not written (no
 history yet); ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`.
+
+## 5. A brightness setting, Playground and Sandbox, 1 to 255 (2026-09-17)
+
+> next change: add brightness setting to all playground mode and sandbox mode. lowest brightness 1
+> highest 255
+
+Reading: one LED brightness setting for the module's whole light output - a control in the
+workspace's inspector for every Playground card and in the Sandbox's inspector for a surface -
+integer 1..255, 255 the full output the entries have today. It is a setting of what gets stored,
+not of the preview only: the brightness reaches the ZONA. How it reaches the wire is research
+first (a firmware LED intensity call, or one library global the painters scale by, or the colours
+scaled at landing) - the cheapest mechanism that does not move any entry past 908; measured, not
+sketched.
