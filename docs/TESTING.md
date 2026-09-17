@@ -5162,6 +5162,127 @@ either feels thin, the honest fix is a third REAL knob from that card's own comp
 faders' `layout`, starfield's `speed`), not a brightness. (c) TUNE-01's text still reads "three to
 six"; the amendment is waiting for whichever phase next runs a gate.
 
+## 2026-09-17 change 6 - ARC as an LFO: a six-wave shape knob and an offset fader on column 8
+
+Outside the GSD cycle, the user's word recorded verbatim in `BENCH-2026-09-16.txt` section 6:
+"ARC: this is basically an LFO config, we need an offset fader on the eight side of the module /
+you should be able to pick the type of the wave: just like in Ableton.: sine, sotus up, down,
+triangle, square, random / the offset fader should be able to manipulate all the time". "sotus
+up" is read as "saw up" (the user may correct). Research first - three forms for the wave and two
+for the contact rule, every one measured under the pinned `compressScript` after
+`initLuaFormatter()` - then one source commit (`119f4b0`), then this section, the record's Done
+paragraph and the gate records `gate/change-6.*` (before, at `98cb427`) and `gate/change-6-after.*`.
+
+**The wave: three forms costed, the third built.** Each figure is the Timer at the RGB444 picker
+corner (both colours 255,255,255, every other knob its longest literal), a fixed point passing
+`checkSyntax`. _(i) the brief's chain_ - `@SHAPE` an integer 0..5 and one `and/or` chain over all
+six waves in the Timer: **447** (461 free); every card carries all six. _(ii) the brief's
+closures_ - six `function(p)return ... end` in a Setup table, indexed from the Timer: Setup
+**1,191**, 283 OVER; does not fit. _(iii) chosen_ - the wave is the knob's LITERAL, an expression
+over the phase `p` substituted for `v` (`local v,c=@SHAPE,...` - CHORUS's `@SCALE` idiom): Timer
+**437** with the longest wave (the sine, 46 characters), 392 with `p`, 410 at the defaults. The
+six, each landing in 0..255 and carrying no comparison so the depth scaling and the offset apply to
+every one unchanged: Sine `128+(1-p//128*2)*(p%128*(128-p%128)*127//4096)` - a parabola per
+half-wave, 128 / 255 / 128 / 1 at p 0 / 64 / 128 / 192; Saw up `p`; Saw down `255-p`; Triangle
+`255-math.abs(p*2-255)` - byte for byte the retired `p<128 and p*2 or 510-p*2` at every p; Square
+`255-p//128*255` - high for the first half; Random `s.n%256` over a sample-and-hold LCG,
+`s.n=(s.n*75+74)%65537` advanced once per cycle on the wrap (`p<s.h`, never true while stopped),
+seeded 1. **Two of the brief's spellings are outside D-08** (`lua-entries.sweep.spec.ts`'s
+restricted subset admits `atan sqrt abs max min floor tointeger` and forbids `math.random` by
+name): no `math.sin`, no `math.pi`, no `math.random` - hence the parabola and the LCG, both
+integer, both the same on every VM. The literal is followed by a comma because a literal ending in
+`)` and one ending in a name need different seams before `s:gms(` under the minifier.
+
+**The fader and the two-contact rule.** Column 8 (cells 8, 17, ..., 80) leaves the swirl: its
+layer 2 is painted black in the Setup (`glc(a,2,0,0,0,1)`, +17 - a Store lands on a live module
+and the previous configuration may have lit the column; the firmware boots every layer black at
+frequency 0, `grid_led.c:136-137`, but does not re-init on a CONFIG write). The fader's contact
+stores `s.u=U(y,KY)` (0..512) on every sample; the Timer adds `63-s.u*127//512` to every CC (+63
+at the top cell, 0 at the centre LED, -64 at the bottom - bipolar, Ableton's offset; held after the
+lift) and repaints one marker cell `8+(s.u+32)//64*9` on layer 1 in @HEARTC when it moved. The
+arithmetic and the two `glp` live in the TIMER: the first draft did them in the handler and
+measured **953**, 45 over; moving them gave 823, and the role bookkeeping below settled at 806.
+The contact rule, two forms: _(A) chosen_ - per-contact roles, `s.z` the fader's id and `s.w` the
+swirl's, each set on its onset by the calibrated cell (`N(x,y)%9==8` the fader; otherwise
+`s.w=s.w or i`), cleared by its own end code, released by a code 9 (`s.z=e<9 and i`): Setup
+**806** at the corner (102 free), 803 at the defaults. Either order of landing; a fader that lifts
+first does not drop the rate finger; a second fader finger takes over (the first is ignored until
+it lands again); a second playing finger is ignored, its centre taps included; the stop tap toggles
+only from the swirl's contact, so the stop finger stays the swirl's and a wobble after the tap goes
+on tracking (12-05's gate, still asserted). _(B) rejected_ - "the other id" with a column test per
+sample: 770, but the rate finger is ignored after the fader lifts first. A sixth knob is the
+wave; a seventh (a fader colour) would pass TUNE-01's six, so the marker is the heart's colour on
+the heart's layer. No library global moves; `library.ts` untouched.
+
+**Budget.** Setup 528 -> **806** at the picker corner (380 -> 102 free), Timer 275 -> **437** (633
+-> 471 free); 525 / 273 -> 803 / 410 at the defaults; every wave a fixed point, every state
+`checkSyntax` true; both Phase 11 gates as before (nothing on code 9; `N` then `U` on the
+calibrated map; no `D`). `brightness.ts`: no new declaration - the one new colour site,
+`glc(a,2,0,0,0,1)`, is three literal zeros the scanner classes `literal` (0 stays 0), and test 3
+finds none `other` over the six-knob cross-product's sampling.
+
+**The VM proof** (`lua-smoke.spec.ts`, the 40th test, in the CONT-02 describe): every wave's `v`
+over one cycle at the Setup rate read off layer 1's phase on cell 40 (Sine peaks at 255 on p=64;
+Saw up is p; Saw down 255-p; Triangle the old formula at every p; Square flips at 128), the CC per
+tick the entry's own formula over that v; Random held for a whole cycle and new on the wrap (six
+cycles: 149, 241, 217, 156, 211, 243); column 8 black on layer 2 at rest and under the finger,
+the marker at 44 then under the finger; the fader at the top +63, the bottom -64, the centre 0,
+each on the next tick while running, held after the lift, moving the frozen CC while stopped
+(64 -> 0 at the bottom); a tap on cell 44 never stops the card, the centre tap still does; fader 0
+
+- rate 1 and rate 0 + fader 1; the fader lifting first with the rate finger kept; a second playing
+  finger ignored, its centre tap included; two fader fingers, the later winning and the first staying
+  ignored; a code-9 tap on the fader landing its height and releasing the id. Two older tests moved
+  with the feature: the wobble test reads the swirl's 72 cells and keeps its stop finger down through
+  the wobble (a MOVE from a lifted contact is nobody's under per-contact roles); `stamp.spec.ts`
+  declares ARC's captured five-knob wild stamp `x54244f` as landing `unreadable` - the stamp's
+  length rule for an added knob, beside POMODORO's `older` for a resized one; the fixture is not
+  regenerated.
+
+**Counts, carried + delta:** quick 95 / 979 -> **95 / 980** (+0 / +1), green twice at
+`--maxWorkers=2`; check 658 -> **658** (+0), 0 / 0; lint clean; sweep `4 19` -> **`4 19`** green
+(`lua-entries` 1,201 -> 1,212 combinations); e2e 88 titles / 103 runs -> **88 / 103**
+(+0 / +0); audition rows 30 -> **31**; OG 27 files, 158,642 -> **158,745 B** (`arc.png` 6,786 ->
+6,889, 70 of 81 lit; `static/og/` is built, not tracked); `frames.json` `5166ff6c` -> `79698b0d`,
+ARC's block alone, byte-identical on a second regeneration. Specs moved: `lua-smoke` 39 -> 40,
+`audition.spec` thirty-one, `stamp.spec` a second declared exception; `catalog.spec`,
+`frames.spec`, `touch-guard`, `brightness.spec`, `copy.spec`, `view.spec`, `tune-ui.spec`,
+`filter.spec` pin nothing this moves. `stamp-roundtrip.sweep`'s `exempted` stays 30 (no colour
+knob added); `guarded` gains one.
+
+**The gate's terms** (`--before change-6` at `98cb427`, `--after change-6 --against change-6
+--check 658` at `119f4b0`): equal - the sandbox set `40b44316…`, the three other fixtures (`golden-frames`, `preset-baseline`, `synthetic-zona`), **the SCOPED CSS `7f88b4f4…`** (the raw CSS too), the utilities 44 -> 44 (0 appeared, 0 disappeared), the copy exports `7ec85d4a…`, the testids `70dfe98a…` (317), check 658, lint, the build (stamp `119f4b0`), the refuse-list `--stat` empty, no rename, no deletion; moved as a feature moves them - the wire set `63e93f57…` -> `97a42874…` and full `c1a61f4c…` -> `5e357a90…` in the tree at the run, with **1,618 records byte-identical, 108 moved, 2 removed, 24 added** by `hash-wire.mjs` per string - and 48 of those movers are MORPH's (36 moved, 1 removed, 11 added): the other executor's change 9 sat uncommitted in `morph.ts` when the gate read the tree. Against a CLEAN worktree at `119f4b0` (`git worktree add`, `hash-wire --full --sandbox`, dirty false): 1,728 -> 1,740 records, **1,655 byte-identical, 72 moved, 1 removed, 13 added, every one of them `E/arc/`** (the defaults, the corner, every single-knob position on both events, the six `shape=` pairs added, the cross-product key 6,000 -> 36,000 states), the full set `94189b0c…`, the sandbox set `40b44316…` equal - every non-ARC record byte-identical; the census `e12326a3…` -> `6b8c5116…` (2,721 -> 2,738 literals: ARC's two literals and its sentence replaced, the six wave expressions, the six words, `Wave shape`, `shape`, `@SHAPE`, `mode` 24 -> 26 - and MORPH's in-flight `@CENTRE` / `Centre` / `96` beside them); the titles `a2f9cfa8…` -> `1111bd8f…` (980 -> 981 vitest titles, one added, one retitled: "thirty" -> "thirty-one"; 103 playwright runs unmoved); the JS `ae3b7779…` -> `9aaab2bd…` (72 files); `frames.json` `5166ff6c` -> `79698b0d`; the OG 27 files, 158,642 -> 158,745 B, `f60a6363…` -> `a12c2393…`; `src/` 7 modified / 0 added / 0 deleted / 0 renamed. The script exits 1 at the wire by design; the later terms are compared from the two records.
+
+**Chunks** (`scripts/gate/e2e-chunks.sh`, a fresh detached wrangler dev on 4173 per chunk, stopped
+through PowerShell, HTTP 000 after each; the user's 5173 untouched): c3 **21 passed** (tuning, tuning-webkit; +0 - no e2e names ARC's select, the CC-field title walks ARC's cc knob as before); c2 **2 failed / 20 passed** at three workers (`browse:299`, `:343` - the grid read before hydration, the flake changes 3 and 4 recorded), then **22 passed** at `--workers 1` on a fresh server (rerun `c2-w1-change6`, the script's body with one flag changed, run from the scratchpad). c1, c4, c5 not run: no install, session, catalog, fidelity, first-experience, library, sandbox, artifact, radius, skeleton or smoke title reads ARC's knobs (library.e2e's stored ARC draft carries five indices, which `my-configs` lands on the first five by position). e2e 88 titles / 103 runs unmoved.
+
+**Outside `src/`:** `docs/HARDWARE-AUDITION.md` row 31 and its dated paragraph, ARC's cost row
+525 / 273 / 5 -> 803 / 410 / 6 (append-only otherwise); `docs/entries/arc.md` a dated section with
+the two old literals verbatim and the forms costed; `.planning/ROADMAP.md`, `REQUIREMENTS.md` and
+`STATE.md` untouched; CAT-04 stays `[ ]`. No device, no deploy, no push; `src/vendor/`,
+`library.ts`, `sequence.ts`, the manifest, `Knob.svelte`, `ColourPicker.svelte`, every other
+entry untouched (the gate's `--stat` and the wire's per-string diff).
+
+**Departures from the brief, stated:** the wave is the knob's literal (an expression), not an
+integer selecting a chain or a closure table - both brief forms were costed and the chain fits;
+the literal form is 10 cheaper on the Timer at the corner and is the tree's existing idiom; no
+`math.sin`, `math.pi` or `math.random` (D-08), so the sine is a parabola and the random an LCG;
+the offset arithmetic and the marker are painted from the Timer, not the handler; the marker is
+one cell in the heart's colour (a `@FADERC` would be a seventh knob); the swirl's light does not
+follow the wave (not costed - the swirl is the rate's picture, the heart the value's); the wobble
+test's gesture changed (above); ARC's older shared links land `unreadable` (the stamp's rule).
+
+**Questions for the user:** (a) "sotus up" is read as saw up. (b) The offset is bipolar (-64..+63,
+centre = no offset, Ableton's) - say if it should be 0..127 unipolar. (c) The fader's light is one
+cell at the finger's height in the heart's colour; a level bar from the bottom, or a bar from the
+centre, or its own colour knob (a seventh - past TUNE-01's six unless one goes) are the
+alternatives. (d) Should the swirl's light follow the wave (a square swirl, a saw swirl) or stay the
+rate's picture? (e) Square is high for the first half of the cycle; Random is an arithmetic
+sequence, the same after every power cycle (D-08's rule) - say if either should be otherwise.
+(f) A shared ARC link minted before today lands `unreadable` (the stamp's length rule for an added
+knob); say if the stamp should learn to land a shorter vector at the defaults (a change to the
+stamp code, not made here). (g) Changes 1 to 5b's questions still stand.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

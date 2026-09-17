@@ -1,0 +1,237 @@
+# 13.2 gate --after change-6 --against change-6 --check 658
+HEAD 119f4b0 (119f4b07a4562adafae19b5c6fdc675458d6c3ae); dirty (src e2e scripts docs) 1; free memory 4.57 GB; 2026-09-17T22:34:21Z
+before-record HEAD 98cb427eaade722a77ae683c7d9774c9bcb75e1f
+
+## the wire
+1723 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 97a428748a3f424b647fd2077f452ca33741a3682b9bbebd2857b44813208735
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 5e357a90bc9816854983d00f5455a5f6ff455764a3d07fc5d6b36f9b82f38602
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+194 files; 2738 distinct literals (6408 occurrences); 7 copy modules; 317 data-testids
+literal census sha256 6b8c51166dd86ee05741e111799ab51b3279e9a3c66b3c42cacdaf08eeef0193
+copy exports   sha256 7ec85d4aa65ab112a811a9f6286bdc86dd832a79e9adb49626eb3a720cea9164
+data-testids   sha256 70dfe98a8a4783a27bbc73152e764757d928c240729dc849835c303f05c22abf
+- 1 -> 0	"--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end"
+- 1 -> 0	"--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end"
+- 1 -> 0	"--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and N(x,y)==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)"
+- 8 -> 9	"16"
+- 1 -> 2	"32"
+- 1 -> 2	"64"
+- 2 -> 0	"Draw a modulation shape with your finger; it keeps sending after you let go, and the swirl shows the rate."
+- 28 -> 29	"amount"
+- 7 -> 8	"centre"
+- 24 -> 26	"mode"
++ 0 -> 1	"--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95 if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end"
++ 0 -> 1	"--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 if p<s.h then s.n=(s.n*75+74)%65537 end s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v,c=@SHAPE,8+(s.u+32)//64*9 if c~=s.c then glp(glag(0,s.c),1,0)glp(glag(0,c),1,255)s.c=c end s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end"
++ 0 -> 1	"--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)if n%9<8 then glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)else glc(a,2,0,0,0,1)end glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.u=256 self.c=0 self.n=1 self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then if i==s.z then s.z=nil elseif i==s.w then s.w=nil end return end local t if e==4 or e>8 then local n=N(x,y)if n%9==8 then s.z=i else s.w=s.w or i t=n==40 end end if i==s.z then s.u=U(y,KY)s.z=e<9 and i return end if i~=s.w then return end s.w=e<9 and i if t then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)"
++ 0 -> 2	"128+(1-p//128*2)*(p%128*(128-p%128)*127//4096)"
++ 0 -> 2	"255-math.abs(p*2-255)"
++ 0 -> 2	"255-p"
++ 0 -> 2	"255-p//128*255"
++ 0 -> 1	"96"
++ 0 -> 1	"@CENTRE"
++ 0 -> 1	"@SHAPE"
++ 0 -> 1	"Centre"
++ 0 -> 2	"Draw an LFO with your finger: rate, depth and its wave, an offset fader down the right, and it keeps sending."
++ 0 -> 1	"Random"
++ 0 -> 1	"Saw down"
++ 0 -> 1	"Saw up"
++ 0 -> 1	"Sine"
++ 0 -> 1	"Square"
++ 0 -> 1	"Triangle"
++ 0 -> 1	"Wave shape"
++ 0 -> 2	"s.n%256"
++ 0 -> 1	"shape"
+
+## the comment lines
+195 files; 46783 lines, 30079 code, 12912 comment, 3792 blank, 4013 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/arc.ts | 183 | 235 | 79 | 115 | 65 | 96 |
+| src/lib/catalog/entries/morph.ts | 185 | 225 | 90 | 121 | 69 | 95 |
+| src/lib/tune/view.ts | 641 | 661 | 180 | 184 | 18 | 18 |
+| **totals (195 -> 195 files)** | 46671 | 46783 | 12841 | 12912 | 3956 | 4013 |
+
+3 file(s) moved
+
+## check and lint
+check: 1789684477506 COMPLETED 658 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 980 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: files: observed 95, expected 94; tests: observed 980, expected 966
+quick exit 1
+
+## the build
+build exit 0; stamp 119f4b0
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 79698b0ddf39c041dad696bb1c309c80cad21a6f src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 158745 B, sha256 a12c2393e0841003ed9249204e88674c67ce5a6508ecfa47efff0991253e65ac
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46
+SCOPED CSS sha256 7f88b4f4f10ef13a3af2bd30dd4b8f2d277569edd9b9a4687cedea5b5b76b7f2
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 9aaab2bd6082951fa1bd24db22ca4e1d467c98e9477e9e3a134f79f71f6c40eb (72 files)
+
+## the titles
+TITLES sha256 1111bd8f4d86bb8d47fd81a8021d09c9783be47347831c788fc71d8de0618e9f (981 vitest titles incl. todo, 103 playwright runs)
+
+## src/ against the before-record's HEAD 98cb427eaade722a77ae683c7d9774c9bcb75e1f
+git diff --name-status: 7 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-6
+wire moved: set 63e93f57e8d607afbd8de2d3f73f2ee9cf533145433d631ff50a8362520a7c26 -> 97a428748a3f424b647fd2077f452ca33741a3682b9bbebd2857b44813208735; full c1a61f4cd8bab7d1f2e713d4feb585529dbf10b1c186086b6516a29ec83d6e49 -> 5e357a90bc9816854983d00f5455a5f6ff455764a3d07fc5d6b36f9b82f38602
+  ~ E/arc/defaults/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/defaults/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/corner/setup c6e84344ccea6eda -> c386afe7311db0be
+  ~ E/arc/corner/timer 518448bd2effdf45 -> aa567409588f6d96
+  ~ E/arc/knob swirlColour=0/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob swirlColour=0/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob swirlColour=1/setup c2452f23b0366f7b -> 95d29c17f1eb580c
+  ~ E/arc/knob swirlColour=1/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob swirlColour=2/setup 905b9dd8955aebca -> 39fb28d4c4e4b380
+  ~ E/arc/knob swirlColour=2/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob swirlColour=3/setup 59b58e7ae0c3a206 -> 8f30bb47e7972b30
+  ~ E/arc/knob swirlColour=3/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob swirlColour=4/setup 1c37e392aafff434 -> a8cda2f86305f30e
+  ~ E/arc/knob swirlColour=4/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob arms=0/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob arms=0/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob arms=1/setup 7df91703739a6cc6 -> 0cdca1e36d8b4d3a
+  ~ E/arc/knob arms=1/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob arms=2/setup 2c021c7873d96eb1 -> 414568a70958335d
+  ~ E/arc/knob arms=2/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob heartColour=0/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob heartColour=0/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob heartColour=1/setup cbee6dc04fa37e9d -> 55fbc6bbabc546ec
+  ~ E/arc/knob heartColour=1/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob heartColour=2/setup bf7d7d6bfaf27470 -> 9cc57a30280b7c03
+  ~ E/arc/knob heartColour=2/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob heartColour=3/setup 6b0850ab256836c3 -> 0022a27f60bf2d5d
+  ~ E/arc/knob heartColour=3/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob heartColour=4/setup 1547c27a5dba779a -> 54b65fe05116a99a
+  ~ E/arc/knob heartColour=4/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob cc=0/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob cc=0/timer 4624af9d50c18b30 -> 59f1cc9f0cd6365f
+  ~ E/arc/knob cc=1/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob cc=1/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob cc=2/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob cc=2/timer 6cebc88321b10e76 -> 061280e1fd878e5a
+  ~ E/arc/knob cc=3/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob cc=3/timer 586437d9188002b0 -> 128dc944913ec00c
+  ~ E/arc/knob cc=4/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob cc=4/timer 4b7a122f92e87a1f -> acf2b3469faff4d3
+  ~ E/arc/knob channel=0/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=0/timer e303b09e96ecf573 -> 34ba1293ae0a541f
+  ~ E/arc/knob channel=1/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=1/timer afbcaac598994583 -> 05ce1e81da4633a0
+  ~ E/arc/knob channel=2/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=2/timer a9a60cc0fdb1915f -> 285c475ae65e61ba
+  ~ E/arc/knob channel=3/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=3/timer 567e39406eb7309f -> a9866986f47e74d6
+  ~ E/arc/knob channel=4/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=4/timer 041b09d60f30f3ca -> 483839d65146f5a6
+  ~ E/arc/knob channel=5/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=5/timer 37438e77bdfec8f9 -> 3e161457c4b30ed1
+  ~ E/arc/knob channel=6/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=6/timer 65945607bf0de3e7 -> 16db3b9741b39455
+  ~ E/arc/knob channel=7/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=7/timer 56487dc0817ba85c -> 211b46cedeae0375
+  ~ E/arc/knob channel=8/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=8/timer fb4808a508191f35 -> f0b692f8062c1b3d
+  ~ E/arc/knob channel=9/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=9/timer a0560ad81399e149 -> c9669ee2f1808ef6
+  ~ E/arc/knob channel=10/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=10/timer 7f43c3360f6c3cbf -> 18274a38a4836d48
+  ~ E/arc/knob channel=11/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=11/timer e0006276d85368ba -> 2601f12c255b66c3
+  ~ E/arc/knob channel=12/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=12/timer b0f350fafc314aee -> a69c7a36ff0da629
+  ~ E/arc/knob channel=13/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=13/timer 904e3b9717914864 -> 8862b449f081b3cc
+  ~ E/arc/knob channel=14/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=14/timer d8cf85948d1c9033 -> a5b7d0207813f09f
+  ~ E/arc/knob channel=15/setup b092f677df3657de -> d368f856e7d4bac7
+  ~ E/arc/knob channel=15/timer dd5f212b9751807f -> d206586328064824
+  - E/arc/cross-product (6000 states)
+  ~ E/morph/defaults/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/corner/setup 178a6f9c6ee6488b -> 730b4c87bf7ca06a
+  ~ E/morph/knob trailColour=0/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob trailColour=1/setup 1184c06d43d239b4 -> f49dc729484d4a60
+  ~ E/morph/knob trailColour=2/setup 4ed472e2e1df2055 -> c434700fb501a4b8
+  ~ E/morph/knob trailColour=3/setup 756ec20fd53191f2 -> 5f51cc358cdd2073
+  ~ E/morph/knob trailColour=4/setup 04e04c748d5a7481 -> a60657cfbfcafa1f
+  ~ E/morph/knob hueSpread=0/setup da92500b48bcab7c -> b614dcbd64c76648
+  ~ E/morph/knob hueSpread=1/setup 6406c308a8d7962e -> 3987f171e6e728d0
+  ~ E/morph/knob hueSpread=2/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob hueSpread=3/setup 74a37364f66b3ebe -> e18b780ca9c5b68f
+  ~ E/morph/knob ccBase=0/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob ccBase=1/setup 859609adba91d4f3 -> f62a4ed718453980
+  ~ E/morph/knob ccBase=2/setup 03f2aa00eb7ab462 -> c456eb922a6d5e2d
+  ~ E/morph/knob ccBase=3/setup 214ce1f883177ffe -> 484a4c7530e47ea8
+  ~ E/morph/knob ccBase=4/setup 0a1bfd27acb6a8f6 -> 575263f5421a9ae7
+  ~ E/morph/knob trail=0/setup cea39b6e253fb73d -> 62dc7f2f45d35edd
+  ~ E/morph/knob trail=1/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob trail=2/setup c9a9df0cf85f189f -> 220f042470accb41
+  ~ E/morph/knob trail=3/setup 5e44bdeb466a9778 -> 30e61041e21d0ecb
+  ~ E/morph/knob channel=0/setup 4e33ae311dae71e6 -> cd60a9b50ba9c6e1
+  ~ E/morph/knob channel=1/setup 8943f7469467cdaa -> 2877697ec16b2739
+  ~ E/morph/knob channel=2/setup d61eeb46df666803 -> 8394961db93121bf
+  ~ E/morph/knob channel=3/setup 89b67f2f49a63f8f -> 3cc1f1c575cacc55
+  ~ E/morph/knob channel=4/setup 2e3305d129703776 -> 50cb623768cf936f
+  ~ E/morph/knob channel=5/setup 0119ddca5c18cd02 -> 1cf34bb0c5f28423
+  ~ E/morph/knob channel=6/setup 87bef863eab879de -> 48f2576aba363a79
+  ~ E/morph/knob channel=7/setup 22251274559877f6 -> 4eabb0e0be9dd975
+  ~ E/morph/knob channel=8/setup 5d49e64bae12d3d6 -> 65b324418d5f6ba7
+  ~ E/morph/knob channel=9/setup 2b682d43773b1ab8 -> 15855463689e8c4f
+  ~ E/morph/knob channel=10/setup 3373373cc6952f13 -> f7deba63016ed9a3
+  ~ E/morph/knob channel=11/setup ae1858807ff334c8 -> 4c60b5f20c0213a4
+  ~ E/morph/knob channel=12/setup 07f6ad14bd86ffbf -> d28b32e9f9ade56d
+  ~ E/morph/knob channel=13/setup 2c7a114b5558e29a -> 6cb5f4cc835c8d81
+  ~ E/morph/knob channel=14/setup 823b0fa0502fe611 -> 0d4695a979b92644
+  ~ E/morph/knob channel=15/setup 713222bcf900e3fa -> a353bef0279ee0bc
+  - E/morph/cross-product (6400 states)
+  + E/arc/knob shape=0/setup
+  + E/arc/knob shape=0/timer
+  + E/arc/knob shape=1/setup
+  + E/arc/knob shape=1/timer
+  + E/arc/knob shape=2/setup
+  + E/arc/knob shape=2/timer
+  + E/arc/knob shape=3/setup
+  + E/arc/knob shape=3/timer
+  + E/arc/knob shape=4/setup
+  + E/arc/knob shape=4/timer
+  + E/arc/knob shape=5/setup
+  + E/arc/knob shape=5/timer
+  + E/arc/cross-product (36000 states)
+  + E/morph/knob centre=0/setup
+  + E/morph/knob centre=0/timer
+  + E/morph/knob centre=1/setup
+  + E/morph/knob centre=1/timer
+  + E/morph/knob centre=2/setup
+  + E/morph/knob centre=2/timer
+  + E/morph/knob centre=3/setup
+  + E/morph/knob centre=3/timer
+  + E/morph/knob centre=4/setup
+  + E/morph/knob centre=4/timer
+  + E/morph/cross-product (32000 states)
+FAIL: the wire
