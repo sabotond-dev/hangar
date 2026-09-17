@@ -49,6 +49,7 @@ import {
   type Orientation,
   type Region,
   type Surface,
+  withBrightness,
 } from "./model";
 
 export type Mode = "edit" | "play";
@@ -727,6 +728,26 @@ export class SandboxEditor {
     const region = this.selected;
     if (region === undefined || region.kind !== "button") return;
     this.applyPatch({ latch }, "latch");
+    this.emit();
+  }
+
+  /**
+   * The whole surface's brightness (1..255; change 5): a structural edit like a recolour, coalesced
+   * under one key so typed digits are one entry, refused in Play, a no-op at the same value. The
+   * value is validated by the field (catalog/brightness.ts parseBrightness) before it reaches here.
+   */
+  setBrightness(brightness: number): void {
+    if (this._mode === "play") return;
+    const after = withBrightness(this._surface, brightness);
+    if (after === this._surface) return;
+    this.record(
+      "brightness",
+      this._surface,
+      after,
+      this._selectedId,
+      "field:surface:brightness",
+    );
+    this._surface = after;
     this.emit();
   }
 

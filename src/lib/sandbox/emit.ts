@@ -10,6 +10,7 @@
 // the library's twenty-one - emit.spec.ts test 5. History: docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { brightnessOf, scaleChannel } from "../catalog/brightness";
 import { LED_STEP, sensorAt } from "../catalog/calibration";
 import { buildCellMap, type CellMap } from "./geometry";
 import {
@@ -114,8 +115,8 @@ export function geometryOf(region: Region): [number, number, number, number] {
   }
 }
 
-/** A region's row: `{g1,g2,g3,g4,t,cc,cc2,ch,r,g,b}`, plus `0,0` on a knob - the seventh column is the XY pad's second controller or the button's latch flag, the eighth the wire channel 0..15, nine to eleven the colour 0..255; every number at its exact width. */
-export function regionRow(region: Region): number[] {
+/** A region's row: `{g1,g2,g3,g4,t,cc,cc2,ch,r,g,b}`, plus `0,0` on a knob - the seventh column is the XY pad's second controller or the button's latch flag, the eighth the wire channel 0..15, nine to eleven the colour 0..255 scaled to the surface's brightness (change 5; 255 is the identity); every number at its exact width. */
+export function regionRow(region: Region, brightness: number = 255): number[] {
   const [x0, x1, y0, y1] = geometryOf(region);
   const seventh =
     region.kind === "xy"
@@ -132,7 +133,9 @@ export function regionRow(region: Region): number[] {
     region.cc,
     seventh,
     wireChannel(region.channel),
-    ...region.colour.map(colourByte),
+    ...region.colour.map((level) =>
+      scaleChannel(colourByte(level), brightness),
+    ),
     // A knob's value and its accumulator remainder (runtime.ts, the rotary branch).
     ...(region.kind === "knob" ? [0, 0] : []),
   ];
@@ -141,9 +144,12 @@ export function regionRow(region: Region): number[] {
 // ---------------------------------------------------------------------------
 // The parts.
 
-/** `J={{...},{...}}` - one row per region, in the surface's order. */
-export function renderRegionTable(regions: readonly Region[]): string {
-  return `J={${regions.map((r) => `{${regionRow(r).join(",")}}`).join(",")}}`;
+/** `J={{...},{...}}` - one row per region, in the surface's order, the colours at the brightness. */
+export function renderRegionTable(
+  regions: readonly Region[],
+  brightness: number = 255,
+): string {
+  return `J={${regions.map((r) => `{${regionRow(r, brightness).join(",")}}`).join(",")}}`;
 }
 
 /** `M={[0]=...}` - the 81 entries from geometry.ts's own array, `[0]`-indexed so the lookup is `M[N(x,y)]`. */
@@ -270,7 +276,12 @@ export function emitSurface(
   const restPhase = options.restPhase ?? DEFAULT_REST_PHASE;
   const sweepCalls = options.sweepCalls ?? DEFAULT_SWEEP_CALLS;
 
-  const regionTable = renderRegionTable(surface.regions);
+  // The one place the surface's brightness reaches the wire: every colour the
+  // Sandbox writes is in J (the paint reads r[9..11], the runtime's finger too).
+  const regionTable = renderRegionTable(
+    surface.regions,
+    brightnessOf(surface.brightness),
+  );
   const cellMap = renderCellMap(built.map);
   const paint = renderPaint(restPhase);
   const pullIn = runtime === "split" ? renderPullIn(slots) : "";

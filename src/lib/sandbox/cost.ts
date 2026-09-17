@@ -99,12 +99,14 @@ export async function measureSurface(
   };
 }
 
-/** Every region at the picker corner: level 15 on all three channels. */
+/** Every region at the picker corner: level 15 on all three channels, at full brightness - a scaled channel never has more digits, so this is the bound on what lands. */
 export function atPickerCorner(surface: Surface): Surface {
-  return {
+  const corner = {
     ...surface,
     regions: surface.regions.map((r) => ({ ...r, colour: PICKER_CORNER })),
   };
+  delete (corner as { brightness?: number }).brightness;
+  return corner;
 }
 
 export type SurfaceCost = MeasuredSurface & {

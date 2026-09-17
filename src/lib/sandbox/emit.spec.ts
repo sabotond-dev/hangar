@@ -29,6 +29,7 @@ import {
   scan,
   startedAdmits,
 } from "../catalog/touch-guard";
+import { scaleChannel } from "../catalog/brightness";
 import { padReady } from "../pad/ready";
 import {
   EVENT_BUDGET,
@@ -52,6 +53,7 @@ import {
   renderRegionTable,
 } from "./emit";
 import { buildCellMap } from "./geometry";
+import { landSurface } from "./land";
 import { packRuntime } from "./runtime";
 import {
   BRANCHES,
@@ -59,6 +61,8 @@ import {
   SURFACE_CELLS,
   cellIndex,
   type Branch,
+  colourByte,
+  withBrightness,
   type Region,
   type Surface,
 } from "./model";
@@ -636,5 +640,64 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       ),
     ).toBe(true);
     expect(emitSurface(PAGE3).setup).not.toContain(PULL_IN_MAPMODE);
+  });
+
+  it("6. the surface's brightness (change 5): every colour in J scaled by max(1, floor(v*b/255)), the runtime's Timer and 255/4 untouched, 255 and an absent field byte-identical, the meter the picker corner at full, the landing the scaled Setup, never longer", async () => {
+    const dim = withBrightness(PAGE3, 128);
+    expect(dim.brightness).toBe(128);
+    expect(withBrightness(PAGE3, 255), "255 is the field's absence").toBe(
+      PAGE3,
+    );
+    expect(withBrightness(dim, 255)).not.toHaveProperty("brightness");
+    // The rows: the three colour columns scaled, everything else the same.
+    for (const r of PAGE3.regions) {
+      const full = regionRow(r);
+      const half = regionRow(r, 128);
+      expect(half.slice(0, 8)).toEqual(full.slice(0, 8));
+      expect(half.slice(8, 11)).toEqual(
+        r.colour.map((level) => scaleChannel(colourByte(level), 128)),
+      );
+      expect(half.slice(8, 11), "the corner at 128").toEqual([128, 128, 128]);
+      expect(regionRow(r, 255)).toEqual(full);
+    }
+    const one = regionRow({ ...PAGE3.regions[0], colour: [1, 0, 15] }, 1);
+    expect(one.slice(8, 11), "a lit level stays lit at 1; 0 stays 0").toEqual([
+      1, 0, 1,
+    ]);
+    // The emitted strings: J moves, nothing else does.
+    const full = emitSurface(PAGE3, { slots: 3 });
+    const half = emitSurface(dim, { slots: 3 });
+    expect(emitSurface(withBrightness(PAGE3, 255), { slots: 3 }).setup).toBe(
+      full.setup,
+    );
+    expect(half.parts.regionTable).toBe(renderRegionTable(PAGE3.regions, 128));
+    expect(half.parts.regionTable).not.toBe(full.parts.regionTable);
+    expect(half.parts.cellMap).toBe(full.parts.cellMap);
+    expect(half.parts.paint).toBe(full.parts.paint);
+    expect(half.timer, "the runtime carries no colour").toBe(full.timer);
+    expect(half.mapmode).toBe(full.mapmode);
+    expect(half.setup.length).toBeLessThanOrEqual(full.setup.length);
+    expect(
+      half.setup.replace(half.parts.regionTable, full.parts.regionTable),
+    ).toBe(full.setup);
+    // The landing: the meter is the corner at full brightness (the bound), the strings are the surface's.
+    const landed = await landSurface(dim, { slots: 3 });
+    const landedFull = await landSurface(PAGE3, { slots: 3 });
+    expect(
+      landed.measured.setup.used,
+      "the meter measures the corner at full",
+    ).toBe(landedFull.measured.setup.used);
+    expect(landed.config.setup).toBe((await canonical(half.setup)).text);
+    expect(landed.config.setup).not.toBe(landedFull.config.setup);
+    expect(landed.config.timer).toBe(landedFull.config.timer);
+    expect(landed.config.systemUtility).toBe(landedFull.config.systemUtility);
+    expect(landed.config.setup.length).toBeLessThanOrEqual(
+      landedFull.config.setup.length,
+    );
+    expect(
+      atPickerCorner(dim),
+      "the corner drops the field",
+    ).not.toHaveProperty("brightness");
+    expect(GridScript.checkSyntax(half.setup)).toBe(true);
   });
 });

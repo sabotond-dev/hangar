@@ -23,6 +23,7 @@
 
 import { describe, expect, it } from "vitest";
 import { byId, type CatalogEntry } from "../catalog";
+import { brightnessOf, isBrightness } from "../catalog/brightness";
 import { decodeFor, encodeFor, stampKnobs } from "../share/stamp";
 import { readLibrary } from "./library";
 import type { LocalStore } from "./local";
@@ -30,6 +31,7 @@ import {
   LIBRARY_KEY,
   SCHEMA_VERSION,
   SURFACE_ELEMENT_CAP,
+  isStoredRecord,
   type PlaygroundRecord,
   type Region,
   type StoredRecord,
@@ -603,5 +605,103 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
     // ExportFile's own type carries the record's kind at the top level.
     const typed: ExportFile = exportFile(copy, T1, catalogKnobs);
     expect(typed.kind).toBe(typed.record.kind);
+  });
+
+  it("5. brightness (change 5) travels with a record: a Playground copy and a Sandbox surface round-trip it through the file, an older file without the field lands at 255, the schema's range is catalog/brightness.ts's, and 0 or 256 is unreadable", () => {
+    const dim: PlaygroundRecord = {
+      ...playgroundCopy("copy:euclid:dim", "euclid"),
+      brightness: 128,
+    };
+    const { store } = fakeStore();
+    const text = serialiseExport(exportFile(dim, T1, catalogKnobs));
+    expect(text, "the file carries it").toMatch(/"brightness": 128/);
+    const back = importText(store, text, catalogKnobs, T1);
+    expect(back.landing.kind).toBe("restored");
+    expect(back.record).toEqual(dim);
+    expect(brightnessOf((back.record as PlaygroundRecord).brightness)).toBe(
+      128,
+    );
+
+    const lit = sandboxCopy("sandbox:dim", [region("Filter", 0, 0, 2, 6)]);
+    const dimSurface: StoredRecord = {
+      ...lit,
+      surface: {
+        ...(
+          lit as {
+            surface: { id: string; name: string; regions: readonly Region[] };
+          }
+        ).surface,
+        brightness: 40,
+      },
+    };
+    const surfaceText = serialiseExport(
+      exportFile(dimSurface, T1, catalogKnobs),
+    );
+    const surfaceBack = importText(store, surfaceText, catalogKnobs, T1);
+    expect(surfaceBack.landing.kind).toBe("restored");
+    expect(surfaceBack.record).toEqual(dimSurface);
+    expect(
+      (surfaceBack.record as { surface: { brightness?: number } }).surface
+        .brightness,
+    ).toBe(40);
+
+    // An older file: the record as every copy was written before the field existed.
+    const older = playgroundCopy("copy:euclid:older", "euclid");
+    const olderBack = importText(
+      store,
+      serialiseExport(exportFile(older, T1, catalogKnobs)),
+      catalogKnobs,
+      T1,
+    );
+    expect(olderBack.landing.kind).toBe("restored");
+    expect(olderBack.record).not.toHaveProperty("brightness");
+    expect(
+      brightnessOf((olderBack.record as PlaygroundRecord).brightness),
+      "absent lands at 255",
+    ).toBe(255);
+
+    // The schema's range is the scaler's: 1 and 255 read, 0, 256, 1.5 and a string do not.
+    for (const value of [1, 255, 128]) {
+      expect(
+        isStoredRecord({ ...older, brightness: value }),
+        `${value} reads`,
+      ).toBe(true);
+      expect(
+        isStoredRecord({
+          ...lit,
+          surface: {
+            ...(lit as { surface: object }).surface,
+            brightness: value,
+          },
+        }),
+      ).toBe(true);
+      expect(isBrightness(value)).toBe(true);
+    }
+    for (const value of [0, 256, 1.5, "128", -1]) {
+      expect(
+        isStoredRecord({ ...older, brightness: value }),
+        `${String(value)} is refused`,
+      ).toBe(false);
+      expect(
+        isStoredRecord({
+          ...lit,
+          surface: {
+            ...(lit as { surface: object }).surface,
+            brightness: value,
+          },
+        }),
+      ).toBe(false);
+      expect(isBrightness(value)).toBe(false);
+    }
+    const broken = serialiseExport(exportFile(dim, T1, catalogKnobs)).replace(
+      /"brightness": 128/,
+      '"brightness": 256',
+    );
+    const brokenBack = importText(store, broken, catalogKnobs, T1);
+    expect(
+      brokenBack.landing.kind,
+      "a file edited past the range is unreadable",
+    ).toBe("unreadable");
+    expect(brokenBack.stored).toBe(false);
   });
 });

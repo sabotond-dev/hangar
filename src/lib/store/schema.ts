@@ -100,6 +100,14 @@ export type Orientation = "vertical" | "horizontal";
 export const ORIENTATIONS: readonly Orientation[] = ["vertical", "horizontal"];
 
 /**
+ * A brightness field on a record: an integer 1..255, or absent for full - the reading every record
+ * written before change 5 (2026-09-17) gets. The range is catalog/brightness.ts's; restated here
+ * because this module imports nothing; transfer.spec.ts test 5 holds the two equal.
+ */
+const isBrightnessField = (value: unknown): boolean =>
+  value === undefined || (isInt(value) && value >= 1 && value <= 255);
+
+/**
  * One placed element. Cells are ZERO-based, 0..8, and the UI shows them
  * one-based through 13-14's named door. `channel` is 1..16 as the user sees
  * it; the wire's 0..15 is the compiler's business. `colour` is RGB444, the
@@ -123,13 +131,15 @@ export type Region = {
 };
 
 /**
- * A Sandbox surface: a region list and nothing else. No thumbnail, ever. The
+ * A Sandbox surface: a region list and, since change 5, the whole surface's brightness (1..255,
+ * absent is 255 - every colour the emitter writes is scaled by it). No thumbnail, ever. The
  * version is on the record that carries it, not here: a Surface never travels alone.
  */
 export type Surface = {
   readonly id: string;
   readonly name: string;
   readonly regions: readonly Region[];
+  readonly brightness?: number;
 };
 
 /**
@@ -156,6 +166,8 @@ export type PlaygroundRecord = RecordBase & {
   readonly kind: "playground";
   readonly source: string;
   readonly knobIndices: readonly number[];
+  /** The brightness the copy was saved at (change 5); absent is 255. Not in the stamp: a shared link lands at 255. */
+  readonly brightness?: number;
 };
 
 /**
@@ -228,6 +240,7 @@ function isRegion(value: unknown): value is Region {
 function isSurface(value: unknown): value is Surface {
   if (!isObject(value)) return false;
   if (!isString(value.id) || !isString(value.name)) return false;
+  if (!isBrightnessField(value.brightness)) return false;
   return Array.isArray(value.regions) && value.regions.every(isRegion);
 }
 
@@ -246,6 +259,7 @@ export function isStoredRecord(value: unknown): value is StoredRecord {
   if (!isObject(value) || !hasBase(value)) return false;
   if (!isString(value.source)) return false;
   if (value.kind === "playground") {
+    if (!isBrightnessField(value.brightness)) return false;
     return Array.isArray(value.knobIndices) && value.knobIndices.every(isInt);
   }
   if (value.kind === "sandbox") return isSurface(value.surface);

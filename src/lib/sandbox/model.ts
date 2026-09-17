@@ -235,3 +235,18 @@ export function cloneRegion(region: Region): Region {
 export function emptySurface(id: string, name: string): Surface {
   return { id, name, regions: [] };
 }
+
+/**
+ * The surface with its brightness set, canonically: 255 is the field's absence (so a surface at
+ * full reads, emits and hashes exactly as one written before the field existed), anything else
+ * is carried. The value is the caller's to validate (catalog/brightness.ts's isBrightness).
+ */
+export function withBrightness(surface: Surface, brightness: number): Surface {
+  if (brightness === 255) {
+    if (surface.brightness === undefined) return surface;
+    const rest = { ...surface };
+    delete (rest as { brightness?: number }).brightness;
+    return rest;
+  }
+  return { ...surface, brightness };
+}
