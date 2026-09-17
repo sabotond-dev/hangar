@@ -664,3 +664,23 @@ Everything else about ARC stays.
 
 ("legmélyebb hang" - the lowest note.) Questions put to the user before the brief is written;
 answers recorded below when they arrive.
+
+Answers, 2026-09-18:
+
+> 1) chorus only for now
+> 2) ok
+> 3) you decide but make it clear using colors
+> 4) approved
+> 5) yes
+>
+> on the code length: also keep in mind that System has much more characters to work with, so
+> thats always an option for last resort. only use that though if necessary so we can keep
+> everything as compact as possible
+
+Recorded: (1) Randomize and Lock leave the CHORUS card only. (2) The twelve roots are C3..B3
+(MIDI 48..59). (3) The layout is the executor's, made legible by colour - the seven chord pads one
+colour family, the two octave pads another, the current octave shift shown on them. (4) Octave
+up / down pads shift the whole set by 12, +-2 octaves, lit to show the shift. (5) Smart inversion
+= the inversion that moves the voices least from the previous chord; toggle Off / Smart, default
+Off. Budget order: the entry's Setup, then its Timer slot (879 free), then the system slots
+(255/4 has room) only if nothing else fits - everything as compact as possible.
