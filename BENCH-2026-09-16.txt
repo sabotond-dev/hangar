@@ -624,3 +624,15 @@ five declarations with a coverage gate; a preset is scaled on the compiler's out
 (the per-finger hues and the fader palette are coefficients inside `src/vendor/`, untouched), and its
 preview is the dimmed frame; Reset settings resets it; the quick spec samples the cross-product; the
 preset knob above.
+
+### 5b. The presets' own brightness knob goes (2026-09-17)
+
+Asked "one 1..255 Brightness everywhere (retire the compiler's five-step knob on the eight presets)
+or both", the user answered:
+
+> one
+
+The compiler's `brightness` knob (15 / 30 / 50 / 75 / 100 %, in the BOTOR stamp, rolled by
+Randomize) leaves the eight preset cards; the field is the one brightness. The wire set moves by
+those cards' records; a shared `c`-format link whose vector carried the knob lands at full; D-01's
+three-knob floor on STARFIELD and FOUR FADERS is amended by the user's word at the next gate.
