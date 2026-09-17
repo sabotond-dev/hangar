@@ -1,6 +1,6 @@
 // The execution gate: every hand-authored configuration actually RUNS - the one question a static
 // analysis cannot ask (the budget, canonical form and subset questions are lua-entries.sweep.spec.ts's).
-// Thirty-eight tests since 12.1-08b (the count is read from the runner's report, never from this
+// Thirty-nine tests since 2026-09-17 (the count is read from the runner's report, never from this
 // line; it moved with every phase 11 and 12 bench note and the 12-12 gate found it six stale). The
 // catalog-wide tests loop over the Lua entries internally and name the entry in their message, so a
 // wave that adds a configuration touches no number here; a per-entry title leaves with its entry.
@@ -7738,6 +7738,512 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "every stage of the trackpad probe ran").toBe(8);
+  }, 120000);
+
+  // -------------------------------------------------------------------------
+  // TRACKPAD COMET (2026-09-17, BENCH-2026-09-16.txt section 4): TRACKPAD's
+  // recipe, byte for byte, with a comet under the finger instead of the edge
+  // flash - the library's `G` drawing the finger on layer 0 and `D` re-arming
+  // the nearest calibrated cell on layer 1, both from the Timer, at every
+  // held contact (GHOST's comet shape).
+  //
+  // Six claims. The Setup IS TRACKPAD's string (a comparison, not a review).
+  // The wire is TRACKPAD's for the same gestures: both entries are driven
+  // through one script - a drag, its lift, a tap, a fast tap, a two-finger
+  // tap and a two-finger scroll - and the two HID logs are asserted equal
+  // call for call. A landed finger is drawn as `G`'s twin on layer 0 (the
+  // 12.1-02 arithmetic from KX / KY) over its nearest cell re-armed at the
+  // tail's start on layer 1; a drag leaves every cell it crossed decaying at
+  // full length, the earliest dimmest; a lift clears the head inside one
+  // Timer call and lets the trail reach phase 0 inside the tail's ticks, at
+  // the longest and the shortest tail; a still finger holds its head and its
+  // cell for as long as the recipe holds the gesture and loses both once the
+  // idle window closes, finger still down; and the scroll knob decides
+  // whether two scrolling fingers leave two comets or none.
+  //
+  // WHY NOT `K` ALONE, MEASURED HERE FIRST: a stamp re-written every call at
+  // the cell's falling bilinear weight dims a cell the finger is leaving to
+  // its last small start (6 or 12, gone in a tick or two), so a slow finger
+  // left almost no trail. The whole-cell re-arm through `D(N(x,y))` keeps a
+  // left cell at its last full start and decays it from there.
+  //
+  // THE DECAY GATE CANNOT SEE THIS CARD EITHER: every trail write goes
+  // through `D(`, so the walk to black here is its phase-0 proof.
+  // -------------------------------------------------------------------------
+  it("carries TRACKPAD's Setup byte for byte and its wire call for call, and paints a comet that follows the finger, holds under a still one, and fades to phase 0 inside the tail", async () => {
+    const entry = CATALOG.find((e) => e.id === "trackpad-comet");
+    const trackpad = CATALOG.find((e) => e.id === "trackpad");
+    if (!entry || entry.source.kind !== "lua") {
+      throw new Error("TRACKPAD COMET is not a Lua entry in the catalog");
+    }
+    if (!trackpad || trackpad.source.kind !== "lua") {
+      throw new Error("TRACKPAD is not a Lua entry in the catalog");
+    }
+    const report: string[] = [];
+
+    // ---- 1. THE SETUP IS TRACKPAD'S STRING; only the Timer differs.
+    expect(
+      entry.source.setup,
+      "trackpad-comet: the Setup is TRACKPAD's, byte for byte",
+    ).toBe(trackpad.source.setup);
+    expect(entry.source.timer, "trackpad-comet: the Timer is its own").not.toBe(
+      trackpad.source.timer,
+    );
+    const PAINT = "G(s,i,1,x,y,0,@H)D(N(x,y),1,@T*6)";
+    expect(
+      entry.source.timer.includes(PAINT),
+      "trackpad-comet: the Timer's head and trail are the pair this test mirrors",
+    ).toBe(true);
+    const tailKnob = entry.knobs.find((k) => k.id === "tail");
+    const scrollKnob = entry.knobs.find((k) => k.id === "scroll");
+    expect(tailKnob, "the tail knob").toBeDefined();
+    expect(scrollKnob, "the scroll knob").toBeDefined();
+    const tails = tailKnob!.values.map(Number);
+    for (const t of tails) {
+      expect((t * 6) % 6, `tail ${t}: the start is a multiple of six`).toBe(0);
+      expect(t * 6, `tail ${t}: inside D's ceiling`).toBeLessThanOrEqual(252);
+      expect(t * 6, `tail ${t}: a real brightness`).toBeGreaterThanOrEqual(6);
+    }
+    report.push(`  the starts: ${tails.map((t) => t * 6).join(" ")}`);
+
+    type Opened = Awaited<ReturnType<typeof open>>;
+    const openWith = async (
+      which: CatalogEntry,
+      indices: Record<string, number> | undefined,
+    ): Promise<Opened> => {
+      const { setup, timer } = renderLua(which, indices);
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer,
+      });
+      return { host, sim };
+    };
+    const layerOf = (sim: PadSim, cell: number, layer: 0 | 1) =>
+      sim.layer(screenToHw(cell % 9, Math.floor(cell / 9)), layer);
+    const litCells = (frame: Uint8Array): number[] => {
+      const out: number[] = [];
+      for (let n = 0; n < CELLS; n += 1) {
+        if (frame[n * 3] || frame[n * 3 + 1] || frame[n * 3 + 2]) out.push(n);
+      }
+      return out;
+    };
+    /** The raw sensor pair the Timer hands the library for a hi-res finger. */
+    const raw = (x: number, y: number): [number, number] => [
+      Math.floor(x / 8),
+      Math.floor(y / 8),
+    ];
+    /** `N`'s twin: the nearest calibrated cell of a hi-res finger. */
+    const nearestCell = (x: number, y: number): number => {
+      const [rx, ry] = raw(x, y);
+      return (
+        Math.floor((calibratedAxis(rx, "x") + 32) / LED_STEP) +
+        Math.floor((calibratedAxis(ry, "y") + 32) / LED_STEP) * 9
+      );
+    };
+    /**
+     * `G`'s twin for a hi-res finger: the four cells of the block and their
+     * layer-0 phases, 255 * weight // 4096 - the 12.1-02 arithmetic.
+     */
+    const expectedHead = (x: number, y: number): Record<number, number> => {
+      const [rx, ry] = raw(x, y);
+      const u = calibratedAxis(rx, "x");
+      const v = calibratedAxis(ry, "y");
+      const c = Math.min(Math.floor(u / LED_STEP), 7);
+      const q = Math.min(Math.floor(v / LED_STEP), 7);
+      const f = u - c * LED_STEP;
+      const h = v - q * LED_STEP;
+      const out: Record<number, number> = {};
+      for (let d = 0; d < 4; d += 1) {
+        const weight =
+          (d % 2 > 0 ? f : LED_STEP - f) *
+          (Math.floor(d / 2) > 0 ? h : LED_STEP - h);
+        out[c + q * 9 + (d % 2) + Math.floor(d / 2) * 9] = Math.floor(
+          (255 * weight) / 4096,
+        );
+      }
+      return out;
+    };
+    /** Layer 0 as drawn: every cell with a non-zero phase. */
+    const headOn = (sim: PadSim): Record<number, number> => {
+      const out: Record<number, number> = {};
+      for (let cell = 0; cell < CELLS; cell += 1) {
+        const p = layerOf(sim, cell, 0).pha;
+        if (p !== 0) out[cell] = p;
+      }
+      return out;
+    };
+    /** Every cell of layer 1 with a countdown running: cell -> phase. */
+    const running = (sim: PadSim): Record<number, number> => {
+      const out: Record<number, number> = {};
+      for (let cell = 0; cell < CELLS; cell += 1) {
+        const L = layerOf(sim, cell, 1);
+        if (L.fre === 0 && L.timeout === 0) continue;
+        out[cell] = L.pha;
+      }
+      return out;
+    };
+    /**
+     * A held finger: the head is `G`'s block exactly (layer 0 is set, not
+     * decayed), and the nearest cell is re-armed every Timer call (two
+     * ticks), so read after a tick it sits six or twelve below the start.
+     */
+    const expectHeld = (
+      sim: PadSim,
+      x: number,
+      y: number,
+      w: number,
+      label: string,
+    ): { cell: number; head: Record<number, number> } => {
+      const head = expectedHead(x, y);
+      const drawn = headOn(sim);
+      const nonZero = Object.fromEntries(
+        Object.entries(head).filter(([, p]) => p !== 0),
+      );
+      expect(drawn, `${label}: layer 0 is G's block`).toEqual(nonZero);
+      const cell = nearestCell(x, y);
+      const pha = running(sim)[cell];
+      expect(
+        pha !== undefined && pha >= w - 12 && pha <= w,
+        `${label}: the nearest cell ${cell} at ${pha}, expected within twelve below ${w}`,
+      ).toBe(true);
+      return { cell, head: nonZero };
+    };
+    const ticksToDark = (host: Opened["host"]): number => {
+      let n = 0;
+      while (litCells(host.frame).length > 0 && n < 200) {
+        host.tick();
+        n += 1;
+      }
+      return n;
+    };
+    const expectAllZero = (sim: PadSim, label: string): void => {
+      for (let cell = 0; cell < CELLS; cell += 1) {
+        const L = layerOf(sim, cell, 1);
+        expect(
+          [L.pha, L.fre, L.timeout],
+          `${label}: layer 1 cell ${cell} did not land on 0`,
+        ).toEqual([0, 0, 0]);
+        expect(
+          layerOf(sim, cell, 0).pha,
+          `${label}: layer 0 cell ${cell} is not clear`,
+        ).toBe(0);
+      }
+    };
+    const DEFAULT_W = tails[0] * 6;
+
+    // ---- 2. THE WIRE IS TRACKPAD'S, call for call, over one script.
+    const script = (o: Opened): (string | number)[][] => {
+      const { host } = o;
+      host.run(4);
+      host.touchDown(0, 200, 511);
+      host.run(2);
+      let x = 200;
+      for (let i = 0; i < 8; i += 1) {
+        x += 40;
+        host.touchMove(0, x, 511);
+        host.run(2);
+      }
+      host.touchUp(0, x, 511);
+      host.run(60);
+      host.touchDown(1, 600, 600);
+      host.run(2);
+      host.touchUp(1, 600, 600);
+      host.run(60);
+      host.touchTap(1, 300, 300);
+      host.run(60);
+      host.touchDown(0, 300, 300);
+      host.run(2);
+      host.touchDown(1, 500, 300);
+      host.run(2);
+      host.touchUp(0, 300, 300);
+      host.run(2);
+      host.touchUp(1, 500, 300);
+      host.run(60);
+      host.touchDown(0, 300, 300);
+      host.run(2);
+      host.touchDown(1, 500, 300);
+      host.run(2);
+      let y = 300;
+      for (let i = 0; i < 10; i += 1) {
+        y += 30;
+        host.touchMove(0, 300, y);
+        host.run(2);
+        host.touchMove(1, 500, y);
+        host.run(2);
+      }
+      host.touchUp(0, 300, y);
+      host.run(2);
+      host.touchUp(1, 500, y);
+      host.run(60);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      return host.hid.map((h) => [h.call, ...h.args]);
+    };
+    const theirs = await openWith(trackpad, undefined);
+    let wireTrackpad: (string | number)[][];
+    try {
+      wireTrackpad = script(theirs);
+    } finally {
+      theirs.host.close();
+    }
+    const ours = await openWith(entry, undefined);
+    let wireComet: (string | number)[][];
+    try {
+      wireComet = script(ours);
+    } finally {
+      ours.host.close();
+    }
+    expect(
+      wireTrackpad.length,
+      "the script sent something on TRACKPAD",
+    ).toBeGreaterThan(20);
+    expect(
+      wireComet,
+      "trackpad-comet: the HID log is TRACKPAD's, call for call",
+    ).toEqual(wireTrackpad);
+    const calls = (name: string): number =>
+      wireComet.filter((h) => h[0] === name).length;
+    report.push(
+      `  wire identical to TRACKPAD's over the script: ${wireComet.length} HID calls (gmms ${calls("gmms")}, gmbs ${calls("gmbs")})`,
+    );
+
+    // ---- 3. A LANDED FINGER IS G'S BLOCK OVER ITS CELL; a drag trails at
+    //         full length; a lift clears the head and fades the trail to
+    //         phase 0 inside the tail.
+    const a = await openWith(entry, undefined);
+    try {
+      const { host, sim } = a;
+      expect(host.coordMax, "trackpad-comet: both axes unlocked").toBe(1023);
+      host.run(4);
+      expect(litCells(host.frame), "trackpad-comet: black at rest").toEqual([]);
+      host.touchDown(0, 200, 511);
+      host.run(3);
+      const landed = expectHeld(sim, 200, 511, DEFAULT_W, "a landed finger");
+      report.push(
+        `  landed at (200,511): head ${Object.entries(landed.head)
+          .map(([c, p]) => `${c}=${p}`)
+          .join(" ")}, trail cell ${landed.cell} armed at ${DEFAULT_W}`,
+      );
+
+      // The drag: eight moves right, 40 hi-res units each, two ticks apart;
+      // the cells whose turn it was to be nearest, in order.
+      let x = 200;
+      const visited: number[] = [landed.cell];
+      for (let i = 0; i < 8; i += 1) {
+        x += 40;
+        host.touchMove(0, x, 511);
+        host.run(2);
+        const n = nearestCell(x, 511);
+        if (!visited.includes(n)) visited.push(n);
+      }
+      host.run(1);
+      const trail = running(sim);
+      const headCell = nearestCell(x, 511);
+      const behind = visited.filter((c) => c !== headCell);
+      expect(
+        behind.length,
+        "trackpad-comet: the drag crossed cells behind the head",
+      ).toBeGreaterThan(1);
+      for (const c of visited) {
+        expect(
+          trail[c] !== undefined,
+          `trackpad-comet: cell ${c} the finger crossed is still decaying`,
+        ).toBe(true);
+      }
+      for (let i = 0; i < behind.length; i += 1) {
+        expect(
+          trail[behind[i]] < trail[headCell],
+          `trackpad-comet: cell ${behind[i]} behind the head (${trail[behind[i]]}) is dimmer than the head cell (${trail[headCell]})`,
+        ).toBe(true);
+        if (i > 0) {
+          expect(
+            trail[behind[i - 1]] < trail[behind[i]],
+            `trackpad-comet: the trail rises toward the head: ${behind[i - 1]}=${trail[behind[i - 1]]} then ${behind[i]}=${trail[behind[i]]}`,
+          ).toBe(true);
+        }
+      }
+      expect(
+        Object.keys(headOn(sim))
+          .map(Number)
+          .sort((p, q) => p - q),
+        "trackpad-comet: the head follows the finger",
+      ).toEqual(
+        Object.entries(expectedHead(x, 511))
+          .filter(([, p]) => p !== 0)
+          .map(([c]) => Number(c))
+          .sort((p, q) => p - q),
+      );
+      report.push(
+        `  a rightward drag: head cell ${headCell} at ${trail[headCell]}, behind it ${behind.map((c) => `${c}=${trail[c]}`).join(" ")}`,
+      );
+
+      // The lift: the head is cleared inside one Timer call, the trail
+      // reaches black inside the tail, every cell on 0 on both layers.
+      host.touchUp(0, x, 511);
+      host.run(3);
+      expect(
+        headOn(sim),
+        "trackpad-comet: the head is cleared inside one Timer call of the lift",
+      ).toEqual({});
+      const dark = ticksToDark(host);
+      expect(
+        dark,
+        "trackpad-comet: after the lift the trail is black inside 42 ticks",
+      ).toBeLessThanOrEqual(tails[0] + 2);
+      expectAllZero(sim, "after the lift");
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(
+        `  lift: head cleared, black after ${dark} more ticks, every cell on phase 0`,
+      );
+
+      // ---- 4. A STILL FINGER HOLDS ITS HEAD AND ITS CELL for as long as the
+      //         recipe holds the gesture, then loses both once the idle
+      //         window (25 quiet Timer calls) closes - finger still down.
+      host.run(60);
+      host.touchDown(0, 600, 600);
+      host.run(3);
+      const still = expectHeld(
+        sim,
+        600,
+        600,
+        DEFAULT_W,
+        "a still finger at 3 ticks",
+      );
+      host.run(44);
+      expectHeld(sim, 600, 600, DEFAULT_W, "a still finger at 47 ticks");
+      host.run(60);
+      expect(
+        litCells(host.frame),
+        "trackpad-comet: past the recipe's idle window the comet has gone with the finger still down",
+      ).toEqual([]);
+      expectAllZero(sim, "past the idle window");
+      host.touchUp(0, 600, 600);
+      host.run(4);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(
+        `  a still finger: head ${Object.entries(still.head)
+          .map(([c, p]) => `${c}=${p}`)
+          .join(
+            " ",
+          )} and cell ${still.cell} held at 47 ticks, black once 25 quiet calls passed`,
+      );
+    } finally {
+      a.host.close();
+    }
+
+    // ---- 5. THE SHORTEST TAIL fades inside its own ticks.
+    const short = await openWith(entry, { tail: 2 });
+    try {
+      const { host, sim } = short;
+      const w = tails[2] * 6;
+      host.run(4);
+      host.touchDown(0, 200, 511);
+      host.run(3);
+      expectHeld(sim, 200, 511, w, "the short tail's head");
+      let x = 200;
+      for (let i = 0; i < 8; i += 1) {
+        x += 40;
+        host.touchMove(0, x, 511);
+        host.run(2);
+      }
+      host.touchUp(0, x, 511);
+      host.run(3);
+      const dark = ticksToDark(host);
+      expect(
+        dark,
+        `trackpad-comet: tail ${tails[2]} is black inside its own ticks`,
+      ).toBeLessThanOrEqual(tails[2] + 2);
+      expectAllZero(sim, "after the short tail");
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(`  tail ${tails[2]}: black after ${dark} ticks`);
+    } finally {
+      short.host.close();
+    }
+
+    // ---- 6. THE SCROLL KNOB: two comets under two scrolling fingers at
+    //         `true`, none at `false` once the first finger's own arm has
+    //         run down.
+    const scrollWith = async (
+      index: number,
+    ): Promise<{
+      lit: number[];
+      notches: number[];
+      cells: number[];
+      heads: number;
+    }> => {
+      const o = await openWith(entry, { scroll: index });
+      try {
+        const { host, sim } = o;
+        host.run(4);
+        host.touchDown(0, 300, 300);
+        host.run(2);
+        host.touchDown(1, 500, 300);
+        host.run(2);
+        let y = 300;
+        const hidBefore = host.hid.length;
+        for (let i = 0; i < 12; i += 1) {
+          y += 30;
+          host.touchMove(0, 300, y);
+          host.run(2);
+          host.touchMove(1, 500, y);
+          host.run(2);
+        }
+        host.run(1);
+        const lit = litCells(host.frame);
+        const cells = [nearestCell(300, y), nearestCell(500, y)];
+        const heads = Object.keys(headOn(sim)).length;
+        const notches = host.hid
+          .slice(hidBefore)
+          .filter((h) => h.call === "gmms" && h.args[0] === 3)
+          .map((h) => h.args[1]);
+        host.touchUp(0, 300, y);
+        host.run(2);
+        host.touchUp(1, 500, y);
+        host.run(2);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        return { lit, notches, cells, heads };
+      } finally {
+        o.host.close();
+      }
+    };
+    const both = await scrollWith(0);
+    expect(
+      both.notches.length > 0 && both.notches.every((v) => v < 0),
+      `trackpad-comet: the two-finger drag scrolls: ${both.notches.join(" ")}`,
+    ).toBe(true);
+    for (const c of both.cells) {
+      expect(
+        both.lit.includes(c),
+        `trackpad-comet: scroll=true lights cell ${c} under a scrolling finger`,
+      ).toBe(true);
+    }
+    expect(
+      both.heads,
+      "trackpad-comet: scroll=true draws two heads",
+    ).toBeGreaterThanOrEqual(2);
+    const none = await scrollWith(1);
+    expect(
+      none.notches,
+      "trackpad-comet: the scroll knob does not touch the wire",
+    ).toEqual(both.notches);
+    expect(
+      none.lit,
+      "trackpad-comet: scroll=false lights nothing under two fingers",
+    ).toEqual([]);
+    expect(none.heads, "trackpad-comet: scroll=false draws no head").toBe(0);
+    report.push(
+      `  scroll: notches ${both.notches.join(" ")}; true lights ${both.lit.length} cells (the two cells ${both.cells.join(" ")} among them, ${both.heads} head cells), false lights none`,
+    );
+
+    process.stdout.write(
+      "\nTRACKPAD COMET, the recipe's wire and the comet (2026-09-17):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length, "every stage of the comet probe ran").toBe(8);
   }, 120000);
 });
 
