@@ -684,3 +684,21 @@ up / down pads shift the whole set by 12, +-2 octaves, lit to show the shift. (5
 = the inversion that moves the voices least from the previous chord; toggle Off / Smart, default
 Off. Budget order: the entry's Setup, then its Timer slot (879 free), then the system slots
 (255/4 has room) only if nothing else fits - everything as compact as possible.
+
+## 8. EUCLID renamed, a fourth ring, tempo direction, ring colours, MIDI clock sync, a note per ring (2026-09-18, queued for Fable 5.1 after CHORUS)
+
+> Euclid: rename it to smth crfeative. Add one more ring the farest one from the center. Tempo
+> slider is in the wrong direction the bigger tempo should be on right side.  each ring should
+> have their own color. It should be able to get sync from a software or daw, its in the Editor,
+> implement that for the sequencer profiles. its under function called MIDI rtm callback
+> handler. Remove base not and you should be able to select a note for each ring from C -2 to G 8
+> so full range.
+
+Facts read before asking: the 9x9's concentric rings hold 8, 16, 24 and 32 cells; EUCLID uses the
+inner three, so "the farthest from the centre" is the outer 32-step ring - it fits the pattern
+with no rounding. The firmware's MIDI RX: `rx_mode(2, ...)` routes MIDIRTM (the realtime
+messages: clock 0xF8 at 24 per quarter, start 0xFA, continue 0xFB, stop 0xFC) and
+`midi_rx_register` binds a Lua callback (`grid_protocol.h:389-395`, `:882-883`, `:920-924`) -
+the Editor's "MIDI rtm callback handler". "Sequencer profiles" read as every card that steps on
+the Timer: EUCLID (this change), STEPS, RADAR POINTS, SONAR - the others follow once the shape is
+proved here. Questions put to the user; answers recorded below.
