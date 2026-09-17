@@ -889,3 +889,30 @@ Questions asked 2026-09-18 (the recommendation first in each; unanswered ones ar
     65..127 down; (d) a selector with all three.
 12. Budget: every option is a column in the region table on the module, so a surface using many of
     them fits fewer than sixteen elements; the meter already floors the count. Acceptable?
+
+> 1) a
+> 2) confirmed
+> 3) b
+> 4)confirm
+> 5) confirm, and keep in mindg that the irl animation needs to change if theres spring mode on, or
+> if theres toggle mode for a button etc.
+> 6) a, xy: a, button: confirmed
+> 7) c
+> 8) confirm
+> 9) b
+> 10) confirmed
+> 11) d
+> 12) system event can be used for budget. also hide the character count and limit from the user
+> entirely for now
+
+Recorded 2026-09-18. Readings: (3) a hotkey stays armed until V / Escape. (5) the module's picture
+follows the mode: a spring fader's bar returns to the spring value on release, a toggle button stays
+lit while on, a momentary one goes dark on release, a relative fader's bar shows the held value not
+the finger. (7) a Speed option, half and full. (9) a Button option "Radio group": buttons in the same
+group are exclusive - pressing one releases the others (sends their off value) - no new kind.
+(11) a Mode selector on the knob: Absolute, Relative (2's comp.), Relative (binary offset), Relative
+(sign magnitude). (12) the system slots may carry Sandbox text: a Sandbox landing may replace the
+library halves in 255/0 and 255/6 with only what the surface's runtime calls (E G N U X and the
+calibration tables) and use the room for the runtime; the cost meter, the character count and the
+limit disappear from the Sandbox for now - the cap is still enforced, its refusal worded without
+numbers. Every other question: the first option.
