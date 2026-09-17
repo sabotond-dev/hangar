@@ -4833,6 +4833,207 @@ change, left for your word; (e) a still finger's comet goes dark after the recip
 calls (500 ms) in the VM, where a still finger sends nothing - on the module a resting finger
 wobbles every sample (probe Q1) so it stays; row 29(b) asks.
 
+## 2026-09-17 change 5 - a brightness setting, 1 to 255, on every card and every surface, reaching the ZONA
+
+Outside the GSD cycle, the user's word recorded verbatim in `BENCH-2026-09-16.txt` section 5: "add
+brightness setting to all playground mode and sandbox mode. lowest brightness 1 highest 255".
+Research first, because the mechanism was not decided; then seven source commits, then this
+section: the scaler and its gate (`df8d386`), the tuner and the engines (`5b52611`), the Sandbox
+and the records (`dbd6b87`), the field and the routes (`6bcc627`), the two e2e titles (`e8fb3bc`),
+audition row 30 (`b9ef5e8`), a fix for the gate's harness (`164df23`); then this section, the
+record's Done paragraph and the gate records `gate/change-5.*` (before) and `gate/change-5-after.*`.
+
+**The firmware has no brightness.** `../grid-fw/common/src/c/grid_protocol.h:236-287` is the whole
+LED API the Lua sees: `glr glg glb` (the defaults), `glp` (phase), `glt` (timeout), `gln gld glx`
+(a layer's min / mid / max colour), `glc` (led_color: a layer's colour, with the six-argument form
+forcing min to 0, `grid_lua_api.c:1062-1102`), `glf` (rate), `gls` (shape), `glpfs`, `glag`.
+`grid_led.c:408-463` (`grid_led_render_framebuffer_one`) maps each layer's phase through its shape
+to an intensity, looks up `min_lookup / mid_lookup / max_lookup[intensity]`, sums `colour * alpha`
+over the layers and divides by 512 - nothing scales the sum, and `struct grid_led_model`
+(`grid_led.h:41-53`) has no intensity field. A grep of `grid_led.c grid_led.h grid_lua_api.c
+grid_protocol.h` and the firmware's Lua for brightness / dimming finds nothing. So brightness is
+applied to the colours HANGAR writes.
+
+**Two mechanisms measured; (a) chosen.** _(b) a library global_: `LB=255` in 255/0's data line
+costs 7 of its 66 free; scaling inside `G` (`glc(a,l,r*LB//255,g*LB//255,b*LB//255,1)`) is +24
+characters and inside `K` another +24, 48 against 255/6's 35 free - `G` alone fits and `K` does
+not - and neither reaches the `glc` calls the entries make themselves (TRACKPAD's Timer writes its
+layer-1 colour with `glc(glag(0,n),1,@C,1)`, every Setup paints its own layers), nor the compiler's
+output. _A wrapper of the firmware's own `glc` in 255/0_ (`O=glc glc=function(a,l,r,g,b,m)O(a,l,
+r*128//255,...)end`) measures 75, 69 with `>>8`, 74 made safe against the page-load re-run that
+would otherwise wrap the wrapper (`grid_decode.c` never clears `_G`) - all over 255/0's 66 free
+before `gld / glx / gln` (the drift look) get theirs, and the PadSim preview would not follow it.
+_(a) at landing_: `src/lib/catalog/brightness.ts`, pure string arithmetic, no import. `scaleLua`
+rewrites every colour argument of every painter call in the emitted text - the firmware's four
+(`glc gld glx gln`, positions 2-4), the library's `G` (6-8) and `K` (4-6, optional) - and every
+declared palette table; a channel becomes `max(1, floor(v*b/255))` (0 stays 0, so a dim colour
+never vanishes; at 1 a lit channel is 1), a linear form's coefficient (`255-j*85`, `f*80`,
+`lo+d*x//8`) floors plainly, which is what keeps morph's fourth corner and the compiler's fifth
+finger non-negative at every brightness (test 2 walks 1..255). The wire-side survey found what a
+shape scan cannot see, declared per entry in `ENTRY_SITES` and asserted found: CULL's fifteen-
+channel `C`, LUMEN's twenty-seven-channel `H`, QUADRANT's two `C` constructors (palettes); SNAKE's
+`P(k,r,g,b)` and POMODORO's `I(p,q,w)` (local painters, their callers scaled, their bodies' bare
+`r g b` / `p q w` allowed by name). The Sandbox scales its region rows in `emit.ts` (`regionRow`'s
+three colour columns - the paint and the runtime's finger read `J`) and `cost.ts`'s picker corner
+drops the field so the meter measures the bound. A preset compiles at the compiler's own `Full`
+and its pair is scaled the same way, so one scanner covers every producer; its preview is
+`engine.ts`'s `dimmed` - the PadSim's frame scaled byte for byte - which the wire agrees with to
+one unit per channel (`lua-parity.spec.ts` title 7: the scaled compiled Lua in the VM beside the
+library against the dimmed PadSim, eight presets, at rest and under a finger, worst byte
+difference 1 over 11,664 bytes, the brightest byte 141 -> 70, 253 -> 127). A Lua entry and a
+surface preview through a fresh VM on the scaled bytes: exact.
+
+**Budget.** A scaled number never has more digits than its source, so no string grows - asserted
+per channel in test 1 and on every sampled string in test 4 - and the sweep's picker corner at
+255 stays the worst case. The two tightest entries at the RGB444 picker corner, measured under
+the pinned `compressScript` after `initLuaFormatter()`, at 255 / 128 / 1: **Trackpad Setup 903 /
+903 / 903** (no colour in the Setup) and Timer 510 / 510 / 504; **Chorus Setup 822 / 820 / 803**,
+Timer 29; **Console Setup 788 / 788 / 759**, Timer 0. Every scaled string still passes
+`checkSyntax` (test 4, 519 Lua states and 345 preset states at 128 and at 1).
+
+**Coverage** (`brightness.spec.ts` test 3): every colour argument of every painter call is
+classified on the 19 Lua entries at hash-wire's sampling (defaults, corner, every single-knob
+position: 519 states, 7,119 arguments - literal 6,405, linear 72, bare 438, palette 204) and on
+the 8 presets at theirs (345 states, 2,271 arguments); none is `other`, every declared palette is
+found, no undeclared entry needs a declaration. Measured once over the whole Lua cross-product
+(232,824 states, 2,570,136 arguments, 81 s): none unreachable either; the quick spec samples.
+
+**Where the value lives.** `Surface.brightness?` and `PlaygroundRecord.brightness?` in
+`store/schema.ts` on the 13-14 `orientation` precedent: an integer 1..255 or absent, absent
+meaning 255, so every record written before today reads as it was; the validators refuse 0, 256,
+1.5 and a string (a file edited past the range is unreadable, `transfer.spec.ts` 5); the export
+file carries it; `withBrightness` (sandbox/model.ts) keeps 255 as the field's absence so a
+surface at full reads, emits and hashes exactly as before. **The stamp does not carry it**: a
+shared link lands at 255, `y` and `z` stay reserved. A Playground copy saved at a brightness
+opens from My configs through `?from=<record id>` beside its stamp (the Sandbox's 13-17 shape) and
+the workspace reads the field for that entry only; a copy at 255 keeps the address it had.
+
+**The control.** `src/lib/ui/BrightnessField.svelte`, MidiField's shape over a free range: a text
+input with a numeric keyboard, `parseBrightness` the door, a whole number outside 1..255 refused
+inline with `Brightness is 1 to 255.` and anything else with `Type a whole number.`, the last good
+value kept with the refused text under `aria-invalid` until a keystroke validates, section 7's
+changed marker off 255, a per-field reset named `Reset Brightness`, 44px, square, the error ink
+on the refused boundary and its sentence only (the carriers list in `tune-ui.spec.ts` gains it).
+The workspace: under `Appearance`, beneath the swatch rack - the section is unconditional now, so
+a card with no colour knob has it for the field alone; `TuneView.brightness` feeds it;
+`tuner.setBrightness` withdraws the strings on the same tick as a knob move, drops the forecast
+memo, repaints a preset now through the dimmed engine and rebuilds a Lua entry's VM at the
+debounce; Reset settings puts it back with the knobs; Randomize draws knob indices only
+(`surpriseIndices` over `knobs`), so it cannot reach it - structural, not a guard. The Sandbox:
+under `Appearance` with or without a selection (no selection lists Appearance alone), the helper
+`One brightness for the whole surface, every element included.` beneath, read-only in Play;
+`editor.setBrightness` is a structural edit under one coalesce key (typed digits are one entry),
+undone and redone, refused in Play. The strings are `inspector-copy.ts`'s: `BRIGHTNESS_LABEL`,
+`BRIGHTNESS_RANGE`, `BRIGHTNESS_SURFACE_HELPER`; testids `brightness-field`, `-input`, `-reset`,
+`-message`, `-changed`. `config-shape.spec.ts` permits `$lib/catalog/brightness` for a component
+by exact path, on `brightness.spec.ts` test 5's proof that the module imports nothing.
+
+**A preset still carries the compiler's own five-detent Brightness knob** (`knobs.preset.ts`,
+D-01's three-knob floor for STARFIELD and FOUR FADERS, format `c` in the BOTOR stamp, sixty-four
+`knob brightness=N` records in the wire set). The field composes with it - the knob scales the
+compiler's coefficients (`briPct`), the field scales what lands - and at the knob's `Full` the
+field is the only scaling. Retiring the knob would move the wire set, which this change holds
+equal, so it stands; `tune-ui.spec.ts`'s new title names the two apart. A question below.
+
+**The wire.** `hash-wire --full --sandbox` at the last source commit: **the set `3f2531f7…` and
+the full `df9345d9…` byte-identical to the before-record's, the sandbox set `40b44316…` equal**
+
+- 255 is the identity on every string HANGAR can put on a ZONA. Store lands the scaled strings
+  and the read-back proof compares what was sent: unchanged logic, pressed in a browser
+  (`install.e2e.ts`: EUCLID stored at 255 is the Setup as shipped; at 128 the fake's RAM holds
+  `scaleLua`'s string byte for byte, the Timer too, the picture's brightest channel 135 -> 70; the
+  reset lands the shipped bytes on a third store).
+
+**Specs, each +1 unless said:** `brightness.spec.ts` (new, 5: the rules; the shapes; coverage;
+the wire - identity, never longer, checkSyntax, the three corners; imports nothing); `model.spec.
+ts` (14: EUCLID at 128 lands `scaleLua`'s pair with the library untouched and the meter equal to
+`measureLua` of the landed Setup, the fresh VM's frame about half, a roll leaves it, 0 / 256 /
+the same value emit nothing, Reset settings restores the shipped bytes; AURORA opened at 128 lands
+its compiled Setup scaled, the meter its cost, the preview about half); `lua-parity.spec.ts` (7,
+above); `emit.spec.ts` (6: the rows at 128 and at 1, `J` moved and nothing else, the landing's
+scaled Setup beside a meter equal to the full corner); `transfer.spec.ts` (5, above);
+`tune-ui.spec.ts` (13: the field's shape at 255, 128 and read-only, the door, the wiring, no Lua
+entry with a brightness knob, a real tuner opened at 200 moved to 64 rolled and reset; the
+component list 10 -> 11, the accent census gains the field at 0, the error-ink carriers gain it);
+`sandbox-ui.spec.ts` (9: one coalesced entry per edit undone and redone, refused in Play, 255 the
+field's absence; the inspector with and without a selection, read-only in Play);
+`audition.spec.ts` (`ROW_COUNT` 29 -> 30, the title says thirty); `config-shape.spec.ts` (the
+third permitted catalog path).
+
+**The runs.** Quick **95 / 978** (+1 file / +11 tests) at `--maxWorkers=2`: green three times
+(the two counted runs and the gate's own, which reads 978 passed / 1 todo and `check-counts`
+exits 1 on its hard-coded 94 / 966 as change 4's did); check **658** (+3 files), 0 / 0; lint
+clean; the sweep `4 19` green (`lua-entries` 1,201 combinations / 2,402 measurements; the
+reachability sweep 44,846 states, laddered 8, over budget 0; the kind cross-product 1,296, worst
+906 of 908 - none reads a brightness); the build. **The gate** `--before change-5` at `b5432db`
+(`gate/change-5.txt`) and `--after change-5 --against change-5 --check 658` at `164df23`
+(`gate/change-5-after.txt`); the script exits 1 at its first inequality - the literal census, by
+design of a feature - so the later terms are compared here from the two records. **Equal, above
+all: the wire set `3f2531f7…` and full `df9345d9…`** (1,765 strings; 1,792 records under
+`--full`), the sandbox set `40b44316…` (154 strings); the four fixtures' hash-objects and the OG
+(27 files, 158,642 B, `f60a6363…` - rendered at 255); the fixture paths clean after the build;
+the utilities 44 -> 44 with the five markup-named intact; check 658; lint; the build; the
+refuse-list `--stat` empty; `src/` 24 modified / 3 added (`catalog/brightness.ts`, `catalog/
+brightness.spec.ts`, `ui/BrightnessField.svelte`) / 0 deleted / 0 renamed. **Moved, as a feature
+moves them:** the SCOPED CSS `661eab32…` -> `7f88b4f4…` and the raw `fc20dd55…` -> `56d81122…`
+(one component gained rules: BrightnessField.svelte's); the literal census `b251cbba…` ->
+`e4f23375…` (2,699 -> 2,721 distinct, 193 -> 194 files: in - the two sentences, the five testids,
+the coalesce key, the scanner's regex sources, `?from=${}`, the classification words; up -
+`Brightness` 1 -> 2, `brightness` 1 -> 3, `number` 12 -> 16, `range` 4 -> 6, `palette` 2 -> 4
+and the field vocabulary by one); the copy exports `25468f7e…` -> `7ec85d4a…` (three); the
+`data-testid` set `cebf17b5…` -> `70dfe98a…` (312 -> 317); the titles `a0e65d2d…` ->
+`82938fa6…` (968 -> 979 vitest titles incl. todo, 101 -> 103 playwright runs; one retitled -
+the audition's "twenty-nine" -> "thirty"); the normalised JS `b4a972a3…` -> `870762eb…` (71 ->
+72 files); comment lines 12,679 -> 12,837, header lines 3,930 -> 3,956 (`comment-lines.mjs
+--todo` prints nothing over the twelve files with a header touched). The first `--after` run
+came back with an empty wire term: `hash-wire.mjs` imports `engine.ts` from the tree under Node
+24's strip-only TypeScript, which refuses a parameter property (`ERR_UNSUPPORTED_TYPESCRIPT_
+SYNTAX`); `164df23` declares `DimmedEngine`'s two fields by hand, and the second run is the
+record above.
+
+**The chunks** (`scripts/gate/e2e-chunks.sh`, a fresh detached wrangler dev on 4173 per chunk,
+stopped through PowerShell, HTTP 000 after each; the user's 5173 untouched): **c1 33 passed**
+(install + session; +1, the EUCLID title, chromium), **c4 16 passed** (catalog, fidelity,
+first-experience, library, sandbox; +1, the surface's field, chromium), **c3 21 passed** (tuning,
+tuning-webkit; +0). No rerun needed. c2 and c5 not run: no browse, artifact, radius, skeleton or
+smoke file reads the inspector. e2e: 86 -> 88 titles, 101 -> 103 runs.
+
+**Outside `src/`:** `docs/HARDWARE-AUDITION.md` row 30 (append-only: 128 reads about half on the
+module as in the browser; 1 barely lit, not off; 32 keeps every hue; the preset knob and the
+field compose; 255 byte for byte the start) and the dated paragraph after row 29's; `e2e/install.
+e2e.ts` and `e2e/sandbox.e2e.ts`; `.planning/ROADMAP.md`, `REQUIREMENTS.md` and `STATE.md`
+untouched; CAT-04 stays `[ ]`. No device, no deploy, no push; `src/vendor/`, `library.ts`, every
+entry's Lua literal (the five declarations live in `brightness.ts`, not in the entry files),
+`sequence.ts`, the manifest, `Knob.svelte`, `ColourPicker.svelte` untouched (the gate's `--stat`
+and the wire).
+
+**Departures from the brief, stated:** the brief's picture of (a) - "every colour triplet in the
+emitted Lua" - does not hold on six entries (CULL, LUMEN, QUADRANT read palette tables; SNAKE and
+POMODORO paint through local functions; MORPH's corners are `255-j*@SPREAD`), so the scaler has a
+linear-form rule and five per-entry declarations with a coverage gate, rather than a triplet
+scan; the preset route is scaled on the compiler's OUTPUT (the brief said "the PadState colours
+before compileState") because the compiler's per-finger hues, fader palettes and dim tracks are
+coefficients inside `_pad.ts`, not state, and `src/vendor/` is untouched; a preset's preview is
+the dimmed frame, not a scaled state, for the same reason - proved to one unit against the wire;
+Reset settings resets the brightness too (the brief named the per-field reset only; the MIDI
+fields' shape); a dimmed Playground copy opens through `?from=` (the brief said the copy carries
+it and the stamp does not - without the read-back the field would be a stub); the quick spec
+samples hash-wire's states rather than the whole Lua cross-product (232,824 states are 81 s, the
+sweep's business); and the preset knob above.
+
+**Questions for the user:** (a) THE PRESET KNOB: the eight preset cards show two brightness
+controls now - the compiler's five-step `Brightness` rail under Behavior (15 / 30 / 50 / 75 /
+100, in the stamp, rolled by Randomize) and the field under Appearance (1..255, not in the stamp,
+never rolled) - and they multiply. Retire the knob (one 1..255 setting everywhere, as the ask
+reads; the wire set moves by its sixty-four records, D-01's floor drops STARFIELD and FOUR FADERS to
+two knobs, `c`-format links land at Full) or keep both. (b) Reset settings resets the brightness
+with the knobs - say if it should leave it. (c) LUMEN's sysex (`gmss(240,125,...)`) reports the
+cell's colour as the module lights it, so at 128 it reports the dimmed colour; say if the report
+should stay the palette's. (d) The Sandbox's field sits under Appearance whether or not an element
+is selected, with a helper saying it is the surface's; the alternative was a surface section
+above the element list in the rail - say if you want it moved. (e) Changes 1 to 4's questions
+still stand.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.
