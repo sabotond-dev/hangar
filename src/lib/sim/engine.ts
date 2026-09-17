@@ -81,12 +81,15 @@ export function dimmed(engine: SimEngine, brightness: number): SimEngine {
 }
 
 class DimmedEngine implements SimEngine {
+  private readonly inner: SimEngine;
+  private readonly brightness: number;
   private readonly scaled: Uint8Array;
 
-  constructor(
-    private readonly inner: SimEngine,
-    private readonly brightness: number,
-  ) {
+  // Plain fields, never parameter properties: the gate's harness runs this
+  // file under Node's type stripping, which erases annotations only.
+  constructor(inner: SimEngine, brightness: number) {
+    this.inner = inner;
+    this.brightness = brightness;
     this.scaled = new Uint8Array(inner.frame.length);
   }
 

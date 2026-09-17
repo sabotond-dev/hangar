@@ -460,6 +460,6 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
       (m) => m[1],
     );
     expect(specifiers, "no import, not even a type").toEqual([]);
-    expect(stripped).not.toMatch(/^s*import/m);
+    expect(stripped).not.toMatch(/^[ ]*import[ ]/m);
   });
 });
