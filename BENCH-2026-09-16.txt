@@ -636,3 +636,20 @@ The compiler's `brightness` knob (15 / 30 / 50 / 75 / 100 %, in the BOTOR stamp,
 Randomize) leaves the eight preset cards; the field is the one brightness. The wire set moves by
 those cards' records; a shared `c`-format link whose vector carried the knob lands at full; D-01's
 three-knob floor on STARFIELD and FOUR FADERS is amended by the user's word at the next gate.
+
+## 6. ARC as an LFO - a wave-shape choice and an offset fader (2026-09-17, on Fable 5.1)
+
+> ARC: this is basically an LFO config, we need an offset fader on the eight side of the module
+> you should be able to pick the type of the wave: just like in Ableton.: sine, sotus up, down,
+> triangle, square, random
+> the offset fader should be able to manipulate all the time
+
+Reading: ARC's swirl is an LFO - its rate is set by the drag, its value goes out as a CC. Two
+additions on the card. (1) A wave-shape knob in the inspector, Ableton's six: sine, saw up, saw
+down, triangle, square, random ("sotus up" read as "saw up"; the user may correct). The shape
+changes the CC's curve over the cycle; the swirl's light may follow the shape or stay as it is -
+research decides what fits 908. (2) An offset fader on the right-hand column of the pad
+(column 8, nine cells): the finger's height on it adds a constant offset to the LFO's CC value,
+live at every moment - while the swirl runs, while it is stopped, while another finger drags the
+rate. Column 8 leaves the swirl's playing area; the offset fader lights where the finger is.
+Everything else about ARC stays.
