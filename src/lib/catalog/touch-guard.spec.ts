@@ -71,22 +71,13 @@ type DeclaredException = {
   readonly reason: string;
 };
 
-const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
-  {
-    entry: "stage",
-    event: "setup",
-    rule: "ended",
-    branch: F("elseif ", V, GE, "5"),
-    reason:
-      "Preceded in the same if-chain by " +
-      F("if ", V, EQ, "4 ", OR, " ", V, GT, "8") +
-      ", so code 9 takes the FIRST branch and never reaches this one. The " +
-      "guard is correct because of the chain around it, not because of its " +
-      "own text, and a scan of the text alone cannot see that. STAGE also " +
-      "reads the code on the first branch - it lights the zone at rate 4 for " +
-      "a fast tap and 24 for a held press - so it is not merely tolerating 9, " +
-      "it is using it.",
-  },
+/**
+ * TRACKPAD's three rows, declared once: TRACKPAD COMET (2026-09-17,
+ * BENCH-2026-09-16.txt section 4) carries TRACKPAD's Setup byte for byte -
+ * lua-smoke.spec.ts compares the two strings - so its rows are these three
+ * with the entry id changed, and a recipe edit moves both cards' rows together.
+ */
+const TRACKPAD_ROWS: readonly DeclaredException[] = [
   {
     entry: "trackpad",
     event: "setup",
@@ -139,6 +130,33 @@ const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
       "because narrowing a hardware-tested guard to satisfy a text scan " +
       "would be a behaviour change on code 8 that nobody measured.",
   },
+];
+
+const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
+  {
+    entry: "stage",
+    event: "setup",
+    rule: "ended",
+    branch: F("elseif ", V, GE, "5"),
+    reason:
+      "Preceded in the same if-chain by " +
+      F("if ", V, EQ, "4 ", OR, " ", V, GT, "8") +
+      ", so code 9 takes the FIRST branch and never reaches this one. The " +
+      "guard is correct because of the chain around it, not because of its " +
+      "own text, and a scan of the text alone cannot see that. STAGE also " +
+      "reads the code on the first branch - it lights the zone at rate 4 for " +
+      "a fast tap and 24 for a held press - so it is not merely tolerating 9, " +
+      "it is using it.",
+  },
+  ...TRACKPAD_ROWS,
+  ...TRACKPAD_ROWS.map((row) => ({
+    ...row,
+    entry: "trackpad-comet",
+    reason:
+      row.reason +
+      " TRACKPAD COMET carries the same Setup byte for byte (2026-09-17, " +
+      "BENCH-2026-09-16.txt section 4), so the row is declared for it too.",
+  })),
 ];
 
 // ---------------------------------------------------------------------------
@@ -424,10 +442,18 @@ describe("the fast-tap guard", () => {
     // 1 -> 4: TRACKPAD's three, plan 12-10 - the vendored trackpad recipe's
     // guards carried verbatim into a hand-authored entry, each one right
     // because of the pass around it. Tests 1 and 2 print all three.
-    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(4);
+    // 4 -> 7: TRACKPAD COMET's three (2026-09-17), TRACKPAD's rows mapped
+    // onto the second id because the Setup is the same string.
+    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(7);
     expect(
       DECLARED_EXCEPTIONS.filter((row) => row.entry === "trackpad").length,
       "trackpad's rows: two ended, one started",
     ).toBe(3);
+    expect(
+      DECLARED_EXCEPTIONS.filter((row) => row.entry === "trackpad-comet").map(
+        (row) => [row.event, row.rule, row.branch],
+      ),
+      "trackpad-comet's rows are trackpad's three, branch for branch",
+    ).toEqual(TRACKPAD_ROWS.map((row) => [row.event, row.rule, row.branch]));
   });
 });

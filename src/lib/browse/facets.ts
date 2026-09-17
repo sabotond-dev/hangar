@@ -44,8 +44,9 @@ export type FacetTerm = ForTerm | FeelsTerm;
  * Seven terms, in the toolbar's order - descending by how many entries carry
  * them, so the widest doors are nearest the left edge; ties keep their order.
  * Recounted from LISTING at every re-cut, never subtracted from the line before
- * (at 26 entries: modulation 7, show 5, sequencing 4, mixing 3, play 3,
- * shortcuts 2, pointing 2). `keys` was retired at 12-04.
+ * (at 27 entries: modulation 7, show 5, sequencing 4, mixing 3, play 3,
+ * shortcuts 2, pointing 3 - TRACKPAD COMET took `pointing` to three on
+ * 2026-09-17 and the row was left as it stood). `keys` was retired at 12-04.
  */
 export const FOR_TERMS: readonly ForTerm[] = Object.freeze([
   "modulation",
@@ -59,9 +60,10 @@ export const FOR_TERMS: readonly ForTerm[] = Object.freeze([
 
 /**
  * Six terms, in the toolbar's order; neither re-cut moved one. `still` sits at
- * exactly 6 (the floor) and `precise` at 7. `still` and `generative` are
- * opposites on the motion axis; `still` means "it does not run on its own",
- * not "inert" - a cursor under a finger still qualifies (LUMEN, JOYSTICK, STRIP).
+ * 7 (the floor is six; exactly 6 until 2026-09-17) and `precise` at 8. `still`
+ * and `generative` are opposites on the motion axis; `still` means "it does not
+ * run on its own", not "inert" - a cursor under a finger still qualifies
+ * (LUMEN, JOYSTICK, STRIP).
  */
 export const FEELS_TERMS: readonly FeelsTerm[] = Object.freeze([
   "readable",

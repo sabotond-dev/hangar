@@ -57,8 +57,9 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
     // one way a row may leave. So what is asserted now is that the list is
     // empty FOR THAT REASON - tpad is in no catalog and has no path - and
     // that every card whose picture needs a finger has one: the paths are
-    // three, and the loop below still runs over whatever the list holds the
-    // day an entry that genuinely cannot be lit arrives.
+    // four since 2026-09-17 (TRACKPAD COMET carries TRACKPAD's drag), and the
+    // loop below still runs over whatever the list holds the day an entry
+    // that genuinely cannot be lit arrives.
     expect(
       DARK_BY_CONSTRUCTION.length,
       "the exception list is empty because its one member, the tpad preset, left the catalog at plan 12-10; a new member needs its measurement",
@@ -67,8 +68,8 @@ describe("the demonstration finger (src/lib/sim/demo.ts)", () => {
     expect(demoPathFor("tpad"), "tpad has no path either").toBeUndefined();
     expect(
       Object.keys(DEMO_PATHS).sort(),
-      "the three demonstration cards: ghost, morph and trackpad",
-    ).toEqual(["ghost", "morph", "trackpad"]);
+      "the four demonstration cards: ghost, morph, trackpad and trackpad-comet",
+    ).toEqual(["ghost", "morph", "trackpad", "trackpad-comet"]);
     for (const dark of DARK_BY_CONSTRUCTION) {
       expect(
         demoPathFor(dark.id),

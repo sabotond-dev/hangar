@@ -573,10 +573,14 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // the catalog and the hand-authored TRACKPAD (one colour knob, the edge
     // flash's) replaced it as the card, so `noPicker` 5 to 4 and `none` 12 to
     // 13; `two` and `three` unmoved, the catalog still 26.
+    //
+    // RE-RECORDED 2026-09-17 (TRACKPAD COMET, BENCH-2026-09-16.txt section 4):
+    // two colour knobs, the trail's and the head's, so `two` 6 to 7 and the
+    // catalog 26 to 27; nothing else moved.
     expect(
       split,
-      "the colour-knob split moved. 13 entries render no selector (one colour knob), 6 render two options, 3 render three, and 4 have no picker at all",
-    ).toEqual({ none: 13, two: 6, three: 3, noPicker: 4 });
+      "the colour-knob split moved. 13 entries render no selector (one colour knob), 7 render two options, 3 render three, and 4 have no picker at all",
+    ).toEqual({ none: 13, two: 7, three: 3, noPicker: 4 });
     expect(
       three.sort(),
       "the three-colour entries are console, strip and wheels - the worst case the canvas budget (test 6; two, not four, since MIX TWO left at 13-10) is measured against",

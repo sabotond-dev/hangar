@@ -7,7 +7,7 @@
 // driveDemo is a pure function of (path, tick) the host calls from its own tick loop. Samples are
 // authored in CELL coordinates (integers 0 to 8); cellToCoord converts to the sensor value for a
 // fingertip centred on the cell, the knot in calibration.ts (Probe C, 2026-09-11), scaled x8 for a
-// hi-res state. Three paths since 12-10 (GHOST, MORPH, TRACKPAD); DARK_BY_CONSTRUCTION is empty and stays declared for gen-og.mjs.
+// hi-res state. Four paths since 2026-09-17 (GHOST, MORPH, TRACKPAD, TRACKPAD COMET); DARK_BY_CONSTRUCTION is empty and stays declared for gen-og.mjs.
 // Decided at 10-06 / 11-01 / 12-10 / 12.1-05; see .planning/phases/12.1-gradient-touch/12.1-05-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -181,11 +181,25 @@ const TRACKPAD_PATH: DemoPath = {
   ],
 };
 
-/** Every authored path, keyed by catalog id: three since 12-10 (TRACKPAD joined GHOST and MORPH; ETCH left at 11-01). */
+/**
+ * TRACKPAD COMET: TRACKPAD's drag, sample for sample, with the id changed - the recipe is the same
+ * string, so the same contiguity and whole-cell rules hold. The comet is what the picture shows: the
+ * head is cleared on the lift at 164 and the cells of the last run are still decaying (42 ticks
+ * through D) at the period's end, brightest nearest where the finger left.
+ */
+const TRACKPAD_COMET_PATH: DemoPath = {
+  ...TRACKPAD_PATH,
+  id: "trackpad-comet",
+  gesture:
+    "a drag right, up, left and down around the pad, then right again, leaving a trail",
+};
+
+/** Every authored path, keyed by catalog id: four since 2026-09-17 (TRACKPAD COMET joined GHOST, MORPH and TRACKPAD; ETCH left at 11-01). */
 export const DEMO_PATHS: Readonly<Record<string, DemoPath>> = {
   ghost: GHOST_PATH,
   morph: MORPH_PATH,
   trackpad: TRACKPAD_PATH,
+  "trackpad-comet": TRACKPAD_COMET_PATH,
 };
 
 /**

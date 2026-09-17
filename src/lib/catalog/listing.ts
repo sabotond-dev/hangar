@@ -444,6 +444,25 @@ export const LISTING: readonly ListingEntry[] = [
     restsBlack: true,
     preview: "lua",
   },
+  {
+    id: "trackpad-comet",
+    name: "Trackpad comet",
+    description:
+      "One finger moves the pointer, two fingers scroll, a tap clicks, and a comet trail fades behind your finger.",
+    // DARK, read off frames.json: TRACKPAD's recipe with a comet under the
+    // finger instead of the edge flash - the head is cleared with the finger
+    // and the trail decays to exact black through the library's D. A demonstration card like TRACKPAD - the same
+    // drag in src/lib/sim/demo.ts - carrying the shared note for the same
+    // reason. Asked 2026-09-17 (BENCH-2026-09-16.txt section 4); the three
+    // tags are TRACKPAD's, so `pointing` goes to three carriers and `precise`
+    // and `still` each gain one (facets.ts: nothing moves on its own).
+    motion: "dark",
+    quiet: DEMO_TOUCH_NOTE,
+    tags: ["pointing", "precise", "still"],
+    featured: false,
+    restsBlack: true,
+    preview: "lua",
+  },
 ];
 
 /**

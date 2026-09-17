@@ -156,9 +156,15 @@ const search = (query: string) =>
  * "The tag chips", quoted the row and its counts verbatim. 10-06 amended that
  * document by name rather than restating the new row there, and 12-04 does the
  * same: 05.1-UI-SPEC.md is amended by name and the row is not restated in it.
+ *
+ * 2026-09-17 (TRACKPAD COMET, BENCH-2026-09-16.txt section 4) moves it upwards
+ * by one entry: `entries` 26 to 27, `pointing` 2 to 3, `precise` 7 to 8 and
+ * `still` 6 to 7 - TRACKPAD's three tags, true of a card that carries
+ * TRACKPAD's Setup byte for byte, and not re-chosen to spread the histogram.
+ * `still` leaves its floor of six; `singletons` is still zero.
  */
 const RECORDED = {
-  entries: 26,
+  entries: 27,
   tags: 13,
   singletons: 0,
   /** Keyed by term, in FOR order then FEELS order - the toolbar's own order. */
@@ -169,13 +175,13 @@ const RECORDED = {
     mixing: 3,
     play: 3,
     shortcuts: 2,
-    pointing: 2,
+    pointing: 3,
     readable: 9,
     expressive: 10,
     playable: 8,
     generative: 12,
-    precise: 7,
-    still: 6,
+    precise: 8,
+    still: 7,
   } as Readonly<Record<string, number>>,
 } as const;
 

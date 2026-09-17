@@ -25,6 +25,7 @@ import { STAGE } from "./entries/stage";
 import { STRIP } from "./entries/strip";
 import { STEPS } from "./entries/steps";
 import { TRACKPAD } from "./entries/trackpad";
+import { TRACKPAD_COMET } from "./entries/trackpad-comet";
 import { WHEELS } from "./entries/wheels";
 import type { CatalogEntry } from "./types";
 
@@ -44,7 +45,9 @@ export type {
 } from "./types";
 
 // Hand-authored Lua entries are appended here as they are authored: Phase 8's
-// seven first, then Phase 9's twenty in the order their waves land.
+// seven first, then Phase 9's twenty in the order their waves land, then
+// TRACKPAD COMET (2026-09-17, BENCH-2026-09-16.txt section 4) after TRACKPAD,
+// whose recipe it carries.
 //
 // PORTED is EIGHT of the nine shelf presets since plan 12-10: the `tpad`
 // preset left the catalog when TRACKPAD, the last entry below, replaced it
@@ -71,6 +74,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   WHEELS,
   RADAR_POINTS,
   TRACKPAD,
+  TRACKPAD_COMET,
 ]);
 
 export { EUCLID } from "./entries/euclid";
@@ -91,6 +95,7 @@ export { POMODORO } from "./entries/pomodoro";
 export { WHEELS } from "./entries/wheels";
 export { RADAR_POINTS } from "./entries/radar-points";
 export { TRACKPAD } from "./entries/trackpad";
+export { TRACKPAD_COMET } from "./entries/trackpad-comet";
 export { portedEntry } from "./entries/ported";
 
 /** The one lookup. Returns undefined for an id no entry claims. */

@@ -75,8 +75,16 @@ const flat = doc.replace(/\s+/g, " ");
  * in writing for this row (R-11's rule, widened rather than bent). No
  * re-padding: the cell is narrower than the column; eight lines inserted,
  * every other line byte-identical.
+ *
+ * 28 -> 29 on 2026-09-17 (BENCH-2026-09-16.txt section 4): TRACKPAD COMET's row
+ * (row 29), six clauses (a)-(f) - the head and the trail under a moving
+ * finger, both under a still one, the recipe's four gestures as row 23(c),
+ * the tail and head knobs, the scroll knob, and a lost lift fading inside
+ * the recipe's idle window.
+ * One name in the Config cell; the cost table gains its row and a dated
+ * paragraph follows row 28's; every other line byte-identical.
  */
-const ROW_COUNT = 28;
+const ROW_COUNT = 29;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -224,7 +232,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps twenty-eight numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps twenty-nine numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",
