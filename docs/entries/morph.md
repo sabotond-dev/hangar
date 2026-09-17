@@ -387,3 +387,152 @@ src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 9, 2026-09-18: the centre's value is a knob
+
+Outside the GSD cycle, the user's word recorded in `BENCH-2026-09-16.txt` section 9: "Morph:
+should be able to setup the value of the center." Asked what "the value of the center" sets, the
+user answered **a** - a `Centre` knob holding the CC value each corner sends when the finger is
+dead centre (today about 32, a quarter of 127), "the blend reshap[ing] around it so a corner still
+reaches 127 under the finger and the others fall toward 0, with the centre landing on the chosen
+value. Range and steps are the executor's to measure inside 908."
+
+### The literal this change replaced, verbatim (814 at the RGB444 picker corner, 810 at the defaults)
+
+```text
+--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end
+```
+
+The whole change is one insertion into that string, between reading the weight and testing it -
+nothing else in the Setup moved, and the Timer is still the empty string:
+
+```text
+local z=w[j]z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95 if z~=s.p[j]
+```
+
+### WHAT THE KNOB SHAPES IS THE OUTPUT, NOT THE BLEND - and it is the only reading available
+
+The brief asked that "the weights' sum" survive. It cannot survive as a blend: four weights
+summing to 127 with an arbitrary value in the middle is a contradiction, because dead centre every
+weight is the same number and four of the same number sum to four times it. So the reading taken,
+stated rather than discovered: `w = {u*v//127, x*v//127, u*y//127, x*y//127}` IS UNTOUCHED and
+still sums to the full range; the knob is a map applied to each weight on its way out. Every other
+clause of the card therefore survives by construction - the corner tap, the per-corner
+suppression, the dead margin, the comet, the single-contact rule - because not one of them reads a
+weight after this line.
+
+### THE MAP, AND THE TWO FORMS THAT LOST
+
+The requirement is three points and a shape: `f(0) = 0` (the opposite corner stays silent),
+`f(127) = 127` (a corner is still full under the finger), `f(32) = C` (32 is the weight a finger
+reads dead centre), and monotone in between. Every figure below is measured under the pinned
+`compressScript` after `padReady()` at the RGB444 picker corner (`@TRAILC` at 255,255,255, every
+other knob its longest literal), each string a fixed point passing `checkSyntax`:
+
+- **CHOSEN - two linear segments, breakpoint 32:**
+  `z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95`. **+46** characters rendered
+  (814 -> **860**, 48 free; 810 -> 856 at the defaults). Monotone at every knob position; 128
+  distinct output values at the default, 112 at 16, 96 at 0 and at 64, 64 at 96.
+- **REJECTED - one multiply and a clamp:** `z=glim(z*@CENTRE//32,0,127)`. **+23** characters, half
+  the price, and rejected by measurement twice over. First, it cannot express a centre BELOW 32 at
+  all: at 16 a corner reaches only `min(127, 127*16//32)` = 63, so the bench's own clause - 127
+  under the finger - fails at every position that makes the middle quieter, which is half the
+  feature. Second, above 32 it saturates early: at 64 the macro reads 127 from weight 64 onward
+  (65 distinct values), at 96 from weight 43 (44 distinct), so the outer half of the travel toward
+  a corner stops moving. The chosen form keeps the whole travel at every position.
+- **REJECTED - the branchless pair:** `z=@CENTRE*glim(z,0,32)//32+(127-@CENTRE)*glim(z-32,0,95)//95`
+  is the same map as the chosen one at every one of the 128 weights and costs **+51**. Its only
+  merit is having no `and`/`or` to misread (see the trap below), and that is worth a comment rather
+  than five characters.
+
+**THE BUDGET NEEDED NO SECOND SLOT.** 860 of 908 at the picker corner leaves 48 free and sits 30
+under the 890 `BUDGET_ERROR` line (`_pad.ts:3076-3078`); the Timer is still the empty string with
+908 free and was not touched, so the `self:tim()` pattern was not needed; and the system slots -
+the user's stated last resort, section 7 of the record - were not approached. `@CENTRE`'s longest
+offered literal is two characters, the same length as the default's, so the picker corner does not
+move with the knob: 857 at `0`, 860 at every other position, 853 / 856 at the defaults.
+
+### THE DEFAULT IS THE EXACT INTEGER IDENTITY, WHICH IS WHY NOTHING MOVED ON THE WIRE
+
+At `@CENTRE` = 32 the low segment is `z*32//32` and the high one `32+(z-32)*95//95`, and both are
+`z` for every integer 0..127 - asserted over all 128 weights in `lua-smoke.spec.ts` rather than
+sampled. The consequence is the strongest proof this change has, and it is a test that was already
+there: **the pinned `DIAGONAL_MORPH` literal in the corner-tap test - a 120-message capture of a
+centre-to-corner stroke, taken at plan 12-09 - is UNMOVED**, and so are `frames.json`, the golden
+frames and MORPH's OG image. At its defaults the card is byte-identical in behaviour; only its
+Setup string is 46 characters longer.
+
+### THE FIVE POSITIONS, AND THE ONE THAT IS NOT OFFERED
+
+`0, 16, 32, 64, 96`, default index 2 (the 32). Measured in the real Lua host with a finger on the
+raw point the card's own dead margin calls dead centre, where the four weights are 31, 31, 31, 32 -
+integer division's own one-unit split, the card's arithmetic since 11-08:
+
+| `Centre` | dead centre       | distinct values over the travel | the corner | the opposite corner |
+| -------: | ----------------- | ------------------------------: | ---------: | ------------------: |
+|        0 | silent            |                              96 |        127 |              silent |
+|       16 | 15 / 15 / 15 / 16 |                             112 |        127 |              silent |
+|   **32** | 31 / 31 / 31 / 32 |                         **128** |        127 |              silent |
+|       64 | 62 / 62 / 62 / 64 |                              96 |        127 |              silent |
+|       96 | 93 / 93 / 93 / 96 |                              64 |        127 |              silent |
+
+Three corners land `C//32` under the knob's value and the fourth lands on it exactly, because the
+breakpoint is 32 and the weights there are 31, 31, 31, 32. Moving the breakpoint to 31 would put
+all four on `C` exactly - and would cost the identity at the default, since `f(31)` would become
+32 and the pinned stroke above would move. The identity was worth more than the unit.
+
+**127 IS NOT OFFERED, AND THE REJECTION IS ARITHMETIC.** At `@CENTRE` = 127 the second segment is
+`127+(z-32)*0//95`, so every weight at or above 32 reads 127: **33 distinct values over the whole
+travel against 128 at the default**, a 95-step plateau, and each macro pinned full across the
+whole quadrant nearest its corner. The knob would stop being a control at its own top position. 96
+is the highest position that keeps the card playable (64 distinct values), and both figures are
+asserted in `lua-smoke.spec.ts` so the rejection cannot rot.
+
+**A CENTRE OF 0 IS KEPT, AND IT IS HONEST RATHER THAN STUCK.** At 0 the middle of the pad is
+silent: every weight under 32 maps to 0, `self.p` starts at zeros, so a press dead centre sends
+nothing at all and the four corner blocks are black. Nothing is stranded by it - a corner the
+finger walks away from still sends its single 0 on the way out (11-08's reading, asserted by name
+in the stroke test), so a receiver ends at 0 rather than holding a stale value. What it buys is
+four gated quadrant macros: a corner opens only as the finger moves into its half. The question is
+put to the user in the record all the same.
+
+### THE BRIGHTNESS FOLLOWS THE VALUE SENT, NOT THE RAW WEIGHT
+
+`glp(glag(0,b+d%3+d//3*9),1,z*2)` reads the SHAPED `z`, because `z` is reassigned before both the
+send and the paint - so the picture on the pad is what the DAW hears, which is the decision 11-08
+took when it left the paint unconditional ("the picture is a READOUT and the wire is TRAFFIC").
+The alternative, painting the raw weight, would leave a pad at `@CENTRE` = 0 showing four dim
+corners in the middle while sending nothing, which is the one thing a readout exists to prevent.
+Every one of the nine cells of every corner block is asserted at phase `2*z` in
+`lua-smoke.spec.ts`.
+
+### THE TRAP A READER WILL BRING WITH THEM
+
+`z<32 and z*0//32 or @CENTRE+...` still takes the FIRST arm at `@CENTRE` = 0, because Lua's only
+false values are `nil` and `false` and `0` is a number. A reader arriving from JavaScript or
+Python will expect that branch to be broken, and the branchless form above exists mostly as
+evidence that it is not. `@CENTRE` also APPEARS THREE TIMES - once in each segment and once in the
+second segment's slope - which is a `renderLua` hazard of the same family as `@SPREAD`'s two
+sites; both facts are in the entry's TRAPS.
+
+### THE PRICE: EVERY SHARED MORPH LINK MINTED BEFORE TODAY
+
+The knob is the SIXTH and is APPENDED, which is the house rule (TUNE-01's Phase 11 gate qualifier:
+"every knob added or re-cut kept its arity or appended, never inserted"). A stamp's payload length
+and its shape character both move all the same: format `w`'s payload goes from 9 characters to 10
+(`2`, plus 3 for the colour knob, plus 1 per other knob), and `shapeOf` from `(5*7 + 34) % 32` to
+`(6*7 + 39) % 32`. The LENGTH check fires first, so an older MORPH link lands **unreadable** - not
+`older`, and never `restored` with five indices read into six knobs - and the workspace opens the
+card as it ships, at the default centre, which is the card those links described anyway.
+`stamp.spec.ts` declares it by name beside ARC's (change 6) and POMODORO's `older` (11-09); the
+wild-stamp fixture is not regenerated.
+
+### WHAT WAS NOT TOUCHED
+
+`brightness.ts` gains no declaration: the change adds no colour argument and no palette - the one
+new arithmetic form sits on a PHASE, which the scaler never touches - and the coverage gate finds
+nothing unreachable over the widened cross-product (MORPH's sampled states 34 -> 39, the catalog's
+525 -> 530). `library.ts`, `sequence.ts`, `src/vendor/`, the manifest, `Knob.svelte`,
+`ColourPicker.svelte` and every other entry are untouched; `frames.json`, the golden frames, the
+preset baseline and the OG images are byte-identical, because MORPH rests black and its default
+behaviour did not move.

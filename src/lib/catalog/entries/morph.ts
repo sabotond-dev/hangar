@@ -1,13 +1,14 @@
 // MORPH - four macros in the corners, one finger between them.
 //
 // A four-corner macro morph pad: each corner owns one CC, the finger's position is blended
-// bilinearly into four weights that sum to the full range, and each 3x3 corner block's
-// brightness is its own weight, so the mix reads across a room. A tap inside a corner block
-// speaks for that corner alone (MIDI-learn). Single-contact by design; no Timer (`timer: ""`) -
-// its only animation is a per-touch decay that dies on its own. Knobs: @TRAILC, @SPREAD (twice
-// in the string), @CCB, @DECAY (the trail length; NOT @TRAIL, a prefix of @TRAILC), @CH. Setup
-// 814 of 908 at the picker corner (810 at the defaults), Timer 0; restsBlack true.
-// History: docs/entries/morph.md (11-02, 11-08, 11-09.1, 12-09, 12.1-04 costings and measurements).
+// bilinearly into four weights that sum to the full range, each weight is then shaped by the
+// @CENTRE knob - the value a corner sends dead centre - and each 3x3 corner block's brightness
+// is the value it SENT, so the mix reads across a room. A tap inside a corner block speaks for
+// that corner alone (MIDI-learn). Single-contact; no Timer (`timer: ""`) - its only animation is
+// a per-touch decay that dies on its own. Knobs: @TRAILC, @SPREAD (twice), @CCB, @CENTRE (three
+// times), @DECAY (the trail length; NOT @TRAIL, a prefix of @TRAILC), @CH. Setup 860 of 908 at
+// the picker corner (856 at the defaults), Timer 0; restsBlack true. History:
+// docs/entries/morph.md (11-02, 11-08, 11-09.1, 12-09, 12.1-04, change 9).
 //
 // MECHANISM
 //   - Setup: layer 2 coloured @TRAILC at phase 0 on every cell (the comet's layer); self.k =
@@ -30,18 +31,29 @@
 //   - A dead margin remaps the raw axes AFTER Q: x=glim((x-24)*127//79,0,127), the same for y -
 //     raw 0..24 reads 0, 103..127 reads 127, so a finger a cell and a half in from a corner reads
 //     a full 127 on that macro and exact 0 on the others. The trail cell stays under the finger.
-//   - The weights: u = 127-x, v = 127-y, w = {u*v//127, x*v//127, u*y//127, x*y//127}. For each
-//     corner j: send only if z ~= s.p[j] and (q<1 or q==j), then s.p[j] = z; the PAINT of the
-//     block at phase z*2 is unconditional (the picture is a readout, the wire is traffic).
+//   - The weights: u = 127-x, v = 127-y, w = {u*v//127, x*v//127, u*y//127, x*y//127}, and they
+//     still sum to the full range - @CENTRE shapes what is SENT, never the blend. Per corner:
+//       z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95
+//     two linear segments over the 0..127 weight with the breakpoint at 32, the weight dead
+//     centre: 0 stays 0, 127 stays 127, 32 lands on @CENTRE, and the map is monotone at every
+//     knob value. AT @CENTRE = 32 IT IS THE EXACT INTEGER IDENTITY (z*32//32 = z and
+//     32+(z-32)*95//95 = z), so the card at its defaults sends byte for byte what it sent before
+//     change 9 - lua-smoke.spec.ts holds the pinned diagonal against it.
+//   - For each corner j: send only if z ~= s.p[j] and (q<1 or q==j), then s.p[j] = z; the PAINT
+//     of the block at phase z*2 is unconditional and reads the SHAPED z, so the lights follow
+//     what the DAW hears (the picture is a readout, the wire is traffic).
 //   - The comet: when c is a cell, glpfs(a,2,252,256-252//@DECAY,0) and glt(a,2,@DECAY) - the
 //     house decay idiom (decay-idiom.spec.ts holds the rule and the usable timeouts). The
 //     library's `D` is not used: it covers at most 42 ticks and @DECAY reaches 126.
 //
 // WHAT IT SENDS
-//   s:gms(@CH,176,@CCB+j,z,0) for j = 1..4, only when corner j's weight changed from the last
-//   value sent, and on a corner tap only for that corner. A corner at zero that was at zero
-//   sends nothing; a corner that falls to zero sends zero once (so a finger can LEAVE a corner).
-//   The other three corners' s.p entries are not reset by a tap - the receiver has not heard them.
+//   s:gms(@CH,176,@CCB+j,z,0) for j = 1..4, z the corner's weight through the @CENTRE map, only
+//   when that value changed from the last one sent, and on a corner tap only for that corner. A
+//   corner at zero that was at zero sends nothing; a corner that falls to zero sends zero once
+//   (so a finger can LEAVE a corner), which is also what keeps a @CENTRE of 0 honest - the
+//   middle of the pad is silent because every corner has already said 0, not because a value is
+//   stuck. The other three corners' s.p entries are not reset by a tap - the receiver has not
+//   heard them.
 //
 // TRAPS
 //   - DO NOT ADD THE STANDARD KEEPER ("for a=0,80 do glt(a,L,65535) end" in a Timer). Applied to
@@ -54,6 +66,20 @@
 //     knob's INDEX, so old links still decode.
 //   - @SPREAD APPEARS TWICE and both sites must be substituted, or the corners stop being four
 //     hues. Every value is at or under 85: corner 3 is handed 255-3*spread, and more would wrap.
+//   - @CENTRE APPEARS THREE TIMES, once in each segment and once in the second segment's slope,
+//     and all three are one token substitution - a partial rewrite gives a map with a step in it.
+//   - A @CENTRE OF 0 IS NOT A FALSY ARM. `z<32 and z*0//32 or ...` still takes the first arm,
+//     because Lua's only false values are nil and false and 0 is a number. A reader arriving
+//     from JavaScript or Python will expect this branch to be broken; it is not.
+//   - @CENTRE STOPS AT 96, AND 127 IS REJECTED BY MEASUREMENT: at 127 the second segment is
+//     127+(z-32)*0//95, so every weight at or above 32 reads 127 - 33 distinct values over the
+//     whole travel against 128 at the default, with a 95-step plateau - and each macro pins full
+//     across the quadrant nearest its corner instead of moving. 96 keeps 64 distinct values.
+//   - THE BREAKPOINT 32 IS WHAT MAKES THE DEFAULT FREE, and it costs one unit of symmetry: the
+//     four raw weights dead centre are 31, 31, 31, 32 (integer division, the card's arithmetic
+//     since 11-08), so three corners land on @CENTRE - @CENTRE//32 and the fourth on @CENTRE
+//     exactly - 62/62/62/64 at 64, measured in the Lua host, the same one-unit split the card has
+//     always had at its centre.
 //   - THE TOKEN FOR THE TRAIL LENGTH IS @DECAY, NOT @TRAIL: renderLua substitutes by plain
 //     string replacement, and "@TRAIL" inside "@TRAILC" would render the colour as "42C".
 //   - THE GUARD'S UPPER BOUND IS THE POINT: a bare `e>=5` returns early on a coalesced code-9
@@ -70,7 +96,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end";
+  "--[[@cb]]for a=0,80 do glc(a,2,@TRAILC,1)glp(a,2,0)end self.k={0,6,54,60}self.p={0,0,0,0}for j=0,3 do for d=0,8 do local a=glag(0,self.k[j+1]+d%3+d//3*9)glc(a,1,255-j*@SPREAD,j*@SPREAD,128,1)glp(a,1,0)end end self.touch_cb=function(s,i,e,x,y)if i>0 then return end local c=Q(s,i,e,x,y)G(s,i,e,x,y,0,@TRAILC)if e==3 or e>=5 and e<9 then return end local q=0 if e==4 or e>8 then for j=1,4 do for d=0,8 do if c==s.k[j]+d%3+d//3*9 then q=j end end end end x=glim((x-24)*127//79,0,127)y=glim((y-24)*127//79,0,127)local u=127-x local v=127-y local w={u*v//127,x*v//127,u*y//127,x*y//127}for j=1,4 do local z=w[j]z=z<32 and z*@CENTRE//32 or @CENTRE+(z-32)*(127-@CENTRE)//95 if z~=s.p[j]and(q<1 or q==j)then s.p[j]=z s:gms(@CH,176,@CCB+j,z,0)end local b=s.k[j]for d=0,8 do glp(glag(0,b+d%3+d//3*9),1,z*2)end end if c then local a=glag(0,c)glpfs(a,2,252,256-252//@DECAY,0)glt(a,2,@DECAY)end end";
 
 // The Timer is the empty string, written inline: MORPH has no Timer event.
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: "" };
@@ -87,11 +113,12 @@ export const MORPH: CatalogEntry = {
   source: SOURCE,
   preview: previewFor(SOURCE),
 
-  // Five knobs, each one literal token substitution (TUNE-01); every default is the INDEX of
+  // Six knobs, each one literal token substitution (TUNE-01); every default is the INDEX of
   // the value that reproduces the canonical text. hueSpread is "amount", not "colour": its
   // value is the scalar in 255-j*60, j*60, 128, not an RGB triple. MIDI channel and CC number
   // are "amount" because the vendored KnobKind union has no MIDI-destination kind and D-12
-  // forbids a HANGAR-local one; every @CH and @CC knob in the catalog does the same.
+  // forbids a HANGAR-local one; every @CH and @CC knob in the catalog does the same. `centre`
+  // is APPENDED, the house rule for a new knob (the Phase 11 gate qualifier on TUNE-01).
   knobs: [
     {
       id: "trailColour",
@@ -166,9 +193,21 @@ export const MORPH: CatalogEntry = {
       ],
       default: 0,
     },
+    {
+      id: "centre",
+      label: "Centre",
+      kind: "amount",
+      token: "@CENTRE",
+      // The CC value each corner sends with the finger dead centre (change 9). 32 IS TODAY'S
+      // BEHAVIOUR and is the default, so an untouched card is byte-identical on the wire; 127
+      // is NOT offered (TRAPS above). "amount" because the vendored KnobKind union has no
+      // curve or response kind; five integers render as a five-dot rail with a readout.
+      values: ["0", "16", "32", "64", "96"],
+      default: 2,
+    },
   ],
 
-  // The same five indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
+  // The same six indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
     trailColour: 0,
@@ -176,6 +215,7 @@ export const MORPH: CatalogEntry = {
     ccBase: 0,
     trail: 1,
     channel: 0,
+    centre: 2,
   },
 
   // TRUE: the corner blocks are coloured at Setup but left at phase 0, there is no Timer, so

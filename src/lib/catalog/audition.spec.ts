@@ -83,8 +83,19 @@ const flat = doc.replace(/\s+/g, " ");
  * the recipe's idle window.
  * One name in the Config cell; the cost table gains its row and a dated
  * paragraph follows row 28's; every other line byte-identical.
+ *
+ * 29 -> 30 on 2026-09-17 (section 5): the brightness setting's row, on any card
+ * and any surface. 30 -> 31 on 2026-09-17 (section 6): ARC as an LFO.
+ *
+ * 31 -> 32 on 2026-09-18 (BENCH-2026-09-16.txt section 9): MORPH's centre value
+ * (row 32, MORPH), six clauses (a)-(f) - the default unchanged, a centre of 64
+ * with the corner still full, a centre of 0 with the middle silent and nothing
+ * stuck, 96 read for whether it is still a control, the corner tap still one
+ * message, and the corner blocks painted at the value SENT. One name in the
+ * Config cell, narrower than the column, so nothing was re-padded; MORPH's cost
+ * row moves 810 / 5 -> 856 / 6 and a dated paragraph follows row 31's.
  */
-const ROW_COUNT = 31;
+const ROW_COUNT = 32;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -232,7 +243,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps thirty-one numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps thirty-two numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",

@@ -465,8 +465,12 @@ describe("the stamp: the envelope", () => {
       // never `older` with a shape it does not have - and the fixture stays the
       // b3f99bb capture. ARC's default vector (payload null) still encodes to no
       // stamp: the missing sixth index is the default.
+      // AND MORPH, at change 9 (2026-09-18, BENCH-2026-09-16.txt section 9):
+      // the `Centre` knob is the sixth, appended, so its captured five-knob
+      // payload is one character short and lands `unreadable` for the same
+      // reason ARC's does. The fixture is not regenerated.
       const resized = record.entry === "pomodoro";
-      const grew = record.entry === "arc";
+      const grew = record.entry === "arc" || record.entry === "morph";
       expect(
         decodeFor(each, record.payload),
         resized
@@ -475,8 +479,8 @@ describe("the stamp: the envelope", () => {
               "unreadable and never restored"
           : grew
             ? `${record.entry}: the format x stamp ${record.payload} must land ` +
-              "unreadable - a sixth knob was added in change 6 (2026-09-17), so " +
-              "a five-knob payload is the wrong length by design"
+              "unreadable - a sixth knob was added (arc at change 6, morph at " +
+              "change 9), so a five-knob payload is the wrong length by design"
             : `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
       ).toEqual(
         resized

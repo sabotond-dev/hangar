@@ -3011,6 +3011,369 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(report.length, "all three stages of the MORPH probe ran").toBe(3);
   }, 120000);
 
+  it("sets what MORPH's four corners send dead centre, holds 127 under the finger and 0 opposite, and is the identity at its default", async () => {
+    // CHANGE 9 (2026-09-18, BENCH-2026-09-16.txt section 9). The bench asked
+    // to be able to "setup the value of the center"; the answer recorded was
+    // (a) - a knob holding the CC value each corner sends with the finger dead
+    // centre, "the blend reshap[ing] around it so a corner still reaches 127
+    // under the finger and the others fall toward 0".
+    //
+    // THE FOUR WEIGHTS THEMSELVES DO NOT MOVE. `w = {u*v//127, ...}` still
+    // sums to the full range; the knob shapes what is SENT, over the weight,
+    // in two linear segments whose breakpoint is the weight a finger reads
+    // dead centre. That is the only reading of "the weights' sum survives"
+    // that a settable centre admits - four weights summing to 127 whose
+    // OUTPUT is shaped - because a blend putting an arbitrary value in the
+    // middle could not sum to the full range at all.
+    //
+    // AT THE DEFAULT THE MAP IS THE EXACT INTEGER IDENTITY, and the proof of
+    // that is a test that was already here: the pinned DIAGONAL_MORPH literal
+    // in the corner-tap test above is UNMOVED by this change. What this test
+    // adds is the rest - the identity over all 128 weights rather than over
+    // one stroke, the value dead centre at every knob position, the corner and
+    // its opposite, the one-message rule at a shaped centre, the paint
+    // following the value SENT, and the position that is NOT offered and why.
+    const entry = entryById("morph");
+    const base = knobValueOf(entry, "ccBase");
+    const setup = entry.source.kind === "lua" ? entry.source.setup : "";
+    const knob = entry.knobs.find((each) => each.id === "centre");
+    expect(knob, "morph carries the centre knob (change 9)").toBeDefined();
+    if (!knob) return;
+    expect(knob.label, "the word the inspector shows").toBe("Centre");
+    expect(
+      knob.values.every((value) => /^[0-9]+$/.test(value)),
+      "morph: every centre value must be a plain integer so the rail carries " +
+        `a readout - ${knob.values.join(", ")}`,
+    ).toBe(true);
+    const CENTRES = knob.values.map(Number);
+    const DEFAULT = entry.defaults.centre ?? knob.default;
+
+    // THE MAP IS READ OFF THE ENTRY'S OWN TEMPLATE, never typed here, so a
+    // breakpoint that moves reddens this test instead of escaping it.
+    const mapDecl =
+      /z=z<(\d+) and z\*@CENTRE\/\/(\d+) or @CENTRE\+\(z-(\d+)\)\*\(127-@CENTRE\)\/\/(\d+)/.exec(
+        setup,
+      );
+    expect(
+      mapDecl,
+      "morph: the Setup must shape the weight between reading it and sending it",
+    ).not.toBe(null);
+    if (!mapDecl) return;
+    const BREAK = Number(mapDecl[1]);
+    expect(
+      [Number(mapDecl[2]), Number(mapDecl[3]), Number(mapDecl[4])],
+      "morph: each segment divides by the span it covers - BREAK below the " +
+        "breakpoint and 127-BREAK above it - and the second starts at BREAK",
+    ).toEqual([BREAK, BREAK, 127 - BREAK]);
+    /** The entry's own two-segment map, in JS. Lua's `//` floors. */
+    const shaped = (w: number, c: number): number =>
+      w < BREAK
+        ? Math.floor((w * c) / BREAK)
+        : c + Math.floor(((w - BREAK) * (127 - c)) / (127 - BREAK));
+    expect(
+      CENTRES[DEFAULT],
+      `morph: THE DEFAULT CENTRE MUST BE THE BREAKPOINT ${BREAK}. That is ` +
+        "what makes the map the identity, and the identity is what keeps " +
+        "every byte this card has ever put on a wire where it was",
+    ).toBe(BREAK);
+
+    // THE DEAD MARGIN AND THE WEIGHTS, read off the entry as the two probes
+    // above read them: the axis is remapped before the blend.
+    const marginDecl = /x=glim\(\(x-(\d+)\)\*127\/\/(\d+),0,127\)/.exec(setup);
+    expect(
+      marginDecl,
+      "morph: the Setup must remap the raw axis before the weights",
+    ).not.toBe(null);
+    if (!marginDecl) return;
+    const MARGIN = Number(marginDecl[1]);
+    const SPAN = Number(marginDecl[2]);
+    const mapped = (v: number): number =>
+      Math.min(127, Math.max(0, Math.floor(((v - MARGIN) * 127) / SPAN)));
+    const weightsAt = (rawX: number, rawY: number): number[] => {
+      const x = mapped(rawX);
+      const y = mapped(rawY);
+      const u = 127 - x;
+      const v = 127 - y;
+      return [
+        Math.floor((u * v) / 127),
+        Math.floor((x * v) / 127),
+        Math.floor((u * y) / 127),
+        Math.floor((x * y) / 127),
+      ];
+    };
+    // The corner blocks, from self.k and the paint loop's own 3x3 geometry.
+    const kDecl = /self\.k=\{([^}]*)\}/.exec(setup);
+    expect(kDecl, "morph: self.k must be declared in the Setup").not.toBe(null);
+    if (!kDecl) return;
+    const K = kDecl[1].split(",").map(Number);
+    const blockOf = (k: number): number[] =>
+      Array.from({ length: 9 }, (_, d) => k + (d % 3) + Math.floor(d / 3) * 9);
+
+    // THE RAW POINT THE ENTRY'S OWN REMAP CALLS DEAD CENTRE. Derived, not
+    // typed: the smallest raw coordinate the margin maps into the middle of
+    // the axis, which is where the four weights are as close to equal as
+    // integer division allows.
+    let CENTRE_RAW = -1;
+    for (let v = 0; v <= 127 && CENTRE_RAW < 0; v += 1)
+      if (mapped(v) >= 63) CENTRE_RAW = v;
+    expect(
+      mapped(CENTRE_RAW),
+      `morph: the dead-centre probe at raw ${CENTRE_RAW} must land in the middle of the axis`,
+    ).toBeLessThanOrEqual(64);
+    const CENTRE_W = weightsAt(CENTRE_RAW, CENTRE_RAW);
+    expect(
+      CENTRE_W,
+      "morph: dead centre the four raw weights are a quarter each, and the " +
+        "one-unit split is integer division's rather than this change's",
+    ).toEqual([31, 31, 31, 32]);
+
+    const report: string[] = [];
+
+    // 1. THE DEFAULT IS THE IDENTITY OVER EVERY WEIGHT, not over a sample.
+    for (let w = 0; w <= 127; w += 1)
+      expect(
+        shaped(w, BREAK),
+        `morph: at the default the map must be the identity, and at weight ${w} it is not`,
+      ).toBe(w);
+
+    // 2. EVERY POSITION IS PINNED AT BOTH ENDS, LANDS THE KNOB'S OWN VALUE AT
+    //    THE BREAKPOINT, AND NEVER FALLS. The first two are the bench's own
+    //    words - 127 under the finger, 0 at the opposite corner - and the
+    //    third is what makes the knob a response curve rather than a step.
+    for (const c of CENTRES) {
+      expect(shaped(0, c), `morph: weight 0 sends 0 at centre ${c}`).toBe(0);
+      expect(
+        shaped(127, c),
+        `morph: A CORNER MUST STILL REACH 127 at centre ${c}`,
+      ).toBe(127);
+      expect(
+        shaped(BREAK, c),
+        `morph: the breakpoint weight must send the knob's own value, ${c}`,
+      ).toBe(c);
+      const seen: number[] = [];
+      for (let w = 0; w <= 127; w += 1) seen.push(shaped(w, c));
+      for (let w = 1; w <= 127; w += 1)
+        expect(
+          seen[w] >= seen[w - 1],
+          `morph: the map must never fall - centre ${c}, weight ${w}: ` +
+            `${seen[w - 1]} then ${seen[w]}`,
+        ).toBe(true);
+      report.push(
+        `centre ${String(c).padStart(3)}: ${new Set(seen).size} distinct ` +
+          `values over the travel, dead centre ` +
+          CENTRE_W.map((w) => shaped(w, c)).join("/"),
+      );
+    }
+
+    // 3. 127 IS NOT OFFERED, AND THE REJECTION IS ARITHMETIC RATHER THAN
+    //    TASTE: at 127 the second segment is 127+(z-BREAK)*0//95, so every
+    //    weight at or above the breakpoint reads 127 and each macro pins full
+    //    across the whole quadrant nearest its corner. Measured here rather
+    //    than asserted by fiat, beside the top position that IS offered.
+    const distinctAt = (c: number): number =>
+      new Set(Array.from({ length: 128 }, (_, w) => shaped(w, c))).size;
+    expect(CENTRES, "morph: 127 is not a centre position").not.toContain(127);
+    expect(
+      distinctAt(127),
+      "morph: a centre of 127 would leave this many distinct values over the whole travel",
+    ).toBe(33);
+    expect(
+      distinctAt(Math.max(...CENTRES)),
+      "morph: the top position that IS offered keeps this many",
+    ).toBe(64);
+    report.push(
+      `the rejected 127: ${distinctAt(127)} distinct values against ` +
+        `${distinctAt(Math.max(...CENTRES))} at the offered top and ` +
+        `${distinctAt(BREAK)} at the default`,
+    );
+
+    /** One host per knob position, the Timer left undefined as `open` does. */
+    const openAt = async (index: number) => {
+      const { setup: body } = renderLua(entry, {
+        ...entry.defaults,
+        centre: index,
+      });
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup: body,
+      });
+      return { host, sim };
+    };
+
+    // 4. DEAD CENTRE, AT EVERY POSITION OF THE KNOB, IN THE REAL LUA HOST.
+    for (let index = 0; index < CENTRES.length; index += 1) {
+      const c = CENTRES[index];
+      const { host, sim } = await openAt(index);
+      try {
+        host.touchDown(0, CENTRE_RAW, CENTRE_RAW);
+        host.tick();
+        const sent = host.midi.map((m) => `cc${m.p1}=${m.p2}`);
+        // 11-08's suppression is untouched: s.p starts at zero, so a corner
+        // whose SHAPED value is 0 says nothing at all. At a centre of 0 that
+        // is all four and the middle of the pad is silent - honest rather
+        // than stuck, because a corner the finger walks away from still sends
+        // its single 0 on the way out (the stroke test above holds that).
+        const expected = CENTRE_W.map((w, j) => ({
+          cc: base + j + 1,
+          value: shaped(w, c),
+        })).filter((each) => each.value !== 0);
+        expect(
+          sent,
+          `morph: dead centre at centre ${c} the corners must send the ` +
+            "shaped weight and nothing else",
+        ).toEqual(expected.map((each) => `cc${each.cc}=${each.value}`));
+        // 5. THE PAINT IS THE VALUE SENT, not the raw weight: the picture is
+        //    what the DAW hears. All nine cells of every corner block sit at
+        //    phase 2*z.
+        for (let j = 0; j < 4; j += 1) {
+          const phases = blockOf(K[j]).map(
+            (cell) => sim.layer(hwOfCell(cell), 1).pha,
+          );
+          expect(
+            [...new Set(phases)],
+            `morph: corner ${j + 1}'s whole block is painted at the phase of ` +
+              `the value it sent, at centre ${c}`,
+          ).toEqual([shaped(CENTRE_W[j], c) * 2]);
+        }
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          `dead centre at ${String(c).padStart(3)}: ` +
+            (sent.length === 0 ? "silent" : sent.join(" ")),
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 6. THE CORNER AND ITS OPPOSITE, AT EVERY POSITION. One message, 127, on
+    //    that corner's own controller; the other three are arithmetically 0
+    //    inside the dead margin and were 0, so they say nothing at all.
+    for (let index = 0; index < CENTRES.length; index += 1) {
+      const c = CENTRES[index];
+      for (const [corner, x, y] of [
+        [0, 0, 0],
+        [3, 127, 127],
+      ] as const) {
+        const { host } = await openAt(index);
+        try {
+          host.touchDown(0, x, y);
+          host.tick();
+          expect(
+            host.midi.map((m) => `cc${m.p1}=${m.p2}`),
+            `morph: at centre ${c} a press on (${x},${y}) must send 127 on ` +
+              `corner ${corner + 1}'s controller and nothing else - the knob ` +
+              "may not cost the card its full scale under the finger",
+          ).toEqual([`cc${base + corner + 1}=127`]);
+        } finally {
+          host.close();
+        }
+      }
+    }
+    report.push("the two extreme corners: one message, 127, at every position");
+
+    // 7. THE ONE-MESSAGE CORNER TAP SURVIVES THE SHAPING, and the non-vacuity
+    //    is stated as a number: the probe is corner 1's block's inner cell,
+    //    the point a finger aimed from the middle of the pad lands on, where
+    //    an unguarded card sends one message per corner whose SHAPED weight
+    //    is non-zero.
+    const inner = (axis: "x" | "y"): number => {
+      const raw = calibratedCoordinatesIn(2, axis);
+      return raw[raw.length - 1];
+    };
+    const INNER: [number, number] = [inner("x"), inner("y")];
+    expect(
+      blockOf(K[0]),
+      "morph: the inner-cell probe must be inside corner 1's own block",
+    ).toContain(calibratedCell(INNER[0], INNER[1]));
+    for (let index = 0; index < CENTRES.length; index += 1) {
+      const c = CENTRES[index];
+      const w = weightsAt(INNER[0], INNER[1]);
+      const unguarded = w.filter((each) => shaped(each, c) !== 0).length;
+      const { host } = await openAt(index);
+      try {
+        host.touchDown(0, INNER[0], INNER[1]);
+        host.tick();
+        expect(
+          host.midi.map((m) => `cc${m.p1}=${m.p2}`),
+          `morph: A CORNER TAP STILL SENDS ONE MIDI MESSAGE at centre ${c}. ` +
+            `Unguarded this point is ${unguarded} message(s), from weights ` +
+            `${w.join("/")} shaped to ` +
+            w.map((each) => shaped(each, c)).join("/"),
+        ).toEqual([`cc${base + 1}=${shaped(w[0], c)}`]);
+        report.push(
+          `inner-cell tap at ${String(c).padStart(3)}: 1 message of ` +
+            `${unguarded} unguarded, cc${base + 1}=${shaped(w[0], c)}`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 8. AND THE WHOLE STREAM IS THE RAW WEIGHTS' STREAM THROUGH THE MAP. The
+    //    diagonal below is the gesture the pinned literal above uses; here it
+    //    is driven at EVERY knob position and compared with a stream computed
+    //    from the raw weights through `shaped` and 11-08's send-on-change - so
+    //    the default's equality is the identity's, and every other position is
+    //    checked against arithmetic rather than against a capture.
+    const streams: string[] = [];
+    for (let index = 0; index < CENTRES.length; index += 1) {
+      const c = CENTRES[index];
+      const { host } = await openAt(index);
+      try {
+        const path: [number, number][] = [[64, 64]];
+        for (let t = 65; t <= 127; t += 1) path.push([t, t]);
+        host.touchDown(0, path[0][0], path[0][1]);
+        host.tick();
+        for (let at = 1; at < path.length; at += 1) {
+          host.touchMove(0, path[at][0], path[at][1]);
+          host.tick();
+        }
+        // The corner branch cannot fire - the onset is the centre cell - so
+        // every accepted sample sends every corner whose shaped value moved.
+        const last = [0, 0, 0, 0];
+        const want: string[] = [];
+        for (const [x, y] of path)
+          weightsAt(x, y).forEach((raw, j) => {
+            const z = shaped(raw, c);
+            if (z !== last[j]) {
+              last[j] = z;
+              want.push(`${base + j + 1}:${z}`);
+            }
+          });
+        const got = host.midi.map((m) => `${m.p1}:${m.p2}`);
+        expect(
+          got.join(" "),
+          `morph: the diagonal at centre ${c} must be the raw weights through ` +
+            "the map and 11-08's send-on-change, message for message",
+        ).toBe(want.join(" "));
+        streams.push(`${String(c).padStart(3)}: ${got.length} messages`);
+        if (c === BREAK)
+          expect(
+            got.length,
+            "morph: and at the default it is the 120-message stream the " +
+              "pinned literal above holds byte for byte",
+          ).toBe(120);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    report.push(`the diagonal, per position: ${streams.join("  ")}`);
+
+    process.stdout.write(
+      "\nMORPH's centre value (change 9, 2026-09-18):\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+    expect(
+      report.length,
+      "five positions reported three times, plus the rejection, the corners and the strokes",
+    ).toBe(CENTRES.length * 3 + 3);
+  }, 120000);
+
   it("moves ARC's heart and ARC's controller together, at three depths", async () => {
     // THE BENCH NOTE THIS ANSWERS: "cannot see amplitude need visual feedback
     // for that" (plan 11-09).
