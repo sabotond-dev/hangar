@@ -417,3 +417,14 @@ a part, not a test (above); `keptMismatchBlock.detail` rewritten beyond item 2 (
 the block left; a fourth commit (`1e78f4b`) for the clause's header, which the first cut had at
 eleven lines. Next gate: amend SAFE-07 ("acknowledged before done", the store leg) - this change;
 SAFE-05 and SAFE-06 (change 2); SAFE-02 and PROJECT.md's line (change 1); CAT-04 stays `[ ]`.
+
+## 4. A Trackpad variation with a comet trail (2026-09-17)
+
+> next: make a variation of the Trackpad where everything stays the same but for the visuals/LED
+> animations we use a cometlike trail that follows your finger and fades
+
+Reading: a new catalog card beside Trackpad - the same recipe (pointer through gmms, two-finger
+scroll, tap-to-click, right-click on two) with the edge flash replaced by a comet: the LEDs the
+finger passes light under it and fade behind it. Painted from the Timer like the flash, through
+the library's decaying stamp K (12.1-08b - the presets' own comet), so the Setup stays at its 903.
+Provisional id `trackpad-comet`, name "Trackpad comet" - the user may rename.
