@@ -13,6 +13,7 @@ import {
   type PadState,
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
+import { BRIGHTNESS_FULL, scaleLua, sitesFor } from "../catalog/brightness";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
 import type { CatalogEntry, LuaKnob } from "../catalog/types";
 import { SimEngineError, type SimEngine } from "./engine";
@@ -148,13 +149,19 @@ export class LuaPadSim implements SimEngine {
  * The touch library goes in as the system Setup AND the system Timer (12-07, 12.1-02) for every entry
  * built here - the hand-authored ones; a preset never comes through - as the install path does
  * (`measureLuaRoute` + `land` publish the library). A host given only `TOUCH_LIBRARY` has no `G`,
- * `V`, `N`, `A` or `D` and raises on the first finger.
+ * `V`, `N`, `A` or `D` and raises on the first finger. `brightness` (1..255, default 255) scales
+ * the rendered colours exactly as the landing does (catalog/brightness.ts), so the VM runs the
+ * bytes the module would.
  */
 export async function createLuaPadSim(
   entry: CatalogEntry,
   knobs?: Readonly<Record<string, number>>,
+  brightness: number = BRIGHTNESS_FULL,
 ): Promise<LuaPadSim> {
-  const { setup, timer } = renderLua(entry, knobs);
+  const rendered = renderLua(entry, knobs);
+  const sites = sitesFor(entry.id);
+  const setup = scaleLua(rendered.setup, brightness, sites);
+  const timer = scaleLua(rendered.timer, brightness, sites);
   const host = await createLuaHost({
     sim: new PadSim(blankPadState()),
     system: TOUCH_LIBRARY,

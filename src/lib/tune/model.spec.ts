@@ -15,8 +15,10 @@ import {
   EVENT_BUDGET,
 } from "../../vendor/botor/_pad";
 import { byId, type CatalogEntry } from "../catalog";
+import { scaleLua, sitesFor } from "../catalog/brightness";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
-import { compileState, costOf, padReady } from "../pad";
+import { compileState, costOf, measureLua, padReady } from "../pad";
+import { PadSim } from "../../vendor/botor/pad-sim";
 import type { SimEngine } from "../sim/engine";
 import {
   buildTuner,
@@ -27,6 +29,7 @@ import {
   type LadderView,
   type OverBudgetView,
 } from "./model";
+import { renderLua } from "../sim/lua-pad-sim";
 import { resetAll } from "./state";
 import { COLOUR_LATTICE_SIZE, knobPosition, type TuneView } from "./view";
 import { stripComments } from "../../test-support/source";
@@ -962,4 +965,118 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
 
     tuner.destroy();
   });
+
+  it("brightness: 128 lands the scaled strings on both routes and the meters measure them, the preview dims to about half, the view carries it, Randomize never moves it, Reset settings puts it back, and 255 is the strings as shipped", async () => {
+    // Real timers: the Lua route builds a VM per brightness, as it does per knob.
+    const rec = recorder();
+    const tuner = await buildTuner({ entryId: "euclid", ...rec });
+    await pause(COMPILE_DEBOUNCE_MS + 400);
+    expect(tuner.brightness, "opens at full").toBe(255);
+    expect(rec.views.at(-1)?.brightness, "the view carries it").toBe(255);
+    const shipped = rec.configs.findLast((c) => c !== undefined);
+    expect(shipped, "the first landing").toBeDefined();
+    const rendered = renderLua(mustEntry("euclid"), tuner.indices);
+    expect(shipped!.setup, "255 is the string as shipped").toBe(rendered.setup);
+    const fullFrame = frameAfter(rec.previews.at(-1)!, 200);
+    const fullMax = Math.max(...fullFrame);
+    expect(fullMax, "euclid lights something at rest").toBeGreaterThan(100);
+    const settledBefore = settledViews(rec.views).length;
+
+    const configMark = rec.configs.length;
+    tuner.setBrightness(128);
+    expect(rec.configs.at(-1), "the strings went stale on the same tick").toBe(
+      undefined,
+    );
+    expect(rec.configs.length).toBe(configMark + 1);
+    expect(rec.views.at(-1)?.setup.state, "the meters went stale").toBe(
+      "stale",
+    );
+    expect(rec.views.at(-1)?.brightness).toBe(128);
+    await pause(COMPILE_DEBOUNCE_MS + 400);
+    const dim = rec.configs.findLast((c) => c !== undefined);
+    expect(dim, "the landing at 128").toBeDefined();
+    expect(dim!.setup, "the Lua route lands the scaled Setup").toBe(
+      scaleLua(rendered.setup, 128, sitesFor("euclid")),
+    );
+    expect(dim!.timer).toBe(scaleLua(rendered.timer, 128, sitesFor("euclid")));
+    expect(dim!.setup, "128 moved a byte").not.toBe(rendered.setup);
+    expect(dim!.system, "the library is not scaled").toBe(TOUCH_LIBRARY);
+    expect(dim!.systemTimer).toBe(TOUCH_LIBRARY_TIMER);
+    const view = settledViews(rec.views).at(-1);
+    expect(settledViews(rec.views).length).toBe(settledBefore + 1);
+    expect(
+      view?.setup.used,
+      "the meter measures the landed string, not the shipped one",
+    ).toBe(await measureLua(dim!.setup));
+    // The preview is a fresh VM on the scaled bytes: its frame is about half.
+    const dimFrame = frameAfter(rec.previews.at(-1)!, 200);
+    const dimMax = Math.max(...dimFrame);
+    expect(dimMax, "the preview dimmed").toBeLessThan(fullMax);
+    expect(
+      Math.abs(dimMax - Math.floor(fullMax / 2)),
+      "about half",
+    ).toBeLessThanOrEqual(3);
+
+    // Randomize: every knob may move, the brightness may not.
+    await tuner.surprise();
+    expect(tuner.brightness, "a roll moved the brightness").toBe(128);
+    expect(rec.views.at(-1)?.brightness).toBe(128);
+    expect(tuner.stamp() ?? "", "the stamp does not carry it").not.toContain(
+      "128",
+    );
+    // Out of range is ignored; the same value is a no-op.
+    const viewMark = rec.views.length;
+    tuner.setBrightness(0);
+    tuner.setBrightness(256);
+    tuner.setBrightness(128);
+    expect(rec.views.length, "an ignored value emitted nothing").toBe(viewMark);
+
+    // Reset settings: the knobs and the brightness back, in one move.
+    tuner.resetAll();
+    expect(tuner.brightness, "Reset settings put it back").toBe(255);
+    await pause(COMPILE_DEBOUNCE_MS + 400);
+    const back = rec.configs.findLast((c) => c !== undefined);
+    expect(back!.setup, "255 again is the shipped string").toBe(
+      renderLua(mustEntry("euclid"), tuner.indices).setup,
+    );
+    tuner.destroy();
+
+    // The preset route: the same setting through the compiler's output and the dimmed PadSim.
+    const pre = recorder();
+    const preset = await buildTuner({
+      entryId: "aurora",
+      brightness: 128,
+      ...pre,
+    });
+    await pause(COMPILE_DEBOUNCE_MS + 400);
+    expect(preset.brightness).toBe(128);
+    const landed = pre.configs.findLast((c) => c !== undefined);
+    const compiled = await compileState(resetAll(mustEntry("aurora")));
+    expect(landed!.setup, "a preset lands its compiled Setup scaled").toBe(
+      scaleLua(compiled.setupLua, 128, sitesFor()),
+    );
+    expect(landed!.setup).not.toBe(compiled.setupLua);
+    const measured = await costOf({
+      ...compiled,
+      setupLua: landed!.setup,
+      timerLua: landed!.timer,
+    });
+    expect(
+      settledViews(pre.views).at(-1)?.setup.used,
+      "the meter is the scaled string's own cost",
+    ).toBe(measured.setup.used);
+    const presetFull = frameAfter(
+      new PadSim(resetAll(mustEntry("aurora"))),
+      200,
+    );
+    const presetDim = frameAfter(pre.previews.at(-1)!, 200);
+    const pf = Math.max(...presetFull);
+    const pd = Math.max(...presetDim);
+    expect(pf).toBeGreaterThan(100);
+    expect(
+      Math.abs(pd - Math.floor(pf / 2)),
+      "a preset's preview is about half",
+    ).toBeLessThanOrEqual(3);
+    preset.destroy();
+  }, 30000);
 });

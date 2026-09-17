@@ -22,9 +22,16 @@ import {
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
 import { byId, portedEntry, type CatalogEntry } from "../catalog";
+import {
+  BRIGHTNESS_FULL,
+  brightnessOf,
+  isBrightness,
+  scaleLua,
+  sitesFor,
+} from "../catalog/brightness";
 import { compileState, costOf, fitState, measureLua, padReady } from "../pad";
 import { compilerKnobs, encodeFor, stampKnobs } from "../share/stamp";
-import { createEngine, type SimEngine } from "../sim/engine";
+import { createEngine, dimmed, type SimEngine } from "../sim/engine";
 import {
   backOffKnob,
   backOffLadder,
@@ -131,6 +138,12 @@ export type Tuner = {
   restore(indices: Readonly<Record<string, number>>): void;
   /** Undefined at the defaults: a URL with no fragment IS the base configuration. */
   stamp(): string | undefined;
+  /**
+   * The brightness (1..255) every landed colour is scaled to (catalog/brightness.ts). Not a knob:
+   * never in `knobs`, never in the stamp, never rolled. A value outside 1..255 is ignored.
+   */
+  readonly brightness: number;
+  setBrightness(brightness: number): void;
   destroy(): void;
 };
 
@@ -157,6 +170,8 @@ export type ConfigStrings = {
 export type TunerOptions = {
   entryId: string;
   indices?: Readonly<Record<string, number>>;
+  /** The brightness to open at; absent or out of range is 255 (a record without the field). */
+  brightness?: number;
   /** Phase 7's install marker, and the only way a test or /dev/tune/ reaches over budget. */
   reserved?: PadReserved;
   onview(view: TuneView): void;
@@ -372,6 +387,24 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       knob.default,
     );
   }
+  let brightness = brightnessOf(options.brightness);
+  /** The landing's scaling, on both routes: identity at 255 (brightness.spec.ts test 4). */
+  const sites = sitesFor(entry.id);
+  const scaled = (lua: string): string => scaleLua(lua, brightness, sites);
+  /** A PadSim at the tuner's brightness: the preview a preset shows. */
+  const padSimAt = (state: PadState): SimEngine =>
+    dimmed(new PadSim(state), brightness);
+  /** The compiled pair with its colours scaled: what a preset lands and what its meters measure. */
+  const scaledResult = <T extends { setupLua: string; timerLua: string }>(
+    result: T,
+  ): T =>
+    brightness === BRIGHTNESS_FULL
+      ? result
+      : {
+          ...result,
+          setupLua: scaled(result.setupLua),
+          timerLua: scaled(result.timerLua),
+        };
 
   let destroyed = false;
   let pending: ReturnType<typeof setTimeout> | undefined;
@@ -444,12 +477,12 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       const { renderLua } = await import("../sim/lua-pad-sim");
       const lua = renderLua(entry, at);
       measured = {
-        setup: lua.setup === "" ? 0 : await measureLua(lua.setup),
-        timer: lua.timer === "" ? 0 : await measureLua(lua.timer),
+        setup: lua.setup === "" ? 0 : await measureLua(scaled(lua.setup)),
+        timer: lua.timer === "" ? 0 : await measureLua(scaled(lua.timer)),
       };
     } else {
       const cost = await costOf(
-        await compileState(stateOf(at)),
+        scaledResult(await compileState(stateOf(at))),
         options.reserved,
       );
       measured = { setup: cost.setup.used, timer: cost.timer.used };
@@ -510,6 +543,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       knobs: knobViews(knobs, indices),
       setup: meterView("setup", numbers.setup, feed),
       timer: meterView("timer", numbers.timer, feed),
+      brightness,
     });
   }
 
@@ -585,7 +619,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         // The same rule as moveTo's: the strings stop being true here.
         options.onconfig?.(undefined);
         emit();
-        swapEngine(new PadSim(resolved));
+        swapEngine(padSimAt(resolved));
         schedule();
       },
     };
@@ -625,8 +659,9 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   async function measurePadsim(mine: number): Promise<void> {
     const state = stateNow();
     // The compile is already in hand: what costOf measured is what is
-    // published, from the same result, never a second compile.
-    const result = await compileState(state);
+    // published, from the same result, never a second compile. Scaled to
+    // the brightness first, so the numbers are the landed strings' own.
+    const result = scaledResult(await compileState(state));
     const measured = await costOf(result, options.reserved);
     if (stale(mine)) return;
     // A preset lands the library's two halves since 12.1-08b, as the Lua route does: its state carries
@@ -655,13 +690,18 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const { renderLua } = await import("../sim/lua-pad-sim");
     // A hand-authored entry's page init is the touch library (12-07) and its system timer the library's
     // second half (12.1-07): one library over two slots, 255/0 arming 255/6 with `self:tim()`.
-    const lua = renderLua(entry, indices);
+    const rendered = renderLua(entry, indices);
+    // The colours scaled to the brightness: the identity at 255.
+    const lua = {
+      setup: scaled(rendered.setup),
+      timer: scaled(rendered.timer),
+    };
     // An empty Timer is a TRUE measurement of zero, not a dead meter: MORPH
     // ships one, and 0 / 908 tells the visitor something real.
     const setup = lua.setup === "" ? 0 : await measureLua(lua.setup);
     const timer = lua.timer === "" ? 0 : await measureLua(lua.timer);
     if (stale(mine)) return;
-    // renderLua already produced exactly the wire text.
+    // renderLua produced exactly the wire text, scaled.
     land(setup, timer, {
       systemTimer: landedSystemTimer,
       system: landedSystem,
@@ -675,7 +715,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     const mine = ++generation;
     if (entry.preview === "lua") {
       if (rebuild) {
-        const next = await createEngine(entry, indices);
+        const next = await createEngine(entry, indices, brightness);
         if (stale(mine)) {
           closeEngine(next);
           return;
@@ -720,8 +760,26 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     emit();
     if (entry.preview === "padsim") {
       // The whole of D-05: a new picture on this tick, a new number later.
-      swapEngine(new PadSim(stateNow()));
+      swapEngine(padSimAt(stateNow()));
     }
+    schedule();
+  }
+
+  /**
+   * The brightness moves: every string goes stale on this tick (moveTo's rule), the forecast memo
+   * is dropped (a vector's cost is pure at ONE brightness), a preset repaints through the dimmed
+   * engine now, and the Lua route rebuilds its VM on the scaled bytes at the debounce.
+   */
+  function setBrightness(next: number): void {
+    if (destroyed || !isBrightness(next) || next === brightness) return;
+    brightness = next;
+    forecasts.clear();
+    clearForecast();
+    generation++;
+    if (feed !== "measuring") feed = "stale";
+    options.onconfig?.(undefined);
+    emit();
+    if (entry.preview === "padsim") swapEngine(padSimAt(stateNow()));
     schedule();
   }
 
@@ -738,9 +796,9 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
 
   emit();
   if (entry.preview === "lua") {
-    swapEngine(await createEngine(entry, indices));
+    swapEngine(await createEngine(entry, indices, brightness));
   } else {
-    swapEngine(new PadSim(stateNow()));
+    swapEngine(padSimAt(stateNow()));
   }
   // Not debounced: the first measurement has nothing to collapse.
   void run(false);
@@ -792,6 +850,11 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       const next: Record<string, number> = {};
       for (const knob of knobs) next[knob.id] = knob.default;
       moved = undefined;
+      // Reset settings puts the brightness back with the knobs: one move, one recompile.
+      if (brightness !== BRIGHTNESS_FULL) {
+        brightness = BRIGHTNESS_FULL;
+        forecasts.clear();
+      }
       moveTo(next);
     },
     restore(next: Readonly<Record<string, number>>): void {
@@ -860,7 +923,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       if (!plan?.resolved) return before;
       resolved = plan.resolved;
       emit();
-      swapEngine(new PadSim(resolved));
+      swapEngine(padSimAt(resolved));
       schedule();
       return before;
     },
@@ -869,6 +932,10 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       // because a URL with no fragment IS the base configuration.
       return payload;
     },
+    get brightness(): number {
+      return brightness;
+    },
+    setBrightness,
     destroy(): void {
       destroyed = true;
       if (typeof pending !== "undefined") clearTimeout(pending);

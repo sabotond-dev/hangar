@@ -42,10 +42,11 @@ import {
 } from "../../vendor/botor/_pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
 import { CATALOG, type CatalogEntry } from "../catalog";
+import { scaleLua, sitesFor } from "../catalog/brightness";
 import { KX, KY } from "../catalog/calibration";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
 import { PRESETS as HANGAR_PRESETS } from "../catalog/presets";
-import { createEngine, type SimEngine } from "../sim/engine";
+import { createEngine, dimmed, type SimEngine } from "../sim/engine";
 import { createLuaHost, type LuaHost } from "../sim/lua-host";
 import { LuaPadSim, blankPadState, renderLua } from "../sim/lua-pad-sim";
 
@@ -509,6 +510,107 @@ describe("the Lua route reproduces the vendored simulator (Wave 0 gate)", () => 
       "\nTHE EIGHT PRESETS UNDER A FINGER, LUA BESIDE THE LIBRARY AGAINST THE MIRROR (plan 12.1-08b):\n" +
         rows.join("\n") +
         `\n  ${compared} layer records equal\n`,
+    );
+  }, 120000);
+
+  it("dims a preset the same way on both sides at brightness 128: the compiler's Lua with its colours scaled at landing, run in the VM beside the library, against the dimmed PadSim the workspace previews - every frame byte within two units, the brightest about half - for the eight presets at rest and under a finger", async () => {
+    // CHANGE 5 (2026-09-17): the wire scales the colour literals the compiler emits
+    // (catalog/brightness.ts); the preview scales the rendered frame (engine.ts's
+    // dimmed). The firmware's mix is linear in the colours, so the two agree to the
+    // rounding - proved here on the real Lua, not asserted.
+    const eight = HANGAR_PRESETS.filter((p) => p.id !== "tpad");
+    let worst = 0;
+    let bytes = 0;
+    const rows: string[] = [];
+    for (const preset of eight) {
+      const built = compile(preset.state);
+      const setup = scaleLua(built.setupLua, 128, sitesFor());
+      const timer = scaleLua(built.timerLua, 128, sitesFor());
+      expect(setup, `${preset.id}: 128 moved no byte of the Setup`).not.toBe(
+        built.setupLua,
+      );
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer: timer.trim() === "" ? undefined : timer,
+      });
+      const preview = dimmed(new PadSim(preset.state), 128);
+      const full = new PadSim(preset.state);
+      try {
+        expect(host.errors, `${preset.id}: the scaled Setup raised`).toEqual(
+          [],
+        );
+        const steps: {
+          label: string;
+          drive: (e: SimEngine | LuaHost) => void;
+        }[] = [
+          { label: "tick 37", drive: (e) => e.run(37) },
+          { label: "tick 101", drive: (e) => e.run(64) },
+          {
+            label: "a finger on LED (4,4)",
+            drive: (e) => e.touchDown(0, KX[4], KY[4]),
+          },
+          { label: "ten ticks held", drive: (e) => e.run(10) },
+          {
+            label: "the finger lifts",
+            drive: (e) => e.touchUp(0, KX[4], KY[4]),
+          },
+          { label: "tick 500", drive: (e) => e.run(388) },
+        ];
+        let brightest = 0;
+        let brightestFull = 0;
+        for (const step of steps) {
+          step.drive(host);
+          step.drive(preview);
+          step.drive(full);
+          host.run(1);
+          preview.run(1);
+          full.run(1);
+          expect(
+            host.errors,
+            `${preset.id} after "${step.label}": raised`,
+          ).toEqual([]);
+          const wire = sim.frame;
+          const shown = preview.frame;
+          for (let i = 0; i < CELLS * 3; i += 1) {
+            const d = Math.abs(wire[i] - shown[i]);
+            if (d > worst) worst = d;
+            bytes += 1;
+            expect(
+              d,
+              `${preset.id} after "${step.label}": byte ${i} wire ${wire[i]} preview ${shown[i]}`,
+            ).toBeLessThanOrEqual(2);
+            if (wire[i] > brightest) brightest = wire[i];
+          }
+          const f = Math.max(...full.frame);
+          if (f > brightestFull) brightestFull = f;
+        }
+        expect(brightestFull, `${preset.id}: lit something`).toBeGreaterThan(
+          100,
+        );
+        expect(
+          Math.abs(brightest - Math.floor(brightestFull / 2)),
+          `${preset.id}: the brightest byte on the wire at 128 is about half of 255's`,
+        ).toBeLessThanOrEqual(3);
+        rows.push(
+          `  ${preset.id.padEnd(10)} brightest ${brightestFull} -> ${brightest}`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+    expect(bytes).toBe(8 * 6 * CELLS * 3);
+    process.stdout.write(
+      "\nTHE EIGHT PRESETS AT BRIGHTNESS 128, WIRE AGAINST PREVIEW (change 5): worst byte difference " +
+        String(worst) +
+        " over " +
+        String(bytes) +
+        " bytes\n" +
+        rows.join("\n") +
+        "\n",
     );
   }, 120000);
 

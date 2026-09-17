@@ -124,6 +124,8 @@ export type TuneView = {
   knobs: readonly KnobView[];
   setup: MeterView;
   timer: MeterView;
+  /** The brightness the strings were landed at, 1..255; not a knob, so never in `knobs`. */
+  brightness: number;
 };
 
 // ---------------------------------------------------------------------------

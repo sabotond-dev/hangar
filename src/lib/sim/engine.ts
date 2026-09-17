@@ -12,6 +12,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { presetById } from "../catalog/presets";
 import { PadSim } from "../../vendor/botor/pad-sim";
+import { BRIGHTNESS_FULL, scaleChannel } from "../catalog/brightness";
 import type { CatalogEntry } from "../catalog/types";
 
 /**
@@ -50,19 +51,92 @@ export class SimEngineError extends Error {
 /**
  * The engine for one catalog entry. `knobs` maps a knob id to an INDEX into its `values` (default
  * `entry.defaults`) and is used only by the Lua route: a padsim entry's compiler knobs move a
- * PadState and are deliberately IGNORED here. Throws SimEngineError; a row catches and skips (D-08).
+ * PadState and are deliberately IGNORED here. `brightness` (1..255, default 255) reaches the Lua
+ * route as the scaled bytes the module would run and a PadSim through `dimmed`. Throws
+ * SimEngineError; a row catches and skips (D-08).
  */
 export async function createEngine(
   entry: CatalogEntry,
   knobs?: Readonly<Record<string, number>>,
+  brightness: number = BRIGHTNESS_FULL,
 ): Promise<SimEngine> {
   if (entry.preview === "lua") {
     // DYNAMIC, never static. See the module comment.
     const { createLuaPadSim } = await import("./lua-pad-sim");
-    return await createLuaPadSim(entry, knobs);
+    return await createLuaPadSim(entry, knobs, brightness);
   }
   // Built synchronously inside the async function: nine ported pads are one microtask, not nine.
-  return padSimFor(entry);
+  return dimmed(padSimFor(entry), brightness);
+}
+
+/**
+ * A PadSim's preview at a brightness: the same engine, its rendered frame scaled byte for byte by
+ * the landing's channel rule. The wire scales the colours the compiler emits and the firmware's
+ * mix is linear in them, so the frame's scale is the wire's within a unit per channel; the Lua
+ * route needs none of this (it runs the scaled bytes). At 255 the engine itself is returned.
+ */
+export function dimmed(engine: SimEngine, brightness: number): SimEngine {
+  if (brightness === BRIGHTNESS_FULL) return engine;
+  return new DimmedEngine(engine, brightness);
+}
+
+class DimmedEngine implements SimEngine {
+  private readonly scaled: Uint8Array;
+
+  constructor(
+    private readonly inner: SimEngine,
+    private readonly brightness: number,
+  ) {
+    this.scaled = new Uint8Array(inner.frame.length);
+  }
+
+  tick(): void {
+    this.inner.tick();
+  }
+
+  run(n: number): void {
+    this.inner.run(n);
+  }
+
+  reset(): void {
+    this.inner.reset();
+  }
+
+  get frame(): Uint8Array {
+    const source = this.inner.frame;
+    for (let i = 0; i < source.length; i += 1) {
+      this.scaled[i] = scaleChannel(source[i], this.brightness);
+    }
+    return this.scaled;
+  }
+
+  get animating(): boolean {
+    return this.inner.animating;
+  }
+
+  get coordMax(): 127 | 1023 {
+    return this.inner.coordMax;
+  }
+
+  get pendingTouches(): number {
+    return this.inner.pendingTouches;
+  }
+
+  touchDown(id: number, x: number, y: number): void {
+    this.inner.touchDown(id, x, y);
+  }
+
+  touchMove(id: number, x: number, y: number): void {
+    this.inner.touchMove(id, x, y);
+  }
+
+  touchUp(id: number, x: number, y: number): void {
+    this.inner.touchUp(id, x, y);
+  }
+
+  touchTap(id: number, x: number, y: number): void {
+    this.inner.touchTap(id, x, y);
+  }
 }
 
 function padSimFor(entry: CatalogEntry): PadSim {
