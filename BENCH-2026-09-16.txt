@@ -800,3 +800,12 @@ snare, closed hat, open hat). (5) The note picker is a typed field taking `C#3` 
 C-2 (0) to G8 (127). (6) The sync is built on ORBIT alone and benched; the clock-handling shape
 is saved as a reusable sequencer piece (a library function or a documented idiom, whichever the
 measurement favours) so STEPS, RADAR POINTS and SONAR can take it later on the user's word.
+
+## 9. MORPH - the centre's value settable (2026-09-18, queued for Opus)
+
+> queue for Opus:
+> Morph: should be able to setup the value of the center.
+
+Today the finger at dead centre gives each corner's CC a quarter of the range (about 32 of 127,
+the four weights summing to 127). A question put to the user on what "the value of the center"
+sets; answer recorded below.
