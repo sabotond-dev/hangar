@@ -36,6 +36,10 @@ import Swatch from "./Swatch.svelte";
 // RENDERED with svelte/server for its shape, and the mapping it makes is
 // view.ts's pure door, driven here with Arc's own list.
 import MidiField from "./MidiField.svelte";
+import BrightnessField from "./BrightnessField.svelte";
+import { CATALOG } from "../catalog";
+import { parseBrightness } from "../catalog/brightness";
+import { BRIGHTNESS_LABEL, BRIGHTNESS_RANGE } from "../tune/inspector-copy";
 import {
   CC_NUMBER_LABEL,
   CHANNEL_LABEL,
@@ -134,6 +138,7 @@ const UI_DIR = "src/lib/ui";
  * ones.
  */
 const TUNING_COMPONENTS: readonly string[] = [
+  "BrightnessField.svelte",
   "BudgetMessage.svelte",
   "BudgetMeter.svelte",
   "ColourPicker.svelte",
@@ -210,7 +215,7 @@ describe("the tuning UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "ten components were listed").toBe(10);
+    expect(TUNING_COMPONENTS.length, "eleven components were listed").toBe(11);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -779,6 +784,9 @@ describe("the tuning UI's structural rules", () => {
       census,
       `the accent census moved. The reserved list is these eight and nothing else: ${RESERVED.join("; ")}. A held knob's marker is --color-boundary, the forecast delta is --color-ink and the ghost fill is --color-divider - none of them is entitled to the ninth`,
     ).toEqual({
+      // THE BRIGHTNESS FIELD (change 5, 2026-09-17) SPENDS NONE, the typed
+      // MIDI field's way: boundary box, error ink when refused, quiet reset.
+      "BrightnessField.svelte": 0,
       "BudgetMessage.svelte": 2,
       "BudgetMeter.svelte": 1,
       "ColourPicker.svelte": 7,
@@ -879,6 +887,12 @@ describe("the tuning UI's structural rules", () => {
     // until a keystroke validates. The same validation fact on the same
     // shape, and still never on a button.
     //
+    // WIDENED BY ONE MORE ON 2026-09-17 (change 5), ON THE SAME ROW. The
+    // brightness field (BrightnessField.svelte) refuses a typed value outside
+    // 1..255 or one that is not a whole number exactly as MidiField.svelte
+    // does: the text kept, its boundary and its message in this ink, on both
+    // routes. Never on a button.
+    //
     // AND THE METERS LEFT THE INSPECTOR AT 13.1-07 (13.1-CONTEXT D-10, the
     // user's word: "TUNING, so code limit visualiztation should be removed,
     // lets not show that"). BudgetMeter.svelte still carries the ink - the
@@ -895,8 +909,9 @@ describe("the tuning UI's structural rules", () => {
     expect(files.length, "the ui directory was walked").toBeGreaterThan(7);
     expect(
       carriers.sort(),
-      "the error ink is scoped to the meter, the message, the destination zone's over-budget refusal (DestinationZone.svelte since 13.1-06, SurfaceActions.svelte's destination half before it) and the Sandbox's refused field, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
+      "the error ink is scoped to the meter, the message, the destination zone's over-budget refusal (DestinationZone.svelte since 13.1-06, SurfaceActions.svelte's destination half before it), the Sandbox's refused field and the brightness field, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
     ).toEqual([
+      `${UI_DIR}/BrightnessField.svelte`,
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
       `${UI_DIR}/DestinationZone.svelte`,
@@ -2012,6 +2027,138 @@ describe("the tuning UI's structural rules", () => {
         indexOf(restored, "channel"),
         "the hand-moved channel came back to its moved index, not its default",
       ).toBe((channel.default + 3) % channel.values.length);
+    } finally {
+      tuner.destroy();
+    }
+  });
+
+  it("Brightness is one typed field under Appearance on every card: 1..255 with the last good value kept, out of range refused as 'Brightness is 1 to 255.', the marker and a per-field reset, never a knob and never rolled, Reset settings putting it back", async () => {
+    // Change 5 (2026-09-17). The field: rendered with svelte/server for its
+    // shape - the label, a text input with a numeric keyboard, the value,
+    // the reset named for the field and disabled at 255, the marker off 255,
+    // read-only under Play. The door: parseBrightness. The wiring: the
+    // region mounts it under Appearance unconditionally (a card with no
+    // colour knob has the section for the field alone), routes a value to
+    // tuner.setBrightness and the reset to 255, and counts it in Reset
+    // settings' disabled state. The scope: no entry has a knob called
+    // brightness, so surprise.ts cannot reach it.
+    const renderField = (value: number, readonly = false) =>
+      render(BrightnessField, {
+        props: {
+          value,
+          readonly,
+          onchange: () => undefined,
+          onreset: () => undefined,
+        },
+      }).body;
+    const full = renderField(255);
+    expect(full).toContain('data-testid="brightness-field"');
+    expect(full, "a text input").toContain('type="text"');
+    expect(full, "with a numeric keyboard").toContain('inputmode="numeric"');
+    expect(full).toMatch(/value="255"/);
+    expect(full).toContain(` ${BRIGHTNESS_LABEL}</label>`);
+    expect(full, "nothing refused on arrival").not.toContain(
+      'aria-invalid="true"',
+    );
+    expect(full, "the reset is disabled at 255").toMatch(
+      /data-testid="brightness-field-reset"[^>]*disabled/,
+    );
+    expect(full).toContain(`aria-label="${fieldResetName(BRIGHTNESS_LABEL)}"`);
+    expect(full).not.toContain('data-testid="brightness-field-changed"');
+    expect(full).toContain('data-changed="false"');
+    const half = renderField(128);
+    expect(half).toMatch(/value="128"/);
+    expect(half, "the marker off 255").toContain(
+      'data-testid="brightness-field-changed"',
+    );
+    expect(half).toContain('data-changed="true"');
+    expect(half).not.toMatch(
+      /data-testid="brightness-field-reset"[^>]*disabled/,
+    );
+    const locked = renderField(128, true);
+    expect(locked, "read-only under Play").toMatch(/<input[^>]*readonly/);
+    expect(locked).toMatch(/data-testid="brightness-field-reset"[^>]*disabled/);
+
+    // The door and the two refusals.
+    expect(parseBrightness("128")).toEqual({ ok: true, value: 128 });
+    expect(parseBrightness("300")).toEqual({ ok: false, reason: "range" });
+    expect(parseBrightness("x")).toEqual({ ok: false, reason: "number" });
+    expect(BRIGHTNESS_RANGE).toBe("Brightness is 1 to 255.");
+    const field = code(componentPath("BrightnessField.svelte"));
+    expect(field).toContain("parseBrightness(text)");
+    expect(field).toMatch(
+      /parsed[.]reason === "number" [?] TYPE_A_NUMBER : BRIGHTNESS_RANGE/,
+    );
+    expect(field, "a good value reaches the owner").toContain(
+      "onchange(parsed.value)",
+    );
+    expect(field, "a refused one keeps the text").toContain("refused = text");
+    expect(field, "the floor").toContain("min-block-size: 44px");
+    expect(field, "no corner (D-01)").not.toMatch(/border-radius:[ ]*[1-9]/);
+
+    // The wiring in the region.
+    const region = code(componentPath("TuningRegion.svelte"));
+    expect(region).toContain("<BrightnessField");
+    expect(region, "Appearance is unconditional now").toContain(
+      "{ title: SECTION_APPEARANCE, content: appearance },",
+    );
+    expect(region).toMatch(
+      /function changeBrightness[(]value: number[)][^}]*tuner[?][.]setBrightness[(]value[)]/,
+    );
+    expect(region).toMatch(
+      /function resetBrightness[(][)][^}]*tuner[?][.]setBrightness[(]255[)]/,
+    );
+    expect(region, "Reset settings counts it").toContain(
+      "brightnessNow === 255",
+    );
+    expect(region, "the owner is told").toContain(
+      "onbrightness?.(next.brightness)",
+    );
+
+    // Not a knob on any hand-authored entry. A PRESET still carries the
+    // vendored compiler's own five-detent knob (knobs.preset.ts, D-01's
+    // floor, in the BOTOR stamp and in the wire set) under Behavior; the
+    // field composes with it - the knob scales the compiler's coefficients,
+    // the field scales what lands - and retiring the knob would move the wire
+    // set, which change 5 holds equal. Named here so the two are not confused.
+    for (const entry of CATALOG) {
+      const knob = entry.knobs.some(
+        (k) => k.id === "brightness" || k.token === "@BRIGHTNESS",
+      );
+      expect(knob, `${entry.id} declares brightness as a Lua knob`).toBe(false);
+    }
+    // The behaviour, on a real tuner: the view carries it, a move changes
+    // it, a roll leaves it, Reset settings restores it.
+    await padReady();
+    const views: TuneView[] = [];
+    const tuner = await buildTuner({
+      entryId: "aurora",
+      brightness: 200,
+      onview: (view) => void views.push(view),
+      onpreview: () => undefined,
+      onladder: () => undefined,
+      onover: () => undefined,
+    });
+    try {
+      const settle = async () => {
+        for (let index = 0; index < 64; index++) await Promise.resolve();
+      };
+      await settle();
+      expect((views.at(-1) as TuneView).brightness, "opened at 200").toBe(200);
+      const compilerKnob = tuner.knobs.find((k) => k.id === "brightness");
+      expect(
+        compilerKnob?.options,
+        "aurora's compiler knob is the five detents, apart from the field",
+      ).toEqual(["15", "30", "50", "75", "100"]);
+      tuner.setBrightness(64);
+      await settle();
+      expect((views.at(-1) as TuneView).brightness).toBe(64);
+      await tuner.surprise();
+      await settle();
+      expect((views.at(-1) as TuneView).brightness, "a roll left it").toBe(64);
+      tuner.resetAll();
+      await settle();
+      expect((views.at(-1) as TuneView).brightness, "Reset settings").toBe(255);
     } finally {
       tuner.destroy();
     }

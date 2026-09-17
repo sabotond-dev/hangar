@@ -1,4 +1,4 @@
-// The Sandbox's interface, eight tests (7 and 8 by 13.1-03), two halves each:
+// The Sandbox's interface, nine tests (7 and 8 by 13.1-03, 9 by change 5), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -34,6 +34,11 @@ import {
 } from "../sandbox/editor";
 import { GEOMETRY_COPY, buildCellMap, validate } from "../sandbox/geometry";
 import { History, fieldKey } from "../sandbox/history";
+import { withBrightness } from "../sandbox/model";
+import {
+  BRIGHTNESS_RANGE,
+  BRIGHTNESS_SURFACE_HELPER,
+} from "../tune/inspector-copy";
 import {
   SURFACE_ELEMENT_CAP,
   emptySurface,
@@ -965,5 +970,95 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       PALETTE[0],
       PALETTE[1],
     ]);
+  });
+
+  it("9. the surface's brightness (change 5): one typed field under Appearance with or without a selection, its helper naming the surface, read-only in Play; the editor records one coalesced entry per edit, undone and redone, refused in Play, 255 the field's absence", () => {
+    // THE BEHAVIOUR HALF, on the model alone.
+    const { editor, emitted } = fresh();
+    editor.starter();
+    const depth = editor.history.depth;
+    expect(
+      editor.surface.brightness,
+      "a new surface has no field",
+    ).toBeUndefined();
+    editor.setBrightness(128);
+    expect(editor.surface.brightness).toBe(128);
+    expect(editor.history.depth, "one entry").toBe(depth + 1);
+    expect(editor.history.entries.at(-1)?.kind).toBe("brightness");
+    // Typed digits coalesce: 12 then 128 is still one entry until the boundary.
+    editor.setBrightness(12);
+    editor.setBrightness(120);
+    expect(editor.history.depth, "keystrokes coalesced").toBe(depth + 1);
+    expect(editor.surface.brightness).toBe(120);
+    editor.commitField();
+    editor.setBrightness(64);
+    expect(editor.history.depth, "a new entry after the boundary").toBe(
+      depth + 2,
+    );
+    expect(
+      editor.setBrightness(64),
+      "the same value is a no-op",
+    ).toBeUndefined();
+    expect(editor.history.depth).toBe(depth + 2);
+    // Undo and redo walk the field like any structural edit.
+    editor.undo();
+    expect(editor.surface.brightness).toBe(120);
+    editor.undo();
+    expect(editor.surface.brightness).toBeUndefined();
+    editor.redo();
+    expect(editor.surface.brightness).toBe(120);
+    // 255 is the field's absence, canonically, so a surface at full is the surface as it was written.
+    editor.commitField();
+    editor.setBrightness(255);
+    expect(editor.surface).not.toHaveProperty("brightness");
+    expect(withBrightness(editor.surface, 255)).toBe(editor.surface);
+    // Play refuses it.
+    editor.setMode("play");
+    editor.setBrightness(30);
+    expect(editor.surface.brightness).toBeUndefined();
+    editor.setMode("edit");
+    // Every emitted surface was valid: the field never touched a region.
+    for (const surface of emitted)
+      expect(wholeSurfaceValid(surface)).toBe(true);
+
+    // THE SHAPE HALF: the inspector with a selection and without one.
+    editor.setBrightness(90);
+    const selected = inspector(editor);
+    expect(selected).toContain('data-testid="brightness-field"');
+    expect(selected).toMatch(/value="90"/);
+    expect(selected).toContain('data-testid="brightness-field-changed"');
+    expect(selected, "the helper says whose it is").toContain(
+      BRIGHTNESS_SURFACE_HELPER,
+    );
+    expect(selected, "under Appearance, after the swatch").toMatch(
+      /region-swatch[^]*brightness-field/,
+    );
+    editor.select(undefined);
+    const none = inspector(editor);
+    expect(none, "no selection: the field is still there").toContain(
+      'data-testid="brightness-field"',
+    );
+    expect(none).toContain(">Appearance<");
+    expect(none).not.toContain('data-testid="region-swatch"');
+    editor.setMode("play");
+    const locked = inspector(editor);
+    expect(locked, "read-only in Play").toMatch(
+      /data-testid="brightness-field-input"[^>]*readonly/,
+    );
+    expect(locked).toMatch(/data-testid="brightness-field-reset"[^>]*disabled/);
+    editor.setMode("edit");
+    // The refusal string and the wiring.
+    expect(BRIGHTNESS_RANGE).toBe("Brightness is 1 to 255.");
+    const source = code(`${UI}/RegionInspector.svelte`);
+    expect(source).toContain("<BrightnessField");
+    expect(source).toContain("onchange={(next) => onbrightness?.(next)}");
+    expect(source).toContain("onreset={() => onbrightness?.(255)}");
+    expect(source, "no selection lists Appearance alone").toMatch(
+      /if [(]region === undefined[)]\s*return \[\{ title: APPEARANCE, content: appearance \}\];/,
+    );
+    const route = code(ROUTE);
+    expect(route).toContain(
+      "onbrightness={(next) => editor?.setBrightness(next)}",
+    );
   });
 });

@@ -7,6 +7,8 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { compile } from "../../vendor/botor/_pad";
 import { measureLua, padReady } from "../pad";
@@ -29,6 +31,7 @@ import {
   type ColourSites,
 } from "./brightness";
 import { CATALOG, byId, type CatalogEntry } from "./index";
+import { stripComments } from "../../test-support/source";
 
 type Rendered = { label: string; setup: string; timer: string };
 
@@ -445,4 +448,18 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
       `\nBRIGHTNESS AT THE PICKER CORNER (measured under compressScript):\n${rows.join("\n")}\n`,
     );
   }, 120000);
+
+  it("5. imports nothing: the module is pure string arithmetic, so a component under src/lib/ui/ may name it (config-shape.spec.ts test 13 permits it by exact path on this proof)", () => {
+    const source = readFileSync(
+      fileURLToPath(new URL("./brightness.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(source.length, "a real module").toBeGreaterThan(2000);
+    const stripped = stripComments(source);
+    const specifiers = [...stripped.matchAll(/from[ ]+["']([^"']+)["']/g)].map(
+      (m) => m[1],
+    );
+    expect(specifiers, "no import, not even a type").toEqual([]);
+    expect(stripped).not.toMatch(/^s*import/m);
+  });
 });

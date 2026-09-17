@@ -15,6 +15,7 @@
 -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { brightnessOf } from "$lib/catalog/brightness";
   import {
     COLOUR_KNOB_ID,
     colourKnobView,
@@ -63,6 +64,8 @@
     type ElementKind,
     type Orientation,
   } from "$lib/sandbox/model";
+  import { BRIGHTNESS_SURFACE_HELPER } from "$lib/tune/inspector-copy";
+  import BrightnessField from "$lib/ui/BrightnessField.svelte";
   import Inspector, {
     type InspectorSection,
   } from "$lib/ui/shell/Inspector.svelte";
@@ -79,6 +82,7 @@
     onorientation,
     onlatch,
     oncolour,
+    onbrightness,
     onduplicate,
     ondelete,
     notice,
@@ -95,6 +99,8 @@
     onlatch: (latch: boolean) => void;
     /** Three RGB444 levels from the picker. */
     oncolour: (colour: readonly [number, number, number]) => void;
+    /** The whole surface's brightness, 1..255 (change 5); 255 to reset. */
+    onbrightness?: (brightness: number) => void;
     onduplicate: () => void;
     ondelete: () => void;
     /** A duplicate refused, or a store that declined - the panel's one notice. */
@@ -116,6 +122,8 @@
   const region = $derived(view.selected);
   const play = $derived(view.mode === "play");
   const lock = $derived(play ? lockId : undefined);
+  /** The surface's brightness (change 5): one field, shown with or without a selection. */
+  const brightness = $derived(brightnessOf(view.surface.brightness));
 
   /** The swatch's one knob: the region's colour at its lattice position. */
   const colourKnobs = $derived(
@@ -154,7 +162,9 @@
   }
 
   const sections = $derived.by((): InspectorSection[] => {
-    if (region === undefined) return [];
+    // No selection: the surface's own Appearance (the brightness) and nothing else.
+    if (region === undefined)
+      return [{ title: APPEARANCE, content: appearance }];
     const out: InspectorSection[] = [
       { title: POSITION_AND_SIZE, content: geometry },
     ];
@@ -282,6 +292,16 @@
       />
     </div>
   {/if}
+  <!-- The surface's brightness (change 5): under Appearance whether or not an element is selected, its helper saying whose it is; read-only in Play like every field. -->
+  <BrightnessField
+    value={brightness}
+    readonly={play}
+    describedBy={lock}
+    helper={BRIGHTNESS_SURFACE_HELPER}
+    onchange={(next) => onbrightness?.(next)}
+    onreset={() => onbrightness?.(255)}
+    {oncommit}
+  />
 {/snippet}
 
 {#snippet actions()}

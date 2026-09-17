@@ -45,8 +45,9 @@
   import { midiLogOf } from "$lib/sim/monitor";
   import { motionDeps } from "$lib/sim/motion.svelte";
   import { mapAxis } from "$lib/sim/touch";
+  import { brightnessOf } from "$lib/catalog/brightness";
   import type { LocalStore } from "$lib/store/local";
-  import { saveCopy } from "$lib/store/library";
+  import { readCopy, saveCopy } from "$lib/store/library";
   import { touchRecent } from "$lib/store/recent";
   import { ogAlt } from "$lib/tune/copy";
   import {
@@ -176,6 +177,8 @@
   let point = $state({ x: 0, y: 0 });
   /** Knob id to index for THIS entry, held here so the tuner can be re-keyed. */
   let knobIndices: Record<string, number> = $state({});
+  /** The brightness (change 5), 1..255: opened from a saved copy's field (`?from=`), reported by the region, saved with the copy. Never in the stamp. */
+  let brightness = $state(255);
   let landing: Landing = $state(NO_LANDING);
   /** The reason a disabled Apply to ZONA gives, or undefined when in budget. */
   let overBudgetReason: string | undefined = $state(undefined);
@@ -221,6 +224,20 @@
     }
   }
 
+  /**
+   * A saved copy opened from My configs carries its brightness in the record, not the stamp (the
+   * stamp is knob indices and colours only; a shared link lands at 255): the link names the record
+   * (`?from=<record id>`, the Sandbox's 13-17 shape) and the field is read here, for THIS entry only.
+   */
+  function fromCopyBrightness(id: string): number {
+    const from = page.url.searchParams.get("from");
+    if (from === null) return 255;
+    const record = readCopy(local(), from);
+    if (record === undefined || record.kind !== "playground") return 255;
+    if (record.source !== id) return 255;
+    return brightnessOf(record.brightness);
+  }
+
   /** PadCanvas hands its element over from its own onMount, which runs first. */
   function collect(_id: string, el: HTMLCanvasElement): void {
     canvas = el;
@@ -259,6 +276,7 @@
     unavailable = false;
     landing = NO_LANDING;
     knobIndices = {};
+    brightness = fromCopyBrightness(entry.id);
     overBudgetReason = undefined;
     configStrings = undefined;
     shareStamp = undefined;
@@ -402,6 +420,8 @@
       kind: "playground",
       source: listed.id,
       knobIndices: Object.values(knobIndices),
+      // The field only when it is not full: a copy at 255 is the record as every copy was.
+      ...(brightness === 255 ? {} : { brightness }),
       createdAt: at,
       editedAt: at,
     });
@@ -541,9 +561,11 @@
         entryId={listed.id}
         name={listed.name}
         knobs={knobIndices}
+        {brightness}
         {landing}
         {actions}
         onknobs={rememberKnobs}
+        onbrightness={(next) => (brightness = next)}
         onpreview={(next) => applyPreview(listed.id, next)}
         onstamp={(stamp) => (shareStamp = stamp)}
         onbudget={(reason) => (overBudgetReason = reason)}

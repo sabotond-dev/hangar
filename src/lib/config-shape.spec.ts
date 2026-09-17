@@ -133,12 +133,14 @@ const PERMITTED_SPECIFIERS = [
   generalised into a rule, so it covers the browse files too and so the next
   transitive module is added in ONE place rather than two.
 
-  TWO CATALOG SPECIFIERS ARE PERMITTED, and they are the whole reason this is a
+  THREE CATALOG SPECIFIERS ARE PERMITTED, and they are the whole reason this is a
   rule rather than a ban: src/lib/catalog/front-door.ts and
   src/lib/catalog/listing.ts import NOTHING at runtime - their own specs assert
   it - which is what lets a prerendered page carry sixteen names without carrying
-  the compiler. The allowance is exactly those two paths, never a prefix, so
-  $lib/catalog/index is an offender.
+  the compiler; src/lib/catalog/brightness.ts (change 5, 2026-09-17) imports
+  nothing at all - brightness.spec.ts test 5 asserts it - and BrightnessField.svelte
+  names it for the field's parse. The allowance is exactly those three paths,
+  never a prefix, so $lib/catalog/index is an offender.
 */
 const COMPILE_SURFACE = [
   "$lib/catalog",
@@ -149,6 +151,7 @@ const COMPILE_SURFACE = [
 const COMPILE_SURFACE_ALLOWED = [
   "$lib/catalog/front-door",
   "$lib/catalog/listing",
+  "$lib/catalog/brightness",
 ];
 /** The symbol that identifies the chunk carrying the protocol package. */
 const PROTOCOL_SYMBOL = "GRID_PARAMETER_ELEMENT_POTMETER";

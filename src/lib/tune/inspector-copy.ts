@@ -201,6 +201,22 @@ export const MONITOR_PAUSED =
   "Paused. What the surface sends now is not shown until you resume.";
 
 // ---------------------------------------------------------------------------
+// The brightness field (change 5, 2026-09-17; Bible section 7 lists brightness
+// among a Visual configuration's essential properties): one typed number for
+// the whole light output, 1..255, under Appearance on both routes. HANGAR's
+// own - ledgered.
+
+/** The field's label. */
+export const BRIGHTNESS_LABEL = "Brightness";
+
+/** A typed whole number outside the range, refused inline (TYPE_A_NUMBER covers the rest). */
+export const BRIGHTNESS_RANGE = "Brightness is 1 to 255.";
+
+/** The Sandbox's helper under the field: the setting is the surface's, not the selected element's. */
+export const BRIGHTNESS_SURFACE_HELPER =
+  "One brightness for the whole surface, every element included.";
+
+// ---------------------------------------------------------------------------
 // The per-field marker and reset (section 7). HANGAR's own - ledgered.
 
 /**

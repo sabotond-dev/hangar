@@ -33,6 +33,7 @@ import {
   SURFACE_ELEMENT_CAP,
   isStoredRecord,
   type PlaygroundRecord,
+  type SandboxRecord,
   type Region,
   type StoredRecord,
 } from "./schema";
@@ -622,17 +623,12 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
       128,
     );
 
-    const lit = sandboxCopy("sandbox:dim", [region("Filter", 0, 0, 2, 6)]);
+    const lit = sandboxCopy("sandbox:dim", [
+      region("Filter", 0, 0, 2, 6),
+    ]) as SandboxRecord;
     const dimSurface: StoredRecord = {
       ...lit,
-      surface: {
-        ...(
-          lit as {
-            surface: { id: string; name: string; regions: readonly Region[] };
-          }
-        ).surface,
-        brightness: 40,
-      },
+      surface: { ...lit.surface, brightness: 40 },
     };
     const surfaceText = serialiseExport(
       exportFile(dimSurface, T1, catalogKnobs),
@@ -670,7 +666,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
         isStoredRecord({
           ...lit,
           surface: {
-            ...(lit as { surface: object }).surface,
+            ...lit.surface,
             brightness: value,
           },
         }),
@@ -686,7 +682,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
         isStoredRecord({
           ...lit,
           surface: {
-            ...(lit as { surface: object }).surface,
+            ...lit.surface,
             brightness: value,
           },
         }),

@@ -43,6 +43,7 @@
   } from "$lib/tune/inspector-copy";
   import { isMidiDestination } from "$lib/tune/surprise";
   import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
+  import BrightnessField from "./BrightnessField.svelte";
   import BudgetMessage from "./BudgetMessage.svelte";
   import KnobRack from "./KnobRack.svelte";
   import MidiField from "./MidiField.svelte";
@@ -82,6 +83,9 @@
     surprise(held?: ReadonlySet<string>): Promise<IndexVector | undefined>;
     restore(indices: IndexVector): void;
     stamp(): string | undefined;
+    /** The brightness (change 5): not a knob, its own field under Appearance. */
+    readonly brightness: number;
+    setBrightness(brightness: number): void;
     destroy(): void;
   };
 
@@ -89,10 +93,12 @@
     entryId,
     name,
     knobs = {},
+    brightness = 255,
     reserved,
     landing = { kind: "none" },
     actions,
     onknobs,
+    onbrightness,
     onpreview,
     onstamp,
     onbudget,
@@ -105,6 +111,8 @@
     name: string;
     /** Knob id to index. The owner keeps them, so re-opening restores them. */
     knobs?: Readonly<Record<string, number>>;
+    /** The brightness to open at (change 5), 1..255; the owner keeps it beside the knobs. */
+    brightness?: number;
     /** Phase 7's install marker, and /dev/tune/'s way to reach over budget. */
     reserved?: { setup: number; timer: number };
     /** Where the URL landed, decided by the route before the panel opened. */
@@ -113,6 +121,8 @@
     actions?: Snippet;
     /** Every knob position, on every change, so the owner can hold them. */
     onknobs?: (indices: Readonly<Record<string, number>>) => void;
+    /** The brightness, on every view, so the owner can save it with the copy. */
+    onbrightness?: (brightness: number) => void;
     /** The new engine, for SimHost.replaceEngine. Never stored in a rune. */
     onpreview?: (engine: SimEngine) => void;
     /** The share payload, precomputed, so the share control never awaits anything. */
@@ -199,8 +209,15 @@
   const rollableKnobs = $derived(
     knobViews.filter((knob) => !isMidiDestination(knob)),
   );
+  const brightnessOf = (current: TuneView | undefined): number =>
+    current?.brightness ?? 255;
+
+  /** The view's brightness, 255 before the first view. */
+  const brightnessNow = $derived(brightnessOf(view));
+  /** Reset settings has nothing to do at the knobs' defaults AND full brightness. */
   const atDefaults = $derived(
-    knobViews.every((knob) => knob.index === knob.default),
+    knobViews.every((knob) => knob.index === knob.default) &&
+      brightnessNow === 255,
   );
   /** Every ROLLABLE knob held: the one state Randomize cannot act in (a MIDI destination is out of the roll either way). */
   const allHeld = $derived(
@@ -353,6 +370,7 @@
     // THROUGH knobPosition, never knob.index. See view.ts.
     for (const knob of next.knobs) indices[knob.id] = knobPosition(knob);
     onknobs?.(indices);
+    onbrightness?.(next.brightness);
     onstamp?.(tuner?.stamp());
     if (pendingCommand !== undefined) scheduleVoice();
   }
@@ -391,6 +409,7 @@
       const built = await buildTuner({
         entryId,
         indices: knobs,
+        brightness,
         reserved,
         onview: receive,
         onpreview: (engine) => onpreview?.(engine),
@@ -437,6 +456,15 @@
     landed = false;
     undo = undefined;
     tuner?.reset(id);
+  }
+
+  /** The brightness field (change 5): not a knob, so the stamp notice and Undo randomize are untouched. */
+  function changeBrightness(value: number): void {
+    tuner?.setBrightness(value);
+  }
+
+  function resetBrightness(): void {
+    tuner?.setBrightness(255);
   }
 
   /** One lock, toggled: it moves no knob, so the stamp notice stays and the tuner is not touched. */
@@ -542,18 +570,25 @@
   {/if}
 {/snippet}
 
-<!-- Appearance: the colour knobs, through the one picker block. -->
+<!-- Appearance: the colour knobs, through the one picker block, and the brightness field beneath (change 5) - every card has the field, colour knobs or not. -->
 {#snippet appearance()}
-  <KnobRack
-    entry={{ id: entryId, name }}
-    knobs={colourKnobs}
-    held={heldKnobs}
-    budget={colourBudget}
-    empty={false}
-    {onresult}
-    onchange={changeKnob}
-    onreset={resetKnob}
-    onhold={holdKnob}
+  {#if colourKnobs.length > 0}
+    <KnobRack
+      entry={{ id: entryId, name }}
+      knobs={colourKnobs}
+      held={heldKnobs}
+      budget={colourBudget}
+      empty={false}
+      {onresult}
+      onchange={changeKnob}
+      onreset={resetKnob}
+      onhold={holdKnob}
+    />
+  {/if}
+  <BrightnessField
+    value={brightnessNow}
+    onchange={changeBrightness}
+    onreset={resetBrightness}
   />
 {/snippet}
 
@@ -594,9 +629,7 @@
     lede={INSPECTOR_LEDE}
     sections={[
       { title: SECTION_BEHAVIOR, content: behavior },
-      ...(colourKnobs.length > 0
-        ? [{ title: SECTION_APPEARANCE, content: appearance }]
-        : []),
+      { title: SECTION_APPEARANCE, content: appearance },
       ...(midiKnobs.length > 0 ? [{ title: SECTION_MIDI, content: midi }] : []),
     ]}
     {actions}

@@ -579,6 +579,7 @@
       onorientation={(o) => void editor?.setOrientation(o)}
       onlatch={(latch) => editor?.setLatch(latch)}
       oncolour={(colour) => editor?.setColour(colour)}
+      onbrightness={(next) => editor?.setBrightness(next)}
       onduplicate={duplicate}
       ondelete={remove}
       {notice}

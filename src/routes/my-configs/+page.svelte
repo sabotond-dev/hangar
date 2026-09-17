@@ -217,9 +217,17 @@
         : fromCopyHref(record.id);
     }
     const stamp = stamps[record.id];
-    return stamp === undefined
-      ? resolve("/playground/[id]", { id: record.source })
-      : resolve(`/playground/${record.source}/#z.${stamp}`);
+    // A copy saved at a brightness names itself (change 5): the workspace reads the field from
+    // the record, since the stamp does not carry it. A copy at 255 keeps the address it had.
+    if (record.brightness === undefined) {
+      return stamp === undefined
+        ? resolve("/playground/[id]", { id: record.source })
+        : resolve(`/playground/${record.source}/#z.${stamp}`);
+    }
+    const from = `?from=${encodeURIComponent(record.id)}`;
+    return resolve(
+      `/playground/${record.source}/${from}${stamp === undefined ? "" : `#z.${stamp}`}`,
+    );
   }
 
   /** A row is live when its source is a listed Playground entry. */
