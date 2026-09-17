@@ -857,6 +857,111 @@ up / down pads shift the whole set by 12, +-2 octaves, lit to show the shift. (5
 Off. Budget order: the entry's Setup, then its Timer slot (879 free), then the system slots
 (255/4 has room) only if nothing else fits - everything as compact as possible.
 
+### Done, 2026-09-18
+
+One source commit, no push, no device, no deploy: `7c13cc3` feat(catalog), on `b322fd4` (change 9
+had landed first) - the entry, the entry type's `rollable` field, the word table and the
+`TuneView` field, the model's two lines, the inspector and the rack, the listing's sentence,
+`frames.json`, the VM proof and the two specs that moved with it, audition row 33, the entry's
+history; then this paragraph with `docs/TESTING.md`'s "2026-09-18 change 7" and the gate records
+`gate/change-7.*` (before, at `b322fd4`, in a clean worktree with its own install and build) and
+`gate/change-7-after.*`.
+
+**The layout built.** The pad of cell n is `n%9//3+6-n//27*3`, pad 0 at the BOTTOM-LEFT: the
+seven diatonic chords rise I ii iii along the bottom row, IV V vi along the middle, vii top-left,
+and the top row's middle and right-hand pads are **Octave down** and **Octave up** - beside the vii
+pad, down on the left and up on the right, where a hand on the chords reaches them. The chord pads
+keep the blue / violet chessboard; the two octave pads are GREEN (`0,180,60`, a literal), at phase
+40 with no shift, 140 at one octave and 240 at two on the pad that took the shift. Each press moves
+the set by 12, two octaves either way; a press past the end is refused, not clamped; an octave pad
+sends nothing; a chord held through an octave press keeps its notes, and its note-offs are the notes
+it sent. **Key** is the twelve chromatic roots C3..B3 (48..59), C3 the default, a twelve-detent
+rail whose readout is the note's name. **Smart inversion** is a toggle Off / Smart, Off the default:
+Smart tries each inversion in the octave nearest the previous chord (five candidates - root, each
+inversion above and below) and keeps the one whose three voices move least in sum, a tie going to
+root position; from C E G it voices G as B2 D3 G3 (the G held, the other two a step down), C back
+in root position, A minor as C3 E3 A3. **Randomize, its Undo and the row locks are gone from the
+CHORUS card only** (`rollable: false` on the entry; the inspector reads it); the colour block's own
+lock stays because `ColourPicker.svelte` is on the untouched list.
+
+**The knobs, six:** `@KEY` Key (12), `@SCALE` Scale (6, as it was), **`@INV` Smart inversion**
+(Off / Smart, in the old spread knob's slot), `@BLOOMC` Bloom colour, `@VEL` Velocity, `@CH` MIDI
+channel. **`@SPREAD` Bloom spread is retired** (the literal 12, its old default): a seventh knob
+would pass TUNE-01's six and the user named neither Scale nor the bloom - say if Scale should have
+gone instead.
+
+**The costs at the RGB444 picker corner**, measured under the pinned `compressScript` after
+`initLuaFormatter()`: **Setup 822 -> 779** (86 -> 129 free; 777 at the defaults), **Timer 29 ->
+602** (879 -> 306 free; 601 at the defaults) - every knob state a fixed point passing
+`checkSyntax`. Four forms costed: everything in the Setup **1,243**, 335 over; the handler defined
+from the Timer's first call - rejected: a press before the first call (the VM's, or a module's
+inside the first period after a Store) would find no handler; the split - the Setup keeps the
+table, the state, `R` and the whole handler (the notes are on the press), the Timer at `gtt(0,20)`
+with `X(self,100)` (one hundred calls at 20 ms: the same two-second window) paints the picture on
+its first call, the octave pads' brightness when the shift moves and the bloom the handler asks
+for - **759 / 602** with three inversion candidates; and the chosen five-candidate voicing over it,
+**779 / 602** (+20): the three-candidate form voiced G after C in root position because the
+closest G lives an octave below the root. **No system slot was needed.** The picture, the
+indicator and the bloom can be one 20 ms call behind the press; the notes cannot.
+
+**Counts, carried + delta:** quick 95 / 981 -> **95 / 982** (+0 / +1; the brief's 980 was before
+change 9's +1), green twice at `--maxWorkers=2`; check 658 -> **658**, 0 / 0; lint clean; sweep `4
+19` green (`lua-entries` 1,212 -> 1,213 combinations); e2e 88 / 103 -> **88 / 103**; audition rows
+32 -> **33** (the brief's 31 was before change 9's row); OG 27 files, 158,745 -> **158,644 B**
+(`chorus.png` 6,508 -> 6,407 B, 81 of 81 lit; built, not tracked); `frames.json` `79698b0d` ->
+`c153c746`, CHORUS's block alone (dark at tick 0, lit from the Timer's first call), byte-identical
+on a second regeneration. `brightness.ts` gains no declaration. Specs moved: `lua-smoke` 40 -> 41
+(the VM proof: every key's I chord at the bottom-left, the seven degrees rising, the octave pads
+and their picture, the refusals at both ends, no MIDI from an octave pad, a held chord's notes
+across a shift, Smart against Off on I V I vi, the range at both ends observed 26..95 inside
+16..109; the older one-chord test's window re-spelled for one hundred calls at 20 ms), `stamp.spec`
+two declared CHORUS exceptions (the captured default vector is no longer the defaults; the wild
+stamp lands `unreadable` at the replaced knob), `audition.spec` thirty-three. The VM proof caught
+the octave step written as two per press (`z*4-30`, now `z*2-15`) before the tree did.
+
+**The gate's terms** (`--before change-7` at `b322fd4`, `--after change-7 --against change-7
+--check 658` at `7c13cc3`): equal - the sandbox set `40b44316…`, the three other fixtures, **the
+SCOPED CSS `7f88b4f4…`** (the raw CSS too), the utilities 44 -> 44 (0 appeared, 0 disappeared), the
+copy exports `7ec85d4a…`, the testids `70dfe98a…` (317), check 658, lint, the build (stamp
+`7c13cc3`), the refuse-list `--stat` empty, no rename, no deletion; moved as a feature moves them -
+the wire set `97a42874…` -> `25aada35…` and full `5e357a90…` -> `14ef80ae…`, 1,723 -> 1,725
+records, **1,630 byte-identical, 82 moved, 11 removed, 13 added, every one of them `E/chorus/`** -
+no other executor's work sat in the tree at either run (change 9 was committed before both); the
+census `6b8c5116…` -> `290eeeee…` (2,738 -> 2,747 literals: CHORUS's two literals and its sentence
+replaced, the roots and the knob words); the titles `3f2be85d…` -> `b5de55e2…` (982 -> 983 vitest
+titles; 103 playwright runs unmoved); the JS `9aaab2bd…` -> `f57bbcf0…` (72 files); the OG
+`a12c2393…` -> `67a7beec…`; `src/` 11 modified / 0 added / 0 deleted / 0 renamed. The script exits
+1 at the wire by design.
+
+**Chunks** (a fresh detached server on 4173, stopped through PowerShell, HTTP 000 after; the
+user's 5173 untouched): c3 **21 passed** (tuning, tuning-webkit; +0 - the titles that read the
+Randomize controls open AURORA, where they are drawn as before). c1, c2, c4, c5 not run: no title
+reads CHORUS's knobs or its picture. e2e 88 titles / 103 runs unmoved.
+
+**Deviations, stated:** files beyond the brief's list moved for change 1 (`types.ts`, `model.ts`,
+`view.ts`, `TuningRegion.svelte`, `KnobRack.svelte` - the Randomize and lock controls are the
+inspector's, not the entry's); the Timer runs at 20 ms and paints the picture, so tick 0 is dark;
+a note rail's readout is the note's name; the card sentence changed ("Seven chord pads, the lowest
+at the bottom-left, two octave pads, and a warm bloom from the pad you hit."); the before record
+was first taken at `4ebb3d2`, discarded when change 9 landed, and re-recorded at `b322fd4` - a
+first worktree with a `node_modules` junction was abandoned after `git worktree remove` followed
+the junction into the real `node_modules` (`node_modules/.bin` and what it reached went; restored
+with `npm ci` from the untouched lockfile, `package.json` and `package-lock.json` unmoved), and the
+worktree then got its own `npm ci` and build; change 9 committed before this change's source
+commit, so `git commit --only` swept nothing of another executor's. `docs/TESTING.md` carries the
+full record.
+
+**Questions for the user.** (a) The layout: the two octave pads on the top row beside the vii pad
+(down left, up right); the two top corners, or the bottom row's right, are the alternatives. (b)
+The octave pads are green; a knob would be a seventh. (c) Smart's metric is the least sum of voice
+movement over five candidates, ties to root; say if it should search upward only, or keep a chord
+inside a range. (d) The bloom and the octave indicator are up to 20 ms behind the press (the
+Timer's); say if the bloom must be the handler's again. (e) The Key knob is a twelve-detent rail
+reading "C#3"; a twelve-option select would move `WORD_ROW_MAX`, which two specs pin by name. (f)
+Bloom spread retired rather than Scale. (g) The picker's lock on the Bloom colour block stays
+unless `ColourPicker.svelte` may be touched. (h) Older shared CHORUS links land `older` or
+`unreadable`. (i) Changes 1 to 6 and 9's questions still stand.
+
 ## 8. EUCLID renamed, a fourth ring, tempo direction, ring colours, MIDI clock sync, a note per ring (2026-09-18, queued for Fable 5.1 after CHORUS)
 
 > Euclid: rename it to smth crfeative. Add one more ring the farest one from the center. Tempo

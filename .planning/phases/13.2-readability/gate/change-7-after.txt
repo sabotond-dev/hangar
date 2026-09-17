@@ -1,0 +1,216 @@
+# 13.2 gate --after change-7 --against change-7 --check 658
+HEAD 7c13cc3 (7c13cc34ff84381782feaf4503241d67452efa3b); dirty (src e2e scripts docs) 0; free memory 5.53 GB; 2026-09-17T23:26:45Z
+before-record HEAD b322fd44898da919ca044934314adbf59319498a
+
+## the wire
+1725 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 25aada35e9ce2c640a29f84111bfd28dae4375c567434036757638024031823b
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 14ef80ae8c00776637c8ec95641cd47a31d39fbe54abcd8bbaf4508af92ae518
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+194 files; 2747 distinct literals (6412 occurrences); 7 copy modules; 317 data-testids
+literal census sha256 290eeeee863c01da1e0db227729725a64bb69771e9bba3b6bc71646b50f96440
+copy exports   sha256 7ec85d4aa65ab112a811a9f6286bdc86dd832a79e9adb49626eb3a720cea9164
+data-testids   sha256 70dfe98a8a4783a27bbc73152e764757d928c240729dc849835c303f05c22abf
+- 1 -> 0	"--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.h[s.z][j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+n//9//3*3 if z==s.z then s.c=i return end if s.z then R(s,s.c)end for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end s.z=z s.c=i end gtt(0,100)"
+- 1 -> 0	"--[[@cb]]gtt(0,100)X(self,20)"
+- 10 -> 9	"12"
+- 9 -> 8	"16"
+- 8 -> 7	"20"
+- 7 -> 6	"24"
+- 10 -> 9	"36"
+- 2 -> 1	"41"
+- 3 -> 2	"43"
+- 1 -> 0	"45"
+- 1 -> 2	"52"
+- 2 -> 3	"58"
+- 11 -> 10	"60"
+- 2 -> 1	"@SPREAD"
+- 1 -> 0	"Bloom spread"
+- 2 -> 0	"Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit."
+- 1 -> 0	"bloomSpeed"
+- 26 -> 27	"mode"
+- 28 -> 30	"note"
+- 18 -> 17	"speed"
++ 0 -> 1	"--[[@cb]]gtt(0,20)X(self,100)local s=self if not s.q then for n=0,80 do local a=glag(0,n)local z=n%9//3+6-n//27*3 if z<7 then if(n%9//3+n//27)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)else glc(a,1,0,180,60,1)end glc(a,2,@BLOOMC,1)glp(a,2,0)end end if s.o~=s.q then s.q=s.o for n=3,26 do if n%9>2 then glp(glag(0,n),1,glim(40+(n%9//6*2-1)*s.o*100,40,240))end end end local z=s.b if z then s.b=nil local u,v=z%3*3+1,7-z//3*3 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*12//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end"
++ 0 -> 1	"--[[@cb]]local t={@SCALE}self.h={}for z=0,6 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.o=0 self.n=self.h[0]R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.n[j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+6-n//27*3 if z>6 then if e==4 or e>8 then s.o=glim(s.o+z*2-15,-2,2)end return end if z==s.z then s.c=i return end if s.z then R(s,s.c)end local h,p,b,m=s.h[z],s.n,0,999 for k=-@INV,@INV do local c,d={},0 for j=1,3 do c[j]=h[(j+k-1)%3+1]+((j+k-1)//3+s.o)*12 d=d+math.abs(c[j]-p[j])end if d<m or d==m and k==0 then m,b=d,c end end for j=1,3 do s:gms(@CH,144,b[j],@VEL,0)end s.z=z s.c=i s.n=b s.b=z end gtt(0,20)"
++ 0 -> 1	"49"
++ 0 -> 1	"51"
++ 0 -> 1	"53"
++ 0 -> 1	"54"
++ 0 -> 1	"56"
++ 0 -> 1	"57"
++ 0 -> 1	"59"
++ 0 -> 1	"@INV"
++ 0 -> 1	"Off"
++ 0 -> 2	"Seven chord pads, the lowest at the bottom-left, two octave pads, and a warm bloom from the pad you hit."
++ 0 -> 1	"Smart"
++ 0 -> 1	"Smart inversion"
++ 0 -> 1	"inversion"
+
+## the comment lines
+195 files; 46864 lines, 30118 code, 12953 comment, 3793 blank, 4039 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/chorus.ts | 192 | 235 | 79 | 107 | 62 | 88 |
+| src/lib/catalog/types.ts | 185 | 190 | 79 | 83 | 11 | 11 |
+| src/lib/tune/model.ts | 954 | 961 | 238 | 240 | 13 | 13 |
+| src/lib/tune/view.ts | 661 | 673 | 184 | 189 | 18 | 18 |
+| src/lib/ui/KnobRack.svelte | 151 | 155 | 32 | 33 | 14 | 14 |
+| src/lib/ui/TuningRegion.svelte | 727 | 737 | 118 | 119 | 15 | 15 |
+| **totals (195 -> 195 files)** | 46783 | 46864 | 12912 | 12953 | 4013 | 4039 |
+
+6 file(s) moved
+
+## check and lint
+check: 1789687622204 COMPLETED 658 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 982 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: files: observed 95, expected 94; tests: observed 982, expected 966
+quick exit 1
+
+## the build
+build exit 0; stamp 7c13cc3
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object c153c746349ca522e88dff2b8c2f0ebcdc3349f7 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 158644 B, sha256 67a7beecbaf4dd1adcdafaf2ef1792bac4ecee3aea4a3f525931372a4848fa20
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46
+SCOPED CSS sha256 7f88b4f4f10ef13a3af2bd30dd4b8f2d277569edd9b9a4687cedea5b5b76b7f2
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 f57bbcf047aac78b99f1373148fca6bb3921dd51fc869aef50a89d8844ee2763 (72 files)
+
+## the titles
+TITLES sha256 b5de55e28a71f539d85321506ea0978afa3fa0175e345d3d87be9a5fc0f68448 (983 vitest titles incl. todo, 103 playwright runs)
+
+## src/ against the before-record's HEAD b322fd44898da919ca044934314adbf59319498a
+git diff --name-status: 11 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-7
+wire moved: set 97a428748a3f424b647fd2077f452ca33741a3682b9bbebd2857b44813208735 -> 25aada35e9ce2c640a29f84111bfd28dae4375c567434036757638024031823b; full 5e357a90bc9816854983d00f5455a5f6ff455764a3d07fc5d6b36f9b82f38602 -> 14ef80ae8c00776637c8ec95641cd47a31d39fbe54abcd8bbaf4508af92ae518
+  ~ E/chorus/defaults/setup b4f00161891ecb39 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/defaults/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/corner/setup dd53b37128570c83 -> 90917b2c35b4ad5a
+  ~ E/chorus/corner/timer d7b1ea46aae8c0b0 -> 63ce25d4de3a3bec
+  ~ E/chorus/knob key=0/setup 123a7b20f02cc93f -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob key=0/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=1/setup fc6638a2618aad89 -> 8652ed8b287a6487
+  ~ E/chorus/knob key=1/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=2/setup 8a6e4286f677505f -> b808fd06751dde15
+  ~ E/chorus/knob key=2/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=3/setup d757328d1b25d1d4 -> 54c0cfb37405434f
+  ~ E/chorus/knob key=3/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=4/setup b4f00161891ecb39 -> 6c5913d53197c145
+  ~ E/chorus/knob key=4/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=5/setup d5b3ea8b2b64fd49 -> 9ddad54e263375a0
+  ~ E/chorus/knob key=5/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=6/setup aff744d0ad870ed2 -> d1e7de6b470060a4
+  ~ E/chorus/knob key=6/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob key=7/setup 042211aa6e986e34 -> 80a5732c0c9a331f
+  ~ E/chorus/knob key=7/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob scale=0/setup b4f00161891ecb39 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob scale=0/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob scale=1/setup b44d7a3439b1c6de -> 5818c841640ed092
+  ~ E/chorus/knob scale=1/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob scale=2/setup 2418e8a035e6dbff -> ebaed9d56c10b0c0
+  ~ E/chorus/knob scale=2/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob scale=3/setup 351cdf27a41755de -> 93a7ed0d985909b5
+  ~ E/chorus/knob scale=3/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob scale=4/setup 5cf872021817865b -> a8e097d849bb1140
+  ~ E/chorus/knob scale=4/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob scale=5/setup 8d3c5fac98b36fd6 -> aacdea0c8a955cb7
+  ~ E/chorus/knob scale=5/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob bloomColour=0/setup b4f00161891ecb39 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob bloomColour=0/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob bloomColour=1/setup ad0fffbe4ec7c14e -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob bloomColour=1/timer d7b1ea46aae8c0b0 -> 358debb7dd61ff22
+  ~ E/chorus/knob bloomColour=2/setup 858a8a36b853a038 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob bloomColour=2/timer d7b1ea46aae8c0b0 -> fe66ca906442cf2c
+  ~ E/chorus/knob bloomColour=3/setup 5014a4fa3cc6d0c5 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob bloomColour=3/timer d7b1ea46aae8c0b0 -> 64d2a0b7e82e82b6
+  ~ E/chorus/knob bloomColour=4/setup 336f026b0e8b0685 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob bloomColour=4/timer d7b1ea46aae8c0b0 -> 63ce25d4de3a3bec
+  - E/chorus/knob bloomSpeed=0/setup
+  - E/chorus/knob bloomSpeed=0/timer
+  - E/chorus/knob bloomSpeed=1/setup
+  - E/chorus/knob bloomSpeed=1/timer
+  - E/chorus/knob bloomSpeed=2/setup
+  - E/chorus/knob bloomSpeed=2/timer
+  - E/chorus/knob bloomSpeed=3/setup
+  - E/chorus/knob bloomSpeed=3/timer
+  - E/chorus/knob bloomSpeed=4/setup
+  - E/chorus/knob bloomSpeed=4/timer
+  ~ E/chorus/knob velocity=0/setup d6700c803561f893 -> 1d20807a942646a5
+  ~ E/chorus/knob velocity=0/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob velocity=1/setup c25d9424a96fa21b -> 798d58ee5e9ac525
+  ~ E/chorus/knob velocity=1/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob velocity=2/setup b4f00161891ecb39 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob velocity=2/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob velocity=3/setup 18c74da66a2b51d8 -> 577b816ead75108a
+  ~ E/chorus/knob velocity=3/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=0/setup b4f00161891ecb39 -> 8a8ae0af6b41f7ce
+  ~ E/chorus/knob channel=0/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=1/setup b2614d947c2cd7ab -> 844e17f3b69fda2e
+  ~ E/chorus/knob channel=1/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=2/setup b3a305a8e79d7280 -> ac0afede41d82b7f
+  ~ E/chorus/knob channel=2/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=3/setup 1f15ae31b0ebd8c0 -> f7384431c0555b76
+  ~ E/chorus/knob channel=3/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=4/setup 4b8d290aaeea5314 -> 5d800f0bc9f5ceae
+  ~ E/chorus/knob channel=4/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=5/setup b41c21ed0ff0e0fd -> 5be2ff54c4e81599
+  ~ E/chorus/knob channel=5/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=6/setup 19dd3cdeb6b0b5da -> 2911c21d709634f8
+  ~ E/chorus/knob channel=6/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=7/setup b0ad5dd0eab31478 -> 96bdd8c6a925e01f
+  ~ E/chorus/knob channel=7/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=8/setup 63ee4d532fa2397b -> 7b46b27abe20c0a1
+  ~ E/chorus/knob channel=8/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=9/setup 7aabf957edfc646f -> 52d3dbd765c1c403
+  ~ E/chorus/knob channel=9/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=10/setup 3f933ec4ef134a2d -> 90917b2c35b4ad5a
+  ~ E/chorus/knob channel=10/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=11/setup 9f4bf14f711c1bda -> 8d0e5a45c41fec54
+  ~ E/chorus/knob channel=11/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=12/setup 399e4a4011444098 -> 2ce5206b6e42efb8
+  ~ E/chorus/knob channel=12/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=13/setup 672d3ef29c06939d -> 5789a05431e2a99b
+  ~ E/chorus/knob channel=13/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=14/setup 5a37c51645b028a7 -> 96ddc47d1a6854d5
+  ~ E/chorus/knob channel=14/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  ~ E/chorus/knob channel=15/setup c24c5bad00eee7a4 -> 95473146c2353b79
+  ~ E/chorus/knob channel=15/timer d7b1ea46aae8c0b0 -> eeaa1d1ae400da7a
+  - E/chorus/cross-product (76800 states)
+  + E/chorus/knob key=8/setup
+  + E/chorus/knob key=8/timer
+  + E/chorus/knob key=9/setup
+  + E/chorus/knob key=9/timer
+  + E/chorus/knob key=10/setup
+  + E/chorus/knob key=10/timer
+  + E/chorus/knob key=11/setup
+  + E/chorus/knob key=11/timer
+  + E/chorus/knob inversion=0/setup
+  + E/chorus/knob inversion=0/timer
+  + E/chorus/knob inversion=1/setup
+  + E/chorus/knob inversion=1/timer
+  + E/chorus/cross-product (46080 states)
+FAIL: the wire

@@ -1,0 +1,54 @@
+# 13.2 gate --before change-7
+HEAD b322fd4 (b322fd44898da919ca044934314adbf59319498a); dirty (src e2e scripts docs) 0; free memory 5.16 GB; 2026-09-17T23:23:46Z
+
+## the wire
+1723 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 97a428748a3f424b647fd2077f452ca33741a3682b9bbebd2857b44813208735
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 5e357a90bc9816854983d00f5455a5f6ff455764a3d07fc5d6b36f9b82f38602
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+194 files; 2738 distinct literals (6408 occurrences); 7 copy modules; 317 data-testids
+literal census sha256 6b8c51166dd86ee05741e111799ab51b3279e9a3c66b3c42cacdaf08eeef0193
+copy exports   sha256 7ec85d4aa65ab112a811a9f6286bdc86dd832a79e9adb49626eb3a720cea9164
+data-testids   sha256 70dfe98a8a4783a27bbc73152e764757d928c240729dc849835c303f05c22abf
+
+## the comment lines
+195 files; 46783 lines, 30079 code, 12912 comment, 3792 blank, 4013 header
+
+## check and lint
+check: 1789687444162 COMPLETED 658 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 981 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: files: observed 95, expected 94; tests: observed 981, expected 966
+quick exit 1
+
+## the build
+build exit 0; stamp b322fd4
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 79698b0ddf39c041dad696bb1c309c80cad21a6f src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 158745 B, sha256 a12c2393e0841003ed9249204e88674c67ce5a6508ecfa47efff0991253e65ac
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46
+SCOPED CSS sha256 7f88b4f4f10ef13a3af2bd30dd4b8f2d277569edd9b9a4687cedea5b5b76b7f2
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 9aaab2bd6082951fa1bd24db22ca4e1d467c98e9477e9e3a134f79f71f6c40eb (72 files)
+
+## the titles
+TITLES sha256 3f2be85d95737a58ae3bc2f22e4c37974f94b573a8ea5d7fc36611bafa22ae25 (982 vitest titles incl. todo, 103 playwright runs)
+
+recorded: .planning/phases/13.2-readability/gate/change-7.{txt,wire.json,wire-set.json,strings.json,lines.json,vitest.json,titles.txt,utilities.txt,js.txt}
