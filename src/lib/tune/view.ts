@@ -167,6 +167,19 @@ const MODE_WORDS = {
   absolute: "Absolute",
 } as const;
 
+/**
+ * ARC's LFO wave (change 6, 2026-09-17), keyed by the Lua expression the knob substitutes for `v`
+ * over the phase `p`; read under `mode`, after the dial's two words, so the six-option select is worded.
+ */
+const SHAPE_WORDS = {
+  "128+(1-p//128*2)*(p%128*(128-p%128)*127//4096)": "Sine",
+  p: "Saw up",
+  "255-p": "Saw down",
+  "255-math.abs(p*2-255)": "Triangle",
+  "255-p//128*255": "Square",
+  "s.n%256": "Random",
+} as const;
+
 /** The compiler's `BendAxis`. */
 const BEND_WORDS = {
   none: "No bend",
@@ -282,7 +295,14 @@ export function wordFor(
             : kind === "spring"
               ? SPRING_WORDS
               : undefined;
-  if (table) return table[literal];
+  if (table) {
+    return (
+      table[literal] ??
+      (kind === "mode"
+        ? (SHAPE_WORDS as Readonly<Record<string, string>>)[literal]
+        : undefined)
+    );
+  }
   if (kind === "note") {
     return INTEGER.test(literal)
       ? noteName(Number.parseInt(literal, 10))

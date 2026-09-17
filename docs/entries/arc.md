@@ -276,3 +276,84 @@ read that as the house norm - five entries out of the twenty were wrong.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 6, 2026-09-17: ARC becomes an explicit LFO - a wave-shape knob and an offset fader
+
+Outside the GSD cycle, the user's word recorded in `BENCH-2026-09-16.txt` section 6: "ARC: this is
+basically an LFO config, we need an offset fader on the eight side of the module / you should be
+able to pick the type of the wave: just like in Ableton.: sine, sotus up, down, triangle, square,
+random / the offset fader should be able to manipulate all the time". "sotus up" read as "saw up".
+
+### The two literals this change replaced, verbatim (528 / 275 at the RGB444 picker corner)
+
+```text
+--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.touch_cb=function(s,i,e,x,y)if i>0 or e==3 or e>=5 and e<9 then return end if(e==4 or e>8)and N(x,y)==40 then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)
+```
+
+```text
+--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v=p<128 and p*2 or 510-p*2 s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end
+```
+
+### The three forms costed for the wave, under the pinned `compressScript` after `initLuaFormatter()`
+
+Every figure is the string's cost at the RGB444 picker corner (both colours 255,255,255, every
+other knob its longest literal), each a fixed point passing `checkSyntax`:
+
+- (i) THE BRIEF'S CHAIN - `@SHAPE` an integer 0..5 and one `and/or` chain over all six waves in
+  the Timer: Setup unchanged by it, Timer **447** (461 free). Every card carries all six.
+- (ii) THE BRIEF'S CLOSURES - six `function(p)return ... end` in a Setup table, indexed in the
+  Timer: Setup **1,191** (283 OVER), Timer 305. Does not fit.
+- (iii) CHOSEN - the wave as the knob's LITERAL, an expression over `p` substituted for `v`
+  (`local v,c=@SHAPE,...`), the idiom CHORUS's `@SCALE` already uses: Timer **437** with the longest
+  wave (the sine, 46 characters), 392 with `p`, 410 at the defaults. The card carries one wave.
+
+The six expressions land in 0..255 and carry no comparison, so the depth scaling and the offset
+apply to each unchanged: Sine `128+(1-p//128*2)*(p%128*(128-p%128)*127//4096)` (a parabola per
+half-wave: 128 at p 0, 255 at 64, 128 at 128, 1 at 192 - `lua-entries.sweep.spec.ts`'s D-08 list
+admits `atan sqrt abs max min floor tointeger` and neither `math.sin` nor `math.pi`), Saw up `p`,
+Saw down `255-p`, Triangle `255-math.abs(p*2-255)` (byte for byte the retired `p<128 and p*2 or
+510-p*2` at every p; the VM proof asserts the identity), Square `255-p//128*255` (high for the
+first half), Random `s.n%256` over a sample-and-hold LCG. THE RANDOM IS NOT `math.random`: D-08
+forbids it ("weakly seeded on ESP-IDF"); `s.n=(s.n*75+74)%65537` advances once per cycle, on the
+wrap `p<s.h` (never true while stopped), seeded 1 at Setup, so one value is held for a whole cycle
+and the sequence is the same after every power cycle. A wave literal ending in `)` and one ending
+in a name need different seams before `s:gms(` (the minifier drops the space after `)`), so the
+literal sits before a comma.
+
+### The fader, and the contact bookkeeping (two forms costed)
+
+Column 8 (cells 8, 17, ..., 80) leaves the swirl: its layer 2 is painted black explicitly
+(`glc(a,2,0,0,0,1)`, +17 - a Store lands on a live module and the previous configuration may have
+lit it; the firmware boots every layer black at frequency 0, `grid_led.c:136-137`, but does not
+re-init on a CONFIG write). The fader's contact stores `s.u=U(y,KY)` (0..512, LED n at n*64) on
+every sample; the Timer adds `63-s.u*127//512`to every CC (+63 at the top cell, 0 at the centre
+LED, -64 at the bottom - bipolar, Ableton's offset) and repaints ONE cell,`8+(s.u+32)//64\*9`, on
+layer 1 in @HEARTC when it moved (the old cell to 0, the new to 255). Painting from the Timer
+rather than the handler is what made the Setup fit: the first draft did the arithmetic and the two
+`glp` in the handler and measured **953** (45 over); moving them to the Timer (471 free) gave 823.
+
+- (A) CHOSEN - per-contact roles: `s.z` the fader's id, `s.w` the swirl's, each set on its onset by
+  the calibrated cell (`N(x,y)%9==8` the fader, otherwise `s.w=s.w or i`), each cleared by its own
+  end code and released by a code 9 (`s.z=e<9 and i`). Setup **806** (102 free; 803 at the
+  defaults). Both orders of landing work; a fader that lifts first does not drop the rate finger;
+  a second finger on the fader takes it over (the first is ignored until it lands again); a second
+  finger in the playing area is ignored, its centre taps included; the stop tap toggles only from
+  the swirl's contact, so the stop finger stays the swirl's and a wobble after the tap goes on
+  tracking (12-05's gate, still asserted).
+- (B) REJECTED - the swirl is "the other id" (`i==(s.z==0 and 1 or 0)`) with a column test on
+  every sample: Setup 770 (36 cheaper), but when the fader finger lifts first the rate finger's id
+  is no longer "the other" and its drag is ignored until it lands again.
+
+`s.u` and `s.c` live on `self`; no library global moves; `library.ts` untouched. The sixth knob
+is the wave; a seventh (a fader colour) would pass TUNE-01's six, so the marker is the heart's
+colour on the heart's layer.
+
+### The measurements at the corner, and the tests that moved
+
+Setup 528 -> **806** (380 -> 102 free), Timer 275 -> **437** (633 -> 471 free); at the defaults
+525 / 273 -> 803 / 410. `frames.json`'s ARC block moves (column 8 dark, cell 44 lit at rest); the
+OG is 6,786 -> 6,889 bytes, 70 of 81 lit. `lua-smoke.spec.ts`: the 40th test is the VM proof
+(each wave's v over a cycle, Random held per cycle, the fader in the three states, both role
+orders, the code-9 release, the stop tap on cell 40 and not on the column); the wobble test now
+reads the swirl's 72 cells and keeps its stop finger down through the wobble (a MOVE from a lifted
+contact is nobody's under per-contact roles - the old handler had no contact state to say so).

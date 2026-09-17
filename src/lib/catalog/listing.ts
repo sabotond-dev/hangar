@@ -219,7 +219,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "arc",
     name: "Arc",
     description:
-      "Draw a modulation shape with your finger; it keeps sending after you let go, and the swirl shows the rate.",
+      "Draw an LFO with your finger: rate, depth and its wave, an offset fader down the right, and it keeps sending.",
     motion: "animated",
     tags: ["modulation", "generative", "expressive"],
     featured: true,

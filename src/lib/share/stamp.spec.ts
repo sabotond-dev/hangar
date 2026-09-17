@@ -451,17 +451,40 @@ describe("the stamp: the envelope", () => {
       // NOT EDITED: the payload literal below is still the byte-for-byte
       // capture from commit b3f99bb, and the expectation moved here where the
       // reason can be written down. Every OTHER captured stamp must still land
-      // restored, and a second entry appearing in this branch is a signal that
-      // somebody is resizing knobs casually.
+      // restored, and a further entry appearing in either branch is a signal
+      // that somebody is resizing or adding knobs casually.
+      //
+      // THE SECOND EXCEPTION, AND IT IS AN ADDITION RATHER THAN A RESIZE. Change
+      // 6 (2026-09-17, BENCH-2026-09-16.txt section 6) gave ARC a sixth knob,
+      // the LFO's wave shape. A stamp minted for five knobs is one character
+      // short of a six-knob payload, and the LENGTH check is the tripwire for
+      // exactly that (stamp.ts, the shape character's own comment: a knob added
+      // or removed changes the payload length, which the length check catches
+      // first; `older` is for a RESIZED knob). So ARC's captured wild stamp lands
+      // `unreadable` - by design, never `restored` with the wrong knob count and
+      // never `older` with a shape it does not have - and the fixture stays the
+      // b3f99bb capture. ARC's default vector (payload null) still encodes to no
+      // stamp: the missing sixth index is the default.
       const resized = record.entry === "pomodoro";
+      const grew = record.entry === "arc";
       expect(
         decodeFor(each, record.payload),
         resized
           ? `${record.entry}: the format x stamp ${record.payload} must land ` +
               "older - its knob was resized in plan 11-09 - and never " +
               "unreadable and never restored"
-          : `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
-      ).toEqual(resized ? { kind: "older" } : { kind: "restored", indices });
+          : grew
+            ? `${record.entry}: the format x stamp ${record.payload} must land ` +
+              "unreadable - a sixth knob was added in change 6 (2026-09-17), so " +
+              "a five-knob payload is the wrong length by design"
+            : `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
+      ).toEqual(
+        resized
+          ? { kind: "older" }
+          : grew
+            ? { kind: "unreadable" }
+            : { kind: "restored", indices },
+      );
       wild += 1;
     }
     // 18 -> 15: plan 12-04 removed LATTICE, FORGE and SHUTTLE, so six records

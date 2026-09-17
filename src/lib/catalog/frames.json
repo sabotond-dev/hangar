@@ -325,32 +325,32 @@
     "arc": [
       {
         "tick": 0,
-        "sha256": "2258040cd9b3e8921ab86788d11eb166b915383860a367122e8249b4073cd262",
-        "nonZeroBytes": 152,
+        "sha256": "197ec36efea309b67989e47388d834d58c089d3dc1efea43fc4798f44f5b7d09",
+        "nonZeroBytes": 134,
         "animating": true
       },
       {
         "tick": 37,
-        "sha256": "493ffe326d6de5ac1c2ae46b629914dc1bc1cfad119435c3e6e6e22165e8cd89",
-        "nonZeroBytes": 160,
+        "sha256": "59058d87d818a3bc7241e117cda7cb96b65792d39d44cc16a3ed30cffb117b71",
+        "nonZeroBytes": 145,
         "animating": true
       },
       {
         "tick": 101,
-        "sha256": "6602881ef066c29b0347efb360a5ff489b5de2a3d18d3703b966e876b8a6928b",
-        "nonZeroBytes": 160,
+        "sha256": "4c3f32e59edb51e6e0714669e8ff380c34edaf8ec01685a1f3ff967a8416685e",
+        "nonZeroBytes": 145,
         "animating": true
       },
       {
         "tick": 500,
-        "sha256": "4be5a4c360f0b2afe9128ce02782cefa189745b665d853e8df94d0916c65188e",
-        "nonZeroBytes": 161,
+        "sha256": "aa562ae311f42b300176f54bfdceb5785c580123a25d6001dfb46042ce048a87",
+        "nonZeroBytes": 151,
         "animating": true
       },
       {
         "tick": 1009,
-        "sha256": "31850e20c51e1b56910713ad865f4647a73fa0dd781fee2d3f4895f433ad1215",
-        "nonZeroBytes": 162,
+        "sha256": "57bb0a29f8bb43f24197541d50e1a3ec4247c43fc82a7b900702416d18ed06f4",
+        "nonZeroBytes": 151,
         "animating": true
       }
     ],

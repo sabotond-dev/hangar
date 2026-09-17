@@ -84,7 +84,7 @@ const flat = doc.replace(/\s+/g, " ");
  * One name in the Config cell; the cost table gains its row and a dated
  * paragraph follows row 28's; every other line byte-identical.
  */
-const ROW_COUNT = 30;
+const ROW_COUNT = 31;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -232,7 +232,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps thirty numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps thirty-one numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",

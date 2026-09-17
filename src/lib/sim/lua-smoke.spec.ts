@@ -30,6 +30,7 @@ import {
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, renderLua } from "./lua-pad-sim";
+import { widgetFor, wordFor } from "../tune/view";
 
 /** Ticks after the gesture, long enough for a decay to expire many times. */
 const SETTLE_TICKS = 200;
@@ -3431,10 +3432,12 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
     const { host, sim } = await open(entry);
     try {
+      // The swirl's 72 cells: column 8 is the offset fader since change 6 (2026-09-17) and
+      // its layer 2 is painted black with no rate, so it is not the swirl's to turn.
       const rates = (): number[] => {
         const out: number[] = [];
         for (let cell = 0; cell < 81; cell += 1)
-          out.push(sim.layer(hwOfCell(cell), 2).fre);
+          if (cell % 9 !== 8) out.push(sim.layer(hwOfCell(cell), 2).fre);
         return out;
       };
       const distinctRates = (): number[] => [...new Set(rates())].sort();
@@ -3471,11 +3474,11 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
           `[${runningRates.join(", ")}]`,
       ).toBe(true);
 
-      // 1. THE STOP TAP, at cell 40. DOWN then UP, the shape a real finger
-      //    makes; the toggle rides the onset edge so the UP is a no-op.
+      // 1. THE STOP TAP, at cell 40. DOWN, and the finger STAYS DOWN through
+      //    the wobble below (the lift is after step 3): the shape a still finger
+      //    makes, and since change 6 (2026-09-17) the roles are per contact, so
+      //    a MOVE from a lifted contact is nobody's. The toggle rides the onset edge.
       host.touchDown(0, STOP_X, Y);
-      host.tick();
-      host.touchUp(0, STOP_X, Y);
       host.tick();
       const afterStop = distinctRates();
       expect(
@@ -3610,6 +3613,387 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(report.length, "every stage of the wobble probe ran").toBe(4);
   }, 120000);
 
+  it("runs ARC as an LFO: six waves over one cycle, the offset fader on column 8 live in every state, two contacts by role, the stop tap on cell 40 and not on the column", async () => {
+    // Change 6 (2026-09-17, BENCH-2026-09-16.txt section 6). The observable
+    // for `v` is layer 1's phase on the heart's centre cell: Setup arms layer 1
+    // with glp alone, the heart is painted at v*s.d//127 and s.d is 127 until a
+    // finger moves it, so the phase IS v. The CC is read off the host's log and
+    // compared with the entry's own formula over that v, offset included.
+    const entry = entryById("arc");
+    const cc = knobValueOf(entry, "cc");
+    const shape = entry.knobs.find((knob) => knob.id === "shape");
+    expect(shape, "arc carries the wave-shape knob").toBeDefined();
+    if (!shape) return;
+    const WORDS = [
+      "Sine",
+      "Saw up",
+      "Saw down",
+      "Triangle",
+      "Square",
+      "Random",
+    ];
+    expect(shape.values, "six waves").toHaveLength(6);
+    expect(
+      shape.values.map((literal) => wordFor(shape.kind, literal)),
+      "every wave is worded, in Ableton's order",
+    ).toEqual(WORDS);
+    expect(
+      widgetFor(shape.kind, shape.values),
+      "six worded options are a select (13-09's 4/5 boundary)",
+    ).toBe("select");
+    expect(entry.defaults.shape, "Triangle is the default, index 3").toBe(3);
+    expect(shape.values[3]).toBe("255-math.abs(p*2-255)");
+
+    const RATE = 4; // s.r at Setup: 64 Timer calls per cycle.
+    const CYCLE = 256 / RATE;
+    const clamp = (n: number): number => Math.min(127, Math.max(0, n));
+    // The entry's own CC formula: glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127).
+    const ccOf = (v: number, d: number, u: number): number =>
+      clamp(
+        64 +
+          Math.floor(((v - 128) * d) / 255) +
+          63 -
+          Math.floor((u * 127) / 512),
+      );
+    const wave: Record<number, (p: number) => number> = {
+      0: (p) =>
+        128 +
+        (1 - Math.floor(p / 128) * 2) *
+          Math.floor(((p % 128) * (128 - (p % 128)) * 127) / 4096),
+      1: (p) => p,
+      2: (p) => 255 - p,
+      // The old Timer's `p<128 and p*2 or 510-p*2`, byte for byte.
+      3: (p) => (p < 128 ? p * 2 : 510 - p * 2),
+      4: (p) => 255 - Math.floor(p / 128) * 255,
+    };
+
+    async function openWith(indices: Record<string, number>) {
+      const { setup, timer } = renderLua(entry, indices);
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer,
+      });
+      return { host, sim };
+    }
+    type Opened = Awaited<ReturnType<typeof openWith>>;
+    /** Tick until the Timer has sent one more controller message; return it. */
+    const nextTimer = ({ host }: Opened): HostMidi => {
+      const before = host.midi.length;
+      for (let t = 0; t < 4 && host.midi.length === before; t += 1) host.tick();
+      const sent = host.midi.slice(before).filter((m) => m.p1 === cc);
+      expect(sent, "one Timer call sends exactly one controller").toHaveLength(
+        1,
+      );
+      return sent[0];
+    };
+    const heartV = ({ sim }: Opened): number => sim.layer(hwOfCell(40), 1).pha;
+    const columnDark = ({ sim }: Opened): boolean =>
+      [0, 1, 2, 3, 4, 5, 6, 7, 8].every((row) => {
+        const layer = sim.layer(hwOfCell(8 + row * 9), 2);
+        return (
+          layer.max.every((c) => c === 0) &&
+          layer.mid.every((c) => c === 0) &&
+          layer.fre === 0
+        );
+      });
+    const litCellsInColumn = ({ sim }: Opened): number[] =>
+      [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        .map((row) => 8 + row * 9)
+        .filter((cell) => sim.layer(hwOfCell(cell), 1).pha > 0);
+    const report: string[] = [];
+
+    // A. THE SIX WAVES. One cycle each at the Setup rate; v read per Timer call.
+    for (let index = 0; index < 5; index += 1) {
+      const opened = await openWith({ ...entry.defaults, shape: index });
+      try {
+        let peak = { p: -1, v: -1 };
+        for (let k = 1; k <= CYCLE; k += 1) {
+          const p = (RATE * k) % 256;
+          const sent = nextTimer(opened);
+          const v = heartV(opened);
+          expect(
+            v,
+            `arc ${WORDS[index]}: v at p=${p} is the wave's own formula`,
+          ).toBe(wave[index](p));
+          expect(
+            sent.p2,
+            `arc ${WORDS[index]}: the CC at p=${p} is the formula over v, offset 0`,
+          ).toBe(ccOf(v, 127, 256));
+          if (v > peak.v) peak = { p, v };
+        }
+        expect(opened.host.errors, opened.host.errors.join(" | ")).toEqual([]);
+        report.push(`${WORDS[index]}: peak v ${peak.v} at p=${peak.p}`);
+        if (index === 0) {
+          expect(peak, "arc Sine: peaks at 255 at p=64").toEqual({
+            p: 64,
+            v: 255,
+          });
+        }
+      } finally {
+        opened.host.close();
+      }
+    }
+    // Random: held for a whole cycle, a new value on the wrap.
+    {
+      const opened = await openWith({ ...entry.defaults, shape: 5 });
+      try {
+        // v per Timer call over six cycles: it may change only where p wraps to 0.
+        const cycles: number[] = [];
+        let last = -1;
+        for (let k = 1; k <= 6 * CYCLE; k += 1) {
+          const p = (RATE * k) % 256;
+          nextTimer(opened);
+          const v = heartV(opened);
+          if (p === 0) cycles.push(v);
+          else if (k > 1)
+            expect(
+              v,
+              `arc Random: held inside the cycle (S&H), not one value per tick; moved at p=${p}`,
+            ).toBe(last);
+          last = v;
+        }
+        expect(cycles, "six wraps seen").toHaveLength(6);
+        expect(
+          new Set(cycles).size,
+          `arc Random: a new value on the wrap; cycles [${cycles.join(", ")}]`,
+        ).toBeGreaterThanOrEqual(4);
+        for (const v of cycles) expect(v).toBeGreaterThanOrEqual(0);
+        for (const v of cycles) expect(v).toBeLessThanOrEqual(255);
+        report.push(`Random: six cycles held [${cycles.join(", ")}]`);
+      } finally {
+        opened.host.close();
+      }
+    }
+
+    // B. THE OFFSET FADER, at the defaults (Triangle).
+    const X8 = ledCentre(8, "x");
+    const TOP = 0;
+    const BOTTOM = 127;
+    const CENTRE = ledCentre(4, "y");
+    for (const y of [TOP, BOTTOM, CENTRE])
+      expect(
+        calibratedCell(X8, y) % 9,
+        `arc: the probe at (${X8}, ${y}) must be in column 8`,
+      ).toBe(8);
+    const opened = await openWith({ ...entry.defaults });
+    const { host, sim } = opened;
+    try {
+      const u = (): number => host.selfNumber("u") ?? -1;
+      const rate = (): number => host.selfNumber("r") ?? -1;
+      const running = (): number => host.selfNumber("s") ?? -1;
+      const swirlRate = (): number => sim.layer(hwOfCell(0), 2).fre;
+
+      // At rest: column 8 dark on layer 2, the marker at cell 44 (u 256, offset 0).
+      nextTimer(opened);
+      expect(
+        columnDark(opened),
+        "arc: column 8 is black on layer 2 at rest",
+      ).toBe(true);
+      expect(
+        litCellsInColumn(opened),
+        "arc: the marker rests at cell 44",
+      ).toEqual([44]);
+      expect(u(), "arc: no offset at Setup").toBe(256);
+
+      // Running: top gives +63, bottom -64, centre 0, each on the next tick.
+      host.touchDown(0, X8, TOP);
+      host.tick();
+      let sent = nextTimer(opened);
+      expect(u(), "arc: the top of the column is u 0").toBe(0);
+      expect(sent.p2, "arc: +63 on the next tick while running").toBe(
+        ccOf(heartV(opened), 127, 0),
+      );
+      expect(
+        litCellsInColumn(opened),
+        "arc: the marker follows to cell 8",
+      ).toEqual([8]);
+      host.touchMove(0, X8, BOTTOM);
+      host.tick();
+      sent = nextTimer(opened);
+      expect(u(), "arc: the bottom of the column is u 512").toBe(512);
+      expect(sent.p2, "arc: -64 on the next tick").toBe(
+        ccOf(heartV(opened), 127, 512),
+      );
+      expect(litCellsInColumn(opened), "arc: the marker at cell 80").toEqual([
+        80,
+      ]);
+      host.touchMove(0, X8, CENTRE);
+      host.tick();
+      sent = nextTimer(opened);
+      expect(u(), "arc: the centre LED is u 256, offset 0").toBe(256);
+      expect(sent.p2, "arc: the centre is today's stream").toBe(
+        ccOf(heartV(opened), 127, 256),
+      );
+      expect(
+        columnDark(opened),
+        "arc: column 8 stays black under the finger",
+      ).toBe(true);
+      // Held after the lift.
+      host.touchMove(0, X8, TOP);
+      host.tick();
+      host.touchUp(0, X8, TOP);
+      host.tick();
+      for (let k = 0; k < 10; k += 1) {
+        sent = nextTimer(opened);
+        expect(sent.p2, "arc: the offset holds after the lift").toBe(
+          ccOf(heartV(opened), 127, 0),
+        );
+      }
+      expect(u(), "arc: a fader keeps its value").toBe(0);
+      expect(running(), "arc: a fader touch never stops the card").toBe(1);
+      report.push(
+        "fader: top +63, bottom -64, centre 0, held +63 after the lift",
+      );
+
+      // A tap on column 8 is the fader, never the stop tap.
+      host.touchDown(0, X8, CENTRE);
+      host.tick();
+      host.touchUp(0, X8, CENTRE);
+      host.tick();
+      expect(running(), "arc: a tap on cell 44 does not stop the card").toBe(1);
+      expect(u(), "arc: the tap set the offset to 0").toBe(256);
+
+      // Stopped: the held CC moves with the fader.
+      host.touchDown(0, 60, 60);
+      host.tick();
+      host.touchUp(0, 60, 60);
+      host.tick();
+      expect(running(), "arc: the centre tap stops the card").toBe(0);
+      const frozen = nextTimer(opened).p2;
+      const frozenV = heartV(opened);
+      expect(nextTimer(opened).p2, "arc: stopped, the CC holds").toBe(frozen);
+      host.touchDown(0, X8, BOTTOM);
+      host.tick();
+      sent = nextTimer(opened);
+      expect(heartV(opened), "arc: the phase stays frozen").toBe(frozenV);
+      expect(
+        sent.p2,
+        "arc: the held CC moves with the fader while stopped",
+      ).toBe(ccOf(frozenV, 127, 512));
+      expect(sent.p2).not.toBe(frozen);
+      host.touchUp(0, X8, BOTTOM);
+      host.tick();
+      host.touchDown(0, 60, 60);
+      host.tick();
+      host.touchUp(0, 60, 60);
+      host.tick();
+      expect(running(), "arc: the second centre tap resumes").toBe(1);
+      report.push(
+        `stopped: CC ${frozen} -> ${sent.p2} under the fader at the bottom`,
+      );
+
+      // Two contacts by role: the fader first (id 0), the rate finger second (id 1).
+      host.touchMove(0, X8, TOP); // nobody's: contact 0 has lifted
+      host.tick();
+      host.touchDown(0, X8, TOP);
+      host.tick();
+      host.touchDown(1, 100, 30);
+      host.tick();
+      expect(rate(), "arc: the second finger drives the rate").toBe(
+        1 + Math.floor((100 * 31) / 127),
+      );
+      expect(host.selfNumber("d"), "arc: and the depth").toBe(127 - 30);
+      expect(swirlRate(), "arc: the swirl follows").toBe(
+        Math.min(
+          120,
+          Math.max(1, Math.floor((1 + Math.floor((100 * 31) / 127)) / 2)),
+        ),
+      );
+      expect(u(), "arc: the fader is unaffected by the rate drag").toBe(0);
+      sent = nextTimer(opened);
+      expect(sent.p2, "arc: the CC carries the offset under both fingers").toBe(
+        ccOf(heartV(opened), 127 - 30, 0),
+      );
+      // The fader lifts first; the rate finger keeps its role.
+      host.touchUp(0, X8, TOP);
+      host.tick();
+      host.touchMove(1, 20, 30);
+      host.tick();
+      expect(
+        rate(),
+        "arc: the rate finger is not dropped when the fader lifts",
+      ).toBe(1 + Math.floor((20 * 31) / 127));
+      expect(u(), "arc: the fader holds after its lift").toBe(0);
+      // A second finger in the playing area is ignored, its centre tap included.
+      host.touchDown(0, 10, 10);
+      host.tick();
+      expect(rate(), "arc: a second playing finger is ignored").toBe(
+        1 + Math.floor((20 * 31) / 127),
+      );
+      host.touchUp(0, 10, 10);
+      host.tick();
+      host.touchDown(0, 60, 60);
+      host.tick();
+      host.touchUp(0, 60, 60);
+      host.tick();
+      expect(running(), "arc: a second finger's centre tap does not stop").toBe(
+        1,
+      );
+      host.touchUp(1, 20, 30);
+      host.tick();
+      // Both on the fader: the later wins; the first stays ignored after it.
+      host.touchDown(0, X8, TOP);
+      host.tick();
+      host.touchDown(1, X8, BOTTOM);
+      host.tick();
+      expect(u(), "arc: two fingers on the fader - the later wins").toBe(512);
+      host.touchMove(0, X8, CENTRE);
+      host.tick();
+      expect(
+        u(),
+        "arc: the first fader finger is ignored while the later holds",
+      ).toBe(512);
+      host.touchUp(1, X8, BOTTOM);
+      host.tick();
+      host.touchMove(0, X8, TOP);
+      host.tick();
+      expect(u(), "arc: and stays ignored after the later lifts").toBe(512);
+      host.touchUp(0, X8, TOP);
+      host.tick();
+      // The swirl finger first (id 0), the fader second (id 1).
+      host.touchDown(0, 100, 30);
+      host.tick();
+      host.touchDown(1, X8, CENTRE);
+      host.tick();
+      expect(u(), "arc: the fader may be contact 1").toBe(256);
+      host.touchMove(0, 20, 30);
+      host.tick();
+      expect(rate(), "arc: contact 0 keeps the rate beside the fader").toBe(
+        1 + Math.floor((20 * 31) / 127),
+      );
+      host.touchUp(1, X8, CENTRE);
+      host.tick();
+      host.touchUp(0, 20, 30);
+      host.tick();
+      // A coalesced tap (code 9) on the fader sets the offset once and releases the role.
+      host.touchTap(0, X8, BOTTOM);
+      host.tick();
+      expect(u(), "arc: a fast tap on the fader lands its height").toBe(512);
+      host.touchDown(0, 100, 30);
+      host.tick();
+      expect(
+        rate(),
+        "arc: the same id is the swirl's again after the tap",
+      ).toBe(1 + Math.floor((100 * 31) / 127));
+      host.touchUp(0, 100, 30);
+      host.tick();
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(
+        "roles: fader 0 + rate 1, fader lifts first, later fader wins, rate 0 + fader 1, code 9 releases",
+      );
+    } finally {
+      host.close();
+    }
+    process.stdout.write(
+      "\nARC AS AN LFO (change 6, 2026-09-17):\n  " +
+        report.join("\n  ") +
+        "\n",
+    );
+  }, 120000);
   it("shows STAGE's live, lined-up and idle zones as THREE states", async () => {
     // THE BENCH NOTE THIS ANSWERS: "Lining up breathing is missing" (plan
     // 11-09), and the answer was "implement breathing as planned".
