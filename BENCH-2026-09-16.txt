@@ -816,3 +816,76 @@ Recorded: a `Centre` knob - the CC value each corner sends when the finger is de
 about 32, a quarter of 127); the blend reshapes around it so a corner still reaches 127 under the
 finger and the others fall toward 0, with the centre landing on the chosen value. Range and steps
 are the executor's to measure inside 908 (MORPH's Setup is at 814).
+
+10. Sandbox feature set (queued for Fable, LAST - after ARC, Chorus, Orbit, Morph)
+--------------------------------------------------------------------------------
+
+> going to sleep now. queue this extra sandbox feature set for last, use fable for this. right now
+> you can ask questions then after I answer use your best discretion if any new question would
+> arise.
+>
+> In sandbox move there should be a selector cursor as default  If you press escape or you press V,
+> this selector tool should be able to select elements move them and resize them without adding
+> more elements. give a hotkey to each element for it to be able to add easier, so for example f
+> adds fader, b adds a button etc.
+> All different elements should have animations on the ZONA.
+>
+> remove the position and size on the right panel as you can do those all the center panel. you
+> should NOT be able to change the type of an element once it was selected.
+>
+> in the middle section when clicking with selector mouse there should be an option to delete with
+> a little icon
+>
+> every element should have a min max MIDI value that you can set.
+>
+> faders and xy pad should have a scale mode (or find it a good name): value never jumps, you only
+> change the direction of the value. so if this mode is activated, if you touch a fader anywhere it
+> doesnt jump or does anything until you start a movement then the value changes subtly to that
+> direction.
+>
+> Fader: Spring mode: put an option to choose visszaugros fader like the pitchwheel. you should be
+> able to input on which value the fader jumps to.
+>
+> Button: rename latch to toggle mode. MIDI output should have an option either note or cc.  should
+> have a radio button option like in touchosc
+>
+> Knob: absolute (0-127) vs relative (minus minus minus or plus plus plus)
+>
+> add a "Blank" element which just colors the LED.
+
+Questions asked 2026-09-18 (the recommendation first in each; unanswered ones are decided by it):
+
+ 1. Two-click area placement. Today a click on an empty cell with nothing armed starts an area
+    (second click = far corner). With the selector as default: (a) area placement goes - elements
+    are added by hotkey or palette, then a click places the default size, then handles resize;
+    (b) keep it behind a hotkey, A.
+ 2. Hotkeys: F fader, B button, X XY pad, K knob, L blank (LED), V / Escape selector, Delete or
+    Backspace deletes the selection. Confirm or rename.
+ 3. A hotkey (a) arms the kind for one placement and returns to the selector after the click;
+    (b) stays armed until Escape / V so several can be dropped in a row.
+ 4. Moving with the selector: drag the body of a selected element to move it; the eight handles
+    resize as today; arrows nudge the selected element one cell, Shift+arrows resize by one cell
+    (the keyboard route replacing the removed number fields). Confirm.
+ 5. Animations on the module, per kind - a proposal: fader fills from its low end to the value
+    (a bar), button lights its whole region while on (a toggle stays lit), XY pad draws a
+    crosshair through the finger, knob lights an arc from the low position to the value, blank
+    is a steady colour. Every element keeps its dim rest colour. Confirm or amend.
+ 6. Min / max: (a) min above max is allowed and inverts the direction (TouchOSC does this);
+    (b) refused. XY pad: (a) one min/max for both axes; (b) a pair per axis. Button: min = the off
+    value, max = the on value (note: the velocity).
+ 7. The no-jump mode's name and speed. Name: "Relative" (vs "Absolute"). Speed: (a) the full
+    travel of the region moves the value by 64 - half speed, the subtle feel; (b) 1:1, full
+    travel = 127; (c) a Speed option with both.
+ 8. Spring: on release the fader sends and shows the spring value (default 64, typed 0..127,
+    clamped into min/max). Can be combined with Relative. Confirm.
+ 9. Radio "like TouchOSC": (a) a new element kind, Radio - a region split into N segments along
+    its long axis, one lit at a time, a touch selects a segment and sends its index scaled into
+    min..max on one CC (hotkey R); (b) a Button option "radio group": buttons in the same group
+    are exclusive - pressing one releases the others.
+10. Button as Note: a note-number field (typed names and numbers like Orbit), velocity = max,
+    note off on release (momentary) or on the second press (toggle). Confirm.
+11. Knob relative encoding: (a) two's complement - 1..63 up, 127..65 down (Ableton "Relative
+    (2's Comp.)"); (b) binary offset - 65..127 up, 63..1 down; (c) sign magnitude - 1..63 up,
+    65..127 down; (d) a selector with all three.
+12. Budget: every option is a column in the region table on the module, so a surface using many of
+    them fits fewer than sixteen elements; the meter already floors the count. Acceptable?
