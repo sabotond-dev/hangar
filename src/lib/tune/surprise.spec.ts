@@ -262,6 +262,9 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     // TWO-option knob standing at one of them, half of all draws are the state
     // it replaced, and twelve in a row is an ordinary event rather than an
     // astronomical one. The rng below makes it certain rather than likely.
+    // The card carries TWO knobs since 2026-09-17 (BENCH-2026-09-16.txt section
+    // 5b): the retired brightness knob was the third, and one held knob still
+    // collapses the domain onto `edge` exactly as three did.
     const entry = mustEntry("starfield");
     const knobs = knobsOf(entry);
     const free = knobs.find((knob) => knob.id === "edge");
@@ -269,7 +272,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       free?.options.length,
       "starfield's edge knob is the two-option knob this test is about - if it is not two options, this test is no longer driving the path it names",
     ).toBe(2);
-    expect(knobs.length, "starfield has other knobs to hold").toBe(3);
+    expect(knobs.length, "starfield has another knob to hold").toBe(2);
 
     const held = new Set(
       knobs.filter((knob) => knob.id !== "edge").map((knob) => knob.id),
@@ -445,7 +448,11 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       false,
     );
 
-    // THE ROLL. dial: send (12), channel (16), sensitivity, mode, brightness.
+    // THE ROLL. dial: send (12), channel (16), sensitivity, mode - and since
+    // 2026-09-17 (BENCH-2026-09-16.txt section 5b) no brightness, which the roll
+    // used to move: the universal five-detent knob is retired and the one
+    // brightness is a typed field the roll cannot reach (it is not a knob at
+    // all, so the scope shrinks by one here and by one on every lit card).
     // The MIDI knobs stand OFF their defaults first, so "unmoved" is not
     // "at default"; an rng that draws the last position for everything
     // offered to it moves every rollable knob and is never asked for the
@@ -453,7 +460,6 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     const knobs = knobsOf(mustEntry("dial"));
     const inScope = rollable(knobs);
     expect(inScope.map((knob) => knob.id).sort()).toEqual([
-      "brightness",
       "mode",
       "sensitivity",
     ]);

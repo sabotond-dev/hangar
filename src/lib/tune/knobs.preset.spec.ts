@@ -28,10 +28,9 @@ import { PadSim } from "../../vendor/botor/pad-sim";
 // ships. The two shelves are held identical field by field by
 // src/lib/catalog/presets.spec.ts, which is where that comparison belongs.
 import { PRESETS, presetById } from "../catalog/presets";
-import { applyKnob, readKnob } from "./state";
+import { applyKnob, baseStateFor, readKnob } from "./state";
 import { CATALOG } from "../catalog";
 import {
-  BRIGHTNESS_KNOB_ID,
   COLOUR_LATTICE_SIZE,
   colourAt,
   colourIndexOf,
@@ -44,6 +43,13 @@ import {
 function bodies(state: PadState): string {
   const built = compile(state);
   return [...built.setup, ...built.timer].map((a) => a.script).join("~");
+}
+
+/** The catalog's AURORA row, for the pin assertion in test 3. */
+function auroraEntry() {
+  const entry = CATALOG.find((each) => each.id === "aurora");
+  if (!entry) throw new Error("the catalog lost aurora");
+  return entry;
 }
 
 function stateOf(id: string): PadState {
@@ -68,10 +74,19 @@ const ROWS: readonly Row[] = PRESETS.map((preset) => ({
 
 describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () => {
   it("gives every shelf card three to six real knobs", () => {
+    // THE FLOOR'S DATED EXEMPTION, 2026-09-17 (BENCH-2026-09-16.txt section 5b, the user's word:
+    // "one"). TUNE-01's three-to-six floor was met on STARFIELD and FOUR FADERS by the universal
+    // five-detent brightness knob, which is retired now that one 1..255 field is every
+    // configuration's brightness (src/lib/catalog/brightness.ts). Those two cards declare two real
+    // knobs each and keep two; every other card is still at three or more, and the ceiling of six
+    // is unchanged. The exemption is BY ID and by these two ids only, so a third card falling to
+    // two is still red, and the next gate amends TUNE-01 by this word (REQUIREMENTS untouched here).
+    const FLOOR_EXEMPT: readonly string[] = ["starfield", "faders"];
     expect(ROWS.length).toBe(PRESETS.length);
     for (const row of ROWS) {
+      const floor = FLOOR_EXEMPT.includes(row.id) ? 2 : 3;
       expect(row.knobs.length, `${row.id} knob count`).toBeGreaterThanOrEqual(
-        3,
+        floor,
       );
       expect(row.knobs.length, `${row.id} knob count`).toBeLessThanOrEqual(6);
 
@@ -90,20 +105,31 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
       }
       expect(ids.size, `${row.id} knob ids are unique`).toBe(row.knobs.length);
     }
+    // The exemption is not a licence: the two are exactly two, and the retired
+    // knob is on no card's rack at all (the positive half of section 5b).
+    for (const id of FLOOR_EXEMPT) {
+      const row = ROWS.find((each) => each.id === id);
+      expect(row?.knobs.length, `${id} is the exempted two`).toBe(2);
+    }
+    for (const row of ROWS) {
+      expect(
+        row.knobs.map((knob) => knob.id),
+        `${row.id} still offers the retired brightness knob`,
+      ).not.toContain("brightness");
+    }
   });
 
   it("exposes exactly the kinds BOTOR declares for each card, both directions", () => {
-    // The carve-out, and why it is by ID and never by kind: `brightness` is
-    // NOT a member of the vendored `KnobKind` union. It is a HANGAR-added
-    // universal knob (D-01's three-knob floor) and it borrows the existing
-    // `amount` kind for its widget - so filtering by kind would also drop
-    // ninepads' channel knob, which IS one of the declared four. One card's
-    // real knob and one added knob share a kind; only the id tells them apart.
+    // THE CARVE-OUT WENT WITH THE KNOB, 2026-09-17 (section 5b). It existed
+    // because `brightness` is not a member of the vendored `KnobKind` union -
+    // a HANGAR-added universal knob borrowing the `amount` kind - so the set
+    // comparison had to except it BY ID (by kind would also have dropped
+    // ninepads' channel knob, which IS declared). With the knob retired the
+    // comparison is unconditional again: every kind on every rack is one
+    // BOTOR declares for that card.
     for (const row of ROWS) {
       const declared = presetById(row.id)?.knobs ?? [];
-      const mine = row.knobs
-        .filter((knob) => knob.id !== BRIGHTNESS_KNOB_ID)
-        .map((knob) => knob.kind);
+      const mine = row.knobs.map((knob) => knob.kind);
 
       expect([...new Set(mine)].sort(), `${row.id} kinds`).toEqual(
         [...new Set<string>(declared)].sort(),
@@ -135,7 +161,17 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
     expect(knobOf("aurora", "band").default).toBe(1);
     expect(knobOf("ninepads", "notes").default).toBe(1);
     expect(knobOf("dial", "sensitivity").default).toBe(4);
-    expect(knobOf("aurora", BRIGHTNESS_KNOB_ID).default).toBe(4);
+    // AND FULL IS NO LONGER A KNOB POSITION but a pin: every card ships at the
+    // table's last detent and `baseStateFor` writes it on every state HANGAR
+    // compiles (section 5b), so there is nothing to default here.
+    expect(
+      new Set(PRESETS.map((preset) => preset.state.brightness)),
+      "a shelf card ships at anything but Full, which the pin would now hide",
+    ).toEqual(new Set([BRIGHTNESS_TABLE[BRIGHTNESS_TABLE.length - 1].step]));
+    expect(
+      baseStateFor(auroraEntry()).brightness,
+      "the pin does not write Full",
+    ).toBe(BRIGHTNESS_TABLE[BRIGHTNESS_TABLE.length - 1].step);
   });
 
   it("reads back every index it writes, on every knob of every card", () => {
@@ -251,29 +287,32 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
     }
     expect(compiles).toBeGreaterThan(200);
 
-    // THE PREDICATE, and why no knob needs an exemption from the gate above.
-    // A card that lights nothing cannot hold a brightness at all: canonicalise
-    // resets it to Full (`_pad.ts:1486`), so every detent would compile to the
-    // same body AND read back as Full. Rather than ship a knob that snaps back
-    // when it is turned, such a card is not offered one - which is what BOTOR's
-    // own panel does (`_pad.ts:883`). Expressed as the predicate, never as an
-    // id: a card that starts lighting something gains the knob by itself.
+    // THE PREDICATE THAT GATED THE RETIRED KNOB, kept as the reason no card
+    // offers one now (section 5b). A card that lights nothing cannot hold a
+    // brightness at all: canonicalise resets it to Full (`_pad.ts:1486`), so
+    // every detent compiles to the same body and reads back as Full - which is
+    // why `tpad` was never offered the knob and why a state-side brightness was
+    // never a control the whole shelf could carry. It is a pin now, and this is
+    // the assertion that it is one: on the dark card every detent still
+    // compiles identically, and no card - dark or lit - has the knob.
     const dark = ROWS.filter((row) => !padLightsAnything(row.base));
     expect(
       dark.length,
       "the shelf still has a card that lights nothing",
     ).toBeGreaterThan(0);
     for (const row of dark) {
-      expect(
-        row.knobs.some((knob) => knob.id === BRIGHTNESS_KNOB_ID),
-        `${row.id} lights nothing and must not offer brightness`,
-      ).toBe(false);
       const detents = new Set(
         BRIGHTNESS_TABLE.map((entry) =>
           bodies({ ...row.base, brightness: entry.step }),
         ),
       );
       expect(detents.size, `${row.id} brightness would be a no-op`).toBe(1);
+    }
+    for (const row of ROWS) {
+      expect(
+        row.knobs.some((knob) => knob.id === "brightness"),
+        `${row.id} offers a brightness knob`,
+      ).toBe(false);
     }
     // The same explicit timeout, for the same reason: this test now makes
     // 24,576 compile() calls where it made about 250.
@@ -371,19 +410,21 @@ describe("the per-preset knob descriptors (src/lib/tune/knobs.preset.ts)", () =>
     const knobs = presetKnobs("ninepads");
 
     // APPENDED, NEVER INSERTED. Every knob that existed before plan 11-06 keeps
-    // the index it had, asserted by id AND position rather than by length, and
-    // brightness stays last because presetKnobs appends it by construction.
+    // the index it had, asserted by id AND position rather than by length. The
+    // universal brightness knob sat last until 2026-09-17 (section 5b) and is
+    // retired; `grid` is the rack's last entry again, where 11-06 appended it.
     expect(
       knobs.map((knob) => knob.id),
-      "the rack order: the pre-11-06 four, then the new knob, then brightness",
-    ).toEqual(["colour", "notes", "scale", "channel", "grid", "brightness"]);
+      "the rack order: the pre-11-06 four, then the knob 11-06 appended",
+    ).toEqual(["colour", "notes", "scale", "channel", "grid"]);
     expect(
       knobs.at(-1)?.id,
-      "brightness is last, so the appended knob went before it and not after",
-    ).toBe(BRIGHTNESS_KNOB_ID);
-    // Six is the ceiling test 1 enforces, so this card is now AT it. A seventh
-    // knob on NINE PADS turns test 1 red, which is the intended conversation.
-    expect(knobs.length, "at the six-knob ceiling").toBe(6);
+      "grid is last, so 11-06's knob is still appended and not inserted",
+    ).toBe("grid");
+    // One under the ceiling test 1 enforces: the richest card, with room for
+    // one more. A seventh knob on NINE PADS turns test 1 red, which is the
+    // intended conversation.
+    expect(knobs.length, "one under the six-knob ceiling").toBe(5);
 
     const grid = knobs.find((knob) => knob.id === "grid");
     if (!grid) throw new Error("ninepads has no grid knob");

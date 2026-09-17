@@ -11,6 +11,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
+  BRIGHTNESS_TABLE,
   clonePadState,
   groundPadState,
   type PadState,
@@ -85,6 +86,14 @@ export class NoPadStateError extends Error {
 }
 
 /**
+ * FULL, derived from the vendored table's last row rather than typed: the one brightness detent
+ * HANGAR compiles at since 2026-09-17 (BENCH-2026-09-16.txt section 5b). Every card already
+ * shipped at it, so the pin below moves no byte of the wire; it is what makes the retired knob
+ * unreachable rather than merely unoffered.
+ */
+const FULL_BRIGHTNESS = BRIGHTNESS_TABLE[BRIGHTNESS_TABLE.length - 1].step;
+
+/**
  * The starting `PadState` for a catalog entry: the shelf card's own state for
  * a `preset` entry, the carried state for a `state` entry, and a throw for a
  * `lua` one.
@@ -92,16 +101,33 @@ export class NoPadStateError extends Error {
  * The returned state is a CLONE. The vendored `PRESETS` array holds one shared
  * object per card, and a caller that mutated it would poison every later
  * reader on the page.
+ *
+ * THE BRIGHTNESS PIN LIVES HERE, and this is the one door: every compiled
+ * preset state HANGAR measures, lands, encodes or rebuilds from a stamp starts
+ * here (model.ts's `stateOf` and `resetAll`, stamp.ts's `stateFor` and
+ * `decodeCompiler`), so a state that reaches the compiler at anything but Full
+ * cannot be constructed through HANGAR - the 1..255 field
+ * (catalog/brightness.ts) is the only brightness. `src/vendor/` is untouched:
+ * the compiler still HAS the field, and nothing here forbids it; the value is
+ * pinned on the way in.
  */
 export function baseStateFor(entry: CatalogEntry): PadState {
   const source = entry.source;
   if (source.kind === "lua") throw new NoPadStateError(entry.id);
-  if (source.kind === "state") return clonePadState(source.state);
-  const preset = presetById(source.presetId);
+  const state =
+    source.kind === "state"
+      ? clonePadState(source.state)
+      : clonePadState(mustPreset(entry, source.presetId).state);
+  state.brightness = FULL_BRIGHTNESS;
+  return state;
+}
+
+function mustPreset(entry: CatalogEntry, presetId: string) {
+  const preset = presetById(presetId);
   if (!preset) {
-    throw new Error(`${entry.id} names no shelf preset: ${source.presetId}`);
+    throw new Error(`${entry.id} names no shelf preset: ${presetId}`);
   }
-  return clonePadState(preset.state);
+  return preset;
 }
 
 /**

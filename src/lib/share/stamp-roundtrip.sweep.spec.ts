@@ -215,17 +215,18 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
 
     expect(examinedA, "Pass A's enumeration silently shrank").toBe(expectedA);
     expect(examinedB, "Pass B's enumeration silently shrank").toBe(expectedB);
-    // THE FLOOR, RE-DERIVED as the two passes' own sum. The old 16,000 was
-    // half of one 32,852-state cross-product and means nothing now that there
-    // is no single cross-product. 40,000 is above EITHER PASS ALONE - Pass A
-    // is 19,502, Pass B is 24,576 - so it can only be cleared when both passes
-    // really ran, which is exactly the failure a floor exists to catch. It is
-    // a literal because `expectedA` and `expectedB` are derived from the same
-    // racks the passes read.
+    // THE FLOOR, RE-DERIVED as the two passes' own sum, and lowered on
+    // 2026-09-17 (BENCH-2026-09-16.txt section 5b): the retired brightness knob
+    // took a factor of five out of Pass A's cross-products (20,270 -> 4,054;
+    // the total 44,846 -> 28,630, Pass B unchanged at 24,576). The floor keeps
+    // its job - above EITHER PASS ALONE, so it can be cleared only when both
+    // passes really ran - and 25,000 is above Pass B's 24,576 and six times
+    // Pass A's 4,054. It is a literal because `expectedA` and `expectedB` are
+    // derived from the same racks the passes read and are asserted equal above.
     expect(
       examined,
       "the compiler cross-product is not trivial",
-    ).toBeGreaterThan(40000);
+    ).toBeGreaterThan(25000);
     // BOTOR's own stamps stay short: a loaded instrument is about twenty
     // characters, and a URL fragment nobody can read is not shareable.
     expect(longest, `the longest compiler payload is ${longest}`).toBeLessThan(

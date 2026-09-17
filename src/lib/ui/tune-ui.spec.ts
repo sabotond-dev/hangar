@@ -38,6 +38,7 @@ import Swatch from "./Swatch.svelte";
 import MidiField from "./MidiField.svelte";
 import BrightnessField from "./BrightnessField.svelte";
 import { CATALOG } from "../catalog";
+import { stampKnobs } from "../share/stamp";
 import { parseBrightness } from "../catalog/brightness";
 import { BRIGHTNESS_LABEL, BRIGHTNESS_RANGE } from "../tune/inspector-copy";
 import {
@@ -2115,17 +2116,23 @@ describe("the tuning UI's structural rules", () => {
       "onbrightness?.(next.brightness)",
     );
 
-    // Not a knob on any hand-authored entry. A PRESET still carries the
-    // vendored compiler's own five-detent knob (knobs.preset.ts, D-01's
-    // floor, in the BOTOR stamp and in the wire set) under Behavior; the
-    // field composes with it - the knob scales the compiler's coefficients,
-    // the field scales what lands - and retiring the knob would move the wire
-    // set, which change 5 holds equal. Named here so the two are not confused.
+    // NOT A KNOB ANYWHERE, ON EITHER ROUTE, SINCE 2026-09-17 (BENCH-2026-09-16.txt
+    // section 5b, the user's word: "one"). A preset carried the vendored compiler's
+    // own five-detent knob under Behavior until then; it is retired, the state field
+    // is pinned at Full by `baseStateFor`, and this field is every configuration's
+    // one brightness. The assertion is over EVERY catalog entry's rack, Lua and
+    // preset alike, through the same resolver the panel uses.
     for (const entry of CATALOG) {
-      const knob = entry.knobs.some(
-        (k) => k.id === "brightness" || k.token === "@BRIGHTNESS",
-      );
-      expect(knob, `${entry.id} declares brightness as a Lua knob`).toBe(false);
+      expect(
+        entry.knobs.some(
+          (k) => k.id === "brightness" || k.token === "@BRIGHTNESS",
+        ),
+        `${entry.id} declares brightness as a Lua knob`,
+      ).toBe(false);
+      expect(
+        stampKnobs(entry).map((k) => k.id),
+        `${entry.id}'s rack still carries a brightness knob`,
+      ).not.toContain("brightness");
     }
     // The behaviour, on a real tuner: the view carries it, a move changes
     // it, a roll leaves it, Reset settings restores it.
@@ -2145,11 +2152,10 @@ describe("the tuning UI's structural rules", () => {
       };
       await settle();
       expect((views.at(-1) as TuneView).brightness, "opened at 200").toBe(200);
-      const compilerKnob = tuner.knobs.find((k) => k.id === "brightness");
       expect(
-        compilerKnob?.options,
-        "aurora's compiler knob is the five detents, apart from the field",
-      ).toEqual(["15", "30", "50", "75", "100"]);
+        tuner.knobs.map((k) => k.id),
+        "aurora's rack still carries the retired knob",
+      ).not.toContain("brightness");
       tuner.setBrightness(64);
       await settle();
       expect((views.at(-1) as TuneView).brightness).toBe(64);

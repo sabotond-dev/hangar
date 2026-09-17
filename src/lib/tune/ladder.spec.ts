@@ -37,6 +37,13 @@ const TPAD_RESERVE: PadReserved = { setup: 20, timer: 0 };
  */
 const DIAL_RESERVE: PadReserved = { setup: 354, timer: 0 };
 
+/**
+ * PINWHEEL's reserve, for the pinned test alone (2026-09-17, section 5b): Setup 1013 of 908 at
+ * { setup: 600 }, 105 over, six steps - four `look` and two `touch`. The dial cannot serve that
+ * test any more; the note at the test says why.
+ */
+const PINWHEEL_RESERVE: PadReserved = { setup: 600, timer: 0 };
+
 function mustEntry(id: string): CatalogEntry {
   // `tpad` is a shelf preset and not a catalog card since plan 12-10 (the
   // hand-authored TRACKPAD replaced it as the card); it is still the tightest
@@ -139,10 +146,19 @@ describe("the fit ladder and the over-budget block (TUNE-04, TUNE-05)", () => {
   });
 
   it("the compiler never proposes degrading the control the hand is on", async () => {
-    const entry = mustEntry("dial");
+    // PINWHEEL SINCE 2026-09-17 (BENCH-2026-09-16.txt section 5b), and the swap is
+    // the change's own consequence: the dial's ladder proposes `look` steps only,
+    // and the dial's `look` knob WAS the retired universal brightness knob, so on
+    // the dial there is no longer a real knob on a sheet the ladder would trim -
+    // the precondition below would be the thing that fails, not the rule. PINWHEEL
+    // carries three `look` knobs (colour, speed, arms) and at { setup: 600 } costs
+    // Setup 1013, 105 over, with six steps - four `look` and two `touch` - so
+    // pinning its colour knob's sheet leaves a ladder to assert on. Measured
+    // 2026-09-17, not chosen.
+    const entry = mustEntry("pinwheel");
     const state = resetAll(entry);
 
-    const free = await fitState(state, { reserved: DIAL_RESERVE });
+    const free = await fitState(state, { reserved: PINWHEEL_RESERVE });
     const sheets = new Set(free.steps.map((step) => step.feature));
     expect(sheets.size, "the unpinned plan proposed nothing").toBeGreaterThan(
       0,
@@ -151,14 +167,16 @@ describe("the fit ladder and the over-budget block (TUNE-04, TUNE-05)", () => {
     // The pinned sheet is a REAL knob's sheet, and one the unpinned plan
     // proposes a step on - pinning a sheet nothing was going to touch would
     // prove nothing at all.
-    const pinned = presetKnobs("dial").find((knob) => sheets.has(knob.sheet));
+    const pinned = presetKnobs("pinwheel").find((knob) =>
+      sheets.has(knob.sheet),
+    );
     expect(
       pinned,
-      "no dial knob sits on a sheet the ladder would trim",
+      "no pinwheel knob sits on a sheet the ladder would trim",
     ).toBeDefined();
 
     const plan = await fitState(state, {
-      reserved: DIAL_RESERVE,
+      reserved: PINWHEEL_RESERVE,
       pinned: pinned!.sheet,
     });
     expect(

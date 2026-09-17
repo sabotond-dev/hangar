@@ -326,26 +326,23 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     expect(costed, "the enumeration silently shrank").toBe(
       expectedA + expectedB,
     );
-    // THE FLOOR, RE-DERIVED TWICE - once for the split, once for the lattice.
+    // THE FLOOR, RE-DERIVED A THIRD TIME - 2026-09-17 (BENCH-2026-09-16.txt
+    // section 5b, the user's word: "one"). The universal five-detent brightness
+    // knob is retired from all eight lit cards, so Pass A's cross-products lost
+    // a factor of five: 20,270 -> 4,054, and the total 44,846 -> 28,630 (Pass B
+    // is unchanged at 24,576, which is 4,096 per colour knob over six). 40,000
+    // is now above the total and would go red on a green tree.
     //
-    // The old 16,000 was half of one 32,852-state cross-product and it is now
-    // meaningless twice over: there is no single cross-product, and the total
-    // is 44,078 rather than 32,852. The new number is 40,000, and it is chosen
-    // to be a floor no plausible shrinkage clears rather than a round number
-    // near the answer:
-    //
-    //   Pass A is 19,502, of which the three COLOURLESS presets are 16,832
-    //   (faders 960, dial 15,360, tpad 512). Pass B is 24,576, which is 4,096
-    //   per colour knob and there are six. Losing ONE colour knob costs 4,096
-    //   and lands on 39,982, under the floor. Losing `dial` costs 15,360.
-    //   Losing the colour dimension entirely costs 24,576. Every single one of
-    //   those goes red here.
-    //
-    // It is a literal on purpose. `expectedA` and `expectedB` are derived from
-    // the same knob tables the loops read, so a floor derived from them would
-    // shrink with them and green a suite that stopped checking anything.
+    // The floor keeps its ONE job: it can be cleared only when BOTH passes
+    // really ran. 25,000 is above Pass B alone (24,576) and six times Pass A
+    // alone (4,054), so either pass silently emptying is red here; losing one
+    // colour knob costs 4,096 and lands on 24,534, under it. The two derived
+    // equalities above - `costedA === expectedA`, `costedB === expectedB`, both
+    // re-derived from the same knob tables the loops read - are what catch a
+    // shrinkage this floor is too coarse to see, which is why the floor may be
+    // a literal at all.
     expect(costed, "the two passes are not trivial").toBeGreaterThanOrEqual(
-      40000,
+      25000,
     );
 
     // Every colourless preset's Pass A is BYTE-IDENTICAL to the enumeration

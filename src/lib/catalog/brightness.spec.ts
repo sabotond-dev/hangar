@@ -12,10 +12,15 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { compile } from "../../vendor/botor/_pad";
 import { measureLua, padReady } from "../pad";
-import { compilerKnobs } from "../share/stamp";
+import {
+  clonePadState,
+  encodeStamp,
+  groundPadState,
+} from "../../vendor/botor/_pad";
+import { compilerKnobs, decodeFor } from "../share/stamp";
+import { applyKnob, baseStateFor } from "../tune/state";
 import { renderLua } from "../sim/lua-pad-sim";
 import { colourIndexOf } from "../tune/knobs.preset";
-import { applyKnob, baseStateFor } from "../tune/state";
 import {
   BRIGHTNESS_FULL,
   ENTRY_SITES,
@@ -461,5 +466,61 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
     );
     expect(specifiers, "no import, not even a type").toEqual([]);
     expect(stripped).not.toMatch(/^[ ]*import[ ]/m);
+  });
+
+  it("6. the retired preset knob (change 5b): no card offers it, `baseStateFor` pins Full, a pre-5b link whose brightness was Full still restores byte for byte and one whose brightness was not lands unreadable - the codec untouched", () => {
+    // BENCH-2026-09-16.txt section 5b, the user's word: "one". The compiler's
+    // five-detent knob is gone from the eight racks and the state field is pinned,
+    // so format `c` - which the vendored writer emits ONLY when brightness is not
+    // Full (`_pad.ts:2604-2623`) - is a format HANGAR can no longer mint. What an
+    // old `c` link does is the codec's own fail-closed rule, unchanged:
+    // `decodeCompiler` rebuilds from `baseStateFor` (Full now), re-encodes and
+    // compares, so the payload cannot match and the landing is UNREADABLE, not
+    // `older` - `older` is reachable only through the Lua formats' shape
+    // character (stamp.ts's header). The route shows the unreadable notice and
+    // opens the card as it ships, at Full. `y` and `z` stay reserved.
+    const entry = mustEntry("aurora");
+    const knobs = compilerKnobs(entry);
+    expect(
+      knobs.map((knob) => knob.id),
+      "aurora's rack after 5b",
+    ).toEqual(["colour", "speed", "direction", "band"]);
+    for (const preset of PRESET_ENTRIES) {
+      expect(
+        compilerKnobs(preset).map((knob) => knob.id),
+        `${preset.id} still offers the retired knob`,
+      ).not.toContain("brightness");
+    }
+    // The pin, on the one door: every preset state HANGAR compiles is at Full.
+    const FULL = 5;
+    for (const preset of PRESET_ENTRIES) {
+      expect(
+        baseStateFor(preset).brightness,
+        `${preset.id} is not pinned at Full`,
+      ).toBe(FULL);
+    }
+    // A vector minted today, and the same vector as a pre-5b stamp (the old rack
+    // carried brightness at its default, which was Full): the same bytes.
+    const indices: Record<string, number> = {};
+    for (const knob of knobs) indices[knob.id] = knob.default;
+    indices.speed = 4;
+    let state = baseStateFor(entry);
+    for (const knob of knobs) state = applyKnob(state, knob, indices[knob.id]);
+    const atFull = encodeStamp(state);
+    expect(atFull[0], "a Full-brightness stamp is not format c").not.toBe("c");
+    expect(
+      decodeFor(entry, atFull),
+      "a pre-5b link at Full no longer restores",
+    ).toEqual({ kind: "restored", indices });
+    // The same vector with the retired knob moved off Full: format `c`, unreadable.
+    const dim = clonePadState(state);
+    dim.brightness = 3;
+    delete dim.preset;
+    const dimStamp = encodeStamp(groundPadState(dim));
+    expect(dimStamp[0], "the dim stamp is format c").toBe("c");
+    expect(
+      decodeFor(entry, dimStamp),
+      "a pre-5b dim link lands as something other than unreadable",
+    ).toEqual({ kind: "unreadable" });
   });
 });

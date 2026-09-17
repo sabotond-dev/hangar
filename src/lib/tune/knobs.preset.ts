@@ -4,20 +4,18 @@
 // cards, `touch.colour` on the joystick, `sends.gridColour` on the nine pads);
 // BOTOR resolves that in a per-card if/else chain HANGAR may not copy, so this
 // module is the recovered mapping as data, held by knobs.preset.spec.ts against
-// `presetById(id).knobs`. Four things are READ, not restated: the detent tables
+// `presetById(id).knobs`. Three things are READ, not restated: the detent tables
 // are the value sets, the vendored quantiseColour is the colour lattice, every
-// default index is derived from the card's shipped state (throwing at import),
-// padLightsAnything decides brightness. Model side of D-18: no component names it.
+// default index is derived from the card's shipped state (throwing at import).
+// Model side of D-18: no component names it.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
-  BRIGHTNESS_TABLE,
   DIAL_SENSE_TABLE,
   SPEED_TABLE,
   TRACKPAD_POINTER_CAPS,
   TRACKPAD_SCROLL_UNITS,
   TRACKPAD_TAP_TOLERANCE,
-  padLightsAnything,
   quantiseColour,
   type PadSheet,
   type PadState,
@@ -57,19 +55,18 @@ export type PresetKnob = KnobDescriptor &
     sheet: PadSheet;
   };
 
-/**
- * The universal brightness knob's id.
- *
- * It is an ID and not a kind because `brightness` IS NOT A MEMBER of the
- * vendored `KnobKind` union - it is the answer to D-01's three-knob floor
- * (starfield and the faders declare two knobs each), and it borrows the
- * existing `amount` kind for its widget. So the spec's "the kind set equals
- * the vendored declaration" rule has to except it BY ID: excepting it by kind
- * would also drop ninepads' channel knob, which is one of that card's four
- * declared knobs. That is the one carve-out in this module, and a carve-out
- * nobody explained is a hole.
- */
-export const BRIGHTNESS_KNOB_ID = "brightness";
+// RETIRED BY NAME, 2026-09-17 (BENCH-2026-09-16.txt section 5b, the user's word: "one").
+//
+// `BRIGHTNESS_KNOB_ID` ("brightness"), `brightnessKnob`, `BRIGHTNESS_OPTIONS` and
+// `stepForBrightnessIndex` were the universal five-detent knob (15 / 30 / 50 / 75 / 100 percent
+// of `BRIGHTNESS_TABLE`, appended to every card that lights something, in the BOTOR stamp as
+// format `c`, rolled by Randomize). Change 5 gave every configuration ONE brightness - an
+// integer 1..255 applied to the colours HANGAR writes (src/lib/catalog/brightness.ts) - and two
+// controls multiplied, so this one goes. THE STATE FIELD IS PINNED AT FULL, not left free:
+// `baseStateFor` (tune/state.ts) writes the table's last step on every preset state HANGAR
+// compiles, so the field's scaling is the only brightness. D-01's three-knob floor drops to two
+// on STARFIELD and FOUR FADERS by the same word; knobs.preset.spec.ts test 1 carries the dated
+// exemption. Five cards keep four or more knobs and lost nothing else.
 
 // ---------------------------------------------------------------------------
 // Small shared arithmetic.
@@ -675,45 +672,6 @@ function scrollKnob(base: PadState): PresetKnob {
   };
 }
 
-/**
- * The universal brightness knob (D-01's floor), offered to every card that
- * lights something.
- *
- * The options are the table's PERCENTS rather than its detent steps or its
- * words. `amount` is a rail kind, and a rail's readout is the raw value: "100"
- * and "15" say something a visitor can act on, where "5" and "1" say nothing
- * and the table's own words (Dim, Low, Half, Bright, Full) cannot render on a
- * rail at all. The stored field stays the detent - the percent is the table's
- * own second column, never arithmetic invented here.
- */
-const BRIGHTNESS_OPTIONS = BRIGHTNESS_TABLE.map((row) => String(row.pct));
-
-function stepForBrightnessIndex(index: number): number {
-  return BRIGHTNESS_TABLE[index].step;
-}
-
-function brightnessKnob(base: PadState): PresetKnob {
-  const read = (state: PadState): number => {
-    const found = BRIGHTNESS_TABLE.findIndex(
-      (row) => row.step === state.brightness,
-    );
-    return found < 0 ? 0 : found;
-  };
-  return {
-    id: BRIGHTNESS_KNOB_ID,
-    label: "Brightness",
-    kind: "amount",
-    options: BRIGHTNESS_OPTIONS,
-    default: read(base),
-    sheet: "look",
-    apply: (state, index) =>
-      withChange(state, (draft) => {
-        draft.brightness = stepForBrightnessIndex(index);
-      }),
-    read,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // The nine cards.
 
@@ -748,15 +706,13 @@ const BY_PRESET: Readonly<Record<string, readonly Factory[]>> = {
 };
 
 /**
- * The knobs a shelf card exposes, in rack order, with brightness appended
- * wherever the card lights something.
+ * The knobs a shelf card exposes, in rack order: the card's own table and
+ * nothing appended (the brightness knob is retired, see the block above).
  */
 export function presetKnobs(presetId: string): readonly PresetKnob[] {
   const preset = presetById(presetId);
   if (!preset) throw new Error(`unknown preset: ${presetId}`);
   const factories = BY_PRESET[presetId];
   if (!factories) throw new Error(`no knob table for preset: ${presetId}`);
-  const base = preset.state;
-  const knobs = factories.map((make) => make(base));
-  return padLightsAnything(base) ? [...knobs, brightnessKnob(base)] : knobs;
+  return factories.map((make) => make(preset.state));
 }
