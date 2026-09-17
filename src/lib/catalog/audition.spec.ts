@@ -95,7 +95,7 @@ const flat = doc.replace(/\s+/g, " ");
  * Config cell, narrower than the column, so nothing was re-padded; MORPH's cost
  * row moves 810 / 5 -> 856 / 6 and a dated paragraph follows row 31's.
  */
-const ROW_COUNT = 32;
+const ROW_COUNT = 33;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -243,7 +243,7 @@ function dumpAudition(): void {
 if ((process.env.AUDITION_DUMP ?? "") !== "") dumpAudition();
 
 describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
-  it("keeps thirty-two numbered rows, each with a reason it cannot be simulated", () => {
+  it("keeps thirty-three numbered rows, each with a reason it cannot be simulated", () => {
     expect(
       SECTION.length,
       "no `## The checklist` section - the document lost the checklist entirely",

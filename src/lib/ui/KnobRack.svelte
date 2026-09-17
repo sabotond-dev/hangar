@@ -22,6 +22,7 @@
     entry,
     knobs,
     held,
+    lock = true,
     budget,
     forecast,
     layout = "list",
@@ -45,6 +46,8 @@
     held: ReadonlySet<string>;
     /** One lock, toggled. What "held" then means is the region's, not this. */
     onhold: (id: string) => void;
+    /** False when the card offers no lock on a row (change 7); the picker's own lock is the picker's. */
+    lock?: boolean;
     /** The one forecast on screen, or undefined (TUNE-02): at most one for the rack, one pointer and one focus. */
     forecast?: {
       knobId: string;
@@ -102,6 +105,7 @@
         <Knob
           view={row}
           stacked={row.widget === "words" || layout === "grid"}
+          {lock}
           held={held.has(row.id)}
           forecastAt={forecast?.knobId === row.id
             ? forecast.position

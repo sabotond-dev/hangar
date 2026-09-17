@@ -187,6 +187,10 @@
 
   const knobViews = $derived(knobsOf(view));
   const hasKnobs = $derived(knobViews.length > 0);
+  /** The card's say on Randomize and the row locks (change 7): CHORUS declares false, every other card is true. Through a parameter, as the two readers above. */
+  const rollableOf = (current: TuneView | undefined): boolean =>
+    current?.rollable ?? true;
+  const rollable = $derived(rollableOf(view));
   /**
    * Section 7's three sections. The MIDI partition is surprise.ts's `isMidiDestination` -
    * ONE predicate over id and label, which also bounds the roll - so the section shows
@@ -520,6 +524,7 @@
     entry={{ id: entryId, name }}
     knobs={behaviorKnobs}
     held={heldKnobs}
+    lock={rollable}
     budget={colourBudget}
     empty={!hasKnobs}
     onchange={changeKnob}
@@ -529,18 +534,20 @@
 
   {#if hasKnobs}
     <div class="actions">
-      <button
-        class="action"
-        type="button"
-        data-testid="surprise-me"
-        disabled={rolling || allHeld}
-        aria-busy={rolling}
-        aria-describedby={allHeld ? heldReasonId : undefined}
-        onclick={surprise}
-      >
-        <span class="glyph" aria-hidden="true">{RANDOMIZE_GLYPH}</span>
-        {RANDOMIZE}
-      </button>
+      {#if rollable}
+        <button
+          class="action"
+          type="button"
+          data-testid="surprise-me"
+          disabled={rolling || allHeld}
+          aria-busy={rolling}
+          aria-describedby={allHeld ? heldReasonId : undefined}
+          onclick={surprise}
+        >
+          <span class="glyph" aria-hidden="true">{RANDOMIZE_GLYPH}</span>
+          {RANDOMIZE}
+        </button>
+      {/if}
       <button
         class="action"
         type="button"
@@ -550,19 +557,21 @@
       >
         {RESET_SETTINGS}
       </button>
-      <!-- Section 7's "Provide Undo randomize": disabled until a roll, and again once used or a knob moves by hand. -->
-      <button
-        class="action"
-        type="button"
-        data-testid="undo-randomize"
-        disabled={undo === undefined || rolling}
-        onclick={undoRandomize}
-      >
-        {UNDO_RANDOMIZE}
-      </button>
+      <!-- Section 7's "Provide Undo randomize": disabled until a roll, and again once used or a knob moves by hand. A card that declares rollable false (change 7) has neither this nor Randomize. -->
+      {#if rollable}
+        <button
+          class="action"
+          type="button"
+          data-testid="undo-randomize"
+          disabled={undo === undefined || rolling}
+          onclick={undoRandomize}
+        >
+          {UNDO_RANDOMIZE}
+        </button>
+      {/if}
     </div>
     <!-- DEGR-02's reason rule: this control is disabled by a state spread across every row's toggle. -->
-    {#if allHeld}
+    {#if allHeld && rollable}
       <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
         {SURPRISE_ALL_HELD}
       </p>
@@ -577,6 +586,7 @@
       entry={{ id: entryId, name }}
       knobs={colourKnobs}
       held={heldKnobs}
+      lock={rollable}
       budget={colourBudget}
       empty={false}
       {onresult}

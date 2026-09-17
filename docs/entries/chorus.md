@@ -170,3 +170,92 @@ src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 7, 2026-09-18: the lowest chord bottom-left, a chromatic key, two octave pads, Smart inversion
+
+Outside the GSD cycle, the user's word recorded in `BENCH-2026-09-16.txt` section 7: "Chorus:
+remove the randomization adn lock options. left bottom corner should be the legmélyebb hang. Keys
+options should have sharp keys. Key options should be from C to B including sharp keys. Two of the
+keys on the module should always be octave up and octave down because we only need 7 keys. Also
+research smart inversion and put a toggle option for it." ("legmélyebb hang" - the lowest note.)
+The answers, the same day: CHORUS only; C3..B3; the layout the executor's, made legible by colour;
++-2 octaves, lit to show the shift; Smart = the inversion that moves the voices least, a toggle
+Off / Smart defaulting Off; the budget order Setup, then the Timer, then a system slot only if
+nothing else fits.
+
+### The two literals this change replaced, verbatim (822 / 29 at the RGB444 picker corner; 819 / 29 at the defaults)
+
+```text
+--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.h[s.z][j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+n//9//3*3 if z==s.z then s.c=i return end if s.z then R(s,s.c)end for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end s.z=z s.c=i end gtt(0,100)
+```
+
+```text
+--[[@cb]]gtt(0,100)X(self,20)
+```
+
+### The layout
+
+The pad of cell n was `n%9//3+n//9//3*3`, pad 0 at the TOP-left; it is `n%9//3+6-n//27*3` now, pad
+0 at the BOTTOM-left: z 0..2 the bottom row left to right, 3..5 the middle row, 6 the top-left,
+and z 7 and 8 - the top row's middle and right-hand pads - are Octave down and Octave up. So the
+seven diatonic degrees rise from the corner the user named: I ii iii / IV V vi / vii, the two
+octave pads beside the vii pad on the top row, down on the left and up on the right, where a hand
+resting on the chords reaches them without crossing the pad. The chord pads keep the blue /
+violet chessboard (`0,60,120` / `80,40,140`, literals); the octave pads are green (`0,180,60`, a
+literal - a knob for it would be a seventh) at phase 40 when there is no shift, 140 at one octave
+and 240 at two on the pad that took the shift, the other staying at 40. The bloom colour and the
+white finger are as they were; the bloom's spread is the literal 12, the old knob's default.
+
+### The forms costed, under the pinned `compressScript` after `initLuaFormatter()`
+
+Every figure is at the RGB444 picker corner (the bloom colour 255,255,255, every other knob its
+longest literal), each a fixed point passing `checkSyntax`:
+
+- (i) EVERYTHING IN THE SETUP - the picture, the table, the handler with the octave pads, the
+  three-inversion voicing and the bloom: **1,243**, 335 OVER. Does not fit, and no re-cut of the
+  arithmetic reaches 335.
+- (ii) THE HANDLER DEFINED FROM THE TIMER'S FIRST CALL (the Timer has 879 free): rejected without
+  a figure. The VM's hosts press before they tick (`open()` never runs the Timer; every generic
+  probe in `lua-smoke.spec.ts` would press a handler that is still nil), and a module pressed
+  inside the first period after a Store would drop the chord the same way. A note-on tolerates no
+  lag; what the Timer may own is what tolerates one call of it.
+- (iii) THE SPLIT, chosen: the Setup keeps the chord table, the state, `R` and the whole handler
+  (the octave shift, the voicing, the note-ons, and `s.b=z` asking for the bloom); the Timer, at
+  `gtt(0,20)` with `X(self,100)` (the same two-second window: one hundred calls at 20 ms where
+  twenty at 100 ms were), paints the picture on its first call (`not s.q`), repaints the octave
+  pads' phase when `s.o` moved past the painted `s.q`, and paints the bloom for `s.b`. With the
+  three-candidate voicing (root and the two inversions above, `for k=0,@INV`): Setup **759**,
+  Timer **602**.
+- (iv) THE FIVE-CANDIDATE VOICING, chosen over (iii)'s three: `for k=-@INV,@INV` tries each
+  inversion in the octave nearest the previous chord (Lua's floored `//` and `%` put k -1 and -2
+  an octave down), and ties go to root position (`d<m or d==m and k==0`). Setup **779** (129
+  free), Timer **602** (306 free); 777 / 601 at the defaults. The three-candidate form was
+  measured and then rejected on the VM: from C E G (48 52 55) it voiced V as root position
+  (55 59 62, sum 21) because the closest G - B2 D3 G3 (47 50 55, sum 3), the G held and the two
+  other voices a step down - lives below the root, where an upward-only rotation never looks.
+  `self.n` starts as the I chord's table, so a first press of I under Smart is root position at
+  distance 0 and any other first chord is voiced as if coming from I.
+
+Two things the VM proof caught before the tree did: the octave step was written `z*4-30` (a
+step of two per press) and is `z*2-15`, the same length; and the stage that pressed pad after pad
+expected the previous chord's note-offs on the next press when the probe had already lifted.
+
+### What moved beside the strings
+
+Knobs: `@KEY` eight chosen roots (36 41 43 45 48 50 55 60, C3 the fifth) -> the twelve chromatic
+roots 48..59, C3 first and the default, a rail whose readout is the note's name (`model.ts`:
+a `note` knob's readout is `wordFor("note", ...)`; no other card has a note rail, every other note
+knob is a word row); `@SPREAD` (`bloomSpeed`, five values) left and `@INV` (`inversion`, kind
+`mode`, `0` / `2`, worded Off / Smart by `view.ts`'s `INVERSION_WORDS`) sits in its place, so the
+count stays six; `@SCALE`, `@BLOOMC`, `@VEL`, `@CH` untouched. The entry declares `rollable:
+false` (a new optional field on `CatalogEntry`, read into `TuneView.rollable` by `model.ts`), and
+the inspector draws neither Randomize nor its Undo nor a row lock for such a card (`KnobRack`
+forwards `lock` to `Knob.svelte`'s existing prop); the colour block's own lock is
+`ColourPicker.svelte`'s and stays. `stamp.spec.ts` declares both captured CHORUS records: the
+default vector (`key: 4`, a `bloomSpeed`) is no longer the defaults and encodes to a stamp, and
+the wild `xm75443f` lands `unreadable` (position 4 at the replaced knob's slot is outside its two
+values; the range check runs before the shape character). `frames.json`'s CHORUS block moved:
+198 lit bytes at every sampled tick -> 0 at tick 0 and 189 at 37, 101, 500 and 1,009 (the picture
+is the Timer's first call, at 20 ms). `brightness.ts` gains no declaration: the three colour sites
+that moved into the Timer are literals the scanner already classes. The card sentence: "Seven
+chord pads, the lowest at the bottom-left, two octave pads, and a warm bloom from the pad you hit."

@@ -299,7 +299,13 @@ function knobViews(
       kind: knob.kind,
       widget,
       skin: widget === "rail" ? railSkin(knob.options.length) : undefined,
-      readout: integerReadout(knob.options, index),
+      // A note knob's readout is the note's name (change 7: CHORUS's twelve roots are a rail,
+      // and "C#3" is what its word row would have said); every other integer knob shows its literal.
+      readout:
+        knob.kind === "note"
+          ? (wordFor("note", knob.options[index] ?? "") ??
+            integerReadout(knob.options, index))
+          : integerReadout(knob.options, index),
     };
     return {
       ...head,
@@ -544,6 +550,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       setup: meterView("setup", numbers.setup, feed),
       timer: meterView("timer", numbers.timer, feed),
       brightness,
+      rollable: entry.rollable !== false,
     });
   }
 

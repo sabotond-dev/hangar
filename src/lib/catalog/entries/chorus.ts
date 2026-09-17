@@ -1,61 +1,87 @@
-// CHORUS - nine diatonic triads, and every one of them blooms.
+// CHORUS - seven diatonic triads, the lowest at the bottom-left, two octave pads, and a bloom.
 //
-// Nine 3x3 pads (the only division a 9-wide grid does honestly), each a triad baked in Setup
-// from a seven-note scale table - degree z, z+2, z+4 with an octave lift - so at the default
-// key of 48 in C major the pads are C, Dm, Em, F, G, Am, Bdim, C(8va), Dm(8va). ONE CHORD AT A
-// TIME: a press on another pad releases the sounding chord and starts the new one; a press on
-// the sounding pad re-owns it; a slide is legato; a chord held dead still for two seconds is
-// released by the library's sweep. A blue / violet chessboard on layer 1 and, on every press, a
-// bloom on layer 2 expanding from the pad you hit. Knobs: @KEY, @SCALE, @BLOOMC, @SPREAD (a
-// multiple of four, at most 24), @VEL, @CH. Setup 822 of 908 at the picker corner (819 at the
-// defaults), Timer 29; restsBlack false. History: docs/entries/chorus.md (11-02, 12-09, 12.1-04).
+// Nine 3x3 pads: seven chord pads read left to right from the bottom row (I ii iii / IV V vi /
+// vii), each a triad baked in Setup from a scale table over a chromatic root (@KEY, C3..B3); the
+// top row's two right-hand pads are Octave down and Octave up, each press moving the set by 12,
+// two octaves either way, the pad's brightness showing the shift. ONE CHORD AT A TIME; a press on
+// the sounding pad re-owns it; a slide is legato; a still chord is swept after two seconds. @INV
+// Smart voices each chord as the inversion that moves the voices least from the previous one. A
+// blue / violet chessboard on the chord pads, green on the octave pads, the bloom on layer 2 from
+// the pad you hit. Knobs: @KEY, @SCALE, @INV, @BLOOMC, @VEL, @CH. Setup 779 / Timer 602 at the
+// corner; restsBlack false. History: docs/entries/chorus.md (11-02, 12-09, 12.1-04, change 7).
 //
 // MECHANISM
-//   - Setup: layer 1 the chessboard at phase 255 (`(n%9//3+n//9//3)%2`), layer 2 @BLOOMC at
-//     phase 0; `self.h[z]` the nine triads, c[j+1] = @KEY + t[d%7+1] + d//7*12 for d = z + j*2;
-//     `R=function(s,i)` the library's release convention - IDEMPOTENT: it returns unless `s.c`
-//     is the contact being expired, sends the three note-offs, clears s.z and s.c. `E` calls it
-//     on an end code, on a stale press by another contact, on the Timer sweep and on EVERY
-//     onset including a first press, so an unconditional note-off would fire on every press.
-//   - State: `s.z` the pad that is sounding (or nil), `s.c` the contact that owns it (or nil).
+//   - The pad of cell n is `z=n%9//3+6-n//27*3`: z 0..2 the bottom row left to right, 3..5 the
+//     middle, 6 the top-left; z 7 is Octave down (top row, columns 3..5) and z 8 Octave up
+//     (columns 6..8). The bottom-left pad is the lowest chord, the user's "legmelyebb hang".
+//   - Setup: the chord table `self.h[z]`, z 0..6, c[j+1] = @KEY + t[d%7+1] + d//7*12 for d =
+//     z + j*2; `self.o` the octave shift (-2..2, 0 at boot); `self.n` the notes last sent (the I
+//     chord's table at boot, so a first press of I under Smart is root position at distance 0
+//     and any other first chord is voiced as if coming from I); `R=function(s,i)` the library's
+//     release convention - IDEMPOTENT: it returns unless `s.c` is the contact being expired, sends
+//     the three note-offs from `s.n`, clears s.z and s.c. `E` calls it on an end code, on a stale
+//     press by another contact, on the Timer sweep and on EVERY onset including a first press.
 //   - The callback: `local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end`;
-//     z = n%9//3 + n//9//3*3; if z == s.z re-own (`s.c=i`) and return; if a chord is sounding,
-//     `R(s,s.c)` FIRST; the three note-ons; the bloom: for every cell, w = glim(248 -
-//     sqrt(p*p+q*q)*@SPREAD//4*4, 0, 248) from the pad's centre, `glpfs(a,2,w,4,0)` and
-//     `glt(a,2,(256-w)//4)`; s.z = z, s.c = i. `Q` holds the cell with hysteresis and returns it
-//     only on a change or an onset (the live test and the onset test are inside it; a pad
-//     boundary is a cell boundary, so the hysteresis is zone hysteresis for free). `G` draws the
-//     library's finger in WHITE on layer 0 (a literal, not a knob), the layer neither the
-//     chessboard nor the bloom writes; `Q` before `G` because `Q`'s `E` clears the block through `V`.
-//   - The Timer is `gtt(0,100)X(self,20)`: the library's sweep releases (through `R`) a contact
-//     quiet for twenty calls - two seconds, the same window the private watchdog carried. The
-//     window is the CALLER's argument (library.ts section 5).
-//   - A new press REPLACES the bloom rather than stacking it: layer 2 is one field.
+//     an octave pad moves `s.o` by `glim(s.o+z*2-15,-2,2)` on the onset edge only (`e==4 or
+//     e>8`: `Q` also returns on a cell change inside the pad) and returns - at +2 or -2 a further
+//     press in that direction is refused, not clamped into a wrong shift; the sounding chord keeps
+//     its notes. A chord pad: if z == s.z re-own (`s.c=i`) and return; if a chord is sounding,
+//     `R(s,s.c)` FIRST; then the voicing: for k = -@INV..@INV build candidate c, voice j =
+//     h[(j+k-1)%3+1] + ((j+k-1)//3 + s.o)*12 - k 0 root position, 1 and 2 the first and second
+//     inversion above it, -1 and -2 the same two inversions an octave down (Lua's floored `//`
+//     and `%` make the negative k land there), so each inversion is tried in the octave nearest
+//     the previous chord; d = the sum over j of |c[j] - s.n[j]|, keep the least, a tie going to
+//     root position (`d<m or d==m and k==0`) and otherwise to the lower k; the three note-ons
+//     from the winner; s.z, s.c, s.n = the winner, and `s.b=z` asks the Timer for the bloom.
+//     Under Off the loop is `for k=-0,0`: root position only.
+//   - The Timer, `gtt(0,20)X(self,100)` first (one hundred calls at 20 ms is the two-second
+//     window the private watchdog carried; the window is the CALLER's argument, library.ts
+//     section 5). On its first call (`not s.q`) it paints the picture: layer 1 the chessboard on
+//     the chord pads at phase 255 (`(n%9//3+n//27)%2`), green on the octave pads, layer 2
+//     @BLOOMC at phase 0 on every cell. When `s.o` differs from the painted `s.q` it repaints the
+//     octave pads' phase: `glim(40+(n%9//6*2-1)*s.o*100,40,240)` over cells 3..26 with n%9>2 -
+//     the down pad 240 / 140 / 40 at -2 / -1 / 0 and 40 above, the up pad the mirror. Then the
+//     bloom for `s.b` if one is asked: for every cell, w = glim(248 - sqrt(p*p+q*q)*12//4*4, 0,
+//     248) from the pad's centre (u = z%3*3+1, v = 7-z//3*3), `glpfs(a,2,w,4,0)`,
+//     `glt(a,2,(256-w)//4)`; `s.b=nil`. The picture, the indicator and the bloom are at most one
+//     20 ms call behind the press; the notes are not.
+//   - `Q` holds the cell with hysteresis and returns it only on a change or an onset; a pad
+//     boundary is a cell boundary, so the hysteresis is zone hysteresis for free. `G` draws the
+//     library's finger in WHITE on layer 0 (a literal, not a knob); `Q` before `G` because `Q`'s
+//     `E` clears the block through `V`. A new press REPLACES the bloom: layer 2 is one field.
 //
 // WHAT IT SENDS
-//   note-on   s:gms(@CH,144,s.h[z][j],@VEL,0) for j = 1..3, on a press on a new pad
-//   note-off  s:gms(@CH,128,s.h[s.z][j],0,0) for j = 1..3, from `R` - before the new chord, on
-//             a lift, on a stale press, on the sweep. The receiver never hears two triads overlap.
+//   note-on   s:gms(@CH,144,b[j],@VEL,0) for j = 1..3, on a press on a new chord pad; b the
+//             chosen voicing, root position under Off, the closest of five under Smart, every
+//             note inside 16..109 by construction (48+4-12-24 at the bottom, 59+14+12+24 at
+//             the top), so no clamp is needed and none is written.
+//   note-off  s:gms(@CH,128,s.n[j],0,0) for j = 1..3, from `R` - before the new chord, on a
+//             lift, on a stale press, on the sweep. The receiver never hears two triads overlap.
+//   An octave pad sends nothing.
 //
 // TRAPS
 //   - THE BLOOM USES THE COMPUTED DECAY FORM, AND IT MUST: the starting phase is per cell, so a
-//     FIXED timeout cannot land it on zero - the old 255-dist*22 / @BLOOMRATE / glt 64 pair froze
-//     all 81 cells at the brightness they opened on ("colour stucks after touching it"). The
-//     rate is fixed at 4, w is a multiple of 4 by construction, w + 4*((256-w)/4) = 256 = 0 for
-//     every cell; glim holds w inside 0..248 so the timeout stays inside 2..64 and is never the
-//     0 that CANCELS a countdown. decay-idiom.spec.ts carries the form.
-//   - EVERY @SPREAD VALUE IS A MULTIPLE OF FOUR (the glpfs rate, and the two must stay equal)
-//     AND AT MOST 24: the farthest cell from a corner pad is 9.9 units, and above 25 the start
-//     clamps to 0 and every far cell dies on the same tick. NEVER A KEEPER on this layer.
-//   - THE KNOB ID `bloomSpeed` AND ITS ARITY DO NOT MOVE: wild-stamps.json holds two CHORUS
-//     records keyed on it (indices 1 and 4). The knob changed meaning in 11-02 (rate -> spread).
-//   - R IS IDEMPOTENT, and must stay so (above).
-//   - THE ENTRY CARRIES NO EVENT-CODE GUARD OF ITS OWN: it is inside `Q`, and touch-guard.spec.ts
-//     REQUIRES a body with no chain of its own to carry `Q(s,i,e,x,y)`.
+//     FIXED timeout cannot land it on zero (11-02, "colour stucks after touching it"). The rate
+//     is 4, w is a multiple of 4 by construction (the spread is 12, three times the rate), w +
+//     4*((256-w)/4) = 256 = 0 for every cell; glim holds w inside 0..248 so the timeout stays
+//     inside 2..64 and is never the 0 that CANCELS a countdown. decay-idiom.spec.ts carries the
+//     form, now in the TIMER.
+//   - R IS IDEMPOTENT, and must stay so (above). It reads `s.n`, the notes actually sent, never
+//     the table: an inversion or an octave shift would otherwise leave a note hanging.
+//   - THE HANDLER IS THE SETUP'S, the picture the Timer's: a handler defined from the Timer would
+//     miss a press before the first call (the VM presses before it ticks; a module could too).
+//     What the Timer owns tolerates one call of lag; a note-on does not.
+//   - THE ENTRY CARRIES NO EVENT-CODE GUARD OF ITS OWN beyond the octave pads' onset edge: the
+//     live test is inside `Q`, and touch-guard.spec.ts REQUIRES a body with no chain of its own
+//     to carry `Q(s,i,e,x,y)`.
 //   - @CH APPEARS TWICE, both in the Setup (the note-off in R, the note-on in the callback), so
 //     the two cannot drift; the Timer carries no MIDI.
 //   - LAYER 0 IS THE ALERT LAYER: `G` re-asserts white on every call; `glc(...,1)` forces the
 //     min to 0.
+//   - THE KNOB IDS `key`, `scale`, `bloomColour`, `velocity`, `channel` DO NOT MOVE; `bloomSpeed`
+//     left at change 7 (the spread is the literal 12) and `inversion` arrived in its place, so
+//     both captured CHORUS records in wild-stamps.json land `older` or `unreadable` by design
+//     (stamp.spec.ts declares them).
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP; every channel of every @BLOOMC value is 0..255.
 //   - THE LUA CARRIES NO COMMENTS beyond the nine-character marker: compressScript keeps them.
 //
@@ -63,9 +89,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for n=0,80 do local a=glag(0,n)if(n%9//3+n//9//3)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)glc(a,2,@BLOOMC,1)glp(a,2,0)end local t={@SCALE}self.h={}for z=0,8 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.h[s.z][j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+n//9//3*3 if z==s.z then s.c=i return end if s.z then R(s,s.c)end for j=1,3 do s:gms(@CH,144,s.h[z][j],@VEL,0)end local u,v=z%3*3+1,z//3*3+1 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*@SPREAD//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end s.z=z s.c=i end gtt(0,100)";
+  "--[[@cb]]local t={@SCALE}self.h={}for z=0,6 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.o=0 self.n=self.h[0]R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.n[j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+6-n//27*3 if z>6 then if e==4 or e>8 then s.o=glim(s.o+z*2-15,-2,2)end return end if z==s.z then s.c=i return end if s.z then R(s,s.c)end local h,p,b,m=s.h[z],s.n,0,999 for k=-@INV,@INV do local c,d={},0 for j=1,3 do c[j]=h[(j+k-1)%3+1]+((j+k-1)//3+s.o)*12 d=d+math.abs(c[j]-p[j])end if d<m or d==m and k==0 then m,b=d,c end end for j=1,3 do s:gms(@CH,144,b[j],@VEL,0)end s.z=z s.c=i s.n=b s.b=z end gtt(0,20)";
 
-const TIMER = "--[[@cb]]gtt(0,100)X(self,20)";
+const TIMER =
+  "--[[@cb]]gtt(0,20)X(self,100)local s=self if not s.q then for n=0,80 do local a=glag(0,n)local z=n%9//3+6-n//27*3 if z<7 then if(n%9//3+n//27)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)else glc(a,1,0,180,60,1)end glc(a,2,@BLOOMC,1)glp(a,2,0)end end if s.o~=s.q then s.q=s.o for n=3,26 do if n%9>2 then glp(glag(0,n),1,glim(40+(n%9//6*2-1)*s.o*100,40,240))end end end local z=s.b if z then s.b=nil local u,v=z%3*3+1,7-z//3*3 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*12//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -73,13 +100,15 @@ export const CHORUS: CatalogEntry = {
   id: "chorus",
   name: "Chorus",
   description:
-    "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
+    "Seven chord pads, the lowest at the bottom-left, two octave pads, and a warm bloom from the pad you hit.",
   // D-10: one FOR term then two FEELS from the closed thirteen in src/lib/browse/facets.ts.
   tags: ["play", "playable", "expressive"],
   featured: true,
   addedAt: "2026-09-04",
   source: SOURCE,
   preview: previewFor(SOURCE),
+  // Change 7 (2026-09-18): the card offers no Randomize and no lock; the inspector reads this.
+  rollable: false,
 
   // Six knobs - the cap (D-12) - each one literal token substitution (TUNE-01); every default
   // is the INDEX of the value that reproduces the canonical text.
@@ -89,9 +118,23 @@ export const CHORUS: CatalogEntry = {
       label: "Key",
       kind: "note",
       token: "@KEY",
-      // The MIDI note of the first degree (48 is C3); the ninth pad's top voice is key + 21.
-      values: ["36", "41", "43", "45", "48", "50", "55", "60"],
-      default: 4,
+      // The MIDI note of the first degree: the twelve chromatic roots C3..B3 (change 7). Twelve
+      // is past the word row, so the knob is a rail whose readout is the note's name.
+      values: [
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+      ],
+      default: 0,
     },
     {
       id: "scale",
@@ -111,6 +154,17 @@ export const CHORUS: CatalogEntry = {
       default: 0,
     },
     {
+      id: "inversion",
+      label: "Smart inversion",
+      kind: "mode",
+      token: "@INV",
+      // The upper bound of the voicing loop: 0 tries root position only, 2 tries all three
+      // inversions and keeps the one closest to the previous chord. Worded Off / Smart by
+      // view.ts's INVERSION_WORDS. Off first, the default.
+      values: ["0", "2"],
+      default: 0,
+    },
+    {
       id: "bloomColour",
       label: "Bloom colour",
       kind: "colour",
@@ -124,18 +178,6 @@ export const CHORUS: CatalogEntry = {
         "255,255,255",
       ],
       default: 0,
-    },
-    {
-      id: "bloomSpeed",
-      label: "Bloom spread",
-      kind: "speed",
-      token: "@SPREAD",
-      // The SPREAD: phase units of head start per unit of distance from the pressed pad (larger
-      // is a slower, wider ring). EVERY VALUE IS A MULTIPLE OF FOUR AND THE CEILING IS 24
-      // (TRAPS). The id `bloomSpeed` and the arity do not move: wild-stamps.json keys two CHORUS
-      // records on it.
-      values: ["8", "12", "16", "20", "24"],
-      default: 1,
     },
     {
       id: "velocity",
@@ -178,14 +220,15 @@ export const CHORUS: CatalogEntry = {
   // The same six indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
-    key: 4,
+    key: 0,
     scale: 0,
+    inversion: 0,
     bloomColour: 0,
-    bloomSpeed: 1,
     velocity: 2,
     channel: 0,
   },
 
-  // FALSE: the chessboard is lit at phase 255 from Setup. frames.spec.ts checks it.
+  // FALSE: the chessboard and the octave pads are lit from the Timer's first call at 20 ms, so
+  // tick 0 is dark and every later sampled tick is lit. frames.spec.ts checks it.
   restsBlack: false,
 };

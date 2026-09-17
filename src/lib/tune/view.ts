@@ -126,6 +126,8 @@ export type TuneView = {
   timer: MeterView;
   /** The brightness the strings were landed at, 1..255; not a knob, so never in `knobs`. */
   brightness: number;
+  /** False when the card declares `rollable: false` (change 7): no Randomize, no Undo, no row lock. */
+  rollable: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -178,6 +180,15 @@ const SHAPE_WORDS = {
   "255-math.abs(p*2-255)": "Triangle",
   "255-p//128*255": "Square",
   "s.n%256": "Random",
+} as const;
+
+/**
+ * CHORUS's voicing (change 7, 2026-09-18), keyed by the upper bound of its inversion loop: 0 root
+ * position only, 2 the closest of three. Read under `mode`, after the dial's and the wave's words.
+ */
+const INVERSION_WORDS = {
+  "0": "Off",
+  "2": "Smart",
 } as const;
 
 /** The compiler's `BendAxis`. */
@@ -299,7 +310,8 @@ export function wordFor(
     return (
       table[literal] ??
       (kind === "mode"
-        ? (SHAPE_WORDS as Readonly<Record<string, string>>)[literal]
+        ? ((SHAPE_WORDS as Readonly<Record<string, string>>)[literal] ??
+          (INVERSION_WORDS as Readonly<Record<string, string>>)[literal])
         : undefined)
     );
   }

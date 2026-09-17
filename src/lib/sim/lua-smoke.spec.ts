@@ -7895,13 +7895,15 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
     // -----------------------------------------------------------------------
     // 2. THE CONTACT THAT GOES QUIET, released by the library's sweep and by
-    //    nothing else. THE WINDOW IS THE CALLER'S: `X(self,20)` counts CHORUS's
-    //    OWN Timer calls, and CHORUS fires at gtt(0,100), so twenty calls is
-    //    two seconds - the same figure its private per-contact watchdog carried
-    //    before plan 12-09 replaced it.
+    //    nothing else. THE WINDOW IS THE CALLER'S: `X(self,100)` counts CHORUS's
+    //    OWN Timer calls, and CHORUS fires at gtt(0,20) since change 7
+    //    (2026-09-18; twenty calls at gtt(0,100) before it), so one hundred
+    //    calls is two seconds - the same figure its private per-contact
+    //    watchdog carried before plan 12-09 replaced it.
     // -----------------------------------------------------------------------
-    const TIMER_MS = 100;
+    const TIMER_MS = 20;
     const TICK_MS = 10;
+    const WINDOW_CALLS = 100;
     const timerTicks = TIMER_MS / TICK_MS;
     {
       const { host } = await open(entry);
@@ -7919,23 +7921,23 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
           "chorus: the chord never sounded, so its release proves nothing",
         ).toBe(3);
 
-        // NINETEEN TIMER CALLS IS INSIDE THE WINDOW. Without this reading the
+        // NINETY-NINE TIMER CALLS IS INSIDE THE WINDOW. Without this reading the
         // assertion below would pass on a sweep with no window at all. The
-        // host's msClock starts at 0 and Setup's gtt(0,100) sets the first
-        // deadline at 100 ms, so Timer call k lands on tick 10k.
-        host.run(19 * timerTicks - ticks);
-        ticks = 19 * timerTicks;
+        // host's msClock starts at 0 and Setup's gtt(0,20) sets the first
+        // deadline at 20 ms, so Timer call k lands on tick 2k.
+        host.run((WINDOW_CALLS - 1) * timerTicks - ticks);
+        ticks = (WINDOW_CALLS - 1) * timerTicks;
         const inside = voices.drain();
         expect(
           inside,
           "chorus: A CHORD INSIDE THE WINDOW MUST STILL BE SOUNDING. " +
-            `Observed ${inside.join(" ")} after 19 Timer calls`,
+            `Observed ${inside.join(" ")} after ${WINDOW_CALLS - 1} Timer calls`,
         ).toEqual([]);
 
         // Then one tick at a time, so the release is DATED rather than merely
         // observed to have happened somewhere in a long run.
         let releasedAt = -1;
-        while (ticks < 40 * timerTicks) {
+        while (ticks < 2 * WINDOW_CALLS * timerTicks) {
           host.tick();
           ticks += 1;
           if (host.midi.length > 3) {
@@ -7955,19 +7957,19 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
           "chorus: A CHORD WHOSE FINGER WENT QUIET MUST BE RELEASED BY THE " +
             "TIMER. The firmware's change gate drops repeats, so a perfectly " +
             "still finger sends nothing at all, and Q6.5 measured four of five " +
-            "contacts never sending their code 5 - `X(self,20)` plus `R` is " +
+            "contacts never sending their code 5 - `X(self,100)` plus `R` is " +
             `the only path that reaches either. Observed ${swept.join(" ")}`,
         ).toEqual(triadOf(PAD_A).map((n) => `128:${n}`));
         expect(voices.sounding, "nothing is left sounding").toEqual([]);
         expect(
           [releasedAt, calls],
-          "chorus: THE WINDOW IS TWENTY OF CHORUS'S OWN TIMER CALLS and the " +
-            "release lands on the twenty-first, because `X` expires a stamp " +
-            "older than n calls rather than n-or-older. The DOWN is on tick 1 " +
-            `and the stamp reads C = 0, so at gtt(0,${TIMER_MS}) the sweep ` +
-            "reaches it on tick 210 - 2.1 s of wall time against a two-second " +
-            `window. Observed tick ${releasedAt}, Timer call ${calls}`,
-        ).toEqual([21 * timerTicks, 21]);
+          "chorus: THE WINDOW IS ONE HUNDRED OF CHORUS'S OWN TIMER CALLS and " +
+            "the release lands on the hundred-and-first, because `X` expires a " +
+            "stamp older than n calls rather than n-or-older. The DOWN is on " +
+            `tick 1 and the stamp reads C = 0, so at gtt(0,${TIMER_MS}) the ` +
+            "sweep reaches it on tick 202 - 2.02 s of wall time against a " +
+            `two-second window. Observed tick ${releasedAt}, Timer call ${calls}`,
+        ).toEqual([(WINDOW_CALLS + 1) * timerTicks, WINDOW_CALLS + 1]);
         expect(host.errors, host.errors.join(" | ")).toEqual([]);
       } finally {
         host.close();
@@ -7991,20 +7993,20 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         // The input has to VARY: the host change-gates its FIFO per contact on
         // (event, x, y), so a repeated identical MOVE would be dropped before
         // the VM saw it and this probe would be measuring the gate.
-        for (let call = 0; call < 40; call += 1) {
+        for (let call = 0; call < 2 * WINDOW_CALLS; call += 1) {
           host.touchMove(0, xa + (call % 2), ya);
           host.run(timerTicks);
         }
         const held = voices.drain();
         report.push(
-          `  finger held on pad ${PAD_A}, 40 Timer calls of wobble: ` +
+          `  finger held on pad ${PAD_A}, ${2 * WINDOW_CALLS} Timer calls of wobble: ` +
             `${held.join(" ") || "(nothing)"} - sounding ` +
             `${voices.sounding.join(",")}`,
         );
         expect(
           held,
           "chorus: A CHORD UNDER A FINGER THAT KEEPS REPORTING MUST NOT BE " +
-            "SWEPT. Forty Timer calls is twice the window; the wobble stays " +
+            "SWEPT. Two hundred Timer calls is twice the window; the wobble stays " +
             `inside one pad, so nothing re-triggers either. Observed ${held.join(" ")}`,
         ).toEqual([]);
         expect(
@@ -8991,6 +8993,391 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length, "every stage of the comet probe ran").toBe(8);
+  }, 120000);
+
+  // -------------------------------------------------------------------------
+  // CHORUS, change 7 (2026-09-18, BENCH-2026-09-16.txt section 7): the lowest
+  // chord at the bottom-left, twelve chromatic roots, two octave pads on the top
+  // row, Smart inversion, and the picture painted from the Timer's first call.
+  // -------------------------------------------------------------------------
+  it("lands CHORUS's I chord at the bottom-left in root position on every key, walks the seven degrees upward, shifts the set by an octave from the two top-right pads and refuses past two, sends nothing from an octave pad, voices Smart as the closest inversion and Off as root position, and lights the picture and the shift from the Timer", async () => {
+    const entry = entryById("chorus");
+    const velocity = knobValueOf(entry, "velocity");
+    const keyKnob = entry.knobs.find((knob) => knob.id === "key");
+    const scaleKnob = entry.knobs.find((knob) => knob.id === "scale");
+    const inversionKnob = entry.knobs.find((knob) => knob.id === "inversion");
+    if (!keyKnob || !scaleKnob || !inversionKnob)
+      throw new Error("chorus: key, scale and inversion knobs expected");
+    expect(keyKnob.values, "chorus: the twelve chromatic roots C3..B3").toEqual(
+      Array.from({ length: 12 }, (_, i) => String(48 + i)),
+    );
+    expect(inversionKnob.values, "chorus: Off then Smart").toEqual(["0", "2"]);
+    const scale = scaleKnob.values[entry.defaults.scale].split(",").map(Number);
+
+    /** The triad the entry bakes for chord pad z: degrees z, z+2, z+4 over the key. */
+    const rootOf = (key: number, z: number): number[] =>
+      [0, 1, 2].map((j) => {
+        const d = z + j * 2;
+        return key + scale[d % 7] + Math.floor(d / 7) * 12;
+      });
+    /**
+     * The centre of pad z in raw coordinates, the entry's own u, v: column
+     * z%3*3+1, row 7-z//3*3 (row 0 is the top). Pads 7 and 8 are the octave pads.
+     */
+    const padXY = (z: number): [number, number] => [
+      cellCentre((z % 3) * 3 + 1),
+      cellCentre(7 - Math.floor(z / 3) * 3),
+    ];
+    const DOWN = 7;
+    const UP = 8;
+
+    async function openWith(over: Record<string, number>) {
+      const { setup, timer } = renderLua(entry, { ...entry.defaults, ...over });
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer,
+      });
+      return { host, sim };
+    }
+    type Opened = Awaited<ReturnType<typeof openWith>>;
+    /** A press on pad z by contact id, then two ticks so the Timer runs once. */
+    const press = ({ host }: Opened, z: number, id = 0): void => {
+      const [x, y] = padXY(z);
+      host.touchDown(id, x, y);
+      host.run(2);
+    };
+    const lift = ({ host }: Opened, z: number, id = 0): void => {
+      const [x, y] = padXY(z);
+      host.touchUp(id, x, y);
+      host.run(2);
+    };
+    /** Everything since `from`, as `cmd:pitch:velocity`. */
+    const since = ({ host }: Opened, from: number): string[] =>
+      host.midi.slice(from).map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+    const ons = (notes: number[]): string[] =>
+      notes.map((n) => `144:${n}:${velocity}`);
+    const offs = (notes: number[]): string[] => notes.map((n) => `128:${n}:0`);
+    const phaseOf = ({ sim }: Opened, cell: number): number =>
+      sim.layer(hwOfCell(cell), 1).pha;
+    const colourOf = ({ sim }: Opened, cell: number): number[] =>
+      sim.layer(hwOfCell(cell), 1).max;
+    /** One cell of each pad, for the picture reads. */
+    const cellOf = (z: number): number =>
+      (z % 3) * 3 + 1 + (7 - Math.floor(z / 3) * 3) * 9;
+
+    const report: string[] = [];
+
+    // -----------------------------------------------------------------------
+    // 1. EVERY KEY: the bottom-left pad is the I chord in root position at the
+    //    root, and the seven pads walk the degrees upward from there.
+    // -----------------------------------------------------------------------
+    for (let key = 0; key < 12; key += 1) {
+      const opened = await openWith({ key });
+      try {
+        press(opened, 0);
+        expect(
+          since(opened, 0),
+          `chorus at key ${48 + key}: the bottom-left pad is the I chord in root position`,
+        ).toEqual(ons(rootOf(48 + key, 0)));
+        lift(opened, 0);
+        expect(opened.host.errors, opened.host.errors.join(" | ")).toEqual([]);
+      } finally {
+        opened.host.close();
+      }
+    }
+    {
+      const opened = await openWith({});
+      try {
+        let lowest = -1;
+        const walk: string[] = [];
+        for (let z = 0; z < 7; z += 1) {
+          const from = opened.host.midi.length;
+          press(opened, z);
+          const sent = since(opened, from);
+          const triad = rootOf(48, z);
+          // The previous pad was lifted, so this press is its three note-ons alone.
+          expect(
+            sent,
+            `chorus: pad ${z} is degree ${z + 1} in root position`,
+          ).toEqual(ons(triad));
+          expect(
+            triad[0],
+            `chorus: pad ${z}'s lowest note rises with the pad`,
+          ).toBeGreaterThan(lowest);
+          lowest = triad[0];
+          walk.push(`${z}:${triad.join("/")}`);
+          lift(opened, z);
+        }
+        report.push(
+          `  the seven pads at C3, bottom-left first: ${walk.join(" ")}`,
+        );
+        expect(opened.host.errors, opened.host.errors.join(" | ")).toEqual([]);
+      } finally {
+        opened.host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. THE OCTAVE PADS: +12 per press up to two, refused past the ends, no
+    //    MIDI of their own, the sounding chord's notes kept, the shift shown.
+    // -----------------------------------------------------------------------
+    {
+      const opened = await openWith({});
+      try {
+        // Before the first Timer call the picture is dark; after it, lit.
+        expect(
+          [phaseOf(opened, cellOf(0)), phaseOf(opened, cellOf(UP))],
+          "chorus: dark until the Timer's first call",
+        ).toEqual([0, 0]);
+        opened.host.run(2);
+        expect(
+          [
+            phaseOf(opened, cellOf(0)),
+            phaseOf(opened, cellOf(6)),
+            phaseOf(opened, cellOf(DOWN)),
+            phaseOf(opened, cellOf(UP)),
+          ],
+          "chorus: the chord pads at 255 and both octave pads at 40 on the first call",
+        ).toEqual([255, 255, 40, 40]);
+        expect(
+          [colourOf(opened, cellOf(DOWN)), colourOf(opened, cellOf(UP))],
+          "chorus: the octave pads are green",
+        ).toEqual([
+          [0, 180, 60],
+          [0, 180, 60],
+        ]);
+        expect(
+          colourOf(opened, cellOf(6)),
+          "chorus: a chord pad is blue or violet, never the octave green",
+        ).not.toEqual([0, 180, 60]);
+
+        const shiftPicture = (): [number, number] => [
+          phaseOf(opened, cellOf(DOWN)),
+          phaseOf(opened, cellOf(UP)),
+        ];
+        const chordAfter = (label: string, expected: number[]): void => {
+          const from = opened.host.midi.length;
+          press(opened, 0);
+          expect(since(opened, from), label).toEqual(ons(expected));
+          lift(opened, 0);
+        };
+        let from = opened.host.midi.length;
+        press(opened, UP);
+        lift(opened, UP);
+        expect(
+          since(opened, from),
+          "chorus: an octave pad sends nothing",
+        ).toEqual([]);
+        expect(shiftPicture(), "chorus: +1 lights the up pad to 140").toEqual([
+          40, 140,
+        ]);
+        chordAfter("chorus: +1 octave", rootOf(60, 0));
+        press(opened, UP);
+        lift(opened, UP);
+        expect(shiftPicture(), "chorus: +2 lights the up pad to 240").toEqual([
+          40, 240,
+        ]);
+        chordAfter("chorus: +2 octaves", rootOf(72, 0));
+        from = opened.host.midi.length;
+        press(opened, UP);
+        lift(opened, UP);
+        expect(
+          since(opened, from),
+          "chorus: a refused press sends nothing",
+        ).toEqual([]);
+        expect(
+          shiftPicture(),
+          "chorus: +2 is the end; a third press is refused",
+        ).toEqual([40, 240]);
+        chordAfter("chorus: still +2 octaves", rootOf(72, 0));
+        for (let k = 0; k < 4; k += 1) {
+          press(opened, DOWN);
+          lift(opened, DOWN);
+        }
+        expect(
+          shiftPicture(),
+          "chorus: four presses down from +2 is -2",
+        ).toEqual([240, 40]);
+        chordAfter("chorus: -2 octaves", rootOf(24, 0));
+        press(opened, DOWN);
+        lift(opened, DOWN);
+        expect(
+          shiftPicture(),
+          "chorus: -2 is the end; a fifth press down is refused",
+        ).toEqual([240, 40]);
+        chordAfter("chorus: still -2 octaves", rootOf(24, 0));
+        press(opened, UP);
+        lift(opened, UP);
+        expect(shiftPicture(), "chorus: -1 lights the down pad to 140").toEqual(
+          [140, 40],
+        );
+        press(opened, UP);
+        lift(opened, UP);
+        expect(shiftPicture(), "chorus: back at 0, both pads at 40").toEqual([
+          40, 40,
+        ]);
+
+        // The sounding chord keeps its notes across an octave press, and its
+        // note-offs are the notes that were sent - `R` reads s.n, never the table.
+        from = opened.host.midi.length;
+        press(opened, 3, 0);
+        press(opened, UP, 1);
+        lift(opened, UP, 1);
+        expect(
+          since(opened, from),
+          "chorus: an octave press under a held chord sends nothing",
+        ).toEqual(ons(rootOf(48, 3)));
+        from = opened.host.midi.length;
+        lift(opened, 3, 0);
+        expect(
+          since(opened, from),
+          "chorus: the held chord's note-offs are the notes it sent, not the shifted table",
+        ).toEqual(offs(rootOf(48, 3)));
+        chordAfter("chorus: the next chord is shifted", rootOf(60, 0));
+        for (const m of opened.host.midi)
+          expect(
+            m.p1,
+            "chorus: every note inside 0..127",
+          ).toBeGreaterThanOrEqual(0);
+        for (const m of opened.host.midi)
+          expect(m.p1, "chorus: every note inside 0..127").toBeLessThanOrEqual(
+            127,
+          );
+        report.push(
+          "  octave pads: +1 60/64/67, +2 72/76/79, a third press refused, -2 24/28/31, a fifth refused; the up pad's phase 40/140/240, the down pad's mirror; an octave pad sends nothing; a held chord keeps its notes",
+        );
+        expect(opened.host.errors, opened.host.errors.join(" | ")).toEqual([]);
+      } finally {
+        opened.host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. SMART INVERSION: I then V. Under Off, V is root position (55 59 62).
+    //    Under Smart, the five candidates for V against C E G (48 52 55) are the
+    //    root 55 59 62 (sum 21), the first inversion above 59 62 67 (33), the
+    //    second above 62 67 71 (45), the second an octave down 50 55 59 (9) and
+    //    the first an octave down 47 50 55 (3): B2 D3 G3 wins - the G held, the
+    //    E and the C each a step down. Back to I from 47 50 55: root 48 52 55
+    //    (3), first above 52 55 60 (15), second above 55 60 64 (27), second down
+    //    43 48 52 (9), first down 40 43 48 (21): root. Then vi from 48 52 55:
+    //    root 57 60 64 (26), first above 60 64 69 (38), second down 52 57 60
+    //    (14), first down 48 52 57 (2): C E A. The rule is `d<m or d==m and
+    //    k==0`: the least sum, a tie to root position.
+    // -----------------------------------------------------------------------
+    {
+      const off = await openWith({ inversion: 0 });
+      const smart = await openWith({ inversion: 1 });
+      try {
+        for (const [label, opened] of [
+          ["Off", off],
+          ["Smart", smart],
+        ] as const) {
+          press(opened, 0);
+          expect(
+            since(opened, 0),
+            `chorus ${label}: a first press of I is root position`,
+          ).toEqual(ons([48, 52, 55]));
+          lift(opened, 0);
+        }
+        let from = off.host.midi.length;
+        press(off, 4);
+        expect(since(off, from), "chorus Off: V is root position").toEqual(
+          ons([55, 59, 62]),
+        );
+        lift(off, 4);
+        from = smart.host.midi.length;
+        press(smart, 4);
+        expect(
+          since(smart, from),
+          "chorus Smart: V is the closest inversion to C E G - B2 D3 G3",
+        ).toEqual(ons([47, 50, 55]));
+        from = smart.host.midi.length;
+        lift(smart, 4);
+        expect(
+          since(smart, from),
+          "chorus Smart: the note-offs are the voiced notes",
+        ).toEqual(offs([47, 50, 55]));
+        from = smart.host.midi.length;
+        press(smart, 0);
+        expect(
+          since(smart, from),
+          "chorus Smart: back to I from B2 D3 G3 is root position, C3 E3 G3",
+        ).toEqual(ons([48, 52, 55]));
+        lift(smart, 0);
+        from = smart.host.midi.length;
+        press(smart, 5);
+        expect(
+          since(smart, from),
+          "chorus Smart: vi after C3 E3 G3 is C3 E3 A3, the first inversion an octave down",
+        ).toEqual(ons([48, 52, 57]));
+        lift(smart, 5);
+        report.push(
+          "  Smart: I 48/52/55 -> V 47/50/55 (Off: 55/59/62) -> I 48/52/55 -> vi 48/52/57; the note-offs are the voiced notes",
+        );
+        expect(off.host.errors, off.host.errors.join(" | ")).toEqual([]);
+        expect(smart.host.errors, smart.host.errors.join(" | ")).toEqual([]);
+      } finally {
+        off.host.close();
+        smart.host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. THE RANGE under Smart at both ends: every pad at B3 two octaves up and
+    //    at C3 two octaves down, in an order that walks the inversions, stays
+    //    inside 0..127 - the header's 16..109 by construction.
+    // -----------------------------------------------------------------------
+    {
+      let top = -1;
+      let bottom = 128;
+      for (const [key, pad, shift] of [
+        [11, UP, 2],
+        [0, DOWN, -2],
+      ] as const) {
+        const opened = await openWith({ key, inversion: 1 });
+        try {
+          for (let k = 0; k < Math.abs(shift); k += 1) {
+            press(opened, pad);
+            lift(opened, pad);
+          }
+          for (const z of [0, 6, 1, 5, 2, 4, 3, 6, 0]) {
+            press(opened, z);
+            lift(opened, z);
+          }
+          for (const m of opened.host.midi) {
+            top = Math.max(top, m.p1);
+            bottom = Math.min(bottom, m.p1);
+          }
+          expect(opened.host.errors, opened.host.errors.join(" | ")).toEqual(
+            [],
+          );
+        } finally {
+          opened.host.close();
+        }
+      }
+      expect(top, "chorus: the highest note ever sent").toBeLessThanOrEqual(
+        109,
+      );
+      expect(
+        bottom,
+        "chorus: the lowest note ever sent",
+      ).toBeGreaterThanOrEqual(16);
+      report.push(
+        `  range under Smart at the ends: ${bottom}..${top} (0..127 holds)`,
+      );
+    }
+
+    process.stdout.write(
+      "\nCHORUS, the lowest chord bottom-left, octave pads, Smart inversion (change 7, 2026-09-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length, "every stage of the chorus probe ran").toBe(4);
   }, 120000);
 });
 

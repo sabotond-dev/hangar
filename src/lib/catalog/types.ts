@@ -69,6 +69,11 @@ export type CatalogEntry = {
   knobs: readonly LuaKnob[];
   /** Knob id -> INDEX into that knob's `values`. */
   defaults: Readonly<Record<string, number>>;
+  /**
+   * FALSE: the inspector offers this card neither Randomize (with its Undo) nor a lock on a knob
+   * row (change 7, 2026-09-18: CHORUS). Absent means true - every other card is as it was.
+   */
+  rollable?: boolean;
 
   // TRUE iff this entry renders an all-zero frame at EVERY sampled tick with no
   // touch input. Not a preference - a fact about the configuration, asserted

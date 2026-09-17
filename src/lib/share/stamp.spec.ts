@@ -422,6 +422,24 @@ describe("the stamp: the envelope", () => {
       expect(each, `wild-stamps.json names ${record.entry}`).toBeDefined();
       if (!each) continue;
       if (record.payload === null) {
+        // CHORUS, at change 7 (2026-09-18, BENCH-2026-09-16.txt section 7): the
+        // captured default vector names `key: 4` (48 was the fifth of eight
+        // roots; it is the first of twelve now) and a `bloomSpeed` that left,
+        // so the vector is no longer the defaults and encodes to a stamp. The
+        // entry's OWN defaults still carry none, which is what the record's
+        // null payload asserted; the fixture is not regenerated.
+        if (record.entry === "chorus") {
+          expect(
+            encodeFor(each, indices),
+            "chorus: the captured vector is no longer the defaults (change 7)",
+          ).toBeDefined();
+          expect(
+            encodeFor(each, each.defaults),
+            "chorus: its own defaults must still carry no stamp",
+          ).toBeUndefined();
+          nulls += 1;
+          continue;
+        }
         expect(
           encodeFor(each, indices),
           `${record.entry}: the defaults must still carry no stamp`,
@@ -469,8 +487,16 @@ describe("the stamp: the envelope", () => {
       // the `Centre` knob is the sixth, appended, so its captured five-knob
       // payload is one character short and lands `unreadable` for the same
       // reason ARC's does. The fixture is not regenerated.
+      // AND CHORUS, at change 7 (2026-09-18, BENCH-2026-09-16.txt section 7): a
+      // knob REPLACED at the same count - `bloomSpeed` (five values) left and
+      // `inversion` (two) sits at its slot; `key` was resized eight to twelve.
+      // The captured wild payload carries position 4 at that slot, which is out
+      // of the new knob's range, so the RANGE check lands it `unreadable` before
+      // the shape character could say `older`. Never restored with a wrong
+      // spread read as a wrong voicing. The fixture is not regenerated.
       const resized = record.entry === "pomodoro";
       const grew = record.entry === "arc" || record.entry === "morph";
+      const replaced = record.entry === "chorus";
       expect(
         decodeFor(each, record.payload),
         resized
@@ -481,11 +507,15 @@ describe("the stamp: the envelope", () => {
             ? `${record.entry}: the format x stamp ${record.payload} must land ` +
               "unreadable - a sixth knob was added (arc at change 6, morph at " +
               "change 9), so a five-knob payload is the wrong length by design"
-            : `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
+            : replaced
+              ? `${record.entry}: the format x stamp ${record.payload} must land ` +
+                "unreadable - a knob was replaced at change 7 and the captured " +
+                "position is outside the new knob's range by design"
+              : `${record.entry}: the format x stamp ${record.payload} no longer lands restored`,
       ).toEqual(
         resized
           ? { kind: "older" }
-          : grew
+          : grew || replaced
             ? { kind: "unreadable" }
             : { kind: "restored", indices },
       );

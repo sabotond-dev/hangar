@@ -208,7 +208,7 @@ export const LISTING: readonly ListingEntry[] = [
     id: "chorus",
     name: "Chorus",
     description:
-      "Press any of nine pads for a whole chord, and a warm bloom spreads outward from the pad you hit.",
+      "Seven chord pads, the lowest at the bottom-left, two octave pads, and a warm bloom from the pad you hit.",
     motion: "animated",
     tags: ["play", "playable", "expressive"],
     featured: true,
