@@ -637,6 +637,84 @@ Randomize) leaves the eight preset cards; the field is the one brightness. The w
 those cards' records; a shared `c`-format link whose vector carried the knob lands at full; D-01's
 three-knob floor on STARFIELD and FOUR FADERS is amended by the user's word at the next gate.
 
+#### Done, 2026-09-17
+
+One source commit, no push, no device, no deploy: `cade81b` feat(tune) - the knob retired, the pin,
+the nine specs that moved; then this paragraph with `docs/TESTING.md`'s "5b, the same day" under
+the change-5 section and the gate record `gate/change-5b-after.*` (taken against
+`gate/change-5-after.*`).
+
+**Where the pin lives.** `presetKnobs` (`src/lib/tune/knobs.preset.ts`) appends nothing now, and
+`BRIGHTNESS_KNOB_ID`, `brightnessKnob`, `BRIGHTNESS_OPTIONS` and `stepForBrightnessIndex` leave by
+name under a dated `RETIRED BY NAME` block. **The pin is `baseStateFor` in
+`src/lib/tune/state.ts`** - the one door HANGAR opens a preset's `PadState` through (`model.ts`'s
+`stateOf` and `resetAll`, `stamp.ts`'s `stateFor` and `decodeCompiler` all start there) - and it
+writes the vendored table's last step, derived (`BRIGHTNESS_TABLE[length-1].step`) and not typed.
+Every shelf card already shipped at Full, so the pin moves no byte; `src/vendor/` is untouched and
+the compiler still has the field. Racks after it: aurora 4, pinwheel 3, **starfield 2**, radar 3,
+joystick 4, ninepads 5 (`grid` last again), **faders 2**, dial 4, tpad 3 (never had it).
+
+**The wire, removals only.** The SET record 1,765 -> 1,701 strings: **64 removed, 0 added, 0
+moved**, and every removed key is a `P/<card>/knob brightness=N/{setup,timer}` - 8 lit cards x the
+knob's 4 non-default positions x 2 events. Under `--full`, the same 64 plus the 8 per-card
+cross-product keys re-named by their smaller counts (126,920 -> 25,384 preset states): 1,792 ->
+1,728 records with **1,720 byte-identical**. The sandbox set `40b44316…` unmoved; no Lua entry's
+record moved.
+
+**An old share link.** The vendored writer emits format `c` ONLY when brightness is not Full
+(`_pad.ts:2604-2623`). A pre-5b link at Full (`a`, `b`, `d`, or the `p<presetId>` base row) is
+byte-identical to what HANGAR mints today and still lands **restored**; one whose brightness was
+moved lands **unreadable** - `decodeCompiler` rebuilds from the pinned base, re-encodes and
+compares, and `older` is reachable only through the Lua formats' shape character - so the
+workspace shows the unreadable notice and opens the card as it ships, at Full. The codec, its spec
+and the round-trip sweep are untouched; `y` and `z` stay reserved. Both landings are asserted in
+`brightness.spec.ts` test 6, minting the same vector both ways.
+
+**TUNE-01's floor.** STARFIELD and FOUR FADERS keep two real knobs each.
+`knobs.preset.spec.ts`'s **"gives every shelf card three to six real knobs"** carries the dated
+exemption, by those two ids only, plus the positive proof that no rack offers a `brightness` knob;
+REQUIREMENTS.md is untouched and the next gate amends TUNE-01 by this word.
+
+**The specs that moved, none renamed:** `knobs.preset.spec.ts` (the floor exemption, the kinds
+carve-out unconditional again, the pin asserted where the knob's default was, NINE PADS at five
+with `grid` last); `ladder.spec.ts`'s pinned test from `dial` to `pinwheel` at a measured
+`{ setup: 600 }` (1013 of 908, 105 over, four `look` steps and two `touch`) - the dial's only
+trimmable sheet was `look` and its `look` knob WAS the retired one; `surprise.spec.ts` (the dial
+rolls `mode` + `sensitivity`; starfield holds one knob); `tune-ui.spec.ts` (the coexistence note
+becomes the retirement's proof over every rack); `brightness.spec.ts` **+1 (6)**. The two
+non-vacuity sweep floors go 40,000 -> **25,000** with their arithmetic re-derived (Pass A 20,270
+-> 4,054, Pass B unchanged 24,576, total 44,846 -> 28,630; 25,000 is still above either pass
+alone, and the derived `expectedA` / `expectedB` equalities are the real guard).
+
+**Counts, carried + delta:** quick 95 / 978 -> **95 / 979** (+0 / +1), green twice plus the
+gate's; check **658** (+0); lint clean; sweep `4 19` green (`lua-entries` 1,201 unmoved); e2e 88
+titles / 103 runs -> **88 / 103** (+0 / +0); OG, fixtures, testids and copy exports all unmoved.
+
+**The gate** (`--after change-5b --against change-5-after --check 658` at `4488eb6`): equal - the
+sandbox set, the four fixtures, the OG (27 / 158,642 B / `f60a6363…`), **the scoped CSS
+`7f88b4f4…` and the raw `56d81122…`**, the utilities 44 -> 44, **the copy exports `7ec85d4a…` and
+the testids `70dfe98a…` (317)**, check, lint, the build, the refuse-list `--stat` empty, `src/` 9
+modified / 0 added / 0 deleted / 0 renamed; moved - the wire (above, removals only), the census
+`e4f23375…` -> `e12326a3…` (2,721 distinct either side; four counts down, nothing added:
+`"Brightness"` 2 -> 1, `"brightness"` 3 -> 2, `"amount"` 29 -> 28, `"look"` 11 -> 10), the titles
+`82938fa6…` -> `a2f9cfa8…` (979 -> 980, none renamed), the JS `870762eb…` -> `ae3b7779…`.
+
+**Chunks** (fresh detached servers on 4173, stopped through PowerShell, HTTP 000 after each; 5173
+untouched): **c3 21 passed** (tuning + tuning-webkit, AURORA's rack), **c1 33 passed** (install +
+session, the rails by index), **c5 1 failed / 10 passed** then **11 passed** on the rerun
+`c5-rerun-5b` - `artifacts.e2e.ts`'s staleness check compares the build's source archive against
+HEAD and HEAD moved mid-run when changes 6 and 7 were recorded (documentation only); a rebuild at
+the new HEAD is green. c2 and c4 not run: no title in them reads a preset's rack length.
+
+**Questions for the user.** (a) Change 5's (b), (c) and (d) stand. (b) STARFIELD and FOUR FADERS
+show two knobs each under Behavior now - if that reads thin, the honest fix is a third REAL knob
+from the card's own compiler fields (the faders' `layout`, starfield's `speed`), never a
+brightness. (c) TUNE-01 still says "three to six": the amendment waits for the next gate.
+
+**Not supported by the tree:** nothing in 5b; the one departure from the brief's wording is the
+landing - a pre-5b dim link is `unreadable`, not `older`, because `older` is unreachable for a
+BOTOR format by the codec's own design (the brief asked which fires; this is it, measured).
+
 ## 6. ARC as an LFO - a wave-shape choice and an offset fader (2026-09-17, on Fable 5.1)
 
 > ARC: this is basically an LFO config, we need an offset fader on the eight side of the module

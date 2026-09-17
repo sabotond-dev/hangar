@@ -5034,6 +5034,134 @@ is selected, with a helper saying it is the surface's; the alternative was a sur
 above the element list in the rail - say if you want it moved. (e) Changes 1 to 4's questions
 still stand.
 
+### 5b, the same day - the presets' own five-step brightness knob is retired
+
+Change 5 shipped with a question: the eight preset cards showed TWO brightness controls, the
+compiler's five-detent rail under Behavior (15 / 30 / 50 / 75 / 100 percent, in the BOTOR stamp,
+rolled by Randomize) and the new 1..255 field under Appearance, and they multiplied. The user's
+answer, recorded verbatim in `BENCH-2026-09-16.txt` section 5b: **"one"**. One source commit
+(`cade81b`), then this subsection and the record's Done paragraph; the gate record is
+`gate/change-5b-after.*`, taken against `gate/change-5-after.*`.
+
+**Where the knob went, and where the pin lives.** `presetKnobs` (`src/lib/tune/knobs.preset.ts`)
+no longer appends the universal knob; `BRIGHTNESS_KNOB_ID`, `brightnessKnob`,
+`BRIGHTNESS_OPTIONS` and `stepForBrightnessIndex` leave by name under a dated `RETIRED BY NAME`
+block (CODE-STYLE section 9's 13.2-03 rule), and the module's two now-dead vendored imports
+(`BRIGHTNESS_TABLE`, `padLightsAnything`) go with them. **THE PIN IS IN `baseStateFor`**
+(`src/lib/tune/state.ts`), which is the one door HANGAR opens a preset's `PadState` through -
+`model.ts`'s `stateOf` and `resetAll`, `stamp.ts`'s `stateFor` and `decodeCompiler` all start
+there - and it writes `BRIGHTNESS_TABLE[BRIGHTNESS_TABLE.length - 1].step` (Full), derived from
+the vendored table rather than typed. Every one of the nine shelf cards already shipped at Full
+(asserted), so the pin moves no byte of the wire; what it does is make the retired detent
+unreachable rather than merely unoffered. `src/vendor/` is untouched: the compiler still HAS the
+field and still scales its own coefficients by it - nothing there forbids a dim state, the value
+is pinned on the way in.
+
+**The racks after it, measured:** aurora 4 (colour, speed, direction, band), pinwheel 3, starfield
+**2** (colour, edge), radar 3, joystick 4, ninepads 5 (grid last again, where 11-06 appended it),
+faders **2** (send, channel), dial 4, tpad 3 (it never had the knob - a card that lights nothing
+cannot hold a brightness, `_pad.ts:1486`).
+
+**The wire, removals only.** `hash-wire` against change 5's after-record: the SET record 1,765 ->
+1,701 strings - **64 removed, 0 added, 0 moved** - and every removed key is a
+`P/<card>/knob brightness=N/{setup,timer}` (8 lit cards x the knob's 4 non-default positions x 2
+events). Under `--full` the same 64 go and the 8 per-card cross-product keys are re-named by their
+smaller state counts (`P/aurora/cross-product (6720 states)` -> `(1344 states)`, and so on;
+126,920 -> 25,384 preset states in all), so `--full` reads 1,792 -> 1,728 with 1,720 records
+byte-identical. The sandbox set `40b44316…` is unmoved, and no Lua entry's record moved at all.
+
+**What an old share link does, and it is the codec's own rule.** The vendored writer emits format
+`c` ONLY when brightness is not Full (`_pad.ts:2604-2623`), so:
+
+- a pre-5b link whose brightness was Full (`a`, `b`, `d`, or the `p<presetId>` base-card row) is
+  **byte-identical** to what HANGAR mints today and still lands `restored` - proved by minting the
+  same vector both ways in `brightness.spec.ts` test 6;
+- a pre-5b link whose brightness was moved (format `c`) lands **`unreadable`**, not `older`:
+  `decodeCompiler` rebuilds from `baseStateFor` (Full now), re-encodes and compares, and a BOTOR
+  stamp that fails that comparison is unreadable by construction - `older` is reachable only
+  through the Lua formats' shape character (stamp.ts's header says so, and SHARE-03's fail-closed
+  rule is what makes a wrong restore impossible). The workspace then shows `StampNotice`'s
+  unreadable line and opens the card as it ships, at Full, which is the honest landing.
+
+`stamp.ts`, `stamp.spec.ts` and `stamp-roundtrip.sweep.spec.ts`'s round trip are **untouched**;
+`y` and `z` stay reserved. The proof lives in change 5's own spec, not in the codec's.
+
+**TUNE-01's floor, exempted by the user's word and named for the next gate.** The three-to-six
+floor was met on STARFIELD and FOUR FADERS by the retired knob; both now declare and keep two real
+knobs. `knobs.preset.spec.ts`'s **"gives every shelf card three to six real knobs"** carries the
+dated exemption - a two-id list (`starfield`, `faders`), so a third card falling to two is still
+red - plus the positive half: no rack offers a knob with the id `brightness`, on any card.
+REQUIREMENTS.md is untouched; the phase that next runs a gate amends TUNE-01 by this word, as
+change 1's retirement of SAFE-02 / SAFE-05 is already waiting to be.
+
+**The other specs, by title, none renamed.** `knobs.preset.spec.ts`: the kinds carve-out ("exposes
+exactly the kinds BOTOR declares for each card, both directions") is unconditional again - it
+existed only because `brightness` is not a member of the vendored `KnobKind` union; "defaults
+every knob to the position the card actually ships at" asserts the pin instead of the knob's
+default; the dark-card block keeps its detent no-op probe as the reason the field, not a knob, is
+the shelf's brightness; NINE PADS' rack test reads five with `grid` last. `ladder.spec.ts`'s **"the
+compiler never proposes degrading the control the hand is on"** moves its subject from `dial` to
+`pinwheel` at a measured `{ setup: 600 }` (Setup 1013 of 908, 105 over, six steps - four `look`,
+two `touch`; pinning the colour knob's `look` leaves two): the dial's ladder proposes `look` steps
+only and the dial's `look` knob WAS the retired one, so on the dial the test's own precondition
+was what would fail. `surprise.spec.ts`: the dial's rollable set is `mode` + `sensitivity` (the
+roll no longer reaches a brightness on any card - the field is not a knob), and starfield's
+held-knob collapse holds one knob rather than two. `tune-ui.spec.ts`: the coexistence note becomes
+the retirement's proof, over every entry's rack through `stampKnobs`. `brightness.spec.ts` **+1
+(6)**: the racks, the pin on all eight cards, and the two landings above.
+
+**The two sweep floors, re-derived.** Pass A's cross-products lost a factor of five (20,270 ->
+4,054; Pass B unchanged at 24,576, which is 4,096 per colour knob over six; the total 44,846 ->
+28,630), so the 40,000 non-vacuity floors in `reachability.sweep.spec.ts` and
+`stamp-roundtrip.sweep.spec.ts` would have gone red on a green tree. Both read **25,000** now,
+with the arithmetic in the comment: above Pass B alone (24,576) and six times Pass A alone, so
+either pass silently emptying is still red, and losing one colour knob (4,096) lands at 24,534,
+under it. The real guard is unchanged either side of it - `costedA === expectedA` and
+`costedB === expectedB`, both re-derived from the same knob tables the loops read.
+
+**The runs.** Quick **95 / 979** (+0 files / +1 test - brightness.spec's sixth) at
+`--maxWorkers=2`, green twice plus the gate's own; check **658**, 0 / 0; lint clean; the sweep
+`4 19` green (`lua-entries` 1,201 combinations unmoved - no Lua entry has a brightness knob; the
+reachability sweep 28,630 states, laddered 8, over budget 0; the kind cross-product 1,296, worst
+906 of 908); the build. **The gate** `--after change-5b --against change-5-after --check 658` at
+`4488eb6` (`gate/change-5b-after.txt`; HEAD carries the user's change-6 and change-7 records,
+which touch no source). It exits 1 at the wire by design - a retirement removes records - so the
+later terms are compared from the two records. **Equal:** the sandbox set `40b44316…`; the four
+fixtures' hash-objects and the fixture paths clean after the build; the OG (27 files, 158,642 B,
+`f60a6363…`); **the SCOPED CSS `7f88b4f4…` and the raw `56d81122…`** (no component moved); the
+utilities 44 -> 44 with the five markup-named intact; **the copy exports `7ec85d4a…` and the
+`data-testid` set `70dfe98a…` (317)** - the knob carried no visitor-facing string of its own
+beyond its label; check 658; lint; the build; the refuse-list `--stat` empty; `src/` 9 modified /
+0 added / 0 deleted / 0 renamed. **Moved:** the wire (above); the literal census `e4f23375…` ->
+`e12326a3…` (2,721 distinct either side, 6,383 -> 6,379 occurrences; four counts down and nothing
+added - `"Brightness"` 2 -> 1, `"brightness"` 3 -> 2, `"amount"` 29 -> 28, `"look"` 11 -> 10);
+the titles `82938fa6…` -> `a2f9cfa8…` (979 -> 980 vitest titles incl. todo, 103 playwright runs
+either side, none renamed); the normalised JS `870762eb…` -> `ae3b7779…` (72 files either side);
+comment lines 12,837 -> 12,841 over 2 files, header lines 3,956 unmoved.
+
+**The chunks** (fresh detached servers on 4173, stopped through PowerShell, HTTP 000 after each;
+the user's 5173 untouched): **c3 21 passed** (tuning + tuning-webkit - the workspace's rack, RESET
+ALL, SURPRISE ME and the stamp landings on AURORA, the card whose rack lost a knob), **c1 33
+passed** (install + session - the rack's rails by index on AURORA and LUMEN), **c5 1 failed / 10
+passed** then **11 passed** on a rerun named `c5-rerun-5b`: `artifacts.e2e.ts`'s "the static build
+is complete" compares the build's `source-<sha>.tar.gz` against HEAD, and HEAD moved during the
+run when the user recorded changes 6 and 7 (`e2e2b2e`, `4488eb6` - documentation only, no source);
+a rebuild at the new HEAD and the rerun are green. c2 and c4 not run: no browse, catalog,
+fidelity, first-experience, library or sandbox title reads a preset's rack length.
+
+**Outside `src/`:** this subsection, the record's Done paragraph under section 5b, and the gate
+record. `docs/HARDWARE-AUDITION.md` is unchanged - row 30(d) asked the bench whether the knob and
+the field compose, and that question is answered by retirement rather than by an LED, so the row's
+clause (d) stands as written with the answer in this section. `.planning/ROADMAP.md`,
+`REQUIREMENTS.md` and `STATE.md` untouched; CAT-04 stays `[ ]`. No device, no deploy, no push.
+
+**Questions for the user.** (a) Change 5's (b), (c) and (d) still stand (Reset settings resetting
+the brightness; LUMEN's sysex reporting the dimmed colour; where the Sandbox's field sits).
+(b) STARFIELD and FOUR FADERS now show two knobs each under Behavior beside the one field - if
+either feels thin, the honest fix is a third REAL knob from that card's own compiler fields (the
+faders' `layout`, starfield's `speed`), not a brightness. (c) TUNE-01's text still reads "three to
+six"; the amendment is waiting for whichever phase next runs a gate.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

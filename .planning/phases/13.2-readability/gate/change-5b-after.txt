@@ -1,0 +1,155 @@
+# 13.2 gate --after change-5b --against change-5-after --check 658
+HEAD 4488eb6 (4488eb6652d2186bca8a048b6b01dcc47224f8d3); dirty (src e2e scripts docs) 0; free memory 5.06 GB; 2026-09-17T22:10:20Z
+before-record HEAD 164df23278bbe7e0e47fb571412d70d214a93a32
+
+## the wire
+1701 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 63e93f57e8d607afbd8de2d3f73f2ee9cf533145433d631ff50a8362520a7c26
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL c1a61f4cd8bab7d1f2e713d4feb585529dbf10b1c186086b6516a29ec83d6e49
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+194 files; 2721 distinct literals (6379 occurrences); 7 copy modules; 317 data-testids
+literal census sha256 e12326a318cc903859036c4ceaf05245a49ddd7c60d020109f794b5d801d63bf
+copy exports   sha256 7ec85d4aa65ab112a811a9f6286bdc86dd832a79e9adb49626eb3a720cea9164
+data-testids   sha256 70dfe98a8a4783a27bbc73152e764757d928c240729dc849835c303f05c22abf
+- 2 -> 1	"Brightness"
+- 29 -> 28	"amount"
+- 3 -> 2	"brightness"
+- 11 -> 10	"look"
+
+## the comment lines
+195 files; 46671 lines, 30039 code, 12841 comment, 3791 blank, 3956 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/tune/knobs.preset.ts | 763 | 719 | 220 | 209 | 12 | 12 |
+| src/lib/tune/state.ts | 121 | 147 | 59 | 74 | 12 | 12 |
+| **totals (195 -> 195 files)** | 46689 | 46671 | 12837 | 12841 | 3956 | 3956 |
+
+2 file(s) moved
+
+## check and lint
+check: 1789683034025 COMPLETED 658 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 979 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: files: observed 95, expected 94; tests: observed 979, expected 966
+quick exit 1
+
+## the build
+build exit 0; stamp 98cb427
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 5166ff6ce490e5ca3d15353e508ae2e475f22ef7 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 158642 B, sha256 f60a6363b4c5a0bb8909ac8402a9f9e16496d7ac078dff7244efe83000515dbb
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46
+SCOPED CSS sha256 7f88b4f4f10ef13a3af2bd30dd4b8f2d277569edd9b9a4687cedea5b5b76b7f2
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 ae3b777997c8a876669148bbac4690bc54c4eabead259e47a39ec7223c85e175 (72 files)
+
+## the titles
+TITLES sha256 a2f9cfa86ee578b82b68668a35453022a1a8777c695ece51a259d9ebbadde777 (980 vitest titles incl. todo, 103 playwright runs)
+
+## src/ against the before-record's HEAD 164df23278bbe7e0e47fb571412d70d214a93a32
+git diff --name-status: 9 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-5-after
+wire moved: set 3f2531f718d917c145664a94bc2c241e13fb983ac0086727b5be4178d265ca14 -> 63e93f57e8d607afbd8de2d3f73f2ee9cf533145433d631ff50a8362520a7c26; full df9345d96eff53f26e8afe9f3f4fb2e9b037a59a7594ae040e0e4abbc7355506 -> c1a61f4cd8bab7d1f2e713d4feb585529dbf10b1c186086b6516a29ec83d6e49
+  - P/aurora/knob brightness=0/setup
+  - P/aurora/knob brightness=0/timer
+  - P/aurora/knob brightness=1/setup
+  - P/aurora/knob brightness=1/timer
+  - P/aurora/knob brightness=2/setup
+  - P/aurora/knob brightness=2/timer
+  - P/aurora/knob brightness=3/setup
+  - P/aurora/knob brightness=3/timer
+  - P/aurora/cross-product (6720 states)
+  - P/pinwheel/knob brightness=0/setup
+  - P/pinwheel/knob brightness=0/timer
+  - P/pinwheel/knob brightness=1/setup
+  - P/pinwheel/knob brightness=1/timer
+  - P/pinwheel/knob brightness=2/setup
+  - P/pinwheel/knob brightness=2/timer
+  - P/pinwheel/knob brightness=3/setup
+  - P/pinwheel/knob brightness=3/timer
+  - P/pinwheel/cross-product (3360 states)
+  - P/starfield/knob brightness=0/setup
+  - P/starfield/knob brightness=0/timer
+  - P/starfield/knob brightness=1/setup
+  - P/starfield/knob brightness=1/timer
+  - P/starfield/knob brightness=2/setup
+  - P/starfield/knob brightness=2/timer
+  - P/starfield/knob brightness=3/setup
+  - P/starfield/knob brightness=3/timer
+  - P/starfield/cross-product (280 states)
+  - P/radar/knob brightness=0/setup
+  - P/radar/knob brightness=0/timer
+  - P/radar/knob brightness=1/setup
+  - P/radar/knob brightness=1/timer
+  - P/radar/knob brightness=2/setup
+  - P/radar/knob brightness=2/timer
+  - P/radar/knob brightness=3/setup
+  - P/radar/knob brightness=3/timer
+  - P/radar/cross-product (13440 states)
+  - P/joystick/knob brightness=0/setup
+  - P/joystick/knob brightness=0/timer
+  - P/joystick/knob brightness=1/setup
+  - P/joystick/knob brightness=1/timer
+  - P/joystick/knob brightness=2/setup
+  - P/joystick/knob brightness=2/timer
+  - P/joystick/knob brightness=3/setup
+  - P/joystick/knob brightness=3/timer
+  - P/joystick/cross-product (15120 states)
+  - P/ninepads/knob brightness=0/setup
+  - P/ninepads/knob brightness=0/timer
+  - P/ninepads/knob brightness=1/setup
+  - P/ninepads/knob brightness=1/timer
+  - P/ninepads/knob brightness=2/setup
+  - P/ninepads/knob brightness=2/timer
+  - P/ninepads/knob brightness=3/setup
+  - P/ninepads/knob brightness=3/timer
+  - P/ninepads/cross-product (71680 states)
+  - P/faders/knob brightness=0/setup
+  - P/faders/knob brightness=0/timer
+  - P/faders/knob brightness=1/setup
+  - P/faders/knob brightness=1/timer
+  - P/faders/knob brightness=2/setup
+  - P/faders/knob brightness=2/timer
+  - P/faders/knob brightness=3/setup
+  - P/faders/knob brightness=3/timer
+  - P/faders/cross-product (960 states)
+  - P/dial/knob brightness=0/setup
+  - P/dial/knob brightness=0/timer
+  - P/dial/knob brightness=1/setup
+  - P/dial/knob brightness=1/timer
+  - P/dial/knob brightness=2/setup
+  - P/dial/knob brightness=2/timer
+  - P/dial/knob brightness=3/setup
+  - P/dial/knob brightness=3/timer
+  - P/dial/cross-product (15360 states)
+  + P/aurora/cross-product (1344 states)
+  + P/pinwheel/cross-product (672 states)
+  + P/starfield/cross-product (56 states)
+  + P/radar/cross-product (2688 states)
+  + P/joystick/cross-product (3024 states)
+  + P/ninepads/cross-product (14336 states)
+  + P/faders/cross-product (192 states)
+  + P/dial/cross-product (3072 states)
+FAIL: the wire
