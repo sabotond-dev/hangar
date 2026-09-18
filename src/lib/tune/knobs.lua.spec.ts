@@ -44,9 +44,10 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
         descriptors.length,
         `${entry.id} knob count`,
       ).toBeGreaterThanOrEqual(3);
-      // ORBIT carries fourteen by the user's word (change 8, 2026-09-18); the cap holds elsewhere.
+      // ORBIT carries fourteen by the user's word (change 8, 2026-09-18), and the three cards that
+      // took its clock idiom at change 12 carry Sync and Division past six; the cap holds elsewhere.
       expect(descriptors.length, `${entry.id} knob count`).toBeLessThanOrEqual(
-        entry.id === "orbit" ? 14 : 6,
+        { orbit: 14, steps: 8, "radar-points": 7, ghost: 7 }[entry.id] ?? 6,
       );
 
       for (let i = 0; i < descriptors.length; i++) {

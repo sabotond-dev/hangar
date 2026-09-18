@@ -34,6 +34,18 @@ const SLUG = /^[a-z][a-z0-9-]*$/;
 const ISO_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 const TOKEN = /^@[A-Z][A-Z0-9_]*$/;
 
+/**
+ * The cards past TUNE-01's six by the user's word: ORBIT's fourteen (change 8, 2026-09-18) and
+ * the three that took its clock idiom with Sync and Division at change 12 - STEPS eight, RADAR
+ * POINTS and GHOST seven. Every other Lua entry keeps the cap.
+ */
+const SYNC_CARD_KNOBS: Readonly<Record<string, number>> = {
+  orbit: 14,
+  steps: 8,
+  "radar-points": 7,
+  ghost: 7,
+};
+
 const presetEntries = CATALOG.filter((e) => e.source.kind === "preset");
 const luaEntries = CATALOG.filter((e) => e.source.kind === "lua");
 const stateEntries = CATALOG.filter((e) => e.source.kind === "state");
@@ -236,13 +248,14 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
         entry.knobs.length,
         `${entry.id}: a Lua entry carries three to six knobs`,
       ).toBeGreaterThanOrEqual(3);
-      // TUNE-01's six is lifted for ORBIT alone, by the user's word (change 8, 2026-09-18,
-      // BENCH-2026-09-16.txt section 8 answer 2: a fourth ring, a colour and a note per ring, Sync
-      // and Division); the next gate amends the rule. Every other card keeps the cap.
+      // TUNE-01's six is lifted for the sync cards by the user's word (change 8, 2026-09-18,
+      // BENCH-2026-09-16.txt section 8 answer 2: ORBIT's fourth ring, a colour and a note per
+      // ring, Sync and Division; change 12: STEPS, RADAR POINTS and GHOST take Sync and Division);
+      // the next gate amends the rule. Every other card keeps the cap.
       expect(
         entry.knobs.length,
         `${entry.id}: a Lua entry carries three to six knobs`,
-      ).toBeLessThanOrEqual(entry.id === "orbit" ? 14 : 6);
+      ).toBeLessThanOrEqual(SYNC_CARD_KNOBS[entry.id] ?? 6);
       const tokens: string[] = [];
       for (const knob of entry.knobs) {
         expect(

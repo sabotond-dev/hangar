@@ -535,10 +535,15 @@ describe("the stamp: the envelope", () => {
       const resized = record.entry === "pomodoro";
       // ORBIT joins the grown: EUCLID's six-knob `x` payload is the wrong
       // length for fourteen knobs and two wide fields (change 8), by design.
+      // AND STEPS AND GHOST, at change 12 (2026-09-18, BENCH-2026-09-16.txt
+      // section 12): Sync and Division appended to each rack, so a six-knob
+      // and a five-knob payload are the wrong length by design. The fixture
+      // is not regenerated; the two default vectors still carry no stamp.
       const grew =
         record.entry === "arc" ||
         record.entry === "morph" ||
-        record.entry === "euclid";
+        record.entry === "euclid" ||
+        record.entry === "steps";
       const replaced = record.entry === "chorus";
       expect(
         decodeFor(each, record.payload),

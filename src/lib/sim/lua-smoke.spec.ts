@@ -9735,6 +9735,227 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length, "every stage of the orbit probe ran").toBe(4);
   }, 120000);
+
+  // -------------------------------------------------------------------------
+  // CHANGE 12 (2026-09-18, BENCH-2026-09-16.txt section 12): ORBIT's clock
+  // idiom on STEPS, RADAR POINTS and GHOST, bench-verified on ORBIT the same
+  // day. The same harness: the DAW's realtime bytes are driven straight at
+  // `rtmrx_cb` through `host.rtm(byte)`, the routing gate read off `rxMode`.
+  // Internal is the existing tests' business (every one above is untouched
+  // and green, and frames.spec.ts holds the rest frame); these three prove
+  // External: the Timer moves nothing, Start resets and releases, a step every
+  // Division clocks, Stop halts and releases, Continue resumes.
+  // -------------------------------------------------------------------------
+
+  const CLOCK = 248;
+  const START = 250;
+  const CONTINUE = 251;
+  const STOP = 252;
+  const SENSING = 254;
+
+  /** One entry opened at its defaults with some indices overridden, on the real library. */
+  async function openSynced(entry: CatalogEntry, over: Record<string, number>) {
+    const { setup, timer } = renderLua(entry, { ...entry.defaults, ...over });
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup,
+      timer,
+    });
+    return { host, sim };
+  }
+
+  const wire = (midi: readonly HostMidi[], from: number): string[] =>
+    midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
+
+  it("runs STEPS on the DAW's clock: External moves no column from the Timer, Start releases the sounding column and lands column 0 on the first clock, a column every Division clocks, Stop halts and releases, Continue resumes, the BPM rail is today's five periods, and the preview holds Internal", async () => {
+    const entry = entryById("steps");
+    const note = knobValueOf(entry, "note");
+    const channel = knobValueOf(entry, "channel");
+    const tempoKnob = entry.knobs.find((knob) => knob.id === "tempo");
+    const syncKnob = entry.knobs.find((knob) => knob.id === "sync");
+    const divisionKnob = entry.knobs.find((knob) => knob.id === "division");
+    if (!tempoKnob || !syncKnob || !divisionKnob)
+      throw new Error("steps: tempo, sync and division knobs expected");
+    // The rail reads BPM ascending and a column is a 16th: 15000//@BPM is
+    // exactly the five millisecond periods the card had, 125 the 120 ms default.
+    expect(tempoKnob.values.map(Number)).toEqual([75, 100, 125, 166, 250]);
+    expect(
+      tempoKnob.values.map((v) => Math.floor(15000 / Number(v))),
+      "steps: the BPM rail reproduces today's five periods",
+    ).toEqual([200, 150, 120, 90, 60]);
+    /** The Timer's period in ticks at the default: a 16th at 125 BPM is 120 ms, 12 ticks. */
+    const PERIOD = Math.floor(15000 / knobValueOf(entry, "tempo")) / 10;
+    expect(PERIOD).toBe(12);
+    // The default pattern: the bottom row on every second column, so the only
+    // note is @NOTE+7 and it sounds on columns 0, 2, 4 and 6.
+    const kick = note + 7;
+    const ON = `${channel}:144:${kick}:100`;
+    const OFF = `${channel}:128:${kick}:0`;
+    const report: string[] = [];
+
+    // 1. INTERNAL, as a baseline for the wire below: eight steps are four
+    //    note-ons and four note-offs of the one armed row, in order.
+    {
+      const { host } = await openSynced(entry, {});
+      try {
+        expect(host.rxMode, "Internal asks grxm(2,0)").toBe(0);
+        host.run(PERIOD * 8 + 1);
+        expect(host.selfNumber("k"), "eight columns advanced").toBe(8);
+        expect(
+          wire(host.midi, 0),
+          "internal: on 0, off 0 at 1, on 2 ...",
+        ).toEqual([ON, OFF, ON, OFF, ON, OFF, ON, OFF]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // 2. EXTERNAL at the 16th.
+    {
+      const { host } = await openSynced(entry, { sync: 1 });
+      try {
+        expect(host.rxMode, "External asks grxm(2,3)").toBe(3);
+        host.run(PERIOD * 3);
+        expect(
+          host.midi,
+          "the Timer sends nothing under External",
+        ).toHaveLength(0);
+        expect(host.selfNumber("k"), "the Timer advances no column").toBe(0);
+        for (let n = 0; n < 12; n += 1)
+          expect(host.rtm(CLOCK), "the handler exists").toBe(true);
+        expect(host.midi, "clocks before Start send nothing").toHaveLength(0);
+        host.rtm(START);
+        expect(host.selfNumber("q"), "Start resets the count").toBe(0);
+        host.rtm(CLOCK);
+        expect(
+          wire(host.midi, 0),
+          "the first clock after Start is column 0",
+        ).toEqual([ON]);
+        expect(host.selfNumber("k")).toBe(1);
+        for (let n = 0; n < 5; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "five more clocks: inside the 16th").toBe(
+          1,
+        );
+        host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "the seventh clock is column 1").toBe(2);
+        expect(
+          wire(host.midi, 1),
+          "column 1 releases column 0's row and arms nothing",
+        ).toEqual([OFF]);
+        // The Timer's tempo is ignored: two hundred ticks move no column.
+        const before = host.midi.length;
+        host.run(200);
+        expect(
+          host.selfNumber("k"),
+          "the Timer does not step under External",
+        ).toBe(2);
+        expect(host.midi.length, "nor send").toBe(before);
+        // Step on to column 2 (armed), then Stop: the sounding column is
+        // released so nothing hangs, and clocks after it do nothing.
+        for (let n = 0; n < 6; n += 1) host.rtm(CLOCK);
+        expect(wire(host.midi, before), "column 2 sounds").toEqual([ON]);
+        host.rtm(STOP);
+        expect(
+          wire(host.midi, before + 1),
+          "Stop releases column 2's row",
+        ).toEqual([OFF]);
+        const stopped = host.midi.length;
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        host.rtm(SENSING);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "Stop halts the sweep").toBe(3);
+        expect(host.midi.length, "nothing sent while stopped").toBe(stopped);
+        // Continue keeps the count (13 after three steps); the clock that
+        // finds the count at 18 lands column 3, the sixth from here.
+        host.rtm(CONTINUE);
+        expect(host.selfNumber("q"), "Continue keeps the clock count").toBe(13);
+        for (let n = 0; n < 5; n += 1) host.rtm(CLOCK);
+        expect(
+          host.selfNumber("k"),
+          "five clocks on: count 18, not yet stepped",
+        ).toBe(3);
+        host.rtm(CLOCK);
+        expect(
+          host.selfNumber("k"),
+          "the clock at count eighteen is column 3",
+        ).toBe(4);
+        expect(
+          wire(host.midi, stopped),
+          "column 3 releases column 2 again (already off) and arms nothing",
+        ).toEqual([OFF]);
+        // Start again: release the sounding column, reset, and land column 0.
+        host.rtm(START);
+        expect(host.selfNumber("k"), "Start resets the column").toBe(0);
+        host.rtm(CLOCK);
+        expect(
+          wire(host.midi, stopped + 1),
+          "Start's release of column 3 (nothing armed) then column 0",
+        ).toEqual([ON]);
+        expect(host.selfNumber("k")).toBe(1);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          "  External at the 16th: column 0 on the first clock after Start, column 1 on the seventh; 200 Timer ticks moved nothing; Stop released the sounding row; Continue went on from clock 13; Start reset it",
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 3. THE DIVISION, and the one-period caveat: a clock before the Timer's
+    //    first call is counted, not stepped (`s.f` is not yet published).
+    for (const [index, clocks] of [
+      [0, 12],
+      [2, 3],
+    ] as const) {
+      const { host } = await openSynced(entry, { sync: 1, division: index });
+      try {
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(
+          host.selfNumber("k"),
+          `division ${divisionKnob.values[index]}: counted, not stepped`,
+        ).toBe(0);
+        expect(host.selfNumber("q")).toBe(1);
+        host.run(PERIOD + 1);
+        for (let n = 0; n < clocks; n += 1) host.rtm(CLOCK);
+        expect(
+          host.selfNumber("k"),
+          `division ${divisionKnob.values[index]}: clock ${clocks + 1} is column 1`,
+        ).toBe(1);
+        for (let n = 0; n < clocks; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k")).toBe(2);
+        report.push(
+          `  Division ${divisionKnob.values[index]} clocks a column: columns at clocks ${clocks + 1} and ${clocks * 2 + 1} after Start`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 4. THE WORDS AND THE PREVIEW.
+    expect(
+      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+    ).toEqual(["Internal", "External"]);
+    expect(widgetFor(syncKnob.kind, syncKnob.values)).toBe("words");
+    expect(
+      divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
+    ).toEqual(["8th", "16th", "32nd"]);
+    expect(widgetFor(divisionKnob.kind, divisionKnob.values)).toBe("words");
+    expect(
+      previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync,
+      "the preview renders Internal whatever Sync says",
+    ).toBe(0);
+    process.stdout.write(
+      "\nSTEPS on the DAW's clock (change 12, 2026-09-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length).toBe(3);
+  }, 120000);
 });
 
 // ---------------------------------------------------------------------------

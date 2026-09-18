@@ -263,3 +263,108 @@ SONAR's header records for "if s.v[n]then".
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 12, 2026-09-18 - the column on the DAW's clock (BENCH-2026-09-16.txt section 12)
+
+The user's word: "MIDI sync works perfectly. implement it to Ghost, Radar points, Radar and
+Steps." - ORBIT's clock idiom (change 8, bench-verified on hardware this day; the idiom, the
+firmware evidence and the spelling are in `docs/entries/orbit.md`, "The clock idiom") on STEPS.
+TUNE-01's six is lifted for a sync card by change 8's answer 2; STEPS carries eight knobs.
+
+### The header and the two strings the entry carried until change 12, verbatim
+
+```text
+// STEPS - an eight by eight step grid with a bright column sweeping across it.
+//
+// Tap or swipe to arm cells; a column sweeps left to right and plays what you armed on the way
+// past. Eight tracks, eight steps; the ninth column and the bottom row are dark by design (eight
+// steps is a bar of eighths and eight tracks is a drum kit). The plain rectangular grid EUCLID
+// and SONAR deliberately are not. Setup arms a default pattern - the bottom row on every second
+// step - so the card plays before anyone touches it. Knobs: @TEMPO (both events), @ARMC,
+// @SWEEPC, @TRAIL (a divisor of 252), @NOTE, @CH. Setup 420 of 908 at the picker corner (414
+// at the defaults), Timer 260 (258); restsBlack false. Kind "lua": no sends.kind has a clock.
+// Clock sync is not built; the two blockers are stated once, in sonar.ts and euclid.ts.
+// History: docs/entries/steps.md (11-07, 11-08, 12-08, 12.1-03 measurements and the corner ladder).
+```
+
+```lua
+--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)
+```
+
+```lua
+--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end
+```
+
+Knobs then: `@TEMPO` Step time `200 150 120 90 60` ms (default 120), `@ARMC`, `@SWEEPC`,
+`@TRAIL` `12 28 42 63`, `@NOTE` `36 48 60 24`, `@CH` `0 1 9 15` (default 9).
+
+### What moved
+
+- **The step is the column advance**, and it is now the Timer's `local function f(s)`: the
+  release of the sounding column, k = s.k%8, the advance, column k's decay pair and the armed
+  rows' note-ons - the whole body after `X(s,20)`. The column's decay pair is the step's own
+  picture (it names column k), so it moved WITH the step rather than staying on the Timer: kept
+  on the Timer under External it would re-arm the held column every @BPM period and paint a
+  column the clock had not reached. The Timer under External does `gtt`, `X(s,20)`, publishes,
+  and returns. A deviation from the brief's sentence ("keeps X(s,20) and the decay painting"),
+  stated.
+- **The release is its own routine `u(s)`** - note-off for the SOUNDING column's armed rows,
+  `(s.k+7)%8` - because Start and Stop need it without a step: `f` calls it first, the
+  callback reads it as `s.u` on 250 (before the reset, so the column that was sounding is the
+  one released) and on 252. Published beside `s.f` on every Timer call. Named `u`, not `o`: on
+  RADAR POINTS `s.o` is the pitch table, and one spelling across the three cards was worth the
+  letter.
+- **The callback**, ORBIT's spelling with the two release lines:
+  `self.rtmrx_cb=function(s,h,b)if b==250 then local u=s.u if u then u(s)end s.k=0 s.q=0 end if
+b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil local u=s.u if u then u(s)end elseif
+b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end` then
+  `grxm(2,@SYNC and 3 or 0)`. `self.q=0` beside `self.k=0` so a Continue before any Start
+  counts from zero instead of raising on a nil.
+- **The Tempo rail reads BPM, ascending** (ORBIT's 8b shape): `@TEMPO` is `@BPM`, both events
+  `gtt(0,15000//@BPM)` - a 16th a column - and the ladder `75 100 125 166 250` is today's five
+  periods exactly (200 150 120 90 60 ms), 125 the 120 ms default, so the rest frame did not move.
+  A 16th and not an eighth (`30000//@BPM`): the old knob comment already called 120 ms "125 bpm",
+  which is a 16th at 125; the eighth reading would put the default at 250 BPM and today's rail
+  at 150..500, numbers no DAW shows; and it matches ORBIT's default so a DAW at 125 BPM with
+  Division 16th plays STEPS at exactly its Internal default. The header's "a bar of eighths" is
+  now "two beats of 16ths". The id stays `tempo`; the label reads "Tempo (BPM)".
+- **Sync** `false / true` (Internal / External, `previewIndex: 0`) and **Division** `12 / 6 / 3`
+  (8th / 16th / 32nd, 16th the default), between Trail and Lowest note in the rack.
+- The header sentence "Clock sync is not built; the two blockers are stated once, in sonar.ts
+  and euclid.ts" goes.
+
+### The costs, under the pinned `compressScript` after `initLuaFormatter()`
+
+At the RGB444 picker corner: **Setup 420 -> 727** (488 -> 181 free), **Timer 260 -> 361** (648 ->
+547 free); 720 / 359 at the defaults. Every knob state a fixed point passing `checkSyntax`
+(`lua-entries.sweep.spec.ts`, 1,804 -> more combinations). No system slot.
+
+### What the default record shares with yesterday's
+
+At the defaults the Setup is yesterday's with `self.q=0 ` after `self.k=0 `, the callback and
+`grxm(2,0)` before the `gtt`, and `gtt(0,15000//125)` for `gtt(0,120)`; the Timer is yesterday's
+body wrapped in `u` and `f`, published, and called at the end through `if false then return end
+f(s)`. `15000//125` is 120, `grxm` is a recorded no-op in the host and the routing byte on the
+module, and `f(s)` at the end runs the same statements in the same order - so `frames.json` and
+the OG image are byte-identical, and frames.spec.ts held without a regeneration.
+
+### The VM cases (`lua-smoke.spec.ts`)
+
+Internal: eight columns in 97 ticks are on / off / on / off / on / off / on / off of `@NOTE+7`
+on channel 9 (the default pattern), k at 8. External: the Timer sends nothing and moves no
+column over three periods; twelve clocks before Start do nothing; Start zeroes the count and the
+first clock lands column 0, the seventh column 1 (its release of column 0 on the wire); 200
+Timer ticks move nothing; Stop after column 2 releases its row; clocks and 254 after it do
+nothing; Continue keeps the count at 13 and the sixth clock lands column 3; Start releases,
+resets and the clock lands column 0. Division 12 and 3: a clock before the Timer's first call
+is counted, not stepped; then columns at clocks 13 and 25, and 4 and 7. Sync worded Internal /
+External, Division 8th / 16th / 32nd, the preview holding Internal. The five existing STEPS
+cases (the swipe, the boundary finger, the 81 LED centres, the parity tap, the residue) are
+untouched and green.
+
+### The stamp
+
+`stamp.spec.ts`: STEPS joins the grown - its captured six-knob `x` payload is the wrong length
+for eight knobs and lands `unreadable` by design; the captured default vector still carries no
+stamp (the two new indices read their defaults). Every STEPS link shared before today opens the
+card at its defaults.

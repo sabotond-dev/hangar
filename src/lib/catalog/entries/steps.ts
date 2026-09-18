@@ -1,20 +1,21 @@
-// STEPS - an eight by eight step grid with a bright column sweeping across it.
+// STEPS - an eight by eight step grid with a bright column sweeping across it, on its own Timer or
+// on the DAW's MIDI clock (change 12, 2026-09-18, BENCH-2026-09-16.txt section 12).
 //
 // Tap or swipe to arm cells; a column sweeps left to right and plays what you armed on the way
-// past. Eight tracks, eight steps; the ninth column and the bottom row are dark by design (eight
-// steps is a bar of eighths and eight tracks is a drum kit). The plain rectangular grid EUCLID
-// and SONAR deliberately are not. Setup arms a default pattern - the bottom row on every second
-// step - so the card plays before anyone touches it. Knobs: @TEMPO (both events), @ARMC,
-// @SWEEPC, @TRAIL (a divisor of 252), @NOTE, @CH. Setup 420 of 908 at the picker corner (414
-// at the defaults), Timer 260 (258); restsBlack false. Kind "lua": no sends.kind has a clock.
-// Clock sync is not built; the two blockers are stated once, in sonar.ts and euclid.ts.
-// History: docs/entries/steps.md (11-07, 11-08, 12-08, 12.1-03 measurements and the corner ladder).
+// past. Eight tracks, eight steps; the ninth column and the bottom row are dark by design (a step
+// is a 16th at the BPM knob, so the eight columns are two beats; eight tracks is a drum kit). The
+// plain rectangular grid ORBIT and SONAR deliberately are not. Setup arms a default pattern - the
+// bottom row on every second step - so the card plays before anyone touches it. Eight knobs: @BPM
+// (both events), @ARMC, @SWEEPC, @TRAIL (a divisor of 252), @SYNC (both events), @DIV, @NOTE, @CH.
+// Setup 727 of 908 at the picker corner (720 at the defaults), Timer 361 (359); restsBlack false.
+// History: docs/entries/steps.md (11-07, 11-08, 12-08, 12.1-03 measurements; change 12's sync).
 //
 // MECHANISM
 //   - self.p is a flat table indexed 0..63, one boolean per cell, the column in the low three
 //     bits: index n is column n%8, row n//8, and the pad cell under it is n%8 + n//8*9. self.k
-//     is the sweep column. Setup: layer 1 @SWEEPC at phase 0 (the column), layer 2 @ARMC at 255
-//     where armed (n>55 and n%2==0) else 0; `gtt(0,@TEMPO)`.
+//     is the sweep column, self.q the clock count, self.r the run flag. Setup: layer 1 @SWEEPC at
+//     phase 0 (the column), layer 2 @ARMC at 255 where armed (n>55 and n%2==0) else 0;
+//     `grxm(2,@SYNC and 3 or 0)` routes MIDIRTM to Lua under External only; `gtt(0,15000//@BPM)`.
 //   - The callback: `local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end`,
 //     then c = a%9, r = a//9, `if c>7 or r>7 then return end`, n = c+r*8, toggle s.p[n] and paint
 //     the cell's layer 2. `Q` holds the cell with hysteresis and returns it only on a change or
@@ -25,19 +26,29 @@
 //     9x9 pad so the hysteresis is measured in PAD cells, the frame the physical boundary is in;
 //     an 8x8 test in front of `Q` would make the ninth column a hole in the contact tracking.
 //     The dedup key inside `Q` is the 9x9 cell, which is unique over all 81 (c+r*8 aliases).
-//   - The Timer, `gtt(0,@TEMPO)` first (the handler runs inside a pcall; a re-arm at the end
+//   - The Timer, `gtt(0,15000//@BPM)` first (the handler runs inside a pcall; a re-arm at the end
 //     dies permanently on the first raise): `X(s,20)` sweeps contacts quiet for twenty calls
-//     (2.4 s at the default; a lost lift is reached by `X`, never by `Q`); k = s.k%8; release
-//     the PREVIOUS column's armed rows; then for each row paint column k's decay pair
-//     glpfs(a,1,252,256-252//@TRAIL,0) glt(a,1,@TRAIL) and play the armed rows. Note-off before
-//     note-on in the same body, so a held note never overlaps itself.
+//     (2.4 s at the default; a lost lift is reached by `X`, never by `Q`). Then two locals: the
+//     release `u(s)` - note-off for the SOUNDING column's armed rows, (s.k+7)%8 - and the step
+//     `f(s)`: `u(s)`, k = s.k%8, advance, then for each row paint column k's decay pair
+//     glpfs(a,1,252,256-252//@TRAIL,0) glt(a,1,@TRAIL) and play the armed rows. Both are
+//     published on every call (`s.f=f s.u=u`), then `if @SYNC then return end f(s)`: Internal
+//     steps here, External steps nowhere here. Note-off before note-on in the same body, so a
+//     held note never overlaps itself.
+//   - `self.rtmrx_cb=function(s,h,b)` - ORBIT's clock idiom (docs/entries/orbit.md): 250 Start
+//     releases the sounding column through `s.u`, resets k and q, and runs; 251 Continue runs;
+//     252 Stop halts and releases the sounding column; 248 while running steps through `s.f`
+//     every @DIV clocks (12 / 6 / 3 = an 8th / 16th / 32nd at 24 per quarter), the first clock
+//     after Start landing column 0. Both are field READS (a field call is refused by
+//     host-surface.spec.ts); a byte before the Timer's first call finds neither published.
 //   - No `R` (it holds no note per contact and paints nothing of its own on layer 0).
-//   - A swipe that crosses a cell twice toggles it twice - correct for a toggle (euclid.ts names
+//   - A swipe that crosses a cell twice toggles it twice - correct for a toggle (orbit.md names
 //     the set-rather-than-toggle alternative as an open bench question).
 //
 // WHAT IT SENDS
 //   note-on   s:gms(@CH,144,@NOTE+r,100,0) for every armed row of the new column
-//   note-off  s:gms(@CH,128,@NOTE+r,0,0) for every armed row of the previous column, first
+//   note-off  s:gms(@CH,128,@NOTE+r,0,0) for every armed row of the previous column, first;
+//             the same note-offs on the DAW's Start and Stop, so nothing hangs across a transport
 //
 // TRAPS
 //   - THE DECAY RATE IS DERIVED FROM THE TRAIL LENGTH: rate 256 - 252//@TRAIL from phase 252
@@ -49,10 +60,20 @@
 //     decaying layer is pitfall 1 exactly - the countdown is replaced, the rate wraps, every
 //     swept cell strobes forever.
 //   - THE NOTE RANGE IS EIGHT WIDE: @NOTE + 7 < 128 for every value (the largest is 60).
-//   - @TEMPO APPEARS IN BOTH EVENTS and both must move together.
+//   - @BPM AND @SYNC APPEAR IN BOTH EVENTS and both must move together. The step is a 16th,
+//     `15000//@BPM` ms: 200 150 120 90 60 at 75 100 125 166 250 - today's five periods exactly,
+//     125 the default (the 120 ms column the card always had, so the rest frame did not move).
+//   - THE STEP ROUTINE AND THE RELEASE LIVE IN THE TIMER and the clock callback reaches them
+//     through `s.f` and `s.u`, both published by the Timer's FIRST call - at most one step
+//     period after the Setup. A clock inside that period is counted, not stepped.
+//   - THE PREVIEW HAS NO CLOCK: `sync` declares `previewIndex: 0`, so the browser renders Internal
+//     whatever the knob says and the inspector says so; the wire carries the visitor's choice.
+//   - `grxm(2,mode)` NEEDS A NUMBER, which is why the Sync literal is a boolean folded to 3 or 0.
+//   - 254 (active sensing) MUST NOT RUN THE SWEEP: the run test is `b==250 or b==251`.
 //   - EVENT CODES: this entry no longer reads one; `e` is passed straight to `Q`. e == 5 appears
 //     nowhere here and nowhere in the library; touch-guard.spec.ts knows this body delegates.
-//   - EVERY DIVISION IS FLOORED: `a%9`, `a//9` (the library's `Q`, `U`, `W`, `G` floor with `//`).
+//   - EVERY DIVISION IS FLOORED: `a%9`, `a//9`, `15000//@BPM`, `s.q%@DIV` (the library's `Q`,
+//     `U`, `W`, `G` floor with `//`).
 //   - glp IS NEVER CALLED WITH A NEGATIVE PHASE: every phase here is an explicit 0 or 255.
 //   - TWO SPACES WERE MEASURED OUT OF THE SETUP: `self.p[n]and 255 or 0` with no space is what
 //     compressScript emits; the readable form fails the canonical-form gate.
@@ -65,10 +86,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)";
+  "--[[@cb]]self.p={}self.k=0 self.q=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end self.rtmrx_cb=function(s,h,b)if b==250 then local u=s.u if u then u(s)end s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil local u=s.u if u then u(s)end elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end";
+  "--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local function u(s)local q=(s.k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end end local function f(s)u(s)local k=s.k%8 s.k=k+1 for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end end s.f=f s.u=u if @SYNC then return end f(s)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -84,18 +105,22 @@ export const STEPS: CatalogEntry = {
   source: SOURCE,
   preview: previewFor(SOURCE),
 
-  // Six knobs - the cap (D-12) - each one literal token substitution (TUNE-01); every default
-  // is the INDEX of the value that reproduces the canonical text. TOKEN PREFIX CHECK: no one
-  // of @TEMPO, @ARMC, @SWEEPC, @TRAIL, @NOTE, @CH is a prefix of another.
+  // Eight knobs - past TUNE-01's six by the user's word for a sync card (change 8, answer 2;
+  // change 12) - each one literal token substitution; every default is the INDEX of the value
+  // that reproduces the canonical text. TOKEN PREFIX CHECK: no one of @BPM, @ARMC, @SWEEPC,
+  // @TRAIL, @SYNC, @DIV, @NOTE, @CH is a prefix of another.
   knobs: [
     {
       id: "tempo",
-      label: "Step time",
+      label: "Tempo (BPM)",
       kind: "speed",
-      token: "@TEMPO",
-      // Milliseconds a column holds; a bar is eight of these (120 is 125 bpm in eighths).
-      // Ordered slow to fast. APPEARS IN BOTH EVENTS and both must move together.
-      values: ["200", "150", "120", "90", "60"],
+      token: "@BPM",
+      // Beats per minute, ascending, so the bigger number and the faster column are the same end
+      // (change 12, ORBIT's 8b shape); a column is a 16th, `15000//@BPM` ms: 200 150 120 90 60 -
+      // the five periods the card had in milliseconds, and 125 is exactly the 120 ms default.
+      // APPEARS IN BOTH EVENTS. Ignored by the sweep under External (the Timer still runs at it
+      // for the finger sweep). The id stays `tempo`: the stamp and the specs read the id.
+      values: ["75", "100", "125", "166", "250"],
       default: 2,
     },
     {
@@ -127,6 +152,29 @@ export const STEPS: CatalogEntry = {
       default: 2,
     },
     {
+      id: "sync",
+      label: "Sync",
+      kind: "mode",
+      token: "@SYNC",
+      // Internal: the Timer steps at the BPM knob and MIDIRTM stays unrouted (`grxm(2,0)`). External:
+      // `grxm(2,3)` routes the host's realtime bytes to `rtmrx_cb`, which steps every @DIV clocks
+      // from Start; the Timer steps nothing. Worded by view.ts's SYNC_WORDS. APPEARS IN BOTH EVENTS.
+      // The browser has no clock: the preview renders Internal (`previewIndex`) and says so.
+      values: ["false", "true"],
+      default: 0,
+      previewIndex: 0,
+    },
+    {
+      id: "division",
+      label: "Division",
+      kind: "mode",
+      token: "@DIV",
+      // MIDI clocks per column at 24 per quarter: 12 an 8th, 6 a 16th, 3 a 32nd. Worded by
+      // view.ts's DIVISION_WORDS. Read under External only.
+      values: ["12", "6", "3"],
+      default: 1,
+    },
+    {
       id: "note",
       label: "Lowest note",
       kind: "note",
@@ -148,13 +196,15 @@ export const STEPS: CatalogEntry = {
     },
   ],
 
-  // The same six indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
+  // The same eight indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
     tempo: 2,
     armed: 0,
     sweep: 0,
     trail: 2,
+    sync: 0,
+    division: 1,
     note: 0,
     channel: 2,
   },
