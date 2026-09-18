@@ -1,7 +1,6 @@
 // The cost of an emitted surface, MEASURED under the pinned minifier at the
 // RGB444 picker corner - never estimated, never divided. `fits` is a statement
-// about every string the surface emits (the Timer, 255/4 and, under five slots,
-// the trimmed system halves carry the runtime).
+// about every string the surface emits (five under five slots, change 10B).
 // A text costs `max(compressed.length, raw.length)` under GridScript.compressScript
 // after padReady(), which is why every stored body is CANONICAL - a fixed point
 // of the minifier - and `canonical()` runs the output back through itself. The

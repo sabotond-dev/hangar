@@ -2,9 +2,8 @@
 // visitor built, so Play routes a finger to the same runtime the module would
 // run (PREV-04). The same host, library and strings: emitSurface writes the
 // Setup, the Timer, the 255/4 body and, under five slots (change 10B), the two
-// TRIMMED system halves with the runtime parts they carry; createLuaHost runs
-// them exactly as the module runs the landing (the full halves under fewer
-// slots); LuaPadSim is the SimEngine the page's SimHost paints. Two stand-ins,
+// TRIMMED system halves with their runtime parts; createLuaHost runs them as the
+// module runs the landing; LuaPadSim is the SimEngine the page's SimHost paints. Two stand-ins,
 // as runtime.spec.ts uses them: the touch element's `tim` (the Timer body) and
 // `ele[#ele]:map()` (the 255/4 body) are assigned in front of the Setup, because
 // the host models neither for the touch element. Reached only through

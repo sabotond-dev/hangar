@@ -1,16 +1,14 @@
 <!--
   SELECTED ELEMENT: PDF page 3's right column in Inspector.svelte's panel - the
   eyebrow and the name, the units chip, Element name, the type as a plain label
-  (a kind never changes once placed - change 10A) and Orientation on a fader,
-  Behavior (change 10B: a fader's Mode / Speed / Spring, an XY pad's Mode /
-  Speed, a button's Toggle / Group, a knob's Mode), MIDI output (the
-  controllers, the channel, Min and Max; a button's Output and its Note; not
-  on a blank), Appearance through Swatch.svelte, then the pinned Duplicate /
-  Delete element. Props: view, the callbacks, notice. Every typed edit goes
-  through the editor and the previous valid value survives a refusal (the field
-  shows the refused text with aria-invalid until a keystroke validates; blur and
-  Enter are oncommit, the history's coalescing boundary); every select and
-  checkbox is one entry. The grid reflows at NUMERIC_GRID_REFLOW (D-21). In Play every field is read-only with PLAY_LOCKS_FIELDS.
+  (change 10A) and Orientation on a fader, Behavior (change 10B: a fader's Mode /
+  Speed / Spring, an XY pad's Mode / Speed, a button's Toggle / Group, a knob's
+  Mode), MIDI output (the controllers, the channel, Min and Max; a button's Output
+  and its Note; not on a blank), Appearance through Swatch.svelte, then the pinned
+  Duplicate / Delete element. Props: view, the callbacks, notice. Every typed edit
+  goes through the editor and the previous valid value survives a refusal (the
+  refused text stays with aria-invalid until a keystroke validates; blur and Enter
+  are oncommit); every select and checkbox is one entry. The grid reflows at NUMERIC_GRID_REFLOW (D-21). In Play every field is read-only with PLAY_LOCKS_FIELDS.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.

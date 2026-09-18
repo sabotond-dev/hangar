@@ -1,15 +1,13 @@
-// The Sandbox's emitter: a surface -> the touch Setup, the touch Timer, the system element's
-// fourth event (255/4) under three slots and, under five (change 10B), the two trimmed system
-// halves carrying the runtime's overflow. The Setup is the data half: the region table `J` (one
-// row per region: its BOX in cells, its kind, controller, channel and colour, then the change 10B
-// tail - min, max, the flag word, a spring position - written only past the last non-default),
-// the `[0]`-indexed 81-entry cell map `M` (the same array geometry.ts validated), the paint on
-// layer 1, the pull-in call(s) `self:tim()` / `ele[#ele]:map()` that run the runtime's slot(s),
-// and `self.touch_cb=O` AFTER the pull-in so `O` exists when it is named. A blank (change 10A) is
-// paint only: its row carries the colour alone, its cells in `M` are its index NEGATED. The
-// runtime is runtime.ts's, packed per surface with only the branches the surface's kinds need;
-// on the wire the Sandbox is a Lua entry (land.ts). This file's names are `J M`, free of the
-// library's - emit.spec.ts test 5. History: docs/entries/sandbox-runtime.md.
+// The Sandbox's emitter: a surface -> the touch Setup, the touch Timer, 255/4 under three slots
+// and, under five (change 10B), the two trimmed system halves carrying the runtime's overflow.
+// The Setup is the data half: the region table `J` (one row per region: its BOX in cells, its
+// kind, controller, channel and colour, then the change 10B tail - min, max, the flag word, a
+// spring position or a knob's centre - written only past the last non-default), the `[0]`-indexed
+// 81-entry cell map `M` (geometry.ts's own array), the paint, the pull-in call(s) that run the
+// runtime's slot(s), and `self.touch_cb=O` AFTER them so `O` exists when it is named. A blank
+// (change 10A) is paint only: its row is the colour alone, its cells in `M` its index NEGATED.
+// The runtime is runtime.ts's, packed per surface with only the branches the surface's kinds
+// need. This file's names are `J M` (emit.spec.ts test 5). History: docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { brightnessOf, scaleChannel } from "../catalog/brightness";
