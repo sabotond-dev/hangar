@@ -5919,6 +5919,115 @@ deploy, no push; `library.ts`, every other entry, the untouched list as before.
 coordinator's example (60 80 100 120 140 170 / 140) because 140 BPM is 107 ms and would move the
 rest frame; 136 keeps it. Question (a) of change 8 is answered by this change; (b)-(j) still stand.
 
+## 2026-09-18 change 10A - the Sandbox's editor: the selector, hotkeys, a body drag, a delete icon, a Blank, and no number about the budget
+
+Part A of `BENCH-2026-09-16.txt` section 10 (answers 1a, 2, 3b, 4 and 12; part B - the MIDI
+options, the modes, the animations, the budget - is the next executor's). Two source commits (`e2947fc`
+feat(sandbox) - the model, the emitter, the schema, the copy, the four components, the route, six
+specs and two e2e files; `e14fd6e` chore(gate) - the blank fixture by name and the gate script's
+quick constant), no push, no device, no deploy; then this section, the Done paragraph "10A" under
+section 10, a dated paragraph in `docs/INSTALL-RUNBOOK.md`, a section in
+`docs/entries/sandbox-runtime.md`, and the gate records `gate/change-10a.*` (before, at `51e8ff7`,
+on a clean worktree `../hangar-gate-10a` with its own `npm ci` and build; removed after the records
+were copied) and `gate/change-10a-after.*` (at `e14fd6e`).
+
+**What moved in the suites.** `sandbox-ui.spec.ts` 9 -> 11 titles: 1 re-worded (the empty state's
+line is not the Bible's verbatim any more, and the five palette rows show their key), 2 rewritten
+(the selector, the sticky arming, the hotkey map, the route's listener guards, the plate's
+pointer-move and pointer-down scans, the keyboard route), 3 (+ the delete icon), 4 (five rows
+disabled; the MIDI fields read-only; a nudge refused in Play), 5 rewritten around the three MIDI
+fields and the plate's routes, 6 (the move is three arrow presses under `nudge:<id>`, the resize two
+Shift-presses under `grow:<id>`; the cap by sixteen blanks from one arming, the seventeenth click
+refused with the numberless line), 7 and 8 (`cancel()` between armings; blanks where an area was),
+10 new (`moveSelectedTo` one entry, refused on overlap / off-plate, no-op on the same cell, silent in
+Play; the arrows' coalescing until `commitField`; the icon's 20 / 44 squares and the plate's wiring;
+the panel without the block, the select or a meter; no digit in the three refusals, no `908` in
+`copy.ts` or the route), 11 new (the blank: `L`, 1 x 1, `cc: 0`, the next fader still on controller
+1, moved / resized / refused at 0 wide, no MIDI section, the list row, the palette row's key, the
+plate's mark with no chip, sixteen of them reach the cap, and `isStoredRecord` on a four-kind
+record, a blank record and an unknown kind). `emit.spec.ts` 6 -> 7: the blank's form (its row, the
+negated cells, the fallback once, the runtime untouched, a blankless surface byte-identical), its
+cost (+72 on page 3 with a 2 x 2 and a 1 x 1: two rows of 27, two commas, the fallback 11 and one
+minus sign per covered cell), and the VM (the rest frame lit, a press and a move on the blank leave
+the frame and the MIDI log untouched, the fader beside it sends and moves the frame).
+`geometry.spec.ts` test 4 reads `GEOMETRY_COPY.cap` as a string and asserts no digit;
+`install.spec.ts`'s over-budget title reads `TOO_FULL_TO_STORE` (no digit) beside the landing's
+numbers; `tune-ui.spec.ts`'s meter assertion is re-aimed to ZERO mounts on the Sandbox route and no
+`908` on it (`BudgetMeter.svelte` stays on `TUNING_COMPONENTS`, unmounted). `e2e/sandbox.e2e.ts` 5 ->
+6 titles: the first re-worded (the palette arms and stays armed, the controller field's refusal,
+`B` on the plate, `V`, a click on empty clearing, `f` in the name field arming nothing, no meter
+and no `908` on the page), the drag title reads the units chip instead of the fields and presses
+`V` before dragging, the fourth new (the selector's walk: `F`, a click, `V`, the body drag to (4, 3),
+`L` and a blank with no MIDI fields, a refused drag onto the blank with section 16's line, Left /
+Shift+Right / Shift+Up, the delete icon, one Undo, the Delete key); `e2e/radius.e2e.ts` reads
+`field-cc` and `surface-delete` where it read `field-w`.
+
+**Counts, carried + delta:** quick 95 / 983 + 1 todo -> **95 / 986 + 1 todo** (+0 / +3), green
+twice at `--maxWorkers=2` (`quick-A`, `quick-B`) plus the gate's; check 658 -> **658**, 0 / 0; lint
+clean; sweep `4 19` green (`lua-entries` 1,804 combinations); e2e 88 titles / 103 runs -> **89 /
+104** (+1 / +1); utilities **44** -> **44** (0 appeared, 0 disappeared); catalog **27**, no entry
+touched; testids 318 -> **316** (source-level values: `geometry-grid`, `kind-problem`,
+`surface-meters`, `meter-line` gone; `surface-delete`, `orientation-problem` new; `field-col` /
+`field-row` / `field-w` / `field-h` were one `field-{field}` template, still there for the MIDI
+fields; `palette-blank` is the `palette-{kind}` template); OG 27 files, 159,169 B unmoved;
+`frames.json`, the golden frames, the preset baseline and the synthetic ZONA byte-identical.
+
+**The gate's terms** (`--before change-10a` at `51e8ff7`; `--after change-10a --against
+change-10a --check 658` at `e14fd6e`): equal - the wire set `7cda3c4b…` and full `bcf8063c…` (every catalog string byte-identical:
+no entry touched), all four fixtures by hash-object, the OG 27 files / 159,169 B `9becd682…`, the
+utilities 44 -> 44 (0 appeared, 0 disappeared), check 658, lint, quick exit 0 (986 + 1 todo, the
+constant moved with it), the build (stamp `e14fd6e`), the refuse-list `--stat` empty, `src/` 18
+modified / 0 added / 0 deleted / 0 renamed; moved as a feature moves them - **the sandbox set
+`40b44316…` -> `5fcc2955…`: 154 -> 168 records, 154 byte-identical, 0 moved, 0 removed, 14
+added, every one of them `S/emit/page3-blanks/`** (the new fixture's landed five, its emitted
+three under two and three slots, and at the corner); the census `8995adf5…` -> `522c873a…`
+(2,784 -> 2,779 literals: the thirteen retired copy strings, `area` 7 -> 0, `retype` and `started`
+2 -> 0, the `$lib/sandbox/cost` specifier 2 -> 0, the `-type` / `-kind-problem` ids; added `Blank`,
+`blank` 0 -> 11, the three numberless refusals, the two blank throws, `delete-hit` / `delete-box` /
+`delete-glyph`, `escape`, `backspace`, `-orientation-problem`); the copy exports `071be34f…` ->
+`27be101c…`; the testids `74e0cfd6…` -> `017609a1…` (318 -> 316); the SCOPED CSS `7f88b4f4…` ->
+`e7045f06…` (the Sandbox's own rules: `.plate` cursor default, `.plate.armed`, `.region.selected
+.body`, `.delete-hit` / `.delete-box` / `.delete-glyph` in SurfaceEditor; `.side` -> `.key` and
+`.row[aria-pressed="true"] .key` in Palette; `.value` added and `.meter` gone in RegionInspector;
+`.meters`, `.meter-line`, `.meter-line.over` gone from the route) and the raw CSS `56d81122…` ->
+`8c4ed778…`; the titles `39b22413…` -> `fa250c25…` (984 -> 987 vitest: two added, one retitled
+in emit and three retitled in sandbox-ui; 103 -> 104 playwright: one added, one retitled); the JS
+`a354133c…` -> `e131c040…` (72 -> 71 files: the route's own `cost` chunk went with the meter).
+The script exits 1 at the sandbox set by design; the later terms are compared from the two
+records. The first `--after` at `e2947fc` (before the fixture) recorded the same wire, census,
+copy-export, testid, CSS and JS hashes and `quick exit 1` on the stale 983 (its JSON: 986 passed,
+0 failed); it was overwritten by the re-take.
+
+**Chunks** (fresh detached wrangler dev on 4173 on the build at `e2947fc`, stopped through
+PowerShell, HTTP 000 after each; the user's 5173 untouched): c4 **17 passed** (catalog, fidelity,
+first-experience, library, sandbox - the six Sandbox titles among them); c5 **11 passed**
+(artifacts, radius - its one title walks the Sandbox route to the knob's panel and the delete icon
+
+- skeleton, smoke); c2 **3 failed / 19 passed** at three workers (`browse:299`, `:343` - the grid
+  read before hydration, the flake changes 3, 4 and 6 recorded - and `:1186`, the same shape, "locator
+  resolved to 27 elements"; the title that names a Sandbox surface, `:1672`, passed), then **22
+  passed** at `--workers 1` on a fresh server (rerun `c2-w1-change10a`, the script's body with one
+  flag changed, run from the scratchpad). c1 and c3 not run: no install, session, tuning or
+  tuning-webkit title reads the Sandbox.
+
+**Outside `src/`:** `docs/INSTALL-RUNBOOK.md` gains a dated read-through paragraph (the Sandbox rows
+under the selector, the hotkeys, no position block, no meter, the Blank; the moved test ids);
+`docs/entries/sandbox-runtime.md` a section on the blank's four candidate forms, the one kept and
+its cost; `scripts/gate/sandbox-fixtures.mjs` the `emit/page3-blanks` fixture; `scripts/13.2-gate.sh`
+`QUICK_TESTS` 983 -> 986. No device, no deploy, no push; `src/vendor/`, `library.ts`, every entry,
+`sequence.ts`, the manifest, `Knob.svelte`, `ColourPicker.svelte`, `pad-sim.ts`,
+`firmware-oracle.spec.ts` untouched; no `border-radius` anywhere (the radius gate's layers A and B
+green on the fresh build).
+
+**Deviations, stated.** The Bible's section 8 empty-state sentence is re-worded (area selection
+went with answer 1a); `tune-ui.spec.ts` and `tune/copy.ts` were edited though the brief's file list
+did not name them (the first pinned the Sandbox's two meter mounts, the second's ledger line named
+the room line); `BudgetMeter.svelte` is unmounted and kept (its by-name deletion is a question);
+the route no longer calls `costOf` (still pinned by `emit.spec.ts`); the first `--after` record
+(at `e2947fc`, before the fixture) was overwritten by the re-take at `e14fd6e` - `--after` records
+are not baselines; the gate's quick term at `e2947fc` printed `quick exit 1` on the stale constant
+(the JSON: 986 passed, 0 failed), which is why the constant moved in `e14fd6e`.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

@@ -1352,3 +1352,172 @@ library halves in 255/0 and 255/6 with only what the surface's runtime calls (E 
 calibration tables) and use the room for the runtime; the cost meter, the character count and the
 limit disappear from the Sandbox for now - the cap is still enforced, its refusal worded without
 numbers. Every other question: the first option.
+
+### Done, 2026-09-18, change 10A - the editor (part A of the Sandbox feature set)
+
+One source commit, no push, no device, no deploy: `e2947fc` feat(sandbox) - the model, the emitter,
+the schema, the copy, the four components, the route, the six specs and the two e2e files that
+moved with them; then this paragraph with `docs/TESTING.md`'s "2026-09-18 change 10A", the dated
+paragraph in `docs/INSTALL-RUNBOOK.md`, a section in `docs/entries/sandbox-runtime.md`, and the
+gate records `gate/change-10a.*` (before, at `51e8ff7`, in a clean worktree `../hangar-gate-10a`
+with its own `npm ci` and build) and `gate/change-10a-after.*`. Part B (the MIDI options, the modes,
+the animations, the budget) is the next executor's; the region schema's MIDI fields are untouched
+beyond what A needed (a blank's inert `cc: 0, channel: 1`).
+
+**What a click does now (answers 1a, 3b).** The selector is the default tool: a click on an
+element selects it; a click on an empty cell CLEARS the selection and moves the keyboard focus cell
+there (chosen, of the brief's two: it is the selector convention, and it is the plate's own way to
+the no-selection panel); two-click area placement is gone (`boxBetween`, `kindForBox`, the `area`
+placement, the `started` outcome and the release-is-a-second-click accelerator with it). A kind
+armed - a palette row or its key - places its default box at every click until `V` or Escape (or a
+second click on the row) returns to the selector; an undo does not disarm; at the cap the click is
+refused with the cap's line. The plate's cursor is the arrow until a kind is armed (crosshair) and
+`move` over a selected body.
+
+**The hotkeys (answer 2).** `F` fader, `B` button, `X` XY pad, `K` knob, `L` blank; `V` and Escape
+the selector; `Delete` and Backspace the selection. The map is `editor.ts`'s `HOTKEYS` /
+`SELECTOR_KEY` / `kindForKey` (pure, pinned by `sandbox-ui.spec.ts` test 2); the listener is the
+route's one `window` `keydown` handler (the Ctrl/Cmd+Z / +Y handler, widened): it returns while an
+`<input>`, `<textarea>` or `<select>` has focus (a name field typing "f" arms nothing - the e2e
+presses it), with Alt held, and for any event the plate or the element list already handled
+(`defaultPrevented`: the plate's Escape / Delete and the list's Delete). The palette rows show their
+key as a mono chip (`<kbd>`) and carry `aria-keyshortcuts`; the status line still says which kind is
+armed (`Click a cell to place the Fader.`); the empty state's second line names the five keys.
+
+**Moving (answer 4).** A press on the selected element's body starts a body drag (the click
+selects first, so a press on an unselected element selects AND drags); the proposed box follows the
+pointer less the grab offset, clamped to the plate; the release is ONE `editor.moveSelectedTo(cell)`
+- `applyEdit` with the origin under the `move` EditKind, coalesced under the drag key and sealed on
+release, refused (the region stays put, the line in the status) where the box would overlap or leave
+the plate, and a release on the same cell commits nothing. The handles resize as before; both
+drags share `commitBox` in the model. With the selector and a selection the arrows are
+`nudgeSelected` (one cell) and Shift with an arrow `resizeSelectedBy` (one cell wider / taller, or
+narrower / shorter), coalesced under `nudge:<id>` / `grow:<id>` until the plate's key-up calls
+`commitField` - a held arrow is one Undo; with a kind armed or nothing selected the arrows move the
+focus cell as before. The model's box-taking methods are exactly `resizeSelectedTo`,
+`moveSelectedTo`, `nudgeSelected`, `resizeSelectedBy` (spec 2 pins the list).
+
+**The panel.** The `Position & size` block is gone (Column, Row, Width, Height, the snap helper);
+the `N × M units` chip stays beside the name; the type is a plain label under `Element name`
+(`field-kind`, a `<span>`, beside Orientation on a fader) - the eyebrow still reads `SELECTED ELEMENT
+/ FADER`; the adjacency warnings render under the identity block; Behavior, MIDI output (not on a
+blank) and Appearance as before; Duplicate / Delete element pinned as before. `setKind`, `onkind`,
+`kindProblem` and the `retype` edit kind are retired; the one refusal that block still needs (an
+orientation the geometry refuses) is `orientationProblem` / `orientation-problem`. The numeric
+fields are the three MIDI fields (`NUMERIC_FIELDS` = cc, cc2, channel).
+
+**The delete icon.** In the selection group, a 20px square in the action colour with the
+workspace's cross, diagonally off the selection's top-right corner (inside the corner where the
+plate's edge leaves no room), a 44px hit square under it, `surface-delete`; its press stops the
+plate's own pointerdown (which would read the cell under the icon) and its click is the panel's
+`ondelete` - one Undo. The numbers are `layout.ts`'s `SANDBOX_DELETE_ICON` / `SANDBOX_DELETE_HIT`. No
+radius anywhere; the spec scans the source for `border-radius` and `rx=`/`ry=`.
+
+**The blank kind.** `ElementKind` gains `"blank"` (schema.ts, additive: a draft written with four
+kinds reads exactly as it did - spec 11 proves an old record, a blank record and an unknown kind);
+label `Blank`, key `L`, default 1 x 1, minimum 1 x 1, colour only, `cc: 0` and `channel: 1` as inert
+fields so every region is one shape (`freeController` skips it). On the wire it is PAINT ONLY, the
+form chosen from four (`docs/entries/sandbox-runtime.md` lists them): its row in `J` is
+`{[9]=r,[10]=g,[11]=b}`, its cells in `M` its 1-based index NEGATED, and the paint reads
+`local r=J[M[n]]or J[-M[n]]` - only on a surface that has a blank. So the runtime's `S[i]=M[N(x,y)]`
+pins a negative number, `J[S[i]]` is nil, `O` returns before `G`: a finger over a blank draws nothing
+on layer 2 and sends nothing, `E` on the lift finds nothing to clear, and the runtime text is
+untouched (no sixth type code, no branch, `RUNTIME_CALLS` still five). The shared `G` call would
+have made "draw nothing" cost eleven characters on EVERY surface (a guard in `O`) - that is why the
+negation is on the data side and a surface without a blank is byte-identical. **The cost** (pinned
+`compressScript` after `initLuaFormatter()`, the picker corner, three slots): a blank's row is 27
+(`{[9]=255,[10]=255,[11]=255}`) plus its comma, plus ONE character - the minus sign - per cell it
+covers in `M`, plus the fallback's 11 once per surface; page 3 with a 2 x 2 blank and a 1 x 1 blank
+measures Setup 636 -> 708 (+72 = 27+1+27+1+11+5), the Timer and 255/4 unmoved. The preview runs the
+same Lua and shows it. `typeCodeOf(blank)` throws (it has no code), `branchOf` returns undefined.
+
+**The meter (answer 12).** Gone from the Sandbox: the two `BudgetMeter` mounts, `N of 908 · room
+for about M more`, `of 908 · no room for another`, `measuring…`, the over line, `surface-meters` and
+`meter-line`. The measurement still runs (the route calls `landSurface` on every change and Store
+is still disabled when a string is over); `costOf` and its floor are untouched and still pinned by
+`emit.spec.ts` (the route no longer calls it - it measured up to sixteen surfaces per edit for a
+number nobody sees). The refusals are worded without numbers: the cap `This surface is full. Remove
+an element to add another.` (`GEOMETRY_COPY.cap`, a string now), duplicate at the cap `This surface
+is full. Remove an element to duplicate another.`, Store's `This surface is too full for a ZONA
+page. Remove the last element to fit.` (`TOO_FULL_TO_STORE`, DestinationZone's `refusal`). Spec 10
+asserts none of the three carries a digit and `copy.ts` spells neither `908` nor `16 elements`.
+`BudgetMeter.svelte` stays in the tree UNMOUNTED for the "for now" - `tune-ui.spec.ts`'s meter
+assertion is re-aimed to zero mounts and names the by-name deletion (D-12) as your question.
+
+**Copy retired from `copy.ts` (13):** `POSITION_AND_SIZE`, `COLUMN`, `ROW`, `WIDTH`, `HEIGHT`,
+`SNAP_HELPER`, `PALETTE_ADD`, `AREA_START`, `roomLine`, `ROOM_NONE`, `overLine` (already
+unread), `MEASURING`, `overElementLine`. **Re-worded (3):** `EMPTY_INSTRUCTION` (`Add an element,
+or select an area on the surface.` -> `Add an element to the surface.` - the Bible's verbatim named
+a path that went), `EMPTY_SECOND_LINE` (`... or click any cell to begin an area.` -> `... or press
+F, B, X, K or L and click a cell.`), `DUPLICATE_AT_CAP` (above). **Added (2):** `KIND_LABELS.blank`,
+`TOO_FULL_TO_STORE`. **Geometry:** `GEOMETRY_COPY.cap` a string (above); `tooSmall` gains the blank
+case. So the copy-exports term moves: `071be34f…` -> `27be101c…`.
+
+**Test ids:** gone `field-col`, `field-row`, `field-w`, `field-h`, `geometry-grid`,
+`kind-problem`, `surface-meters`, `meter-line`; new `surface-delete`, `orientation-problem`,
+`palette-blank`; `field-kind` is a `<span>` now. The testid term counts source-level values: 318 -> 316, `74e0cfd6…` -> `017609a1…`.
+
+**Counts, carried + delta:** quick 95 / 983 + 1 todo -> **95 / 986 + 1 todo** (+0 / +3:
+`sandbox-ui` 9 -> 11, `emit` 6 -> 7), green twice at `--maxWorkers=2` plus the gate's; check
+658 -> **658**, 0 / 0; lint clean; sweep `4 19` green (`lua-entries` 1,804); e2e 88 / 103 ->
+**89 / 104** (+1 / +1: the selector's walk); utilities **44** -> **44** (0 appeared, 0 disappeared); catalog **27** (no entry
+touched); testids 318 -> **316**; OG 27 files, 159,169 B unmoved; `frames.json`, the golden frames, the
+preset baseline and the synthetic ZONA byte-identical.
+
+**The gate's terms** (`--before change-10a` at `51e8ff7` on the worktree; `--after change-10a
+--against change-10a --check 658` at `e2947fc`): equal - the wire set `7cda3c4b…` and full `bcf8063c…` (every catalog string byte-identical:
+no entry touched), all four fixtures by hash-object, the OG 27 files / 159,169 B `9becd682…`, the
+utilities 44 -> 44 (0 appeared, 0 disappeared), check 658, lint, quick exit 0 (986 + 1 todo, the
+constant moved with it), the build (stamp `e14fd6e`), the refuse-list `--stat` empty, `src/` 18
+modified / 0 added / 0 deleted / 0 renamed; moved as a feature moves them - **the sandbox set
+`40b44316…` -> `5fcc2955…`: 154 -> 168 records, 154 byte-identical, 0 moved, 0 removed, 14
+added, every one of them `S/emit/page3-blanks/`** (the new fixture's landed five, its emitted
+three under two and three slots, and at the corner); the census `8995adf5…` -> `522c873a…`
+(2,784 -> 2,779 literals: the thirteen retired copy strings, `area` 7 -> 0, `retype` and `started`
+2 -> 0, the `$lib/sandbox/cost` specifier 2 -> 0, the `-type` / `-kind-problem` ids; added `Blank`,
+`blank` 0 -> 11, the three numberless refusals, the two blank throws, `delete-hit` / `delete-box` /
+`delete-glyph`, `escape`, `backspace`, `-orientation-problem`); the copy exports `071be34f…` ->
+`27be101c…`; the testids `74e0cfd6…` -> `017609a1…` (318 -> 316); the SCOPED CSS `7f88b4f4…` ->
+`e7045f06…` (the Sandbox's own rules: `.plate` cursor default, `.plate.armed`, `.region.selected
+.body`, `.delete-hit` / `.delete-box` / `.delete-glyph` in SurfaceEditor; `.side` -> `.key` and
+`.row[aria-pressed="true"] .key` in Palette; `.value` added and `.meter` gone in RegionInspector;
+`.meters`, `.meter-line`, `.meter-line.over` gone from the route) and the raw CSS `56d81122…` ->
+`8c4ed778…`; the titles `39b22413…` -> `fa250c25…` (984 -> 987 vitest: two added, one retitled
+in emit and three retitled in sandbox-ui; 103 -> 104 playwright: one added, one retitled); the JS
+`a354133c…` -> `e131c040…` (72 -> 71 files: the route's own `cost` chunk went with the meter).
+The script exits 1 at the sandbox set by design; the later terms are compared from the two
+records. The first `--after` at `e2947fc` (before the fixture) recorded the same wire, census,
+copy-export, testid, CSS and JS hashes and `quick exit 1` on the stale 983 (its JSON: 986 passed,
+0 failed); it was overwritten by the re-take.
+
+**Chunks** (fresh detached wrangler dev on 4173 on the build at `e2947fc`, stopped through PowerShell,
+HTTP 000 after each; your 5173 untouched): c4 **17 passed** (catalog, fidelity, first-experience,
+library, sandbox - the six Sandbox titles among them); c5 **11 passed** (artifacts, radius - its
+one title walks the Sandbox route to a knob's panel and the delete icon - skeleton, smoke); c2
+**3 failed / 19 passed** at three workers (`browse:299`, `:343` - the grid read before hydration,
+the flake changes 3, 4 and 6 recorded - and `:1186`, the same shape; the title that names a
+Sandbox surface, `:1672`, passed), then **22 passed** at `--workers 1` on a fresh server (rerun
+`c2-w1-change10a`). c1 and c3 not run: no install, session or tuning title reads the Sandbox.
+
+**Questions for the user.** (a) A click on an empty cell CLEARS the selection (the focus cell moves
+there); say if it should keep the selection instead. (b) `BudgetMeter.svelte` is unmounted and in the
+tree for the "for now"; say whether to delete it by name (D-12) with `tune/copy.ts`'s meter family,
+or keep it for the meter's return. (c) The delete icon sits diagonally OFF the corner (inside it at
+the plate's edge) so it covers no handle and no cell of its own; say if you want it inside the
+region's corner instead. (d) A blank carries `cc: 0` / `channel: 1` as inert fields so the region
+shape stays one shape; Part B's min / max fields should skip it the way the inspector does. (e) The
+cost of a blank includes one character per cell it covers (the minus sign in `M`); a 9 x 9 blank
+would cost 27 + 1 + 81 + 11 - say if that is acceptable or if Part B should look at a cheaper cell
+encoding when the budget work comes. (f) The empty state's first line is no longer the Bible's
+verbatim (`Add an element to the surface.`); say the words if you want others. (g) With a kind armed
+the arrows move the focus cell (the keyboard placement route), not the selected element; the
+element takes the arrows only under the selector. (h) Changes 1 to 9's questions still stand.
+
+**Not supported by the tree / departures from the brief:** the Bible's section 8 empty-state
+sentence is re-worded (above); the release-on-another-cell accelerator went with the area path;
+`costOf` is no longer called by the route (it still floors the cap in `emit.spec.ts`, and the cap
+is still enforced by the model's `atCap`); `tune-ui.spec.ts` and `tune/copy.ts` were edited though
+the brief's file list did not name them (the first pinned the Sandbox's two meter mounts, the second's
+ledger line named the room line); the `install.spec.ts` over-budget title reads `TOO_FULL_TO_STORE`
+now; ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`; the worktree `../hangar-gate-10a`
+was removed after the records were copied.

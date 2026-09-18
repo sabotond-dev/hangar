@@ -356,3 +356,41 @@ runtime.spec.ts test 7 measure it under both slot counts; the data half is
 the same under every answer, which was 13-14's premise and holds.
 
 ```
+
+## The blank kind (2026-09-18, change 10A; `BENCH-2026-09-16.txt` section 10)
+
+A blank is a coloured region that sends nothing: the user's "add a Blank element which just colors
+the LED". It is paint only, and the runtime never learns it exists. The form, chosen from four:
+
+- **In `J` and `M` like every region, with a sixth type code and a no-op branch `I[6]`.** Rejected:
+  `O` calls `G` (the finger on layer 2) BEFORE the kind's branch, so a finger over a blank would
+  light under the finger in the blank's colour, and the brief asked for nothing drawn; a guard in
+  `O` (`if not r or r[5]>5`) would have cost every surface eleven characters and moved every
+  Sandbox fixture on the wire.
+- **Out of `J`, its cells 0 in `M`, painted by a second loop over its own table.** Rejected: a second
+  loop is about a hundred characters fixed plus a row per blank, dearer than the form kept.
+- **In `J` with a no-op branch and `V` called from the branch to clear what `G` drew.** Rejected:
+  the runtime would call a sixth library name (`RUNTIME_CALLS` pins five) and the finger would
+  still be drawn and cleared inside one callback.
+- **KEPT: in `J` with the colour alone, its cells NEGATED in `M`, one fallback in the paint.** The
+  blank's row is `{[9]=r,[10]=g,[11]=b}` (the three columns the paint reads and nothing else); its
+  cells in `M` carry its 1-based index negated (`-5` for the fifth region); the paint reads
+  `local r=J[M[n]]or J[-M[n]]`, so a negated cell falls through to the row, and a surface WITHOUT a
+  blank renders the old paint byte for byte. The runtime's onset pins `S[i]=M[N(x,y)]`, a negative
+  number, and `J[S[i]]` is nil: `O` returns before `G`, nothing is drawn, nothing is sent, and the
+  library's `E` on the lift finds nothing to clear (`B[i]` was never written). The contact is still
+  swept by `X` like any other. `emit.spec.ts` test 7 runs it in the VM: the rest frame lights the
+  blank's cells, a press and a move on the blank leave the frame and the MIDI log untouched, the
+  fader beside it still sends and moves the frame.
+
+The cost, under the pinned `compressScript` at the picker corner: a blank's row is 27 characters
+(`{[9]=255,[10]=255,[11]=255}`, brightness-scaled like every colour), plus its comma, plus ONE
+character - the minus sign - for every cell it covers in `M`, plus the fallback's 11 once per
+surface that has a blank. Page 3 with a 2 x 2 blank and a 1 x 1 blank: Setup 636 -> 708 at three
+slots (+72 = 27 + 1 + 27 + 1 + 11 + 5 minus signs); the Timer and 255/4 are unmoved. `costOf`'s
+representative region is still the dearest fader, so the room floor is unchanged in kind.
+
+The editor gives a blank `cc: 0, channel: 1` as inert fields (schema.ts keeps one Region shape;
+`freeController` skips blanks when handing out controllers); the inspector shows no MIDI output for
+it; the preview runs the same emitted Lua, so it shows the colour and ignores the finger without a
+line of its own.
