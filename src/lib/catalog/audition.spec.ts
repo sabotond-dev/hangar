@@ -101,8 +101,13 @@ const flat = doc.replace(/\s+/g, " ");
  * MIDI clock sync, six clauses (a)-(f); rows 2, 3 and 25's Config cells re-cased
  * Euclid -> Orbit in place (13-19's way), their prose append-only; the cost row
  * moves 722 / 233 / 6 -> 843 / 383 / 14 under the new id.
+ *
+ * 34 -> 37 on 2026-09-18 (BENCH-2026-09-16.txt section 12): ORBIT's clock idiom on
+ * three more cards - row 35 Steps, row 36 Radar points, row 37 Ghost - Sync and
+ * Division each; the cost rows move 414 / 258 / 6 -> 720 / 359 / 8, 592 / 286 / 5 ->
+ * 891 / 378 / 7 and 486 / 405 / 5 -> 725 / 480 / 7; every earlier row untouched.
  */
-const ROW_COUNT = 34;
+const ROW_COUNT = 37;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
