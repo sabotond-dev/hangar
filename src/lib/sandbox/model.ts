@@ -19,6 +19,7 @@ import {
   SPEEDS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  TOUCHES_MAX,
   type ButtonOutput,
   type ElementKind,
   type Orientation,
@@ -37,6 +38,7 @@ export {
   SPEEDS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  TOUCHES_MAX,
   type ButtonOutput,
   type ElementKind,
   type Orientation,
@@ -128,6 +130,44 @@ export const outputOf = (region: Region): ButtonOutput =>
 export const groupOf = (region: Region): number =>
   region.kind === "button" ? (region.group ?? 0) : 0;
 
+// ---------------------------------------------------------------------------
+// The change 11 option: an XY pad's fingers (BENCH-2026-09-16.txt section 11, answers 1a and 2a).
+
+/** An XY pad's touch count, 1..5; 1 unless set, and 1 on every other kind. */
+export const TOUCHES_MIN = 1;
+export const touchesOf = (region: Region): number =>
+  region.kind === "xy" ? (region.touches ?? TOUCHES_MIN) : TOUCHES_MIN;
+
+/** Finger n (1-based) sends on the pad's controller plus 2(n-1) - the next pair up per finger. */
+export const fingerController = (cc: number, finger: number): number =>
+  cc + 2 * (finger - 1);
+
+/** The highest base controller a touch count admits: the last finger's pair must stay inside 127. */
+export const ccCeiling = (touches: number): number =>
+  CC_MAX - 2 * (touches - 1);
+
+/** True when a surface carries a pad with more than one finger - the runtime's multitouch variant is emitted (runtime.ts). */
+export const hasMultitouch = (regions: readonly Region[]): boolean =>
+  regions.some((r) => touchesOf(r) > TOUCHES_MIN);
+
+/**
+ * The row's SEVENTH column: an XY pad's second controller with its touch count less one on top
+ * in steps of 128 (`cc2 + 128(touches-1)`: a one-finger pad is its `cc2`, byte-identical to the
+ * row before change 11; the runtime reads `> 127` as "more than one finger", `% 128` as the
+ * controller and `// 64` as the last slot's offset); a button's radio group; 0 on the rest.
+ * Measured against the flag word's bits 2..4 (a forced tail, `,0,127,16` on an otherwise-default
+ * pad) and a column of its own (`,0,127,0,5`): one to three characters a pad instead of ten.
+ */
+export const TOUCHES_COLUMN_STEP = 128;
+export function seventhOf(region: Region): number {
+  if (region.kind === "xy")
+    return (
+      (region.cc2 ?? 0) +
+      TOUCHES_COLUMN_STEP * (touchesOf(region) - TOUCHES_MIN)
+    );
+  return groupOf(region);
+}
+
 /**
  * The runtime's scale, `W(r,v)`: a POSITION 0..127 along the region's travel -> the sent value
  * `min + (max - min) * v // 127` (Lua's floor division, so a negative span floors toward the
@@ -154,9 +194,10 @@ export function springPosition(region: Region): number {
 
 /**
  * The row's flag word (column 14), one integer per region, kind by kind: a fader's bit 0 is
- * relative, bit 1 full speed, bit 2 spring; an XY pad's bits 0 and 1 the same; a button's bit 0
- * is toggle (`latch`), bit 1 a note output; a knob's is its mode's index 0..3 (absolute, two's
- * complement, binary offset, sign magnitude). 0 for every default, so the column is omitted.
+ * relative, bit 1 full speed, bit 2 spring; an XY pad's bits 0 and 1 the same (its touch count
+ * rides in the seventh column, `seventhOf`); a button's bit 0 is toggle (`latch`), bit 1 a note
+ * output; a knob's is its mode's index 0..3 (absolute, two's complement, binary offset, sign
+ * magnitude). 0 for every default, so the column is omitted.
  */
 export function flagsOf(region: Region): number {
   switch (region.kind) {

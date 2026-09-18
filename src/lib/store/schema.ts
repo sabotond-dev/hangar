@@ -138,6 +138,9 @@ export const BUTTON_OUTPUTS: readonly ButtonOutput[] = ["cc", "note"];
 /** A radio group is 1..8; 0 (or absent) is no group. */
 export const GROUP_MAX = 8;
 
+/** An XY pad's fingers (change 11): 1..5; absent is 1. */
+export const TOUCHES_MAX = 5;
+
 /**
  * One placed element. Cells are ZERO-based, 0..8, and the UI shows them
  * one-based through 13-14's named door. `channel` is 1..16 as the user sees
@@ -149,7 +152,10 @@ export const GROUP_MAX = 8;
  * fields are every one optional and read as their default when absent
  * (`min` 0, `max` 127, `mode` absolute, `speed` half, `spring` off,
  * `springValue` 64, `output` cc, `group` none), so a draft written before
- * them reads exactly as it did; sandbox/model.ts holds the readers.
+ * them reads exactly as it did; sandbox/model.ts holds the readers. `touches`
+ * (change 11) is an XY pad's finger count, 1..5, absent 1: finger n sends on
+ * `cc + 2(n-1)` and `cc2 + 2(n-1)`, so a region whose last finger would pass
+ * 127 is not a region.
  */
 export type Region = {
   readonly id: string;
@@ -173,6 +179,7 @@ export type Region = {
   readonly springValue?: number;
   readonly output?: ButtonOutput;
   readonly group?: number;
+  readonly touches?: number;
 };
 
 /**
@@ -307,6 +314,18 @@ function isRegion(value: unknown): value is Region {
     !(isInt(value.group) && value.group >= 0 && value.group <= GROUP_MAX)
   ) {
     return false;
+  }
+  // Change 11: the touch count 1..5, and its last finger's pair inside 127.
+  if (value.touches !== undefined) {
+    const touches = value.touches;
+    if (!(isInt(touches) && touches >= 1 && touches <= TOUCHES_MAX)) {
+      return false;
+    }
+    if (value.kind === "xy") {
+      const shift = 2 * (touches - 1);
+      const cc2 = isInt(value.cc2) ? value.cc2 : 0;
+      if ((value.cc as number) + shift > 127 || cc2 + shift > 127) return false;
+    }
   }
   const colour = value.colour;
   if (!Array.isArray(colour) || colour.length !== 3) return false;
