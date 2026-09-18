@@ -6278,3 +6278,124 @@ now fit `vb`, `hb`, `vhb`, `bx` as well); `emit.spec.ts` test 2's pair 1845 / 33
 servers 101 passed / 4 failed, every red a `browse.e2e.ts` hydration title (`:299`, `:343`,
 `:1186`, `:1263` or `:1404`), and `:1404` checked by hand on the built site (search "pad" + the
 "show" chip = aurora, pinwheel, starfield, the set the test computes). Catalog wire untouched.
+
+## 2026-09-18 change 11 - the Sandbox's XY pad with up to five fingers
+
+`BENCH-2026-09-16.txt` section 11 (answers 1a and 2a). Four source commits, no push, no device, no
+deploy: `881146b` feat(sandbox) - the schema's optional `touches` and the model's readers;
+`96f4fa3` feat(sandbox) - the multitouch runtime variant, the emitter, `runtime.spec.ts` /
+`emit.spec.ts`, the wire harness's six fixtures; `f331083` feat(sandbox) - the editor, the copy,
+the inspector, the route, `sandbox-ui.spec.ts`; `df60006` test(sandbox) - the e2e walk and the
+gate's quick constant; then this section, the Done paragraph under section 11, a paragraph in
+`docs/INSTALL-RUNBOOK.md`, a section in `docs/entries/sandbox-runtime.md`, the gate script's quick
+constant at what the run proves (95 / 999), and the gate records `gate/change-11.*` (before, at
+`e8c22ec`, on a clean worktree `../hangar-gate-11` with its own `npm ci`; removed after the records
+were copied) and `gate/change-11-after.*` (at `df60006`).
+
+**What moved in the suites.** `runtime.spec.ts` 14 -> 16: 6 (the change 11 fixtures among the
+texts through both class gates, the variant's entry counted as an entry, the names held on both
+runtimes), 7 (the canonical loop over the change 11 fixtures too - every packed text a fixed
+point), 14 (every change 11 fixture pressed, moved and lifted on every region with no error), 15
+new (two fingers on a Touches-2 pad on pairs 50 / 51 and 52 / 53 with independent positions - the
+second finger's onset moving the first's values not at all; the union crosshair - eight of nine
+cells under two fingers, five after one lifts; a third finger ignored - no pair 54, nothing on the
+held pairs, the picture as it was, its lift silent; the lowest free slot - a new finger is finger
+1 again on 50 / 51; Relative per finger - 31 on one finger's x with the other's pair silent, 0
+then 32 on the other's y, held between touches and continued at 63; a one-finger pad beside a
+two-finger one giving test 4's values and taking over as test 2 says; five fingers on 60..69 with a
+sixth ignored, the middle slot's lift leaving 24 cells lit and the next finger retaking slot 3 on
+64 / 65), 16 new (the variant's three texts canonical and pinned - R 234, O 392, I[4] 601 against
+249 / 323 / 502; the runtime with every branch 2,970 against 2,795; every subset of the other
+kinds beside a multitouch pad through the packer on five slots - thirteen fit, `vbxk` / `hbxk` /
+`vhbxk` over on the Timer at 956; page 3 with a two-finger pad 869 / 876 / 846 / 956 / 540 refused
+and the same four elements without the knob, the button or the fader fitting; a one-finger pad's
+seventh column, no tail forced, the paint reading the defaults only under the variant, the field
+at 1 or absent byte-identical). `emit.spec.ts` 8 -> 9: 9 new (the seventh column `cc2 +
+128(touches-1)`, the flag word untouched, the pairs and the ceilings 127 / 125 / 123 / 121 / 119,
+every string byte-identical with the field at 1 under two, three and five slots, the variant's
+Setup at +50, page 3's pad at three fingers without the knob landing five canonical strings inside
+908 and with the knob refused on the Timer 48 over). `sandbox-ui.spec.ts` 12 -> 13: 13 new (the
+select 3 as one entry, 6 / 0 / 2.5 / -1 refused with nothing recorded, a CC number 126 refused on
+its field under 3 fingers with the line and the model at 1, 123 landing, cc2 124 refused, 5
+fingers refused on the select with the line kept in the state and the model at 3, 2 landing and
+the line gone, undo and redo, a fader refusing it, Play locking it; the panel's select with its
+five options and the helper, the problem line with `aria-describedby`, none of it on a fader; the
+route's sixth wire and the inspector's snap-back; a record at 1..5 reads, 6 / 0 / 2.5 and a count
+whose last pair passes 127 refused whole, a button's controller not read against it).
+`e2e/sandbox.e2e.ts` 7 -> 8 titles: the Touches walk (X, a click, Escape; the select at 1 with
+the helper; 3 one entry; 126 refused on the CC field with the line and 120 landing; 5 refused on
+the select with the line and the select back at 3, no entry; 2 landing; the draft reloaded at 2
+fingers and CC 120).
+
+**Counts, carried + delta:** quick (the `server` project, the gate's own pipeline) 95 / 995 + 1
+todo -> **95 / 999 + 1 todo** (+0 / +4: `runtime` 14 -> 16, `emit` 8 -> 9, `sandbox-ui` 12 ->
+13), green twice at `--maxWorkers=2` (`quick-A` 51.8 s, `quick-B` 52.9 s) - change 10C's "99 /
+1014" was both projects, the server's 95 / 995 and the sweep's 4 / 19, so with the sweep the tree
+is 99 / 1018 + 1 todo; the gate script's constant is the server project's 95 / 999 now (it read
+95 / 995 through 10C); check 659 -> **659** (0 / 0); lint clean; sweep `4 19` green (87 s;
+`lua-entries` 1,804 combinations); e2e 90 titles / 105 runs -> **91 / 106** (+1 / +1: the Touches
+walk); utilities **44** -> **44** (0 appeared, 0 disappeared; the built CSS byte-identical, raw
+`e6d0ee3b…` and scoped `5aa7323e…` on both sides - no rule and no class was added); catalog
+**27**, no entry touched; testids 319 -> **321** (`field-touches`, `touches-problem` new); copy
+exports +3 (`TOUCHES`, `TOUCHES_HELPER`, `touchesCcRange`); OG 27 files, 159,169 B unmoved;
+`frames.json`, the golden frames, the preset baseline and the synthetic ZONA byte-identical.
+
+**The sandbox-set diff per fixture** (the gate's `--sandbox` term, 361 -> 475 records): **every
+one of the nineteen existing fixtures' records byte-identical - 361 same, 0 moved, 0 removed** -
+and 114 added, the six new fixtures times nineteen (`runtime/multitouch`, `runtime/five-fingers`,
+`runtime/multitouch-relative`, `runtime/two-pads`, `runtime/page3-multitouch`,
+`emit/page3-touches`). **The base wire set and `--full` are equal to the before-record** (set
+`1e4ba5c9…`, full `627cfb5b…`): every catalog string, the system halves' records and the base
+`S/page3/…` records unmoved. That is the strongest proof that a one-finger pad is what it was: the
+single-touch `R`, `O` and `I[4]` are the same bytes, and the variant is emitted only for a surface
+that carries a Touches > 1 pad.
+
+**The gate's terms** (`--before change-11` at `e8c22ec` on the worktree; `--after change-11
+--against change-11 --check 659` at `df60006`): equal - the wire set and full (above), the OG 27
+files / 159,169 B `9becd682…`, the raw CSS `e6d0ee3b…` and the SCOPED CSS `5aa7323e…`, the
+utilities 44 -> 44, lint, the refuse-list `--stat` empty, the build (stamp `df60006`), the four
+fixtures by hash-object, `src/` 11 modified / 0 added / 0 deleted / 0 renamed; check 659 -> 659;
+moved as a feature moves them - the sandbox set `4a691b04…` -> `3bdb5974…` (114 added, nothing
+else); the census `96d137f0…` -> `0cb162ee…` (2,835 -> 2,860 literals, 6,607 -> 6,654
+occurrences: the variant's texts, the three copy strings, `field-touches` / `touches-problem`, the
+paint's split literal); the copy exports `fe2f7209…` -> `09a12df9…` (three added); the testids
+`23525109…` -> `ee1f20c1…` (319 -> 321); the titles `140f8ef8…` -> `a110ec22…` (996 -> 1,000
+vitest incl. todo, 105 -> 106 playwright); the JS `bd8eae97…` -> `3d9cf59c…` (71 files). The
+script exits 1 at the sandbox set by design (new fixtures); the later terms are compared from the
+two records above. The gate's quick term read `no Vitest summary lines` in the before-record (the
+pipe inside the script, as 10B's did) and `observed 95 files, 999 tests passed, 1 todo` against
+the script's 99 / 1018 of the test commit in the after-record - the constant is 95 / 999 since the
+docs commit, what the same pipeline proves by hand twice.
+
+**Chunks** (fresh detached wrangler dev on 4173, stopped through PowerShell, HTTP 000 after each;
+your 5173 untouched; the build stamped `df60006`): c4 by its files (`c4-files`) **19 passed**
+(catalog, fidelity, first-experience, library, sandbox - the eight Sandbox titles among them); c5 by
+its files (`c5-files`) **11 passed**. Two runs of the WHOLE suite first, by mistake (a bare chunk
+name runs everything; the brief's `e2e-chunks.sh c4` is 10C's note, not a chunk): **103 passed / 3
+failed** (`browse:343`, `browse:1186`, `browse:1404`) and **105 passed / 1 failed** (`browse:299`) -
+every red a `browse.e2e.ts` title of the recorded hydration family, no Sandbox or install title
+red; then `browse.e2e.ts` alone on a fresh server: **14 passed** (rerun `browse-alone-change11`). c1, c2 and c3 not run as chunks: no
+install, session or tuning title reads the Sandbox (the two whole-suite runs covered them green).
+
+**Questions for the user.** (a) The PDF's page 3 with its pad at two or more fingers does not fit
+five slots - a fader, the button, the knob AND a multitouch pad are the one combination over (the
+Timer 48 over; no packing exists under the shared texts) - and Store refuses it with the
+over-budget line; say if that combination matters enough to re-cut the shared knob (608) or the
+fader (503), which would move every fixture. (b) A finger past the count is ignored (no light, no
+message); say if you want the newest finger to take the oldest's slot instead. (c) A count the
+controllers cannot carry is refused with its line and the select snaps back; say if you would
+rather the controllers were moved down to fit. (d) Changes 1 to 10C's questions still stand.
+
+**Not supported by the tree / departures from the brief:** the count rides in the seventh column
+(`cc2 + 128(t-1)`), neither the flag word nor a column of its own - measured cheaper by nine to
+ten characters a pad; the per-slot state is six columns from `17 + 3k` with k the controller
+offset, not `17 + 5(slot-1)` - the sixth column is the Relative anchor (a subtable per slot lost);
+the multitouch machinery is a VARIANT of three texts emitted only with a Touches > 1 pad, not an
+edit of the shared `O` / `R` (which would have moved every fixture); the variant's Setup paint
+reads the tail defaults once (+50) so its entry fits 255/0; the five-kind + multitouch surface is
+over and refused; the browser preview shows several fingers only from a touch screen (a mouse is
+one pointer) - multitouch is proved in the VM; the gate's quick constant is the server project's
+95 / 999, not the brief's 99 / 1014 + 4; `src/routes/sandbox/[draftId]/+page.svelte`'s header was
+already 12 lines at `e8c22ec` (`comment-lines.mjs --todo` prints it; 10B left it) and is not
+touched here beyond one wire line; ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`;
+the worktree `../hangar-gate-11` was removed after the records were copied.

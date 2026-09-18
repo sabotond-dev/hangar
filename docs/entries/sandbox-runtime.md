@@ -504,3 +504,97 @@ alone, 3,394 with every branch). The knob's per-sample centre from the knots (`(
 90 characters) lost to two row columns. A separate `W` lost to the fold into `D`. A cached bar
 position (`r[22]`) lost to redrawing the bar on every moved position. A cap on the knob's detents
 per sample was dead code and went. Two slots' and three slots' fits are recorded, not designed for.
+
+## Multitouch on the XY pad (2026-09-18, change 11; `BENCH-2026-09-16.txt` section 11, answers 1a and 2a)
+
+An XY pad gained a `Touches` select, 1 to 5, default 1. Finger n sends X on `cc + 2(n-1)` and Y on
+`cc2 + 2(n-1)` (answer 1a); a new finger takes the lowest free slot (answer 2a); a finger past the
+count is ignored; every finger has its own crosshair, its own held pair under Relative, its own
+last-sent pair; Min / Max and Relative / Speed apply per finger. What the row, the runtime and the
+slots are now, with the measured figures (the pinned `compressScript` after `initLuaFormatter()`,
+the RGB444 picker corner, `runtime.spec.ts` tests 15 and 16, `emit.spec.ts` test 9).
+
+### The count rides in the seventh column
+
+The count is `cc2 + 128(touches - 1)` in the row's SEVENTH column (`model.ts` `seventhOf`): a
+one-finger pad's seventh is its `cc2`, byte-identical to the row before the change; the runtime
+reads `r[7] > 127` as "more than one finger", `r[7] % 128` as the second controller and
+`r[7] // 64` as the last slot's controller offset (`2(t-1)`, exact because a slot key is even).
+Measured against the two forms the brief named: the flag word's bits 2..4 would force the tail on
+an otherwise-default pad (`,0,127,16`, +10) and a column of its own `,0,127,0,5` (+11); the
+seventh column costs one to three characters (`22` -> `150` at two fingers, `534` at five) and no
+tail. The flag word keeps bits 0 and 1 (Relative, Full) and nothing else for a pad.
+
+### The variant: three texts swapped only when a pad has more than one finger
+
+The multitouch machinery cannot live inside the single-touch `O` and `R`: the entry's onset expires
+every other contact holding the region landed on, and the release clears the whole region - both
+right for one finger per region, both wrong for five. Any edit to those two texts would move every
+existing fixture, so the runtime carries a VARIANT of `R`, `O` and `I[4]` (`runtime.ts`
+`MULTITOUCH_TEXT`) that `runtimeParts(branches, multitouch)` swaps in when `hasMultitouch` holds
+for the surface - dead-branch elimination by option - and every other part (`Q D K`, the fader,
+the button, the knob, the head, the arm, the sweep) is the same text. A one-finger pad on a
+multitouch surface runs the variant too and behaves exactly as today (test 15's fourth block:
+test 4's sequence gives test 4's values, a second finger takes over as test 2 says). The proof that
+the single-touch runtime did not move is the gate's sandbox set: 361 records byte-identical, 0
+moved, 114 added (six new fixtures times nineteen), and every `E/` and `P/` record and the base
+`S/page3/...` records unmoved.
+
+**The entry** (`O`, 323 -> 392): an onset on a pad whose seventh column is past 127 expires nobody;
+it walks `k = 0, 2, 4...` while slot k's CELL column is set (`while r[22+3*k] do k=k+2 end`), returns
+unpinned when `k > r[7]//64` (every slot held: the finger is ignored - no picture, no message, its
+later samples find no region and its lift is silent), else `F[i]=k` and `S[i]=n`. Every other
+region keeps the single-touch rule. The tail defaults are NOT read per sample any more: the
+variant's Setup paint reads them once per row (`emit.ts` `renderPaint`, +50 in the Setup - the
+49-character `TAIL_DEFAULTS_LUA` and a space), which is what keeps the entry inside 255/0's room
+beside the trimmed library (908 - 460 - 1 - 24 = 423; at 442 with the defaults it fitted no slot
+beside any large branch and the fader + pad + knob surface was over).
+
+**The release** (`R`, 249 -> 234, shorter): an XY pad's release runs its branch with no finger,
+`I[4](s,i,r)`, while `F[i]` still names the slot - `F[i]=nil` is the last statement - so the slot's
+cell goes and the union is redrawn; a knob alone is cleared whole; the guard is `if r then ... end`
+instead of `if not r then return end` and the single-touch `r[21]=nil` went.
+
+**The branch** (`I[4]`, 502 -> 601): the finger's state lives in six columns from `z = 17 + 3k`
+(k its controller offset, `F[i]` or 0): z+1 the held x, z+2 the held y (fine units, Relative),
+z+3 and z+4 the last sent pair (`D`'s own columns, so `D` is unchanged), z+5 the crosshair cell -
+nil while the slot is free, which is the entry's "free" test - and z+6 the Relative anchor. Slot 1
+is columns 17..22, the single-touch layout plus the anchor. The crosshair is the UNION of every
+held slot's row and column: `Q(r, f)` with `for j=22,46,6 do if r[j] and (...) then return 255 end
+end return 0` - the five cell columns, a constant bound (columns past the pad's count are never
+written). Called with no finger it drops its slot's cell, redraws and does nothing else. Finger k
+sends through `D(s,r,z+3,r[6]+k,a)` and `D(s,r,z+4,r[7]%128+k,b)`. A subtable per slot lost: `D`
+writes the sent value into `r[n]`, so a slot table would have needed a variant `D` or an inline
+send, and the accesses saved did not pay for the table's creation.
+
+### The costs, and the one combination that does not fit
+
+The variant's texts: R 234, O 392, I[4] 601 (the single-touch 249 / 323 / 502); the multitouch
+runtime alone with every branch 2,970 (the single-touch 2,795). Beside a multitouch pad, every
+subset of the other kinds fits five slots (`x`, `vx`, `hx`, `vhx`, `bx`, `vbx`, `hbx`, `vhbx`,
+`xk`, `vxk`, `hxk`, `vhxk`, `bxk`) EXCEPT the three that carry a fader, the button AND the knob
+(`vbxk`, `hbxk`, `vhbxk`): 869 + 876 + 846 + 956, the Timer 48 over. No packing exists, first-fit
+or perfect: the three large parts (the knob 608, the pad 601, the fader 503) each need a runtime
+slot of their own, the button (298) then fits only beside the fader (the Timer, 51 left), the
+entry alone fills 255/0 (27 left), and the four small parts (`R` 234, `K` 114, `Q` 111, `D` 100)
+have 31 / 27 / 47 / 51 characters left to share - the last one has nowhere to go. Tried and
+measured: the union painter as its own part (`W`, 129, a free name) moves 143 characters out of
+the branch and 12 into `R` and packs no better; a perfect packer in place of first-fit decreasing
+finds nothing; the tail defaults moved to the Setup (taken, -46 in the entry) is what made
+`vxk` and `bxk` fit; the shared texts (the knob's 608 most of all) are pinned by every fixture
+and stay. So the PDF's page 3 with its pad at two fingers - 869 / 876 / 846 / 956, Setup 489 ->
+540 - is refused by the measured cost model on the Timer (`land.ts`'s refusal, Store's over-budget
+line), and the same four elements without the knob (869 + 876 + 834 + 381), without the button or
+without the fader fit. The cap floor with every option on is unchanged - eleven of the dearest
+faders from an empty surface, fifteen from the dearest twelve, the dearest sixteen at 892 - because
+the representative is a fader and a surface without a multitouch pad runs the single-touch runtime.
+
+### The preview
+
+`preview.ts` runs the same five strings, so Play shows the variant. The plate routes every pointer
+by its `pointerId` (`SurfaceEditor.svelte`'s `onfinger`, the route's `host.touchDown(pointerId,
+...)`, `pointercancel` as a lift), so a touch screen delivers several fingers to the pad and each
+takes its slot; a mouse is one pointer and cannot show two. Multitouch is proved in the VM
+(`runtime.spec.ts` test 15: two fingers on both pairs with independent positions, the lowest free
+slot, the third finger ignored, the union and a lifted finger's cross gone, Relative per finger,
+five fingers on five pairs with a sixth ignored and the middle slot retaken).

@@ -1,0 +1,236 @@
+# 13.2 gate --after change-11 --against change-11 --check 659
+HEAD df60006 (df60006f68b65c70554aa2e34823098607f1b318); dirty (src e2e scripts docs) 0; free memory 2.4 GB; 2026-09-18T10:16:54Z
+before-record HEAD e8c22ec2d0cb4ad80eb00b0d4aa03d47f0119661
+
+## the wire
+2775 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 1e4ba5c9796f1ea4b2d15f397aa6e8102c94b67567dd730314ef43a7a008b0cd
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 627cfb5b749f46c715d750c21a214d66aed2f14c788a47bf2a0f088dd327f46d
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+195 files; 2860 distinct literals (6654 occurrences); 7 copy modules; 321 data-testids
+literal census sha256 0cb162ee5a2239ee5b41ef6d838ddc22add98453ee6448d55cbf56b0e61b5fce
+copy exports   sha256 09a12df90520f1de455c77e1c27ad738ece3b4693461d4c87fad39a879a2d3e8
+data-testids   sha256 ee1f20c11511bc391be69c0fd57a6c0eb4053fca7007ee433d23d44443fea6d6
+- 1 -> 2	"${}=function(s,i,e,x,y)"
+- 1 -> 2	"I[r[5]](s,i,r,x,y,o)"
+- 1 -> 2	"T[i]=C local r=J[S[i]]if not r then return end "
+- 14 -> 15	"field"
+- 1 -> 0	"for n=0,80 do local r=J[M[n]]${}if r then local a=glag(0,n)"
+- 20 -> 21	"grid"
+- 10 -> 11	"helper type-helper"
+- 1 -> 2	"if e>8 then E(s,i)end end"
+- 1 -> 2	"if e~=1 and e~=4 and e<9 then E(s,i)return end "
+- 1 -> 2	"if t<3 then if f//4>0 then r[17]=r[15]*127 I[1](s,i,r)end "
+- 6 -> 7	"input select"
+- 10 -> 11	"label type-helper"
+- 1 -> 2	"local o=e==4 or e>8 "
+- 4 -> 5	"message type-helper"
+- 7 -> 8	"option"
+- 47 -> 48	"play"
+- 1 -> 0	"r[12]=r[12]or 0 r[13]=r[13]or 127 r[14]=r[14]or 0 "
+- 24 -> 31	"xy"
++ 0 -> 1	"${}-touches"
++ 0 -> 1	"${}-touches-problem"
++ 0 -> 1	"${}local a=glag(0,n)"
++ 0 -> 1	"D(s,r,z+3,r[6]+k,a)D(s,r,z+4,r[7]%128+k,b)end end"
++ 0 -> 1	"Every finger sends on its own pair: finger 2 on the CC numbers two up, finger 3 four up. Each finger has its own crosshair."
++ 0 -> 1	"I[4]=function(s,i,r,x,y,o)local f,k=r[14],F[i]or 0 local z,c=${}+${}*k,x and N(x,y)"
++ 0 -> 1	"R=function(s,i)local r=J[S[i]]S[i]=nil if r then local t,f=r[5],r[14]"
++ 0 -> 1	"Touches"
++ 0 -> 1	"With ${} touches a CC number is 0 to ${}, so the last finger stays inside 127."
++ 0 -> 1	"else for j,g in pairs(S)do if g==n then E(s,j)end end end S[i]=n end "
++ 0 -> 1	"elseif t==3 then if f%2<1 and r[17]then K(s,r)end "
++ 0 -> 1	"elseif t==4 then I[4](s,i,r)else Q(r)end end F[i]=nil end"
++ 0 -> 1	"field-touches"
++ 0 -> 1	"for j=${},${},${} do "
++ 0 -> 1	"for j=1,2 do r[z+j]=glim((r[z+j]or 0)+(p[j]-g[j])*v,0,${})end "
++ 0 -> 1	"for n=0,80 do local r=J[M[n]]${}if r then "
++ 0 -> 1	"if c~=r[z+5]then r[z+5]=c Q(r,function(x,y)"
++ 0 -> 1	"if f%2>0 then if o then r[z+6]={a,b}return end local p,g,v={a,b},r[z+6],f//2%2>0 and 127 or 64 "
++ 0 -> 1	"if k>r[7]//64 then return end F[i]=k "
++ 0 -> 1	"if o then E(s,i)local n=M[N(x,y)]local r=J[n]"
++ 0 -> 1	"if r and r[7]>127 then local k=0 "
++ 0 -> 1	"if r[j]and(r[1]+x==r[j]%9 or r[2]+y==r[j]//9)then return 255 end end return 0 end)end "
++ 0 -> 1	"if x then local a,b=${},${}"
++ 0 -> 1	"r[12]=r[12]or 0 r[13]=r[13]or 127 r[14]=r[14]or 0"
++ 0 -> 1	"r[z+6]=p a,b=r[z+1]//127,r[z+2]//127 end "
++ 0 -> 1	"touches-problem"
++ 0 -> 1	"while r[${}+${}*k]do k=k+2 end "
+
+## the comment lines
+196 files; 48329 lines, 31104 code, 13333 comment, 3892 blank, 4054 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/sandbox/copy.ts | 237 | 244 | 73 | 75 | 14 | 14 |
+| src/lib/sandbox/editor.ts | 987 | 1038 | 132 | 139 | 13 | 13 |
+| src/lib/sandbox/emit.ts | 296 | 310 | 74 | 78 | 12 | 12 |
+| src/lib/sandbox/model.ts | 382 | 423 | 115 | 130 | 12 | 12 |
+| src/lib/sandbox/runtime.ts | 401 | 491 | 128 | 165 | 12 | 12 |
+| src/lib/store/schema.ts | 353 | 372 | 100 | 105 | 15 | 15 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 778 | 826 | 45 | 47 | 15 | 15 |
+| src/routes/sandbox/[draftId]/+page.svelte | 1011 | 1012 | 81 | 81 | 17 | 17 |
+| **totals (196 -> 196 files)** | 48058 | 48329 | 13261 | 13333 | 4054 | 4054 |
+
+8 file(s) moved
+
+## check and lint
+check: 1789726641199 COMPLETED 659 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 999 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: files: observed 95, expected 99; tests: observed 999, expected 1018
+quick exit 1
+
+## the build
+build exit 0; stamp df60006
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object ccb860ca292da12a315bdb06781a7e79228641be src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: e6d0ee3b6bac9f74b07a3d9621513e81c57f8d2dfeabe294c47d5fd10e28ae2d (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 e6d0ee3b6bac9f74b07a3d9621513e81c57f8d2dfeabe294c47d5fd10e28ae2d
+SCOPED CSS sha256 5aa7323e1a4541d3e97fac31f23569c4c275fc5512dcba052dcf6c558010c20d
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 3d9cf59cb3c65b2e36449303ba906f13d3337c6324d93ec5a52533c3ad17e90b (71 files)
+
+## the titles
+TITLES sha256 a110ec229db64b3e5f1161ee52ea4df7715f4f7cda1402d2db2d519f8929322f (1000 vitest titles incl. todo, 106 playwright runs)
+
+## src/ against the before-record's HEAD e8c22ec2d0cb4ad80eb00b0d4aa03d47f0119661
+git diff --name-status: 11 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-11
+wire: equal (set 1e4ba5c9796f1ea4b2d15f397aa6e8102c94b67567dd730314ef43a7a008b0cd, full 627cfb5b749f46c715d750c21a214d66aed2f14c788a47bf2a0f088dd327f46d)
+  + S/runtime/multitouch/landed/systemTimer
+  + S/runtime/multitouch/landed/system
+  + S/runtime/multitouch/landed/systemUtility
+  + S/runtime/multitouch/landed/setup
+  + S/runtime/multitouch/landed/timer
+  + S/runtime/multitouch/emitted-2-slots/setup
+  + S/runtime/multitouch/emitted-2-slots/timer
+  + S/runtime/multitouch/emitted-2-slots/mapmode
+  + S/runtime/multitouch/emitted-3-slots/setup
+  + S/runtime/multitouch/emitted-3-slots/timer
+  + S/runtime/multitouch/emitted-3-slots/mapmode
+  + S/runtime/multitouch/emitted-5-slots/setup
+  + S/runtime/multitouch/emitted-5-slots/timer
+  + S/runtime/multitouch/emitted-5-slots/mapmode
+  + S/runtime/multitouch/emitted-5-slots/system
+  + S/runtime/multitouch/emitted-5-slots/systemTimer
+  + S/runtime/multitouch/emitted-at-corner/setup
+  + S/runtime/multitouch/emitted-at-corner/timer
+  + S/runtime/multitouch/emitted-at-corner/mapmode
+  + S/runtime/five-fingers/landed/systemTimer
+  + S/runtime/five-fingers/landed/system
+  + S/runtime/five-fingers/landed/systemUtility
+  + S/runtime/five-fingers/landed/setup
+  + S/runtime/five-fingers/landed/timer
+  + S/runtime/five-fingers/emitted-2-slots/setup
+  + S/runtime/five-fingers/emitted-2-slots/timer
+  + S/runtime/five-fingers/emitted-2-slots/mapmode
+  + S/runtime/five-fingers/emitted-3-slots/setup
+  + S/runtime/five-fingers/emitted-3-slots/timer
+  + S/runtime/five-fingers/emitted-3-slots/mapmode
+  + S/runtime/five-fingers/emitted-5-slots/setup
+  + S/runtime/five-fingers/emitted-5-slots/timer
+  + S/runtime/five-fingers/emitted-5-slots/mapmode
+  + S/runtime/five-fingers/emitted-5-slots/system
+  + S/runtime/five-fingers/emitted-5-slots/systemTimer
+  + S/runtime/five-fingers/emitted-at-corner/setup
+  + S/runtime/five-fingers/emitted-at-corner/timer
+  + S/runtime/five-fingers/emitted-at-corner/mapmode
+  + S/runtime/multitouch-relative/landed/systemTimer
+  + S/runtime/multitouch-relative/landed/system
+  + S/runtime/multitouch-relative/landed/systemUtility
+  + S/runtime/multitouch-relative/landed/setup
+  + S/runtime/multitouch-relative/landed/timer
+  + S/runtime/multitouch-relative/emitted-2-slots/setup
+  + S/runtime/multitouch-relative/emitted-2-slots/timer
+  + S/runtime/multitouch-relative/emitted-2-slots/mapmode
+  + S/runtime/multitouch-relative/emitted-3-slots/setup
+  + S/runtime/multitouch-relative/emitted-3-slots/timer
+  + S/runtime/multitouch-relative/emitted-3-slots/mapmode
+  + S/runtime/multitouch-relative/emitted-5-slots/setup
+  + S/runtime/multitouch-relative/emitted-5-slots/timer
+  + S/runtime/multitouch-relative/emitted-5-slots/mapmode
+  + S/runtime/multitouch-relative/emitted-5-slots/system
+  + S/runtime/multitouch-relative/emitted-5-slots/systemTimer
+  + S/runtime/multitouch-relative/emitted-at-corner/setup
+  + S/runtime/multitouch-relative/emitted-at-corner/timer
+  + S/runtime/multitouch-relative/emitted-at-corner/mapmode
+  + S/runtime/two-pads/landed/systemTimer
+  + S/runtime/two-pads/landed/system
+  + S/runtime/two-pads/landed/systemUtility
+  + S/runtime/two-pads/landed/setup
+  + S/runtime/two-pads/landed/timer
+  + S/runtime/two-pads/emitted-2-slots/setup
+  + S/runtime/two-pads/emitted-2-slots/timer
+  + S/runtime/two-pads/emitted-2-slots/mapmode
+  + S/runtime/two-pads/emitted-3-slots/setup
+  + S/runtime/two-pads/emitted-3-slots/timer
+  + S/runtime/two-pads/emitted-3-slots/mapmode
+  + S/runtime/two-pads/emitted-5-slots/setup
+  + S/runtime/two-pads/emitted-5-slots/timer
+  + S/runtime/two-pads/emitted-5-slots/mapmode
+  + S/runtime/two-pads/emitted-5-slots/system
+  + S/runtime/two-pads/emitted-5-slots/systemTimer
+  + S/runtime/two-pads/emitted-at-corner/setup
+  + S/runtime/two-pads/emitted-at-corner/timer
+  + S/runtime/two-pads/emitted-at-corner/mapmode
+  + S/runtime/page3-multitouch/landed/systemTimer
+  + S/runtime/page3-multitouch/landed/system
+  + S/runtime/page3-multitouch/landed/systemUtility
+  + S/runtime/page3-multitouch/landed/setup
+  + S/runtime/page3-multitouch/landed/timer
+  + S/runtime/page3-multitouch/emitted-2-slots/setup
+  + S/runtime/page3-multitouch/emitted-2-slots/timer
+  + S/runtime/page3-multitouch/emitted-2-slots/mapmode
+  + S/runtime/page3-multitouch/emitted-3-slots/setup
+  + S/runtime/page3-multitouch/emitted-3-slots/timer
+  + S/runtime/page3-multitouch/emitted-3-slots/mapmode
+  + S/runtime/page3-multitouch/emitted-5-slots/setup
+  + S/runtime/page3-multitouch/emitted-5-slots/timer
+  + S/runtime/page3-multitouch/emitted-5-slots/mapmode
+  + S/runtime/page3-multitouch/emitted-5-slots/system
+  + S/runtime/page3-multitouch/emitted-5-slots/systemTimer
+  + S/runtime/page3-multitouch/emitted-at-corner/setup
+  + S/runtime/page3-multitouch/emitted-at-corner/timer
+  + S/runtime/page3-multitouch/emitted-at-corner/mapmode
+  + S/emit/page3-touches/landed/systemTimer
+  + S/emit/page3-touches/landed/system
+  + S/emit/page3-touches/landed/systemUtility
+  + S/emit/page3-touches/landed/setup
+  + S/emit/page3-touches/landed/timer
+  + S/emit/page3-touches/emitted-2-slots/setup
+  + S/emit/page3-touches/emitted-2-slots/timer
+  + S/emit/page3-touches/emitted-2-slots/mapmode
+  + S/emit/page3-touches/emitted-3-slots/setup
+  + S/emit/page3-touches/emitted-3-slots/timer
+  + S/emit/page3-touches/emitted-3-slots/mapmode
+  + S/emit/page3-touches/emitted-5-slots/setup
+  + S/emit/page3-touches/emitted-5-slots/timer
+  + S/emit/page3-touches/emitted-5-slots/mapmode
+  + S/emit/page3-touches/emitted-5-slots/system
+  + S/emit/page3-touches/emitted-5-slots/systemTimer
+  + S/emit/page3-touches/emitted-at-corner/setup
+  + S/emit/page3-touches/emitted-at-corner/timer
+  + S/emit/page3-touches/emitted-at-corner/mapmode
+FAIL: the sandbox set (4a691b045eb51af64d5ed71d4092826643c2b09d51099671760556f8154c2962 -> 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159)
