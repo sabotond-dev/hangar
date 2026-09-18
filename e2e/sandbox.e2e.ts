@@ -1,7 +1,7 @@
 // The Sandbox's interface, the browser half (plan 13-16): PDF page 3 at
 // /sandbox/ on the deployed bytes under wrangler dev, chromium only.
 //
-// SIX TITLES. The first builds a surface end to end with clicks and typed
+// SEVEN TITLES. The first builds a surface end to end with clicks and typed
 // numbers - a kind armed from the palette, another by its hotkey, the
 // selector's click on empty clearing the selection, selection from the list,
 // a refused controller that keeps the last valid value, a delete undone, the
@@ -26,7 +26,9 @@
 // fake's one click (the confirmation left on 2026-09-16, BENCH-2026-09-16.txt
 // section 2; until then the title opened and closed it first); the codec is asserted
 // untouched on the way (D-14 Q7). Nothing here claims a module would answer
-// the same: runbook row M is where that is asked. (The sixth is that loop.) THE PUT-BACK HALF LEFT AT
+// the same: runbook row M is where that is asked. (The sixth is that loop; the
+// seventh, change 10B, is the options walk - a fader set Relative and Spring, a
+// button set Note and Toggle, a knob set Relative, recovered from the draft.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -47,6 +49,10 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../src/lib/catalog/library";
+import {
+  TRIMMED_LIBRARY,
+  TRIMMED_LIBRARY_TIMER,
+} from "../src/lib/sandbox/library-trim";
 import {
   IDENTIFIED_CAPTION,
   keptCaption,
@@ -960,8 +966,9 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
 
     // THE STORE, ON ONE CLICK (2026-09-16: the routes' one write): the five
     // firmware defaults into memory, then the surface's five in SLOTS order
-    // - the library's two halves, the runtime's second slot in 255/4, the
-    // packed Timer, the data-half Setup calling ele[#ele]:map() - then one
+    // - the TRIMMED library halves carrying runtime parts (change 10B), the
+    // runtime's 255/4, the packed Timer, the data-half Setup calling
+    // ele[#ele]:map() - then one
     // store, proved by the read-back after a heartbeat this loop has to
     // push. The fake's two RAMs and its two flashes hold the surface's five.
     await page.getByTestId("store-on-zona").click();
@@ -992,11 +999,24 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
       2,
     );
     expect(zona.seen("PAGESTORE", "EXECUTE"), "one store").toBe(1);
-    expect(zona.state.system?.[EVENT_TIMER]).toBe(TOUCH_LIBRARY_TIMER);
-    expect(zona.state.system?.[EVENT_SETUP]).toBe(TOUCH_LIBRARY);
+    const systemTimer = zona.state.system?.[EVENT_TIMER] ?? "";
+    const system = zona.state.system?.[EVENT_SETUP] ?? "";
+    expect(systemTimer.startsWith(TRIMMED_LIBRARY_TIMER), "255/6 trimmed").toBe(
+      true,
+    );
+    expect(system.startsWith(TRIMMED_LIBRARY), "255/0 trimmed").toBe(true);
+    expect(systemTimer).not.toBe(TOUCH_LIBRARY_TIMER);
+    expect(system).not.toBe(TOUCH_LIBRARY);
+    expect(system, "the trim keeps no Q").not.toContain(
+      "function Q(s,i,e,x,y)",
+    );
     const utility = zona.state.system?.[EVENT_UTILITY] ?? "";
     expect(utility.startsWith("--[[@cb]]"), "255/4 holds a body").toBe(true);
-    expect(utility, "the runtime's head and release").toContain("R=function");
+    expect(utility, "the runtime's head").toContain("S=S or{}");
+    expect(
+      systemTimer + system + utility,
+      "the release and the entry landed somewhere",
+    ).toMatch(/R=function[\s\S]*O=function|O=function[\s\S]*R=function/);
     expect(utility).not.toBe(MODULE_SYSTEM_UTILITY);
     const setup = zona.state.configs[EVENT_SETUP];
     expect(setup, "the data half pulls the utility in").toContain(
@@ -1018,5 +1038,109 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     );
 
     expect(consoleErrors, "no console error on the whole loop").toEqual([]);
+  });
+
+  test("the options walk (change 10B): a fader set Relative and Spring with a typed spring value, a button set Note and Toggle with a typed note, a knob set Relative - every field one Undo, Min and Max gone under a relative knob, and the draft recovered on a reload", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+
+    // THE FADER: F, a click, V; Mode to Relative shows Speed; Spring on
+    // shows its value; 100 typed; each an entry.
+    await plate.focus();
+    await page.keyboard.press("f");
+    await clickCell(plate, 0, 0);
+    await page.keyboard.press("v");
+    await expect(sandbox).toHaveAttribute("data-depth", "1");
+    expect(await page.getByTestId("field-speed").count()).toBe(0);
+    await page.getByTestId("field-mode").selectOption("relative");
+    await expect(page.getByTestId("field-speed")).toBeVisible();
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    await page.getByTestId("field-speed").selectOption("full");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    expect(await page.getByTestId("field-spring-value").count()).toBe(0);
+    await page.getByTestId("field-spring").check();
+    await expect(page.getByTestId("field-spring-value")).toHaveValue("64");
+    await expect(sandbox).toHaveAttribute("data-depth", "4");
+    await page.getByTestId("field-spring-value").fill("200");
+    await expect(page.getByTestId("field-spring-value-message")).toContainText(
+      "A value is 0 to 127.",
+    );
+    await page.getByTestId("field-spring-value").fill("100");
+    await expect(page.getByTestId("field-spring-value-message")).toHaveCount(0);
+    await page.getByTestId("field-spring-value").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "5");
+    await page.getByTestId("field-min").fill("127");
+    await page.getByTestId("field-min").press("Enter");
+    await page.getByTestId("field-max").fill("0");
+    await page.getByTestId("field-max").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "7");
+
+    // THE BUTTON: B, a click, Escape; Toggle (never Latch); Output to Note
+    // shows the note field, C#3 typed lands 49 and reads back as C#3.
+    await plate.focus();
+    await page.keyboard.press("b");
+    await clickCell(plate, 7, 0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    expect(await page.getByTestId("field-latch").count()).toBe(0);
+    await page.getByTestId("field-toggle").check();
+    await expect(sandbox).toHaveAttribute("data-depth", "9");
+    expect(await page.getByTestId("field-note").count()).toBe(0);
+    await page.getByTestId("field-output").selectOption("note");
+    await expect(page.getByTestId("field-note")).toBeVisible();
+    expect(await page.getByTestId("field-cc").count()).toBe(0);
+    await page.getByTestId("field-note").fill("H3");
+    await expect(page.getByTestId("field-note-message")).toContainText(
+      "A note is C-1 to G9, or 0 to 127.",
+    );
+    await page.getByTestId("field-note").fill("C#3");
+    await page.getByTestId("field-note").press("Enter");
+    await expect(page.getByTestId("field-note")).toHaveValue("C#3");
+    await expect(sandbox).toHaveAttribute("data-depth", "11");
+    await page.getByTestId("field-group").selectOption("3");
+    await expect(sandbox).toHaveAttribute("data-depth", "12");
+
+    // THE KNOB: K, a click, Escape; Relative (2's comp.) takes Min and Max away.
+    await plate.focus();
+    await page.keyboard.press("k");
+    await clickCell(plate, 3, 4);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Knob 1");
+    await expect(page.getByTestId("field-min")).toBeVisible();
+    await page.getByTestId("field-mode").selectOption("relative-twos");
+    expect(await page.getByTestId("field-min").count()).toBe(0);
+    expect(await page.getByTestId("field-max").count()).toBe(0);
+    await expect(sandbox).toHaveAttribute("data-depth", "14");
+    // One Undo brings the knob's Min back.
+    await page.getByTestId("undo").click();
+    await expect(page.getByTestId("field-min")).toBeVisible();
+    await expect(sandbox).toHaveAttribute("data-depth", "13");
+    await page.getByTestId("redo").click();
+    await expect(sandbox).toHaveAttribute("data-depth", "14");
+
+    // THE DRAFT: reloaded, the fader's options are what was typed.
+    await page.waitForTimeout(400);
+    await page.reload();
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    const again = page.getByTestId("surface-plate");
+    await clickCell(again, 0, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    await expect(page.getByTestId("field-mode")).toHaveValue("relative");
+    await expect(page.getByTestId("field-speed")).toHaveValue("full");
+    await expect(page.getByTestId("field-spring")).toBeChecked();
+    await expect(page.getByTestId("field-spring-value")).toHaveValue("100");
+    await expect(page.getByTestId("field-min")).toHaveValue("127");
+    await expect(page.getByTestId("field-max")).toHaveValue("0");
+    await clickCell(again, 7, 0);
+    await expect(page.getByTestId("field-toggle")).toBeChecked();
+    await expect(page.getByTestId("field-note")).toHaveValue("C#3");
+    await expect(page.getByTestId("field-group")).toHaveValue("3");
+    await clickCell(again, 4, 5);
+    await expect(page.getByTestId("field-mode")).toHaveValue("relative-twos");
+
+    expect(consoleErrors, "no console error on the options walk").toEqual([]);
   });
 });
