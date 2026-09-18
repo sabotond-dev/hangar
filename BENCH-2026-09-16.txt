@@ -1878,3 +1878,16 @@ deployed - on the user's word.
 The bench's word on ORBIT's sync (change 8: `s.rtmrx_cb` fed by `grxm(2,3)`, Start / Continue /
 Stop, a Division knob) - the first hardware pass on that shape. Change 8's answer 6 saved the
 idiom for the sequencer cards; the user now names four: GHOST, RADAR POINTS, RADAR, STEPS.
+
+RADAR: the card is a ported BOTOR preset compiled from `src/vendor/botor/_pad.ts` (untouchable)
+and the front door's ring requires it to stay `padsim` (front-door.ts:122), so the sync cannot go
+into it as it is. Options put to the user: (1) leave RADAR as is, RADAR POINTS carries the sync;
+(2) rebuild RADAR as a hand-authored Lua card with sync and take it off the front-door ring;
+(3) a new card beside the untouched preset.
+
+> 2
+
+Recorded: RADAR is rebuilt as a hand-authored Lua entry (the same sweep, faithful to the ported
+preset's picture and sends, plus Sync / Division), and leaves the front-door ring; the ported
+preset's Lua stays in the vendor tree untouched. Queued for Fable after the three cards land
+(change 12b).
