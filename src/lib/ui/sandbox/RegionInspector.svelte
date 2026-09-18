@@ -2,8 +2,8 @@
   SELECTED ELEMENT: PDF page 3's right column in Inspector.svelte's panel - the
   eyebrow and the name, the units chip, Element name, the type as a plain label
   (change 10A) and Orientation on a fader, Behavior (change 10B: a fader's Mode /
-  Speed / Spring, an XY pad's Mode / Speed, a button's Toggle / Group, a knob's
-  Mode), MIDI output (the controllers, the channel, Min and Max; a button's Output
+  Speed / Spring, an XY pad's Mode / Speed and its Touches (change 11), a button's
+  Toggle / Group, a knob's Mode), MIDI output (the controllers, the channel, Min and Max; a button's Output
   and its Note; not on a blank), Appearance through Swatch.svelte, then the pinned
   Duplicate / Delete element. Props: view, the callbacks, notice. Every typed edit
   goes through the editor and the previous valid value survives a refusal (the
@@ -68,6 +68,8 @@
     SPRING_VALUE,
     TOGGLE,
     TOGGLE_HELPER,
+    TOUCHES,
+    TOUCHES_HELPER,
     TYPE,
     groupWord,
     unitsChip,
@@ -84,6 +86,7 @@
     KNOB_MODES,
     ORIENTATIONS,
     SPEEDS,
+    TOUCHES_MAX,
     groupOf,
     isRelative,
     modeOf,
@@ -91,6 +94,7 @@
     outputOf,
     speedOf,
     springOf,
+    touchesOf,
     type ButtonOutput,
     type Orientation,
     type RegionMode,
@@ -116,6 +120,7 @@
     onspring,
     onoutput,
     ongroup,
+    ontouches,
     oncolour,
     onbrightness,
     onduplicate,
@@ -137,6 +142,8 @@
     onspring?: (spring: boolean) => void;
     onoutput?: (output: ButtonOutput) => void;
     ongroup?: (group: number) => void;
+    /** An XY pad's touch count, 1..5 (change 11); the editor refuses a count the controllers cannot carry. */
+    ontouches?: (touches: number) => void;
     /** Three RGB444 levels from the picker. */
     oncolour: (colour: readonly [number, number, number]) => void;
     /** The whole surface's brightness, 1..255 (change 5); 255 to reset. */
@@ -156,8 +163,10 @@
   const springId = `${uid}-spring`;
   const outputId = `${uid}-output`;
   const groupId = `${uid}-group`;
+  const touchesId = `${uid}-touches`;
   const lockId = `${uid}-lock`;
   const orientationProblemId = `${uid}-orientation-problem`;
+  const touchesProblemId = `${uid}-touches-problem`;
   const fieldId = (field: NumericField) => `${uid}-${field}`;
   const messageId = (field: NumericField) => `${uid}-${field}-message`;
 
@@ -341,6 +350,45 @@
     <p class="helper type-helper">
       {isRelative(region) ? SPEED_HELPER : MODE_HELPER}
     </p>
+    {#if region.kind === "xy"}
+      <!-- Touches (change 11, answers 1a and 2a): 1 to 5; a refused count snaps the select back to the model's and shows its line. -->
+      <div class="grid" class:two={twoColumns}>
+        <div class="field">
+          <label class="label type-helper" for={touchesId}>{TOUCHES}</label>
+          <select
+            class="input select"
+            id={touchesId}
+            data-testid="field-touches"
+            value={String(touchesOf(region))}
+            disabled={play}
+            aria-describedby={view.touchesProblem !== undefined
+              ? touchesProblemId
+              : lock}
+            onchange={(event) => {
+              const select = event.currentTarget;
+              ontouches?.(Number.parseInt(select.value, 10));
+              select.value = String(touchesOf(view.selected ?? region));
+            }}
+          >
+            {#each Array.from({ length: TOUCHES_MAX }, (_, i) => i + 1) as n (n)}
+              <option value={String(n)} selected={touchesOf(region) === n}
+                >{n}</option
+              >
+            {/each}
+          </select>
+        </div>
+      </div>
+      {#if view.touchesProblem !== undefined}
+        <p
+          class="message type-helper"
+          id={touchesProblemId}
+          data-testid="touches-problem"
+        >
+          {view.touchesProblem}
+        </p>
+      {/if}
+      <p class="helper type-helper">{TOUCHES_HELPER}</p>
+    {/if}
     {#if region.kind === "fader"}
       {@render check(springId, "field-spring", SPRING, springOf(region), (on) =>
         onspring?.(on),

@@ -22,6 +22,7 @@ import {
   VALUE_RANGE,
   WHOLE_NUMBER,
   defaultName,
+  touchesCcRange,
 } from "./copy";
 import {
   GEOMETRY_COPY,
@@ -47,8 +48,11 @@ import {
   LAST_CELL,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  TOUCHES_MAX,
+  TOUCHES_MIN,
   VALUE_MAX,
   VALUE_MIN,
+  ccCeiling,
   cellIndex,
   isPaintOnly,
   maxOf,
@@ -56,6 +60,7 @@ import {
   orientationOf,
   outputOf,
   springValueOf,
+  touchesOf,
   type ButtonOutput,
   type ElementKind,
   type Orientation,
@@ -198,6 +203,8 @@ export type EditorState = {
   readonly texts: Readonly<Record<NumericField, string>>;
   /** An orientation the geometry refused, with its message; cleared by the next accepted edit. */
   readonly orientationProblem: string | undefined;
+  /** A touch count the pad's controllers refused (change 11), with its line; cleared the same way. */
+  readonly touchesProblem: string | undefined;
   readonly warnings: readonly AdjacencyWarning[];
   readonly cellMap: CellMap;
   readonly atCap: boolean;
@@ -233,6 +240,7 @@ export class SandboxEditor {
   private _focus: Cell = { col: 0, row: 0 };
   private _fields: FieldProblems = {};
   private _orientationProblem: string | undefined = undefined;
+  private _touchesProblem: string | undefined = undefined;
   private readonly rules: GeometryRules;
   private readonly onchange: ((state: EditorState) => void) | undefined;
   private minted = 0;
@@ -305,6 +313,7 @@ export class SandboxEditor {
         NUMERIC_FIELDS.map((field) => [field, this.fieldText(field)]),
       ) as Record<NumericField, string>,
       orientationProblem: this._orientationProblem,
+      touchesProblem: this._touchesProblem,
       warnings: adjacencyWarnings(this._surface.regions),
       cellMap: built.ok ? built.map : [],
       atCap: this.atCap,
@@ -436,6 +445,7 @@ export class SandboxEditor {
     this._selectedId = undefined;
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.history.seal();
     this.emit();
     return { kind: "cleared" };
@@ -463,6 +473,7 @@ export class SandboxEditor {
     this._selectedId = region.id;
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.emit();
     return { kind: "placed", region };
   }
@@ -509,6 +520,7 @@ export class SandboxEditor {
     this._selectedId = id;
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.history.seal();
     const region = this.selected;
     if (region !== undefined)
@@ -567,10 +579,17 @@ export class SandboxEditor {
       const n = Number.parseInt(trimmed, 10);
       switch (field) {
         case "cc":
-        case "cc2":
+        case "cc2": {
           if (n < CC_MIN || n > CC_MAX) return refuse(CC_RANGE);
+          // Change 11: on a pad with fingers, the last finger's pair stays inside 127.
+          const region = this.selected;
+          const touches =
+            region === undefined ? TOUCHES_MIN : touchesOf(region);
+          if (n > ccCeiling(touches))
+            return refuse(touchesCcRange(touches, ccCeiling(touches)));
           patch = field === "cc" ? { cc: n } : { cc2: n };
           break;
+        }
         case "channel":
           if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
           patch = { channel: n };
@@ -625,6 +644,7 @@ export class SandboxEditor {
     // An accepted box: the focus cell follows the region's origin as select() does.
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this._focus = { col: clampCell(box.col), row: clampCell(box.row) };
     this.emit();
     return undefined;
@@ -730,6 +750,7 @@ export class SandboxEditor {
       return false;
     }
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.emit();
     return true;
   }
@@ -789,6 +810,33 @@ export class SandboxEditor {
     this.applyPatch({ output }, "option");
     this._fields = {};
     this.emit();
+  }
+
+  /**
+   * An XY pad's touch count, 1 to 5 (change 11): one entry; refused off the kind or the range,
+   * and refused with its line - kept in the state until the next accepted edit - when the pad's
+   * controller or its second would put the last finger's pair past 127.
+   */
+  setTouches(touches: number): boolean {
+    const region = this.selected;
+    if (region === undefined || region.kind !== "xy") return false;
+    if (
+      !Number.isInteger(touches) ||
+      touches < TOUCHES_MIN ||
+      touches > TOUCHES_MAX
+    )
+      return false;
+    const ceiling = ccCeiling(touches);
+    if (region.cc > ceiling || (region.cc2 ?? 0) > ceiling) {
+      if (this._mode === "play") return false;
+      this._touchesProblem = touchesCcRange(touches, ceiling);
+      this.emit();
+      return false;
+    }
+    this.applyPatch({ touches }, "option");
+    this._touchesProblem = undefined;
+    this.emit();
+    return true;
   }
 
   /** A button's radio group, 0 (none) to 8. */
@@ -868,6 +916,7 @@ export class SandboxEditor {
     this._selectedId = undefined;
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.emit();
     return true;
   }
@@ -900,6 +949,7 @@ export class SandboxEditor {
         : undefined;
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.emit();
   }
 
@@ -974,6 +1024,7 @@ export class SandboxEditor {
     this._placement = { kind: "idle" };
     this._fields = {};
     this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
     this.emit();
   }
 

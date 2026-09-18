@@ -1,5 +1,6 @@
-// The Sandbox's interface, eleven tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by change
-// 10A - the selector, the hotkeys, the move, the delete icon, the blank kind), two halves each:
+// The Sandbox's interface, thirteen tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by change
+// 10A - the selector, the hotkeys, the move, the delete icon, the blank kind; 12 by 10B, 13 by change
+// 11 - an XY pad's Touches), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -36,8 +37,11 @@ import {
   TOGGLE,
   TOGGLE_HELPER,
   TOO_FULL_TO_STORE,
+  TOUCHES,
+  TOUCHES_HELPER,
   VALUE_RANGE,
   WHOLE_NUMBER,
+  touchesCcRange,
 } from "../sandbox/copy";
 import { noteName } from "../tune/view";
 import {
@@ -54,7 +58,12 @@ import {
 import { ELEMENT_KINDS, isStoredRecord } from "../store/schema";
 import { GEOMETRY_COPY, buildCellMap, validate } from "../sandbox/geometry";
 import { History } from "../sandbox/history";
-import { withBrightness } from "../sandbox/model";
+import {
+  ccCeiling,
+  flagsOf,
+  seventhOf,
+  withBrightness,
+} from "../sandbox/model";
 import {
   BRIGHTNESS_RANGE,
   BRIGHTNESS_SURFACE_HELPER,
@@ -1685,5 +1694,149 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(isStoredRecord(record({ group: 9 }))).toBe(false);
     expect(isStoredRecord(record({ min: 128 }))).toBe(false);
     expect(isStoredRecord(record({ speed: "fast" }))).toBe(false);
+  });
+
+  it("13. an XY pad's Touches (change 11): a select 1 to 5 under Behavior with its helper, one entry, refused off the kind or the range with nothing recorded, refused with its line when a controller is too high for the count - and a controller typed too high for the count refused on its field - the select snapping back, locked in Play; the route wires it; a draft with the field reads and a count the controllers cannot carry is refused whole", () => {
+    const { editor, emitted } = fresh();
+    editor.choose("xy");
+    editor.clickCell(3, 0);
+    editor.cancel();
+    const xy = editor.surface.regions[0];
+    const placed = editor.state().depth;
+    expect(xy).not.toHaveProperty("touches");
+    // THE SELECT: 3 lands as one entry; 6 and 0 and a fraction are refused
+    // with nothing recorded; a fader has no Touches.
+    expect(editor.setTouches(3)).toBe(true);
+    expect(byId(editor, xy.id).touches).toBe(3);
+    expect(editor.state().depth).toBe(placed + 1);
+    for (const bad of [6, 0, 2.5, -1])
+      expect(editor.setTouches(bad), String(bad)).toBe(false);
+    expect(editor.state().depth).toBe(placed + 1);
+    expect(editor.state().touchesProblem).toBeUndefined();
+    // THE CEILING, both doors. The pad's controllers are 1 and 2 by default:
+    // 5 fingers need cc <= 119; a cc typed at 126 under 3 fingers (ceiling
+    // 123) is refused on its field with the line, the model untouched; at
+    // 123 it lands; then 5 fingers is refused on the select with the same
+    // line, kept in the state until the next accepted edit.
+    expect(byId(editor, xy.id).cc).toBe(1);
+    expect(editor.editNumber("cc", "126")).toBe(false);
+    expect(editor.fields.cc?.message).toBe(touchesCcRange(3, 123));
+    expect(byId(editor, xy.id).cc).toBe(1);
+    expect(editor.editNumber("cc", "123")).toBe(true);
+    editor.commitField();
+    expect(byId(editor, xy.id).cc).toBe(123);
+    expect(editor.editNumber("cc2", "124")).toBe(false);
+    expect(editor.fields.cc2?.message).toBe(touchesCcRange(3, 123));
+    expect(editor.editNumber("cc2", "10")).toBe(true);
+    editor.commitField();
+    const before = editor.state().depth;
+    expect(editor.setTouches(5)).toBe(false);
+    expect(editor.state().touchesProblem).toBe(touchesCcRange(5, 119));
+    expect(byId(editor, xy.id).touches, "the model kept 3").toBe(3);
+    expect(editor.state().depth).toBe(before);
+    expect(editor.setTouches(2)).toBe(true);
+    expect(editor.state().touchesProblem).toBeUndefined();
+    expect(byId(editor, xy.id).touches).toBe(2);
+    expect(ccCeiling(2)).toBe(125);
+    // Undo and redo, one entry each.
+    editor.undo();
+    expect(byId(editor, xy.id).touches).toBe(3);
+    editor.redo();
+    expect(byId(editor, xy.id).touches).toBe(2);
+    // A fader: no Touches at all.
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    expect(editor.setTouches(2)).toBe(false);
+    expect(byId(editor, editor.surface.regions[1].id)).not.toHaveProperty(
+      "touches",
+    );
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+    // PLAY locks it.
+    editor.select(xy.id);
+    editor.setMode("play");
+    const locked = editor.surface;
+    expect(editor.setTouches(4)).toBe(false);
+    expect(editor.surface).toBe(locked);
+    let panel = inspector(editor);
+    expect(panel).toMatch(/data-testid="field-touches"[^>]*disabled/);
+    editor.setMode("edit");
+    // THE SHAPE: the select with five options and the helper under Behavior
+    // on the pad; the problem line when the state carries one; none of it
+    // on a fader; the flag word and the seventh column of the row.
+    panel = inspector(editor);
+    expect(panel).toContain('data-testid="field-touches"');
+    expect(count(panel, "<option")).toBeGreaterThanOrEqual(5);
+    expect(panel).toContain(TOUCHES);
+    expect(panel).toContain(TOUCHES_HELPER);
+    expect(panel).not.toContain('data-testid="touches-problem"');
+    editor.setTouches(5);
+    panel = inspector(editor);
+    expect(panel).toContain('data-testid="touches-problem"');
+    expect(panel).toContain(touchesCcRange(5, 119).replace("'", "&#39;"));
+    expect(panel).toMatch(/data-testid="field-touches"[^>]*aria-describedby/);
+    editor.select(editor.surface.regions[1].id);
+    expect(inspector(editor)).not.toContain('data-testid="field-touches"');
+    expect(flagsOf(byId(editor, xy.id)), "the flag word carries no count").toBe(
+      0,
+    );
+    expect(seventhOf(byId(editor, xy.id))).toBe(10 + 128);
+    // The route wires the sixth callback.
+    expect(code(ROUTE)).toContain(
+      "ontouches={(touches) => void editor?.setTouches(touches)}",
+    );
+    expect(code(`${UI}/RegionInspector.svelte`)).toContain(
+      "select.value = String(touchesOf(",
+    );
+    // THE SCHEMA: the field reads at 1..5; 6, a fraction, and a count whose
+    // last finger's pair passes 127 are refused whole; a button's is not read
+    // against its controller.
+    const record = (region: Record<string, unknown>) => ({
+      schema: 1,
+      id: "sandbox:s-3",
+      name: "Pads",
+      kind: "sandbox",
+      source: "s-3",
+      createdAt: "2026-09-18T00:00:00.000Z",
+      editedAt: "2026-09-18T00:00:00.000Z",
+      surface: {
+        id: "s-3",
+        name: "Pads",
+        regions: [
+          {
+            id: "xy-1",
+            name: "Space",
+            kind: "xy",
+            col: 3,
+            row: 0,
+            w: 3,
+            h: 3,
+            cc: 21,
+            cc2: 22,
+            channel: 1,
+            colour: [13, 15, 7],
+            ...region,
+          },
+        ],
+      },
+    });
+    for (const touches of [1, 2, 3, 4, 5])
+      expect(isStoredRecord(record({ touches })), String(touches)).toBe(true);
+    expect(isStoredRecord(record({ touches: 6 }))).toBe(false);
+    expect(isStoredRecord(record({ touches: 0 }))).toBe(false);
+    expect(isStoredRecord(record({ touches: 2.5 }))).toBe(false);
+    expect(isStoredRecord(record({ touches: 3, cc: 124 }))).toBe(false);
+    expect(isStoredRecord(record({ touches: 3, cc2: 124 }))).toBe(false);
+    expect(isStoredRecord(record({ touches: 3, cc: 123, cc2: 123 }))).toBe(
+      true,
+    );
+    expect(isStoredRecord(record({ touches: 5, cc: 119, cc2: 119 }))).toBe(
+      true,
+    );
+    expect(isStoredRecord(record({ touches: 5, cc: 120 }))).toBe(false);
+    expect(
+      isStoredRecord(record({ kind: "button", touches: 5, cc: 127 })),
+      "the ceiling is the pad's",
+    ).toBe(true);
   });
 });

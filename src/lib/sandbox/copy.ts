@@ -179,6 +179,13 @@ export const GROUP_NONE = "None";
 export const groupWord = (n: number): string => `Group ${n}`;
 export const GROUP_HELPER =
   "Buttons in the same group are exclusive: pressing one turns the others off.";
+/** An XY pad's fingers (change 11, BENCH-2026-09-16.txt section 11, answers 1a and 2a). */
+export const TOUCHES = "Touches";
+export const TOUCHES_HELPER =
+  "Every finger sends on its own pair: finger 2 on the CC numbers two up, finger 3 four up. Each finger has its own crosshair.";
+/** The refusal when the last finger's pair would pass 127 - on the count, or on a controller typed too high for it. */
+export const touchesCcRange = (touches: number, ceiling: number): string =>
+  `With ${touches} touches a CC number is 0 to ${ceiling}, so the last finger stays inside 127.`;
 /** The sent value's span (answer 6a). */
 export const MIN = "Min";
 export const MAX = "Max";
