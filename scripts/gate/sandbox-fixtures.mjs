@@ -61,6 +61,12 @@ const EMIT_PAGE3 = surface("Page 3", [
   emRegion("Turn", "knob", 3, 4, 3, 3),
   emRegion("Go", "button", 7, 0, 2, 2),
 ]);
+// emit.spec.ts test 7 (change 10A): page 3 with a 2 x 2 blank and a 1 x 1 blank - the paint-only kind.
+const EMIT_PAGE3_BLANKS = surface("Page 3 and blanks", [
+  ...EMIT_PAGE3.regions,
+  emRegion("Wash", "blank", 7, 7, 2, 2, { cc: 0, channel: 1 }),
+  emRegion("Dot", "blank", 0, 8, 1, 1, { cc: 0, channel: 1 }),
+]);
 
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
@@ -88,4 +94,5 @@ export const SANDBOX_FIXTURES = {
     ...buttonsAt(8, 1, 2, 7),
   ]),
   "emit/four-faders": surface("Four faders", fadersAt(4, 2, 6)),
+  "emit/page3-blanks": EMIT_PAGE3_BLANKS,
 };
