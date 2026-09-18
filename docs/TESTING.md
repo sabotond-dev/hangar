@@ -5860,6 +5860,65 @@ orange markers. (g) The pulse sets for four rings are the executor's (`3,5,7,11`
 (i) TUNE-01's six-knob rule needs its amendment at the next gate. (j) Changes 1 to 7 and 9's
 questions still stand.
 
+## 2026-09-18 change 8b - ORBIT's Tempo rail reads BPM, ascending
+
+The coordinator's follow-up to change 8's question (a): "bigger tempo on the right side" means
+FASTER on the right, and a bigger millisecond period is the opposite. One source commit
+(`3d91f2b`, on `a86acdc`), then this section, a dated 8b paragraph under section 8's Done and
+the gate records `gate/change-8b.*` (before, at `a86acdc`, in a clean worktree
+`../hangar-gate-8b` with its own `npm ci` and build) and `gate/change-8b-after.*`.
+
+**The form built.** `@TEMPO` (a period in ms) is `@BPM` and both events read
+`gtt(0,15000//@BPM)` - a 16th at that tempo. **The knob's id stays `tempo`** (label "Tempo (BPM)"):
+the stamp, the e2e fixture's rack and every spec that names the knob read the id, so renaming it
+would have moved the fixture and a dozen specs for nothing; only the token moved, which costs the
+plumbing nothing. **The ladder: `60 90 110 136 160 200`**, ascending - 250 166 136 110 93 75 ms a
+step - **136 the default**, because `15000//136` is exactly the 110 ms step EUCLID and change 8
+had, so `frames.json` is unmoved (regenerated, byte-identical, `ccb860ca`) and so is the OG. A
+"clean" 60 / 80 / 100 / 120 / 140 / 170 would have put the default at 140 (107 ms) and moved the
+rest frame; 136 is the honest anchor and the five around it are musical tempos. `view.ts` has no
+unit path for a readout, so the readout is the bare number and the label carries the unit.
+
+**Costs at the RGB444 picker corner** (pinned `compressScript` after `initLuaFormatter()`):
+Setup 846 -> **853** (62 -> 55 free; 850 at the defaults), Timer 404 -> **411** (504 -> 497 free;
+390 at the defaults) - the +7 per event the form was costed at under change 8. No system slot.
+
+**Specs.** `lua-smoke`'s ORBIT proof asserts the ladder and derives its period from the knob
+(`15000//136` = 110 ms, 11 ticks); `stamp.spec`: the captured EUCLID default vector (`tempo: 3`)
+is the defaults again under ORBIT - index 3 is the 110 ms step once more - so its branch asserts
+the plain `undefined`. No title moved.
+
+**Counts, carried + delta:** quick 95 / 983 + 1 todo -> **95 / 983 + 1 todo**, green twice at
+`--maxWorkers=2` (once alone, once inside the gate); check **658**; lint clean; sweep `4 19`
+green (`lua-entries` 1,804); e2e **88 / 103**; audition rows **34**; OG 27 files, 159,169 B
+unmoved; `frames.json` unmoved; utilities **44**; catalog **27**.
+
+**The gate's terms** (`--before change-8b` at `a86acdc`; `--after change-8b --against change-8b
+--check 658` at `3d91f2b`): equal - the sandbox set `40b44316…`, all four fixtures, the OG
+`9becd682…`, the SCOPED CSS `7f88b4f4…`, the utilities 44 -> 44 (0 appeared, 0 disappeared), the
+copy exports `071be34f…`, the testids `74e0cfd6…` (318), the titles `39b22413…` (984 vitest, 103
+playwright - none moved), check 658, lint, the build (stamp `3d91f2b`), the refuse-list `--stat`
+empty, no rename, no addition, no deletion; moved as a feature moves it - **the wire set
+`75d0c1eb…` -> `7cda3c4b…` and full `5c2e7227…` -> `bcf8063c…`, 2,802 records: 1,657
+byte-identical, 1,145 moved, every one of them `E/orbit/`, 0 removed, 0 added, 0 outside**; the
+census `991aab0d…` -> `8995adf5…` (ORBIT's two strings, `@TEMPO` -> `@BPM`, `Tempo` -> `Tempo
+(BPM)`, the six values); the JS `062043aa…` -> `a354133c…`; `src/` 3 modified. The script exits 1
+at the wire by design.
+
+**Chunks** (a fresh detached wrangler dev on 4173 on the build at `3d91f2b`, stopped through
+PowerShell, HTTP 000 after; the user's 5173 untouched): c3 **21 passed** (tuning, tuning-webkit).
+c1 not run: no title reads the tempo (the install title reads ORBIT's knobs by token, and the
+token substitution is generic).
+
+**Outside `src/`:** `docs/HARDWARE-AUDITION.md` row 34's clause (f) re-worded (the row is this
+change's own, appended today), a dated "Row 34 (amended 2026-09-18, change 8b)" paragraph, the
+cost row 843 / 383 -> 850 / 390; `docs/entries/orbit.md` a change 8b section. No device, no
+deploy, no push; `library.ts`, every other entry, the untouched list as before.
+
+**Deviations, stated.** The token is renamed and the id is not (above). The ladder is not the
+coordinator's example (60 80 100 120 140 170 / 140) because 140 BPM is 107 ms and would move the
+rest frame; 136 keeps it. Question (a) of change 8 is answered by this change; (b)-(j) still stand.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

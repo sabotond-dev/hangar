@@ -1121,6 +1121,30 @@ stand still under External instead. (f) Ring 4's default colour is white over th
 `unreadable`; the card opens at its defaults. (i) TUNE-01's six needs its amendment at the next
 gate. (j) Changes 1 to 7 and 9's questions still stand.
 
+### Done, 2026-09-18, change 8b - the Tempo rail reads BPM
+
+Question (a) answered by the coordinator: "bigger tempo on the right side" means FASTER on the
+right. One source commit, no push, no device, no deploy: `3d91f2b` feat(catalog), on `a86acdc` -
+`@TEMPO` (a period in ms) is **`@BPM`**, both events `gtt(0,15000//@BPM)` (a 16th a step), the
+knob's id still `tempo` (the stamp, the fixture rack and the specs read the id; only the token
+moved, at no cost to the plumbing), the label "Tempo (BPM)" (no unit path in `view.ts`; the
+readout is the bare number). **The ladder `60 90 110 136 160 200`**, ascending - 250 166 136 110
+93 75 ms - **136 the default**: `15000//136` is exactly the 110 ms step, so `frames.json` and
+the OG are unmoved (a "clean" 140 default would be 107 ms and move the rest frame). **Costs at
+the RGB444 picker corner:** Setup 846 -> **853** (55 free; 850 at the defaults), Timer 404 ->
+**411** (497 free; 390 at the defaults). **Counts:** quick **95 / 983 + 1 todo** (twice), check
+**658**, lint clean, sweep `4 19`, e2e **88 / 103**, audition rows **34**, utilities **44**, catalog
+**27**. **The gate** (`--before change-8b` at `a86acdc`, `--after change-8b --against change-8b
+--check 658` at `3d91f2b`): everything equal but the wire - 2,802 records, **1,657
+byte-identical, 1,145 moved, every one `E/orbit/`, 0 removed, 0 added, 0 outside**; the census
+moved by ORBIT's two strings, the token, the label and the six values; titles, copy exports,
+testids, scoped CSS, utilities, OG, fixtures unmoved. **Chunk c3 21 passed** on a fresh detached
+server (HTTP 000 after; 5173 untouched); c1 not run - no title reads the tempo. The captured
+EUCLID default vector is the defaults again under ORBIT (`stamp.spec.ts`). Row 34 (f) and its
+dated 8b paragraph in `docs/HARDWARE-AUDITION.md`, the cost row 850 / 390; `orbit.md`'s 8b
+section; `docs/TESTING.md` "2026-09-18 change 8b". Questions (b)-(j) of change 8 still stand.
+
+
 ## 9. MORPH - the centre's value settable (2026-09-18, queued for Opus)
 
 > queue for Opus:
