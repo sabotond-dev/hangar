@@ -105,6 +105,15 @@ const RADIO = [
   rtRegion("Two", "button", 6, 7, 1, 1, 42, { group: 1, latch: true }),
   rtRegion("Three", "button", 7, 7, 1, 1, 43, { group: 1 }),
 ];
+// runtime.spec.ts (change 11): a two-finger 3 x 3 pad bottom-right and a five-finger 5 x 5 pad.
+const DUO = rtRegion("Duo", "xy", 6, 3, 3, 3, 50, { cc2: 51, touches: 2 });
+const FIVE = rtRegion("Five", "xy", 0, 0, 5, 5, 60, { cc2: 61, touches: 5 });
+// emit.spec.ts test 9 (change 11): page 3 without the knob, the pad at three fingers.
+const EMIT_PAGE3_TOUCHES = surface("Page 3 touches", [
+  EMIT_PAGE3.regions[0],
+  { ...EMIT_PAGE3.regions[1], touches: 3 },
+  EMIT_PAGE3.regions[3],
+]);
 
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
@@ -149,6 +158,19 @@ export const SANDBOX_FIXTURES = {
     { ...rtRegion("Turn 2", "knob", 0, 0, 3, 3, 26), mode: "relative-offset" },
     { ...rtRegion("Turn 3", "knob", 6, 0, 3, 3, 27), mode: "relative-sign" },
   ]),
+  // runtime.spec.ts (change 11): the multitouch fixtures - tests 15 and 16.
+  "runtime/multitouch": surface("Multitouch", [DUO, FILTER, GO]),
+  "runtime/five-fingers": surface("Five fingers", [FIVE]),
+  "runtime/multitouch-relative": surface("Multitouch relative", [
+    { ...DUO, mode: "relative" },
+  ]),
+  "runtime/two-pads": surface("Two pads", [SPACE, DUO]),
+  "runtime/page3-multitouch": surface("Page 3 multitouch", [
+    FILTER,
+    { ...SPACE, cc: 50, cc2: 51, touches: 2 },
+    TURN,
+    GO,
+  ]),
   // emit.spec.ts
   "emit/page3": EMIT_PAGE3,
   "emit/one": surface("One", [EMIT_PAGE3.regions[0]]),
@@ -167,4 +189,5 @@ export const SANDBOX_FIXTURES = {
   "emit/four-faders": surface("Four faders", fadersAt(4, 2, 6)),
   "emit/page3-blanks": EMIT_PAGE3_BLANKS,
   "emit/page3-options": EMIT_PAGE3_OPTIONS,
+  "emit/page3-touches": EMIT_PAGE3_TOUCHES,
 };

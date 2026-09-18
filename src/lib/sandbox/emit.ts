@@ -6,8 +6,8 @@
 // 81-entry cell map `M` (geometry.ts's own array), the paint, the pull-in call(s) that run the
 // runtime's slot(s), and `self.touch_cb=O` AFTER them so `O` exists when it is named. A blank
 // (change 10A) is paint only: its row is the colour alone, its cells in `M` its index NEGATED.
-// The runtime is runtime.ts's, packed per surface with only the branches the surface's kinds
-// need. This file's names are `J M` (emit.spec.ts test 5). History: docs/entries/sandbox-runtime.md.
+// The runtime is runtime.ts's, packed per surface with only the branches its kinds need, in the
+// multitouch variant only with a Touches > 1 pad (change 11). Names `J M` (emit.spec.ts test 5). History: docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { brightnessOf, scaleChannel } from "../catalog/brightness";
@@ -19,10 +19,11 @@ import {
   branchesUsed,
   colourByte,
   flagsOf,
-  groupOf,
+  hasMultitouch,
   isPaintOnly,
   maxOf,
   minOf,
+  seventhOf,
   springOf,
   springPosition,
   typeCodeOf,
@@ -35,6 +36,7 @@ import {
   DEFAULT_SWEEP_CALLS,
   MARKER,
   RUNTIME_ENTRY,
+  TAIL_DEFAULTS_LUA,
   packRuntime,
   sweepCall,
   type PackedRuntime,
@@ -61,6 +63,8 @@ export type EmitOptions = {
   readonly slots?: SlotCount;
   /** Dead-branch elimination's parameter. Default: the branches the surface uses. */
   readonly branches?: readonly Branch[];
+  /** The multitouch variant's parameter (change 11). Default: whether a pad on the surface has more than one finger. */
+  readonly multitouch?: boolean;
   readonly sweepCalls?: number;
   readonly restPhase?: number;
 };
@@ -84,6 +88,8 @@ export type Emitted = {
     readonly callback: string;
   };
   readonly branches: readonly Branch[];
+  /** True when the runtime is the multitouch variant (change 11). */
+  readonly multitouch: boolean;
   readonly map: CellMap;
 };
 
@@ -132,17 +138,16 @@ export function regionTail(region: Region): number[] {
   return columns.slice(0, end);
 }
 
-/** A region's row: `{col,row,w,h,t,cc,c7,ch,r,g,b}` and the tail - the seventh column is the XY pad's second controller or the button's radio group, the eighth the wire channel 0..15, nine to eleven the colour; every number at its exact width. A blank has no row of numbers (`blankRow`). */
+/** A region's row: `{col,row,w,h,t,cc,c7,ch,r,g,b}` and the tail - the seventh column is the XY pad's second controller (with its touch count on top, change 11: model.ts `seventhOf`) or the button's radio group, the eighth the wire channel 0..15, nine to eleven the colour; every number at its exact width. A blank has no row of numbers (`blankRow`). */
 export function regionRow(region: Region, brightness: number = 255): number[] {
   if (isPaintOnly(region)) {
     throw new Error("a blank has no numeric row: renderRegionTable paints it");
   }
-  const seventh = region.kind === "xy" ? (region.cc2 ?? 0) : groupOf(region);
   return [
     ...geometryOf(region),
     typeCodeOf(region),
     region.cc,
-    seventh,
+    seventhOf(region),
     wireChannel(region.channel),
     ...colourColumns(region, brightness),
     ...regionTail(region),
@@ -196,11 +201,18 @@ export function renderCellMap(
  * (change 10B) only move layer 2's phase. A bare loop, not a function: nothing
  * ever clears layer 1, so no caller would ever re-paint, and the wrapper's
  * sixteen characters buy nothing. With a blank on the surface the lookup falls
- * through to the negated index.
+ * through to the negated index. Under the multitouch variant (change 11) the
+ * loop also reads the tail defaults into every row it visits (+46, once), so
+ * the variant's entry carries none and fits 255/0 beside the trimmed library.
  */
-function renderPaint(restPhase: number, withBlanks: boolean): string {
+function renderPaint(
+  restPhase: number,
+  withBlanks: boolean,
+  multitouch: boolean,
+): string {
   return (
-    `for n=0,80 do local r=J[M[n]]${withBlanks ? "or J[-M[n]]" : ""}if r then local a=glag(0,n)` +
+    `for n=0,80 do local r=J[M[n]]${withBlanks ? "or J[-M[n]]" : ""}if r then ` +
+    `${multitouch ? `${TAIL_DEFAULTS_LUA} ` : ""}local a=glag(0,n)` +
     `glc(a,1,r[9],r[10],r[11],1)glp(a,1,${restPhase})glc(a,2,r[9],r[10],r[11],1)end end`
   );
 }
@@ -235,6 +247,7 @@ export function emitSurface(
   }
   const slots = options.slots ?? 2;
   const branches = options.branches ?? branchesUsed(surface.regions);
+  const multitouch = options.multitouch ?? hasMultitouch(surface.regions);
   const restPhase = options.restPhase ?? DEFAULT_REST_PHASE;
   const sweepCalls = options.sweepCalls ?? DEFAULT_SWEEP_CALLS;
 
@@ -246,14 +259,14 @@ export function emitSurface(
   );
   const blanks = blankIndices(surface.regions);
   const cellMap = renderCellMap(built.map, blanks);
-  const paint = renderPaint(restPhase, blanks.size > 0);
+  const paint = renderPaint(restPhase, blanks.size > 0, multitouch);
   const pullIn = renderPullIn(slots);
 
   // The paint ends in `end` and what follows starts with a name, so one
   // separator; every other seam is `}` against a name and needs none.
   const setup =
     MARKER + regionTable + cellMap + paint + " " + pullIn + CALLBACK;
-  const packed = packRuntime(branches, { slots, sweepCalls });
+  const packed = packRuntime(branches, { slots, sweepCalls, multitouch });
 
   return {
     setup,
@@ -264,6 +277,7 @@ export function emitSurface(
     runtime: packed,
     parts: { regionTable, cellMap, paint, pullIn, callback: CALLBACK },
     branches,
+    multitouch,
     map: built.map,
   };
 }

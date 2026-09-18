@@ -1,4 +1,4 @@
-// The runtime's tests (13-15; change 10B added seven), most in a REAL Lua VM: every string in
+// The runtime's tests (13-15; change 10B added seven, change 11 two), most in a REAL Lua VM: every string in
 // runtime.ts was run through `createLuaHost` before it was measured and before a figure was
 // pinned. The host is opened as the module runs a landing: under five slots the TRIMMED system
 // halves with the runtime parts they carry (`system`, `systemTimer` off the emit), under fewer
@@ -68,10 +68,14 @@ import {
   KNOB_STEPS_PER_TURN,
   KNOB_STEP_DEG,
   branchesUsed,
+  fingerController,
   flagsOf,
+  hasMultitouch,
   knobRingRaw,
   scaleValue,
+  seventhOf,
   springPosition,
+  touchesOf,
   type Branch,
   type Region,
   type Surface,
@@ -80,12 +84,16 @@ import {
   ARM,
   ENTRY,
   KNOB_STEP_CAP,
+  MULTITOUCH_TEXT,
   RUNTIME_CALLS,
   RUNTIME_NAMES,
+  SLOT_COLUMNS,
   STATE,
+  TAIL_DEFAULTS_LUA,
   joinLua,
   packRuntime,
   runtimeParts,
+  slotColumn,
   sweepCall,
 } from "./runtime";
 
@@ -188,6 +196,38 @@ const FIXTURES: readonly Surface[] = [
   NOTES,
   KNOBS,
 ];
+
+/**
+ * The change 11 fixtures (tests 15 and 16; tests 6, 7 and 14 run them beside the ten above): a
+ * two-finger 3 x 3 pad bottom-right, a five-finger 5 x 5 pad, the pair in relative, a one-finger
+ * pad beside a two-finger one, and page 3 with its pad at two fingers. Controllers are chosen so
+ * no finger's pair meets another region's: Duo 50..53, Five 60..69.
+ */
+const DUO = region("Duo", "xy", 6, 3, 3, 3, 50, { cc2: 51, touches: 2 });
+const FIVE = region("Five", "xy", 0, 0, 5, 5, 60, { cc2: 61, touches: 5 });
+const MULTI = surface("Multitouch", [DUO, FILTER, GO]);
+const FIVE_PAD = surface("Five fingers", [FIVE]);
+const MULTI_RELATIVE = surface("Multitouch relative", [
+  { ...DUO, mode: "relative" },
+]);
+const TWO_PADS = surface("Two pads", [SPACE, DUO]);
+const PAGE3_MULTI = surface("Page 3 multitouch", [
+  FILTER,
+  { ...SPACE, cc: 50, cc2: 51, touches: 2 },
+  TURN,
+  GO,
+]);
+const MULTITOUCH_FIXTURES: readonly Surface[] = [
+  MULTI,
+  FIVE_PAD,
+  MULTI_RELATIVE,
+  TWO_PADS,
+  PAGE3_MULTI,
+];
+
+/** True for a text carrying either entry - the single-touch `O` or the multitouch variant's. */
+const hasEntry = (text: string): boolean =>
+  text.includes(ENTRY) || text.includes(MULTITOUCH_TEXT.entry);
 
 /** The LED centre of a cell, in raw units, from the measured knots. */
 const at = (col: number, row: number): [number, number] => [KX[col], KY[row]];
@@ -658,7 +698,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
 
   it("6. passes both class gates over every emitted runtime text with the gates' own needles, defines only its own names - the trim's freed ones among them - and calls only the trimmed library's", () => {
     const texts: { name: string; text: string }[] = [];
-    for (const s of FIXTURES) {
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
         texts.push({ name: `${s.name} Timer (${slots})`, text: e.timer });
@@ -713,9 +753,13 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     // NON-VACUITY: every text that carries O carries exactly one onset chain
     // (the trimmed 255/0 carries the library's `Q` no more, so a five-slot
     // text with O has one).
-    const withEntry = texts.filter(({ text }) => text.includes(ENTRY)).length;
+    const withEntry = texts.filter(({ text }) => hasEntry(text)).length;
     expect(withEntry, "no text carried the entry").toBeGreaterThan(0);
     expect(started, "one onset per entry").toBe(withEntry);
+    expect(
+      texts.filter(({ text }) => text.includes(MULTITOUCH_TEXT.entry)).length,
+      "the multitouch fixtures carry the variant's entry",
+    ).toBe(MULTITOUCH_FIXTURES.length * 3);
     // The blessed live test appears once per entry and nowhere else.
     const live = F(
       V,
@@ -734,57 +778,60 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     );
     for (const { name, text } of texts) {
       const n = text.split(live).length - 1;
-      expect(n, `${name}: the live test`).toBe(text.includes(ENTRY) ? 1 : 0);
+      expect(n, `${name}: the live test`).toBe(hasEntry(text) ? 1 : 0);
     }
     // THE NAMES. The runtime defines S F I R O Q D K: the five it always
     // had, and three the trim frees (library-trim.ts) - never a name the
     // TRIMMED library still defines. It calls E N U X, every one a trimmed
     // global; `G` no more (the pictures are its own).
-    const whole = joinLua([
-      STATE,
-      ...runtimeParts(BRANCHES).map((p) => p.lua),
-      sweepCall(20),
-    ]);
-    const defined = capitalDefinitions(whole);
-    expect(defined).toEqual([...RUNTIME_NAMES].sort());
-    for (const d of defined) {
-      expect(
-        TRIMMED_GLOBALS.includes(d),
-        `the runtime defines ${d}, which the trimmed library still owns`,
-      ).toBe(false);
-      if (LIBRARY_GLOBALS.includes(d)) {
+    // Both runtimes - the single-touch and the multitouch variant (change 11) - hold to it.
+    for (const multitouch of [false, true]) {
+      const whole = joinLua([
+        STATE,
+        ...runtimeParts(BRANCHES, multitouch).map((p) => p.lua),
+        sweepCall(20),
+      ]);
+      const defined = capitalDefinitions(whole);
+      expect(defined).toEqual([...RUNTIME_NAMES].sort());
+      for (const d of defined) {
         expect(
-          TRIM_FREED_NAMES.includes(d),
-          `the runtime defines ${d}, a library name the trim did not free`,
+          TRIMMED_GLOBALS.includes(d),
+          `the runtime defines ${d}, which the trimmed library still owns`,
+        ).toBe(false);
+        if (LIBRARY_GLOBALS.includes(d)) {
+          expect(
+            TRIM_FREED_NAMES.includes(d),
+            `the runtime defines ${d}, a library name the trim did not free`,
+          ).toBe(true);
+        }
+      }
+      expect(["Q", "D", "K"].every((n) => TRIM_FREED_NAMES.includes(n))).toBe(
+        true,
+      );
+      // `R` is the one name it defines that the library calls; it is a
+      // convention, not a global the library exports.
+      expect(LIBRARY_CONVENTIONS).toEqual(["R"]);
+      const called = capitalCalls(whole).filter(
+        (c) => !RUNTIME_NAMES.includes(c),
+      );
+      expect(called).toEqual([...RUNTIME_CALLS].sort());
+      for (const c of called) {
+        expect(
+          TRIMMED_GLOBALS.includes(c),
+          `the runtime calls ${c}, which the trimmed library does not define`,
         ).toBe(true);
       }
+      expect(whole).not.toContain(F("G", "("));
+      // The library's W and Q are not on the hot path: a contact keeps the
+      // region it landed in; the runtime's own Q is the painter.
+      expect(whole).not.toContain(F("W", "("));
     }
-    expect(["Q", "D", "K"].every((n) => TRIM_FREED_NAMES.includes(n))).toBe(
-      true,
-    );
-    // `R` is the one name it defines that the library calls; it is a
-    // convention, not a global the library exports.
-    expect(LIBRARY_CONVENTIONS).toEqual(["R"]);
-    const called = capitalCalls(whole).filter(
-      (c) => !RUNTIME_NAMES.includes(c),
-    );
-    expect(called).toEqual([...RUNTIME_CALLS].sort());
-    for (const c of called) {
-      expect(
-        TRIMMED_GLOBALS.includes(c),
-        `the runtime calls ${c}, which the trimmed library does not define`,
-      ).toBe(true);
-    }
-    expect(whole).not.toContain(F("G", "("));
-    // The library's W and Q are not on the hot path: a contact keeps the
-    // region it landed in; the runtime's own Q is the painter.
-    expect(whole).not.toContain(F("W", "("));
   });
 
   it("7. the measured cost: canonical under compressScript, the parts, and the ceiling in kinds under two slots, three and five - every combination fits five", async () => {
     const lines: string[] = [];
     // Every packed text is a fixed point of the minifier on the first round.
-    for (const s of FIXTURES) {
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
         for (const [name, text] of [
@@ -1400,8 +1447,8 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     );
     // Every fixture, under five slots, on the trimmed halves: the emitted
     // 255/0 and 255/6 open with the trimmed text, and a gesture on every
-    // region raises nothing.
-    for (const s of FIXTURES) {
+    // region raises nothing - the change 11 fixtures too.
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
       const e = emitSurface(s, { slots: 5 });
       expect(e.system?.startsWith(TRIMMED_LIBRARY), s.name).toBe(true);
       expect(e.systemTimer?.startsWith(TRIMMED_LIBRARY_TIMER), s.name).toBe(
@@ -1424,7 +1471,408 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       }
     }
   }, 120000);
+
+  it("15. multitouch (change 11, answers 1a and 2a): two fingers on a Touches-2 pad send on both pairs with independent positions; a new finger takes the lowest free slot and a finger past the count is ignored; the crosshair is the union and a lifted finger's cross goes; Relative per finger; a one-finger pad beside it behaves as today; five fingers on five pairs", async () => {
+    // The fixtures carry the variant, page 3 and the ten of 10B do not; the
+    // seventh column carries the count (a one-finger pad's is its cc2).
+    expect(hasMultitouch(MULTI.regions)).toBe(true);
+    expect(hasMultitouch(PAGE3.regions)).toBe(false);
+    expect(emitSurface(MULTI, { slots: 5 }).multitouch).toBe(true);
+    expect(emitSurface(PAGE3, { slots: 5 }).multitouch).toBe(false);
+    expect(seventhOf(DUO)).toBe(51 + 128);
+    expect(seventhOf(FIVE)).toBe(61 + 4 * 128);
+    expect(seventhOf(SPACE)).toBe(22);
+    expect(touchesOf(SPACE)).toBe(1);
+    expect(fingerController(50, 2)).toBe(52);
+    expect([1, 2, 3, 4, 5].map((n) => fingerController(60, n))).toEqual([
+      60, 62, 64, 66, 68,
+    ]);
+    expect(SLOT_COLUMNS).toEqual({ base: 17, perOffset: 3, cell: 5 });
+    expect([1, 2, 5].map((n) => slotColumn(n, 0))).toEqual([17, 23, 41]);
+    expect(slotColumn(1, SLOT_COLUMNS.cell)).toBe(22);
+    // TWO FINGERS. Duo's box is columns 6..8, rows 3..5: its bottom-left LED
+    // (6,5) reads 0,0 and its top-right (8,3) 127,127. Finger 0 holds slot 1
+    // (50, 51), finger 1 slot 2 (52, 53); a move of one moves the other's
+    // pair not at all.
+    {
+      const { host, sim } = await open(MULTI);
+      try {
+        const pair = (cc: number) => [
+          sent(host.midi, cc),
+          sent(host.midi, cc + 1),
+        ];
+        step(host, "down", 0, at(6, 5));
+        expect(pair(50)).toEqual([[0], [0]]);
+        step(host, "down", 1, at(8, 3));
+        expect(pair(52)).toEqual([[127], [127]]);
+        expect(pair(50), "finger 1's onset moved finger 0 not at all").toEqual([
+          [0],
+          [0],
+        ]);
+        step(host, "move", 0, at(7, 5));
+        expect(pair(50)).toEqual([[0, 63], [0]]);
+        expect(pair(52)).toEqual([[127], [127]]);
+        // THE UNION: finger 0's cell (1,2) and finger 1's (2,0) - row 2,
+        // column 1, row 0, column 2 - eight of the nine cells; (0,1) dark.
+        expect(lit(sim, DUO)).toEqual([
+          "0,0",
+          "1,0",
+          "2,0",
+          "1,1",
+          "2,1",
+          "0,2",
+          "1,2",
+          "2,2",
+        ]);
+        // A THIRD FINGER on a two-finger pad is ignored: no pair 54, nothing
+        // on the held pairs, the picture as it was, and its lift is silent.
+        step(host, "down", 2, at(7, 4));
+        step(host, "move", 2, at(6, 3));
+        expect(pair(54)).toEqual([[], []]);
+        expect(pair(50)).toEqual([[0, 63], [0]]);
+        expect(pair(52)).toEqual([[127], [127]]);
+        expect(lit(sim, DUO).length).toBe(8);
+        step(host, "up", 2, at(6, 3));
+        expect(host.midi.length).toBe(5);
+        // A LIFTED FINGER's cross goes, the other's stays: finger 0 up leaves
+        // row 0 and column 2 - finger 1's.
+        step(host, "up", 0, at(7, 5));
+        expect(lit(sim, DUO)).toEqual(["0,0", "1,0", "2,0", "2,1", "2,2"]);
+        expect(host.midi.length, "a lift sends nothing").toBe(5);
+        // THE LOWEST FREE SLOT: a new finger (id 3) is finger 1 again - it
+        // sends on 50 and 51 (on change: x back to 0, y up to 127), not 54.
+        step(host, "down", 3, at(6, 3));
+        expect(pair(50)).toEqual([
+          [0, 63, 0],
+          [0, 127],
+        ]);
+        expect(pair(54)).toEqual([[], []]);
+        expect(lit(sim, DUO), "both crosses again").toEqual([
+          "0,0",
+          "1,0",
+          "2,0",
+          "0,1",
+          "2,1",
+          "0,2",
+          "2,2",
+        ]);
+        step(host, "move", 1, at(8, 4));
+        expect(pair(52), "finger 1 still on its own pair").toEqual([
+          [127],
+          [127, 63],
+        ]);
+        step(host, "up", 1, at(8, 4));
+        step(host, "up", 3, at(6, 3));
+        expect(lit(sim, DUO), "cleared once every finger is up").toEqual([]);
+        // The fader and the button beside the pad are what they were.
+        step(host, "down", 0, at(0, 0));
+        expect(sent(host.midi, FILTER.cc)).toEqual([127]);
+        expect(lit(sim, FILTER).length).toBe(12);
+        step(host, "up", 0, at(0, 0));
+        step(host, "down", 0, at(7, 0));
+        step(host, "up", 0, at(7, 0));
+        expect(sent(host.midi, GO.cc)).toEqual([127, 0]);
+        host.run(30);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // FIVE FINGERS on five pairs 60..69, a sixth ignored; the middle finger
+    // lifted, the next finger takes ITS slot (the lowest free), not a sixth.
+    {
+      const { host, sim } = await open(FIVE_PAD);
+      try {
+        const cells: [number, number][] = [
+          [0, 4],
+          [1, 3],
+          [2, 2],
+          [3, 1],
+          [4, 0],
+        ];
+        cells.forEach(([c, r], i) => step(host, "down", i, at(c, r)));
+        for (let n = 1; n <= 5; n += 1) {
+          const cc = fingerController(FIVE.cc, n);
+          expect(sent(host.midi, cc), `finger ${n} x`).toEqual([
+            [0, 31, 63, 95, 127][n - 1],
+          ]);
+          expect(sent(host.midi, cc + 1), `finger ${n} y`).toEqual([
+            [0, 31, 63, 95, 127][n - 1],
+          ]);
+        }
+        expect(lit(sim, FIVE).length, "five crosses cover the pad").toBe(25);
+        step(host, "down", 5, at(2, 4));
+        expect(sent(host.midi, 70)).toEqual([]);
+        expect(host.midi.length, "the sixth finger sent nothing").toBe(10);
+        step(host, "up", 5, at(2, 4));
+        // The middle finger up: only its own cell goes dark - every other
+        // cell of row 2 and column 2 lies under another finger's line.
+        step(host, "up", 2, at(2, 2));
+        expect(lit(sim, FIVE).length, "the middle cross gone").toBe(24);
+        expect(phase(sim, 2, 2)).toBe(0);
+        step(host, "down", 6, at(2, 4));
+        expect(sent(host.midi, 64), "slot 3's x again: 63, on change").toEqual([
+          63,
+        ]);
+        expect(sent(host.midi, 65), "slot 3's y: 0 after 63").toEqual([63, 0]);
+        expect(lit(sim, FIVE).length).toBe(25);
+        for (const i of [0, 1, 3, 4, 6]) step(host, "up", i, at(0, 0));
+        expect(lit(sim, FIVE)).toEqual([]);
+        host.run(30);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // RELATIVE PER FINGER (half): a touch sends nothing; finger 0's move
+    // right one cell is +64 raw -> 31 on its x, its y reported once at 0;
+    // finger 1 holds its own pair - nothing until it moves, then its own y.
+    {
+      const { host } = await open(MULTI_RELATIVE);
+      try {
+        step(host, "down", 0, at(6, 5));
+        step(host, "down", 1, at(8, 3));
+        expect(host.midi.length, "two touches send nothing").toBe(0);
+        step(host, "move", 0, at(7, 5));
+        expect(sent(host.midi, 50)).toEqual([31]);
+        expect(sent(host.midi, 51)).toEqual([0]);
+        expect(sent(host.midi, 52)).toEqual([]);
+        expect(sent(host.midi, 53)).toEqual([]);
+        step(host, "move", 1, at(8, 4)); // down a cell: -32, clamped at 0
+        expect(sent(host.midi, 52)).toEqual([0]);
+        expect(sent(host.midi, 53)).toEqual([0]);
+        step(host, "move", 1, at(8, 3)); // back up: +64 positions -> 32
+        expect(sent(host.midi, 53)).toEqual([0, 32]);
+        expect(sent(host.midi, 50), "finger 0 untouched by finger 1").toEqual([
+          31,
+        ]);
+        // Held per finger between touches: finger 0 lifts, a new finger in
+        // slot 1 continues from 31 on the x.
+        step(host, "up", 0, at(7, 5));
+        step(host, "down", 2, at(6, 3));
+        step(host, "move", 2, at(7, 3));
+        expect(sent(host.midi, 50), "continued from 31: +63").toEqual([31, 63]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // A ONE-FINGER PAD beside a two-finger one behaves as today (test 4's
+    // sequence, the same values) and a second finger on it takes over (test
+    // 2's rule: the first is expired and its later move sends nothing).
+    {
+      const { host } = await open(TWO_PADS);
+      try {
+        const both = () => [
+          sent(host.midi, SPACE.cc),
+          sent(host.midi, SPACE.cc2 ?? -1),
+        ];
+        step(host, "down", 0, at(3, 2));
+        step(host, "move", 0, at(4, 2));
+        step(host, "move", 0, at(4, 1));
+        step(host, "move", 0, at(5, 0));
+        expect(both()).toEqual([
+          [0, 63, 127],
+          [0, 63, 127],
+        ]);
+        step(host, "down", 1, at(3, 2));
+        expect(both()).toEqual([
+          [0, 63, 127, 0],
+          [0, 63, 127, 0],
+        ]);
+        step(host, "move", 0, at(4, 1));
+        expect(both(), "the expired finger sends nothing").toEqual([
+          [0, 63, 127, 0],
+          [0, 63, 127, 0],
+        ]);
+        step(host, "up", 1, at(3, 2));
+        step(host, "up", 0, at(4, 1));
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
+
+  it("16. the multitouch variant, measured (change 11): three texts swapped, canonical; the entry inside 255/0's room; every kind combination beside a multitouch pad fits five slots but the one with every kind, which is over on the Timer and refused; a one-finger pad emits byte-identical strings", async () => {
+    const lines: string[] = [];
+    // THE TEXTS: fixed points, and their lengths against the single-touch three.
+    const single = { release: 249, entry: 323, xy: 502 };
+    const measured: Record<string, number> = {};
+    for (const [name, text] of Object.entries(MULTITOUCH_TEXT)) {
+      const c = await canonical(text);
+      expect(c.rounds, `${name} is not canonical: ${c.text}`).toBe(0);
+      measured[name] = c.cost;
+    }
+    lines.push(
+      `the variant's texts: R ${single.release} -> ${measured.release}, O ${single.entry} -> ${measured.entry} (the tail defaults are the Setup paint's, +${TAIL_DEFAULTS_LUA.length + 1} there once), I[4] ${single.xy} -> ${measured.xy}`,
+    );
+    expect(measured).toEqual(PINNED_MULTITOUCH.texts);
+    // Every other part is the same text; the variant's parts are the
+    // single-touch parts with those three swapped, the XY branch always among them.
+    const plain = runtimeParts(BRANCHES);
+    const multi = runtimeParts(BRANCHES, true);
+    expect(multi.map((p) => p.name)).toEqual(plain.map((p) => p.name));
+    multi.forEach((part, i) => {
+      const twin = plain[i];
+      if (["R", "O", "I[4]"].includes(part.name)) {
+        expect(part.lua).not.toBe(twin.lua);
+      } else expect(part.lua, part.name).toBe(twin.lua);
+    });
+    expect(runtimeParts(["fader-v"], true).map((p) => p.name)).toEqual([
+      "R",
+      "O",
+      "Q",
+      "D",
+      "I[1]",
+      "I[4]",
+    ]);
+    const five = await canonical(joinLua([STATE, ...multi.map((p) => p.lua)]));
+    lines.push(
+      `the multitouch runtime alone with every branch: ${five.cost} (the single-touch 2795)`,
+    );
+    expect(five.cost).toBe(PINNED_MULTITOUCH.five);
+    // THE CEILING IN KINDS beside a multitouch pad, on five slots: the pad
+    // with every subset of the other kinds through the packer, fits / over.
+    const others: Branch[] = ["fader-v", "fader-h", "button", "knob"];
+    const fits: string[] = [];
+    const over: string[] = [];
+    const label = (branches: readonly Branch[]) =>
+      branches
+        .map(
+          (b) =>
+            ({
+              "fader-v": "v",
+              "fader-h": "h",
+              button: "b",
+              xy: "x",
+              knob: "k",
+            })[b],
+        )
+        .join("");
+    for (let mask = 0; mask < 1 << others.length; mask += 1) {
+      const branches = BRANCHES.filter(
+        (b) => b === "xy" || others.some((o, i) => o === b && mask & (1 << i)),
+      );
+      const packed = packRuntime(branches, { slots: 5, multitouch: true });
+      const texts = [
+        packed.systemTimer,
+        packed.system,
+        packed.mapmode,
+        packed.timer,
+      ].filter((t): t is string => t !== undefined);
+      const costs = await Promise.all(
+        texts.map(async (t) => (await canonical(t)).cost),
+      );
+      const inside = costs.every((c) => c <= EVENT_BUDGET);
+      expect(packed.fits, `${label(branches)}: the packer's word`).toBe(inside);
+      (inside ? fits : over).push(`${label(branches)} ${costs.join("+")}`);
+    }
+    lines.push(`five slots with a multitouch pad, fits: ${fits.join(", ")}`);
+    lines.push(`five slots with a multitouch pad, over: ${over.join(", ")}`);
+    expect(fits.map((f) => f.split(" ")[0])).toEqual(PINNED_MULTITOUCH.fits);
+    expect(over.map((f) => f.split(" ")[0])).toEqual(PINNED_MULTITOUCH.over);
+    // PAGE 3 with its pad at two fingers: the one surface shape that does not
+    // fit - the four large parts cannot share the four slots - and the
+    // measured cost model says so (the store's refusal reads it).
+    const p5 = await measureSurface(PAGE3_MULTI, { slots: 5 });
+    const plainPage3 = await measureSurface(PAGE3, { slots: 5 });
+    lines.push(
+      `page 3 with a two-finger pad: 255/6 ${p5.systemTimer?.used} + 255/0 ${p5.system?.used} + 255/4 ${p5.mapmode?.used} + Timer ${p5.timer.used} (over by ${-p5.timer.free}), Setup ${plainPage3.setup.used} -> ${p5.setup.used}; placement ${p5.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`).join(" ")}`,
+    );
+    expect(p5.fits).toBe(false);
+    expect([
+      p5.systemTimer?.used,
+      p5.system?.used,
+      p5.mapmode?.used,
+      p5.timer.used,
+      p5.setup.used,
+    ]).toEqual(PINNED_MULTITOUCH.page3Five);
+    console.log(lines.join(String.fromCharCode(10)));
+    expect(p5.setup.used - plainPage3.setup.used).toBe(
+      PINNED_MULTITOUCH.page3SetupPrice,
+    );
+    // The same four elements without the knob, or without the button, fit.
+    for (const s of [
+      surface("No knob", [FILTER, DUO, GO]),
+      surface("No button", [FILTER, DUO, TURN]),
+      surface("No fader", [DUO, TURN, GO]),
+    ]) {
+      const m = await measureSurface(s, { slots: 5 });
+      expect(m.fits, s.name).toBe(true);
+      lines.push(
+        `${s.name}: 255/6 ${m.systemTimer?.used} + 255/0 ${m.system?.used} + 255/4 ${m.mapmode?.used} + Timer ${m.timer.used}, fits`,
+      );
+    }
+    // The Setup's price for the variant: the tail defaults once in the paint,
+    // and the seventh column's count on the pad's row - never a forced tail.
+    const dup = (touches: number) =>
+      emitSurface(surface("d", [{ ...DUO, touches }]), { slots: 5 });
+    expect(dup(1).setup).toBe(
+      emitSurface(surface("d", [{ ...DUO, touches: undefined }]), { slots: 5 })
+        .setup,
+    );
+    expect(dup(1).parts.paint).not.toContain(TAIL_DEFAULTS_LUA);
+    expect(dup(2).parts.paint).toContain(TAIL_DEFAULTS_LUA);
+    expect(regionRow({ ...DUO, touches: 1 })[6]).toBe(51);
+    expect(regionRow({ ...DUO, touches: 2 })[6]).toBe(51 + 128);
+    expect(regionRow({ ...DUO, touches: 5 })[6]).toBe(51 + 512);
+    expect(regionTail({ ...DUO, touches: 5 }), "no tail forced").toEqual([]);
+    expect(dup(2).setup.length - dup(1).setup.length).toBe(
+      PINNED_MULTITOUCH.setupPriceOnePad,
+    );
+    // BYTE-IDENTICAL: a one-finger pad, the field present or absent, emits
+    // exactly the strings it did; page 3 is the single-touch runtime.
+    const one = emitSurface(
+      { ...PAGE3, regions: PAGE3.regions.map((r) => ({ ...r, touches: 1 })) },
+      { slots: 5 },
+    );
+    const was = emitSurface(PAGE3, { slots: 5 });
+    for (const key of [
+      "setup",
+      "timer",
+      "mapmode",
+      "system",
+      "systemTimer",
+    ] as const)
+      expect(one[key], key).toBe(was[key]);
+    expect(was.timer + was.system).not.toContain(MULTITOUCH_TEXT.entry);
+    console.log(
+      [
+        "The multitouch variant, measured (change 11, 2026-09-18):",
+        ...lines,
+      ].join("\n"),
+    );
+  }, 180000);
 });
+
+/** The figures test 16 pins, this tree, 2026-09-18 (change 11). */
+const PINNED_MULTITOUCH = {
+  texts: { release: 234, entry: 392, xy: 601 },
+  five: 2970,
+  /** Every subset of the other kinds beside the pad but the three that carry a fader, the button AND the knob. */
+  fits: [
+    "x",
+    "vx",
+    "hx",
+    "vhx",
+    "bx",
+    "vbx",
+    "hbx",
+    "vhbx",
+    "xk",
+    "vxk",
+    "hxk",
+    "vhxk",
+    "bxk",
+  ],
+  over: ["vbxk", "hbxk", "vhbxk"],
+  /** 255/6, 255/0, 255/4, the Timer (over by 48), the Setup. */
+  page3Five: [869, 876, 846, 956, 540] as (number | undefined)[],
+  /** The 49-character defaults and a space in the paint, one digit more on the pad's seventh column. */
+  page3SetupPrice: 51,
+  setupPriceOnePad: 51,
+};
 
 /** The figures pinned by test 7, this tree, 2026-09-18 (change 10B; re-pinned at 10C - `R` 22 shorter). */
 const PINNED = {

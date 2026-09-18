@@ -1,13 +1,13 @@
 // The Sandbox's runtime: the Lua a contact drives - the guarded state head, the release
 // convention `R`, the entry `O`, three helpers (`Q` the region painter, `D` the scaled send on
 // change, `K` a button's off), one branch per kind (`I[1]`..`I[5]`, `I[2]` the fader's second
-// name) and `packRuntime`, which spreads the parts over the slots a surface lands on: under five
-// (change 10B) the trimmed system halves' tails (255/6, 255/0), 255/4 and the touch Timer (0/6),
+// name), the MULTITOUCH variant of `R`, `O` and `I[4]` a surface with a Touches > 1 pad gets
+// (change 11; nothing else moves), and `packRuntime`, which spreads the parts over the slots a
+// surface lands on (under five, change 10B: the trimmed halves' tails, 255/4, the touch Timer),
 // largest part first. Every string here was run in a real Lua VM before it was measured or
-// pinned (runtime.spec.ts, wasmoon). The runtime spends the names `S F I R O` and three the trim
-// frees (`Q D K`), and calls the library's `E N U X` and nothing else - the pictures are its own
-// `glp` on layer 2, whose colour the Setup's paint set. Every table it creates is guarded
-// (`S=S or{}`) because the Timer re-runs every 100 ms. History: docs/entries/sandbox-runtime.md.
+// pinned (runtime.spec.ts, wasmoon). The runtime spends `S F I R O` and the trim's `Q D K`, calls
+// the library's `E N U X` and nothing else, paints its own `glp` on layer 2 (the Setup's paint set
+// the colour), and guards every table (`S=S or{}`: the Timer re-runs). History: docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
@@ -16,6 +16,7 @@ import {
   BRANCHES,
   KNOB_DEAD_ZONE_SQUARED,
   KNOB_STEP_DEG,
+  TOUCHES_MAX,
   type Branch,
 } from "./model";
 
@@ -73,6 +74,21 @@ export const STATE_COLUMNS = {
   crosshair: 21,
 } as const;
 
+/**
+ * The multitouch XY pad's state (change 11) is PER SLOT: finger n's six columns start at
+ * `z = 17 + 3k`, k its controller offset `2(n-1)` - the one number `F[i]` keeps for a contact,
+ * set at the onset and freed by `R` - so slot 1 is columns 17..22, the single-touch layout plus
+ * the anchor: z+1 the held x, z+2 the held y, z+3 and z+4 the last sent pair, z+5 the crosshair
+ * cell (nil while the slot is free: the entry's "lowest free slot" reads it), z+6 the relative
+ * anchor. The count itself rides in the SEVENTH column, `cc2 + 128(n-1)` (model.ts `seventhOf`).
+ */
+export const SLOT_COLUMNS = { base: 17, perOffset: 3, cell: 5 } as const;
+export const slotColumn = (finger: number, field: number): number =>
+  SLOT_COLUMNS.base + SLOT_COLUMNS.perOffset * (2 * (finger - 1)) + field;
+
+/** The most fingers a pad's slots carry - the schema's ceiling; the painter reads every slot's cell up to it. */
+export const SLOT_MAX = TOUCHES_MAX;
+
 // ---------------------------------------------------------------------------
 // The text. Each part is one statement; `joinLua` supplies the one separator
 // the minifier keeps, so the packed strings are fixed points of it.
@@ -87,6 +103,10 @@ export const ARM = `gtt(0,${TIMER_PERIOD_MS})`;
 
 /** The guarded state head at the top of every slot that carries a part: the Timer re-runs, so `S={}` would drop every finger ten times a second. */
 export const STATE = "S=S or{}F=F or{}I=I or{}";
+
+/** The row's omitted tail columns read as their defaults - min 0, max 127, flags 0: the entry's, once per sample; the multitouch variant's Setup paint's, once per region (change 11). */
+export const TAIL_DEFAULTS_LUA =
+  "r[12]=r[12]or 0 r[13]=r[13]or 127 r[14]=r[14]or 0";
 
 /**
  * `R`: the release convention the library calls and the entry defines. Forget the contact's
@@ -104,6 +124,17 @@ export const RELEASE =
   "elseif t==3 then if f%2<1 and r[17]then K(s,r)end else r[21]=nil Q(r)end end";
 
 /**
+ * `R` under multitouch (change 11): the same releases, except an XY pad's runs its branch with
+ * no finger (`I[4](s,i,r)`, `F[i]` still naming the slot - freed last) - the slot's cell goes
+ * and the union of the other fingers' crosses is redrawn - and only a knob is cleared whole.
+ */
+export const RELEASE_MULTITOUCH =
+  "R=function(s,i)local r=J[S[i]]S[i]=nil if r then local t,f=r[5],r[14]" +
+  "if t<3 then if f//4>0 then r[17]=r[15]*127 I[1](s,i,r)end " +
+  "elseif t==3 then if f%2<1 and r[17]then K(s,r)end " +
+  "elseif t==4 then I[4](s,i,r)else Q(r)end end F[i]=nil end";
+
+/**
  * `O`: the entry. An end code (`e~=1 and e~=4 and e<9`) hands the contact to `E` and returns; an
  * onset (`e==4 or e>8`) first expires the same id, then any other contact holding the region
  * landed on, then pins `S[i]` to `M[N(x,y)]`. Every live sample stamps `T[i]=C` for the sweep;
@@ -118,7 +149,29 @@ export const ENTRY =
   "if o then E(s,i)local n=M[N(x,y)]" +
   "for j,g in pairs(S)do if g==n then E(s,j)end end S[i]=n end " +
   "T[i]=C local r=J[S[i]]if not r then return end " +
-  "r[12]=r[12]or 0 r[13]=r[13]or 127 r[14]=r[14]or 0 " +
+  `${TAIL_DEFAULTS_LUA} ` +
+  "I[r[5]](s,i,r,x,y,o)" +
+  "if e>8 then E(s,i)end end";
+
+/**
+ * `O` under multitouch (change 11): an onset on a pad with more than one finger (the seventh
+ * column past 127) expires nobody - it takes the lowest slot whose cell column is nil, `F[i]=k`
+ * (k the controller offset 0, 2, 4...), and returns unpinned when every slot is held (`k >
+ * r[7]//64`: the finger is ignored - no picture, no message, its later samples find no region).
+ * Every other region keeps the single-touch rule above. The slot is the contact's for the gesture.
+ * The tail defaults are not read here: the variant's Setup paint set them once (emit.ts), which
+ * keeps this text inside 255/0's room beside the trimmed library.
+ */
+export const ENTRY_MULTITOUCH =
+  `${RUNTIME_ENTRY}=function(s,i,e,x,y)` +
+  "if e~=1 and e~=4 and e<9 then E(s,i)return end " +
+  "local o=e==4 or e>8 " +
+  "if o then E(s,i)local n=M[N(x,y)]local r=J[n]" +
+  "if r and r[7]>127 then local k=0 " +
+  `while r[${SLOT_COLUMNS.base + SLOT_COLUMNS.cell}+${SLOT_COLUMNS.perOffset}*k]do k=k+2 end ` +
+  "if k>r[7]//64 then return end F[i]=k " +
+  "else for j,g in pairs(S)do if g==n then E(s,j)end end end S[i]=n end " +
+  "T[i]=C local r=J[S[i]]if not r then return end " +
   "I[r[5]](s,i,r,x,y,o)" +
   "if e>8 then E(s,i)end end";
 
@@ -194,6 +247,26 @@ const XY =
   "F[i]={a,b}a,b=r[17]//127,r[18]//127 end " +
   "D(s,r,19,r[6],a)D(s,r,20,r[7],b)end";
 
+/**
+ * The XY pad under multitouch (change 11): the finger's state in the six columns from
+ * `z=17+3k`, k its controller offset (`F[i]`; 0 when the entry set none - a one-finger pad on
+ * the same surface); the crosshair is the UNION of every held slot's row and column (the cell
+ * columns 22, 28 .. 46, nil where free), redrawn when this finger's cell moves; called with no
+ * finger (from `R`) it drops its slot's cell, redraws and does nothing else. Relative as the single-touch
+ * pad, per finger, the anchor in the sixth column. The finger sends on the pad's pair plus k
+ * (answer 1a); the second controller is the seventh column's low seven bits.
+ */
+const XY_MULTITOUCH =
+  `I[4]=function(s,i,r,x,y,o)local f,k=r[14],F[i]or 0 local z,c=${SLOT_COLUMNS.base}+${SLOT_COLUMNS.perOffset}*k,x and N(x,y)` +
+  "if c~=r[z+5]then r[z+5]=c Q(r,function(x,y)" +
+  `for j=${slotColumn(1, SLOT_COLUMNS.cell)},${slotColumn(SLOT_MAX, SLOT_COLUMNS.cell)},${2 * SLOT_COLUMNS.perOffset} do ` +
+  "if r[j]and(r[1]+x==r[j]%9 or r[2]+y==r[j]//9)then return 255 end end return 0 end)end " +
+  `if x then local a,b=${POS_H},${POS_V}` +
+  "if f%2>0 then if o then r[z+6]={a,b}return end local p,g,v={a,b},r[z+6],f//2%2>0 and 127 or 64 " +
+  `for j=1,2 do r[z+j]=glim((r[z+j]or 0)+(p[j]-g[j])*v,0,${FINE_MAX})end ` +
+  "r[z+6]=p a,b=r[z+1]//127,r[z+2]//127 end " +
+  "D(s,r,z+3,r[6]+k,a)D(s,r,z+4,r[7]%128+k,b)end end";
+
 // The rotary: the centre in raw units from the row (`r[15]`, `r[16]`, emit.ts `knobCentre`),
 // the dead zone (`F[i]=nil`, so leaving on the far side is a fresh start), whole degrees, the
 // wrap `(a-F[i]+180)%360-180`, `math.modf` for whole steps with a signed remainder in `r[18]`;
@@ -226,6 +299,13 @@ export const BRANCH_TEXT: Readonly<Record<Branch, string>> = {
   knob: KNOB,
 };
 
+/** The three texts the multitouch variant swaps in (change 11); every other part is the same text. */
+export const MULTITOUCH_TEXT = {
+  release: RELEASE_MULTITOUCH,
+  entry: ENTRY_MULTITOUCH,
+  xy: XY_MULTITOUCH,
+} as const;
+
 /** The sweep call for the Timer's tail. */
 export const sweepCall = (calls: number): string => `X(self,${calls})`;
 
@@ -254,16 +334,24 @@ function nameOf(lua: string): string {
 /**
  * The runtime's parts for the branches named, in their canonical order: the release, the entry,
  * the painter and the send (any branch needs them), the button's off with a button, then the
- * branches in kind order - the fader's one text once for either orientation.
+ * branches in kind order - the fader's one text once for either orientation. Under `multitouch`
+ * (a surface with a Touches > 1 pad) the release, the entry and the XY pad are the variant's
+ * texts, and the XY branch is always among the parts, as the variant's `R` calls it.
  */
-export function runtimeParts(branches: readonly Branch[]): RuntimePart[] {
-  const ordered = BRANCHES.filter((b) => branches.includes(b));
+export function runtimeParts(
+  branches: readonly Branch[],
+  multitouch = false,
+): RuntimePart[] {
+  const wanted: readonly Branch[] = multitouch ? [...branches, "xy"] : branches;
+  const ordered = BRANCHES.filter((b) => wanted.includes(b));
+  const text = (b: Branch): string =>
+    multitouch && b === "xy" ? MULTITOUCH_TEXT.xy : BRANCH_TEXT[b];
   const texts = [
-    RELEASE,
-    ENTRY,
+    multitouch ? MULTITOUCH_TEXT.release : RELEASE,
+    multitouch ? MULTITOUCH_TEXT.entry : ENTRY,
     ...(ordered.length > 0 ? [PAINT, SEND] : []),
     ...(ordered.includes("button") ? [BUTTON_OFF] : []),
-    ...new Set(ordered.map((b) => BRANCH_TEXT[b])),
+    ...new Set(ordered.map(text)),
   ];
   return texts.map((lua) => ({ name: nameOf(lua), lua }));
 }
@@ -298,6 +386,8 @@ export type PackOptions = {
   readonly sweepCalls?: number;
   /** The Setup's own marker is 13-14's; every slot opens with the same nine characters. */
   readonly budget?: number;
+  /** The multitouch variant (change 11): the emitter sets it when a pad has more than one finger. */
+  readonly multitouch?: boolean;
 };
 
 type Bin = {
@@ -322,7 +412,7 @@ export function packRuntime(
   const slots = options.slots ?? 2;
   const sweep = sweepCall(options.sweepCalls ?? DEFAULT_SWEEP_CALLS);
   const budget = options.budget ?? EVENT_BUDGET;
-  const parts = runtimeParts(branches);
+  const parts = runtimeParts(branches, options.multitouch ?? false);
 
   const bins: Bin[] = [];
   if (slots === 5) {

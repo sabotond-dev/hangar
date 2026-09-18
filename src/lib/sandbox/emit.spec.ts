@@ -1,4 +1,4 @@
-// The emitter's tests (13-14 task 02; change 10B added the eighth and moved the figures): the
+// The emitter's tests (13-14 task 02; change 10B added the eighth and moved the figures, change 11 the ninth): the
 // costs at the picker corner under two, three and five slots, the dead-branch pair, the map and
 // the rows, both class gates, the library's names, the brightness, the blank, and the change 10B
 // tail with the five-slot pack and the cap floor. Each loops over its surfaces and names the
@@ -53,6 +53,7 @@ import {
   PULL_IN_TIMER,
   RUNTIME_ENTRY,
   TAIL_DEFAULTS,
+  type Emitted,
   blankIndices,
   blankRow,
   capitalCalls,
@@ -67,15 +68,27 @@ import {
 import { buildCellMap } from "./geometry";
 import { LANDING_SLOTS, landSurface } from "./land";
 import { TRIMMED_LIBRARY, TRIMMED_LIBRARY_TIMER } from "./library-trim";
-import { packRuntime, type SlotCount } from "./runtime";
+import {
+  MULTITOUCH_TEXT,
+  TAIL_DEFAULTS_LUA,
+  packRuntime,
+  type SlotCount,
+} from "./runtime";
 import {
   BRANCHES,
   PICKER_CORNER,
   SURFACE_CELLS,
+  TOUCHES_COLUMN_STEP,
+  TOUCHES_MAX,
+  ccCeiling,
   cellIndex,
   colourByte,
   emptySurface,
+  fingerController,
   flagsOf,
+  hasMultitouch,
+  seventhOf,
+  touchesOf,
   withBrightness,
   type Region,
   type Surface,
@@ -176,6 +189,13 @@ const PAGE3_OPTIONS = surface("Page 3 options", [
     output: "note",
     group: 8,
   },
+]);
+
+/** Page 3 with its pad at three fingers (test 9, change 11): the multitouch variant's one page-3 shape that fits - without the knob. */
+const PAGE3_TOUCHES = surface("Page 3 touches", [
+  PAGE3.regions[0],
+  { ...PAGE3.regions[1], touches: 3 },
+  PAGE3.regions[3],
 ]);
 
 const FIVE: readonly { surface: Surface; count: number; research?: number }[] =
@@ -917,6 +937,102 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       "Timer",
     );
   }, 60000);
+
+  it("9. the touch count (change 11): the seventh column carries it above the second controller and no tail is forced, a one-finger pad is byte-identical with the field present or absent, the variant's Setup paint reads the defaults once, the last finger's pair must stay inside 127, and page 3's pad at three fingers lands five strings without the knob and is refused with it", async () => {
+    // THE COLUMN: cc2 + 128(touches - 1); the flag word untouched by it.
+    const pad = PAGE3.regions[1];
+    expect(TOUCHES_MAX).toBe(5);
+    expect(TOUCHES_COLUMN_STEP).toBe(128);
+    expect(touchesOf(pad)).toBe(1);
+    expect(seventhOf(pad)).toBe(103);
+    expect(seventhOf({ ...pad, touches: 1 })).toBe(103);
+    expect(seventhOf({ ...pad, touches: 3 })).toBe(103 + 256);
+    expect(seventhOf({ ...pad, touches: 5 })).toBe(103 + 512);
+    expect(seventhOf(PAGE3.regions[3])).toBe(0);
+    expect(seventhOf({ ...PAGE3.regions[3], group: 4 })).toBe(4);
+    expect(regionRow({ ...pad, touches: 3 })).toEqual([
+      3, 0, 3, 3, 4, 102, 359, 15, 255, 255, 255,
+    ]);
+    expect(regionTail({ ...pad, touches: 5 }), "no tail forced").toEqual([]);
+    expect(flagsOf({ ...pad, touches: 5 })).toBe(0);
+    expect(
+      flagsOf({ ...pad, touches: 5, mode: "relative", speed: "full" }),
+    ).toBe(3);
+    // THE PAIRS: finger n on cc + 2(n - 1); the ceiling a count admits.
+    expect([1, 2, 3, 4, 5].map((n) => fingerController(102, n))).toEqual([
+      102, 104, 106, 108, 110,
+    ]);
+    expect([1, 2, 3, 4, 5].map(ccCeiling)).toEqual([127, 125, 123, 121, 119]);
+    // BYTE-IDENTICAL: the field at 1 or absent, every string the same; the
+    // variant's entry in none of them.
+    const strings = (e: Emitted) =>
+      [e.setup, e.timer, e.mapmode, e.system, e.systemTimer].join("\n");
+    for (const slots of SLOT_COUNTS) {
+      const was = emitSurface(PAGE3, { slots });
+      const one = emitSurface(
+        {
+          ...PAGE3,
+          regions: PAGE3.regions.map((r) =>
+            r.kind === "xy" ? { ...r, touches: 1 } : r,
+          ),
+        },
+        { slots },
+      );
+      expect(strings(one), `slots ${slots}`).toBe(strings(was));
+      expect(was.multitouch).toBe(false);
+      expect(strings(was)).not.toContain(MULTITOUCH_TEXT.entry);
+      expect(was.parts.paint).not.toContain(TAIL_DEFAULTS_LUA);
+    }
+    expect(hasMultitouch(PAGE3.regions)).toBe(false);
+    expect(hasMultitouch(PAGE3_TOUCHES.regions)).toBe(true);
+    // THE VARIANT'S SETUP: the paint reads the defaults once per row, the
+    // entry does not; the price at the corner, measured.
+    const multi = emitSurface(PAGE3_TOUCHES, { slots: 5 });
+    expect(multi.multitouch).toBe(true);
+    expect(multi.parts.paint).toContain(
+      `if r then ${TAIL_DEFAULTS_LUA} local a=`,
+    );
+    expect(strings(multi)).toContain(MULTITOUCH_TEXT.entry);
+    expect(strings(multi)).toContain(MULTITOUCH_TEXT.release);
+    expect(strings(multi)).toContain(MULTITOUCH_TEXT.xy);
+    expect(strings(multi)).not.toContain(TAIL_DEFAULTS_LUA + " I[r[5]]");
+    expect((await canonical(multi.setup)).rounds).toBe(0);
+    const priced = await measureSurface(atPickerCorner(PAGE3_TOUCHES), {
+      slots: 5,
+    });
+    const plain = await measureSurface(
+      atPickerCorner({
+        ...PAGE3_TOUCHES,
+        regions: PAGE3_TOUCHES.regions.map((r) =>
+          r.kind === "xy" ? { ...r, touches: 1 } : r,
+        ),
+      }),
+      { slots: 5 },
+    );
+    console.log(
+      `the touch count's price at the corner: Setup ${plain.setup.used} -> ${priced.setup.used} (+${priced.setup.used - plain.setup.used}: the defaults once in the paint; the pad's seventh column 103 -> 359); page 3 without the knob and the pad at three fingers: 255/6 ${priced.systemTimer?.used} + 255/0 ${priced.system?.used} + 255/4 ${priced.mapmode?.used} + Timer ${priced.timer.used}, ${priced.fits ? "fits" : "over"}`,
+    );
+    expect(priced.setup.used - plain.setup.used).toBe(PINNED.touchesSetupPrice);
+    expect(priced.fits).toBe(true);
+    // THE LANDING: five strings, the halves the trimmed library with the
+    // variant's parts, every one inside 908; with the knob back, refused on
+    // the Timer (runtime.spec.ts test 16 measures the shape).
+    const landed = await landSurface(PAGE3_TOUCHES);
+    expect(landed.refusal).toBeUndefined();
+    expect(landed.config.system.startsWith(TRIMMED_LIBRARY)).toBe(true);
+    for (const [key, text] of Object.entries(landed.config)) {
+      expect((await canonical(text)).rounds, key).toBe(0);
+      expect(text.length, key).toBeLessThanOrEqual(EVENT_BUDGET);
+    }
+    const withKnob = await landSurface(
+      surface("Page 3 touches and knob", [
+        ...PAGE3_TOUCHES.regions,
+        PAGE3.regions[2],
+      ]),
+    );
+    expect(withKnob.refusal?.word).toBe("Timer");
+    expect(withKnob.refusal?.over).toBe(PINNED.page3TouchesKnobOver);
+  }, 60000);
 });
 
 /** The figures pinned above, this tree, 2026-09-18 (change 10B). */
@@ -945,4 +1061,8 @@ const PINNED = {
     "I[5]:systemTimer",
   ],
   page3OptionsPrice: 36,
+  /** Change 11: the defaults in the paint, 49 and a space; the pad's seventh column 103 -> 359 keeps its three digits. */
+  touchesSetupPrice: 50,
+  /** Page 3 with the pad at three fingers AND the knob: the Timer over by this much (runtime.spec.ts test 16's 956). */
+  page3TouchesKnobOver: 48,
 };
