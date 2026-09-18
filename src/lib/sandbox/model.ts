@@ -11,24 +11,38 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
+  BUTTON_OUTPUTS,
   ELEMENT_KINDS,
+  GROUP_MAX,
   ORIENTATIONS,
+  REGION_MODES,
+  SPEEDS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  type ButtonOutput,
   type ElementKind,
   type Orientation,
   type Region,
+  type RegionMode,
+  type Speed,
   type Surface,
 } from "../store/schema";
 
 export {
+  BUTTON_OUTPUTS,
   ELEMENT_KINDS,
+  GROUP_MAX,
   ORIENTATIONS,
+  REGION_MODES,
+  SPEEDS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  type ButtonOutput,
   type ElementKind,
   type Orientation,
   type Region,
+  type RegionMode,
+  type Speed,
   type Surface,
 };
 
@@ -59,6 +73,113 @@ export const wireChannel = (channel: number): number => channel - 1;
 /** A controller number, as the user sees it and as the wire carries it. */
 export const CC_MIN = 0;
 export const CC_MAX = 127;
+
+/** A MIDI value - a min, a max, a spring value, a note number - 0..127. */
+export const VALUE_MIN = 0;
+export const VALUE_MAX = 127;
+
+// ---------------------------------------------------------------------------
+// The change 10B options, read with their defaults (schema.ts: every field optional).
+
+/** The sent value's span: 0 and 127 unless set. A min above the max inverts the direction (answer 6a). */
+export const minOf = (region: Region): number => region.min ?? VALUE_MIN;
+export const maxOf = (region: Region): number => region.max ?? VALUE_MAX;
+
+/** The modes a fader or an XY pad offers, and the four a knob offers, in the interface's order. */
+export const CONTINUOUS_MODES: readonly RegionMode[] = ["absolute", "relative"];
+export const KNOB_MODES: readonly RegionMode[] = [
+  "absolute",
+  "relative-twos",
+  "relative-offset",
+  "relative-sign",
+];
+
+/** The region's mode: absolute unless set; a button and a blank have none. */
+export function modeOf(region: Region): RegionMode | undefined {
+  if (region.kind === "button" || region.kind === "blank") return undefined;
+  const offered = region.kind === "knob" ? KNOB_MODES : CONTINUOUS_MODES;
+  const mode = region.mode ?? "absolute";
+  return offered.includes(mode) ? mode : "absolute";
+}
+
+/** True for a fader, an XY pad or a knob whose mode is any relative one. */
+export const isRelative = (region: Region): boolean =>
+  (modeOf(region) ?? "absolute") !== "absolute";
+
+/** A relative fader's or XY pad's speed: half unless set. */
+export const speedOf = (region: Region): Speed => region.speed ?? "half";
+
+/** A fader's spring: off unless set; never on another kind. */
+export const springOf = (region: Region): boolean =>
+  region.kind === "fader" && region.spring === true;
+
+/** The typed spring value, 64 unless set, CLAMPED into the region's min..max span (answer 8). */
+export function springValueOf(region: Region): number {
+  const lo = Math.min(minOf(region), maxOf(region));
+  const hi = Math.max(minOf(region), maxOf(region));
+  return Math.min(hi, Math.max(lo, region.springValue ?? 64));
+}
+
+/** A button's output: a controller unless set. */
+export const outputOf = (region: Region): ButtonOutput =>
+  region.kind === "button" ? (region.output ?? "cc") : "cc";
+
+/** A button's radio group, 1..8; 0 is none (answer 9b). */
+export const groupOf = (region: Region): number =>
+  region.kind === "button" ? (region.group ?? 0) : 0;
+
+/**
+ * The runtime's scale, `W(r,v)`: a POSITION 0..127 along the region's travel -> the sent value
+ * `min + (max - min) * v // 127` (Lua's floor division, so a negative span floors toward the
+ * min's side). Every continuous kind keeps a position and sends through this; the twin is here so
+ * a spec and the spring's inverse read the same arithmetic.
+ */
+export function scaleValue(region: Region, position: number): number {
+  const lo = minOf(region);
+  return lo + Math.floor(((maxOf(region) - lo) * position) / 127);
+}
+
+/**
+ * The spring's POSITION: the first position 0..127 whose scaled value is the (clamped) spring
+ * value. One always exists - the span is at most 127 wide, so consecutive positions differ by at
+ * most one value - which is why the row carries a position and the runtime never inverts `W`.
+ */
+export function springPosition(region: Region): number {
+  const target = springValueOf(region);
+  for (let p = 0; p <= 127; p += 1) {
+    if (scaleValue(region, p) === target) return p;
+  }
+  return 0;
+}
+
+/**
+ * The row's flag word (column 14), one integer per region, kind by kind: a fader's bit 0 is
+ * relative, bit 1 full speed, bit 2 spring; an XY pad's bits 0 and 1 the same; a button's bit 0
+ * is toggle (`latch`), bit 1 a note output; a knob's is its mode's index 0..3 (absolute, two's
+ * complement, binary offset, sign magnitude). 0 for every default, so the column is omitted.
+ */
+export function flagsOf(region: Region): number {
+  switch (region.kind) {
+    case "fader":
+      return (
+        (isRelative(region) ? 1 : 0) +
+        (speedOf(region) === "full" ? 2 : 0) +
+        (springOf(region) ? 4 : 0)
+      );
+    case "xy":
+      return (
+        (isRelative(region) ? 1 : 0) + (speedOf(region) === "full" ? 2 : 0)
+      );
+    case "button":
+      return (
+        (region.latch === true ? 1 : 0) + (outputOf(region) === "note" ? 2 : 0)
+      );
+    case "knob":
+      return Math.max(0, KNOB_MODES.indexOf(modeOf(region) ?? "absolute"));
+    case "blank":
+      return 0;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // The kinds, their orientation and their runtime type codes.

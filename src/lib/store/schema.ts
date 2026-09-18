@@ -109,13 +109,47 @@ export const ORIENTATIONS: readonly Orientation[] = ["vertical", "horizontal"];
 const isBrightnessField = (value: unknown): boolean =>
   value === undefined || (isInt(value) && value >= 1 && value <= 255);
 
+/** A continuous kind's mode (change 10B): a fader or an XY pad is absolute or relative; a knob is absolute or one of three relative encodings. */
+export type RegionMode =
+  | "absolute"
+  | "relative"
+  | "relative-twos"
+  | "relative-offset"
+  | "relative-sign";
+
+export const REGION_MODES: readonly RegionMode[] = [
+  "absolute",
+  "relative",
+  "relative-twos",
+  "relative-offset",
+  "relative-sign",
+];
+
+/** A relative fader's or XY pad's speed: the region's full travel is 64 steps at half, 127 at full. */
+export type Speed = "half" | "full";
+
+export const SPEEDS: readonly Speed[] = ["half", "full"];
+
+/** A button's output: a controller, or a note whose number is the `cc` field. */
+export type ButtonOutput = "cc" | "note";
+
+export const BUTTON_OUTPUTS: readonly ButtonOutput[] = ["cc", "note"];
+
+/** A radio group is 1..8; 0 (or absent) is no group. */
+export const GROUP_MAX = 8;
+
 /**
  * One placed element. Cells are ZERO-based, 0..8, and the UI shows them
  * one-based through 13-14's named door. `channel` is 1..16 as the user sees
  * it; the wire's 0..15 is the compiler's business. `colour` is RGB444, the
  * picker's own resolution. `cc2` exists for the XY pad's second axis;
- * `latch` for a button only; `orientation` for a fader only (13-14). A blank
- * carries `cc` 0 and `channel` 1 as inert fields, so every region is one shape.
+ * `latch` (the interface says Toggle since change 10B) for a button only;
+ * `orientation` for a fader only (13-14). A blank carries `cc` 0 and
+ * `channel` 1 as inert fields, so every region is one shape. The change 10B
+ * fields are every one optional and read as their default when absent
+ * (`min` 0, `max` 127, `mode` absolute, `speed` half, `spring` off,
+ * `springValue` 64, `output` cc, `group` none), so a draft written before
+ * them reads exactly as it did; sandbox/model.ts holds the readers.
  */
 export type Region = {
   readonly id: string;
@@ -131,6 +165,14 @@ export type Region = {
   readonly colour: readonly [number, number, number];
   readonly latch?: boolean;
   readonly orientation?: Orientation;
+  readonly min?: number;
+  readonly max?: number;
+  readonly mode?: RegionMode;
+  readonly speed?: Speed;
+  readonly spring?: boolean;
+  readonly springValue?: number;
+  readonly output?: ButtonOutput;
+  readonly group?: number;
 };
 
 /**
@@ -232,6 +274,37 @@ function isRegion(value: unknown): value is Region {
   if (
     value.orientation !== undefined &&
     !ORIENTATIONS.includes(value.orientation as Orientation)
+  ) {
+    return false;
+  }
+  // The change 10B fields: each absent or its own shape (a number 0..127, a
+  // word from its list, a boolean, a group 0..8) - a draft carrying none of
+  // them is the draft it was.
+  for (const field of ["min", "max", "springValue"]) {
+    const v = value[field];
+    if (v !== undefined && !(isInt(v) && v >= 0 && v <= 127)) return false;
+  }
+  if (
+    value.mode !== undefined &&
+    !REGION_MODES.includes(value.mode as RegionMode)
+  ) {
+    return false;
+  }
+  if (value.speed !== undefined && !SPEEDS.includes(value.speed as Speed)) {
+    return false;
+  }
+  if (value.spring !== undefined && typeof value.spring !== "boolean") {
+    return false;
+  }
+  if (
+    value.output !== undefined &&
+    !BUTTON_OUTPUTS.includes(value.output as ButtonOutput)
+  ) {
+    return false;
+  }
+  if (
+    value.group !== undefined &&
+    !(isInt(value.group) && value.group >= 0 && value.group <= GROUP_MAX)
   ) {
     return false;
   }
