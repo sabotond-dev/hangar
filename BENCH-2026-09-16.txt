@@ -1722,3 +1722,13 @@ free - then checked by hand on the built site at 127.0.0.1:4174: the search "pad
 starfield), so the red is the typed query lost to hydration under load, not the listing. No entry,
 no library, no schema touched; the catalog wire is byte-identical by construction (the change is
 inside the Sandbox runtime's `R`). Not deployed - on the user's word.
+
+11. Sandbox XY pad - multitouch up to five fingers (2026-09-18, queued for Fable)
+--------------------------------------------------------------------------------
+
+> add multitouch option for up to 5 fingers for the XY pad in SANDBOX
+
+Facts read before asking: today `O`'s onset expires any other contact holding the region landed
+on (one finger per region, 13-15), and the XY pad's state - the held pair, the last sent pair,
+the crosshair cell - is per region (`r[17]`, `r[18]`, `r[19]`, `r[20]`, `r[21]`). Questions put to
+the user; answers recorded below.
