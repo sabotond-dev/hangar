@@ -1891,3 +1891,103 @@ Recorded: RADAR is rebuilt as a hand-authored Lua entry (the same sweep, faithfu
 preset's picture and sends, plus Sync / Division), and leaves the front-door ring; the ported
 preset's Lua stays in the vendor tree untouched. Queued for Fable after the three cards land
 (change 12b).
+
+**Done - change 12, 2026-09-18 (STEPS, RADAR POINTS and GHOST on the DAW's clock; RADAR is 12b's).**
+Three source commits and one audition commit, no push, no device, no deploy: `63ad1ed`
+feat(catalog) - STEPS; `4dd7837` feat(catalog) - RADAR POINTS; `d1519f3` feat(catalog) - GHOST;
+`adfaae8` docs(audition) - rows 35, 36, 37 and `ROW_COUNT` 37; then this paragraph with
+`docs/TESTING.md`'s "2026-09-18 change 12", a dated section in each of `docs/entries/steps.md`,
+`radar-points.md` and `ghost.md`, a dated line in `docs/entries/library.md`, the gate script's quick
+constant at the proved 95 / 1002 and the gate records `gate/change-12.*` (before, at `6fd3260` -
+the 12b docs commit landed on `cdc1548` while this ran, `src/` identical - on a clean worktree
+`../hangar-gate-12` with its own `npm ci`, removed after the records were copied) and
+`gate/change-12-after.*` (at `adfaae8`).
+
+**The idiom, ORBIT's spelling on every card.** The Setup: `self.rtmrx_cb=function(s,h,b)if
+b==250 then … s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil …
+elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end` then
+`grxm(2,@SYNC and 3 or 0)`; `self.q=0` beside the state. The Timer publishes its step routine as
+`s.f=f` on every call and ends `if @SYNC then return end f(s)`; its other work stays under both
+modes. Where a card holds notes (STEPS, RADAR POINTS) the Timer also publishes a release `s.u=u`,
+and the callback reads it on 250 (before the reset) and on 252 - `local u=s.u if u then u(s)end`.
+`Sync` Internal / External (`false / true`, `previewIndex` 0: the browser has no clock and the
+inspector says so), TUNE-01's six lifted for a sync card by change 8's answer 2.
+
+**STEPS** (eight knobs: `@BPM @ARMC @SWEEPC @TRAIL @SYNC @DIV @NOTE @CH`): the column advance is
+the step, `f(s)` = release, k = s.k%8, advance, column k's decay pair, the armed rows' note-ons;
+`u(s)` = note-off for the SOUNDING column's armed rows, `(s.k+7)%8` - what Start and Stop release,
+so nothing hangs; Division 8th / 16th / 32nd (default 16th); the Tempo rail reads BPM ascending,
+`gtt(0,15000//@BPM)` in both events - a 16th a column - `75 100 125 166 250`, today's `200 150 120 90
+60` ms exactly, 125 the 120 ms default so the rest frame did not move (a 16th and not the eighth
+the header sentence implied: the eighth would put the default at 250 BPM; the old knob comment
+already called 120 ms "125 bpm"). The header's "Clock sync is not built" sentence is gone. Setup
+420 -> **727** (181 free), Timer 260 -> **361** (547 free); 720 / 359 at the defaults.
+**RADAR POINTS** (seven: `@SCALE @ROOT @SWEEPC @PERIOD @SYNC @DIV @CH`): the ring step k is the
+step, the eight-step cycle with its three quiet steps kept under the clock (a ping is eight 16ths
+at the default Division); `u(s)` releases the pending list `s.z` - Start and Stop release it;
+`X(s,20)` stays on the Timer; `@PERIOD` is the finger sweep's period under External. Setup 592 ->
+**892** (16 free - the tightest Setup in the catalog; the callback in the Timer was costed ~625 /
+~530 and not taken, it would lose a Start inside the first period), Timer 288 -> **380** (528
+free); 891 / 378. **GHOST** (seven: `@RECC @GHOSTC @LEN @SYNC @DIV @CCX @CH`): recording stays
+real-time on the 20 ms Timer under both modes; the REPLAY index advances on the clock - `Clocks a
+point` 1 / 2 / 3, default 1 (at 120 BPM a clock is 20.8 ms against the 20 ms recording, so the loop
+plays at very nearly the drawn speed and stretches with the DAW's tempo; ORBIT's 8th / 16th / 32nd
+would play a five-second drawing over a minute, so not that set; a `count` rail with the bare
+number, because `1 2 3` as mode literals collide with CHORUS's `2` and ORBIT's `3`); Start resets j
+(the loop restarts on the bar), Stop freezes the ghost with no sends and the key still pulsing,
+Continue resumes; the reset key, the recording, the pair and the decay pair unchanged. Setup 491
+-> **730** (178 free), Timer 409 -> **484** (424 free); 725 / 480. No system slot anywhere. **The
+default records** moved only by the idiom's own strings (`self.q=0`, the callback, `grxm(2,0)`,
+the published routines, `if false then return end f(s)`; STEPS's `gtt(0,15000//125)` is 120) -
+`frames.json` `ccb860ca` and the OG `9becd682…` are byte-identical, unregenerated. A STEPS or GHOST
+link shared before today lands `unreadable` and opens the card at its defaults (RADAR POINTS is
+not in the captured fixture).
+
+**The release published as `s.u`, not `s.o`:** the first RADAR POINTS draft published it as `s.o`,
+which is that entry's pitch table; every Timer call then indexed a function, and the existing
+RADAR POINTS, residue and parity cases went red on the first full run. Renamed on both cards
+before any commit. **The VM cases** (`lua-smoke` 43 -> 46): per card Internal's wire unchanged
+(every existing case green untouched), External's Timer moving nothing, Start resetting (and
+releasing), a step every `@DIV` clocks, Stop halting (and releasing), Continue from the kept count,
+Start again, the Division variants with ORBIT's one-period caveat, the words and the preview;
+GHOST's loop replayed one point a clock with the recorded coordinates on CC 16 / 17 and the LED at
+phase 252, restarting on Start, three clocks a point over thirty.
+
+**Counts, carried + delta:** quick 95 / 999 + 1 todo -> **95 / 1002 + 1 todo** (+0 / +3), green
+twice at `--maxWorkers=2`; check 659 -> **659**; lint clean; sweep `4 19` green; e2e 91 / 106 ->
+**91 / 106** (no title added; c3 **21 passed** on a fresh detached server, HTTP 000 after, 5173
+untouched; c1 not run - no title reads a card); audition rows 34 -> **37**; utilities **44** -> **44**
+(scoped CSS `5aa7323e…` and raw `e6d0ee3b…` equal); catalog **27**; testids **321** equal; copy
+exports equal; OG 27 files / 159,169 B equal; the four fixtures equal. **The gate** (`--before
+change-12` at `6fd3260`, `--after change-12 --against change-12 --check 659` at `adfaae8`): the wire
+set `1e4ba5c9…` -> `53a8e114…`, full `627cfb5b…` -> `850747bf…`, 2,802 -> 2,832 records - **2,595
+byte-identical, 204 moved (STEPS 54, RADAR POINTS 76, GHOST 74), 3 removed / 33 added (the three
+cross-product records renamed by their state counts 5,120 / 10,000 / 8,000 -> 30,720 / 60,000 /
+48,000, and ten new knob-position records a card), 0 outside the three cards**; the sandbox set
+`3bdb5974…` equal; the census `0cb162ee…` -> `7300d394…` (2,860 -> 2,862); the titles `a110ec22…`
+-> `79ce1bc2…` (1,000 -> 1,003; 106); the JS `3d9cf59c…` -> `35983e18…`; everything else equal; the
+script exits 1 at the wire by design; its quick term 95 / 1002 after (the before's read `no
+Vitest summary lines`, the pipe as 10B and 11).
+
+**Departures from the brief:** STEPS's column decay pair moved with the step, not left on the
+Timer (it names column k; on the Timer under External it would re-arm the held column every period
+and paint a column the clock had not reached); a second published routine `s.u` for the release;
+STEPS's tempo as a 16th; GHOST's Division as a `count` rail labelled "Clocks a point"; RADAR
+POINTS's Setup at 892; the audition rows in their own docs commit before the after-run (two docs
+commits); GHOST's channel list generated (the same sixteen strings); the before HEAD `6fd3260`.
+`src/vendor/`, `library.ts`, `sequence.ts`, the manifest, `Knob.svelte`, `ColourPicker.svelte`,
+`pad-sim.ts`, `firmware-oracle.spec.ts`, RADAR and every other entry untouched; STATE / ROADMAP /
+REQUIREMENTS untouched; CAT-04 stays `[ ]`. Not deployed - on the user's word.
+
+**Questions for the user.** (a) STEPS's Stop releases the SOUNDING column's armed rows; say if
+all eight rows' notes should be released instead (a DAW that missed a note-on would still be
+covered). (b) On all three, a clock inside the first Timer period after a Store is counted and not
+stepped (ORBIT's caveat, change 8 (d)). (c) Under External every card waits for the DAW's Start or
+Continue - clock alone runs nothing (ORBIT's (c)); GHOST in particular sits after a lift until
+play is pressed. (d) RADAR POINTS's Setup has 16 free: the next knob on that card needs the
+callback moved to the Timer (costed) or a cut elsewhere. (e) The inspector's held-preview sentence
+says "runs the internal tempo here" on GHOST too, which has no tempo knob - a user-facing literal
+left as is; say if GHOST should have its own line. (f) STEPS reads Tempo (BPM) at a 16th a column;
+say if the eighth reading (the header's old "bar of eighths") is wanted despite 250 BPM as the
+default. (g) GHOST's `Clocks a point` is 1 / 2 / 3; say if a "2 points a clock" (faster than
+drawn) rung is wanted. (h) Changes 1 to 11's and 8's (b)-(j) questions still stand.

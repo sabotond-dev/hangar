@@ -1,0 +1,355 @@
+# 13.2 gate --after change-12 --against change-12 --check 659
+HEAD adfaae8 (adfaae806425beedd13afd79cf25eaa54d780f39); dirty (src e2e scripts docs) 1; free memory 1.47 GB; 2026-09-18T14:16:07Z
+before-record HEAD 6fd3260782e53452649f7f385737bafa1e3ecaeb
+
+## the wire
+2805 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 53a8e1140365486c464232a4432c0a06b2f57021e952efe49f32a256bb904b97
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 850747bf8314a82609d26d58fe32473ad141787263f0a9a9cbdedaf3a54d52af
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+195 files; 2862 distinct literals (6680 occurrences); 7 copy modules; 321 data-testids
+literal census sha256 7300d394bd07e49cd1ab1935607f2b8ecfd8978a971c6d47b90b2388fc914ccf
+copy exports   sha256 09a12df90520f1de455c77e1c27ad738ece3b4693461d4c87fad39a879a2d3e8
+data-testids   sha256 ee1f20c11511bc391be69c0fd57a6c0eb4053fca7007ee433d23d44443fea6d6
+- 1 -> 0	"--[[@cb]]R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end self.a={}self.o={}self.v={}local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)"
+- 1 -> 0	"--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end gtt(0,20)"
+- 1 -> 0	"--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end"
+- 1 -> 0	"--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%8 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end"
+- 1 -> 0	"--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=s.k%8 s.k=k+1 local q=(k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end"
+- 1 -> 0	"--[[@cb]]self.p={}self.k=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end gtt(0,@TEMPO)"
+- 8 -> 7	"10"
+- 1 -> 2	"100"
+- 8 -> 7	"11"
+- 10 -> 11	"12"
+- 2 -> 1	"120"
+- 6 -> 5	"13"
+- 6 -> 5	"14"
+- 17 -> 16	"15"
+- 1 -> 0	"150"
+- 3 -> 2	"200"
+- 1 -> 2	"250"
+- 10 -> 9	"60"
+- 2 -> 1	"90"
+- 1 -> 2	"@BPM"
+- 1 -> 4	"@DIV"
+- 1 -> 4	"@SYNC"
+- 1 -> 0	"@TEMPO"
+- 1 -> 3	"Division"
+- 2 -> 1	"Step time"
+- 1 -> 4	"Sync"
+- 1 -> 2	"Tempo (BPM)"
+- 16 -> 17	"count"
+- 1 -> 4	"division"
+- 5 -> 8	"false"
+- 29 -> 34	"mode"
+- 1 -> 4	"sync"
+- 63 -> 66	"true"
++ 0 -> 1	"--[[@cb]]R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end self.a={}self.o={}self.v={}self.q=0 local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end self.rtmrx_cb=function(s,h,b)if b==250 then local u=s.u if u then u(s)end s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil local u=s.u if u then u(s)end elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,@PERIOD)"
++ 0 -> 1	"--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.q=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end self.rtmrx_cb=function(s,h,b)if b==250 then s.j=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,20)"
++ 0 -> 1	"--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local function u(s)local q=(s.k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end end local function f(s)u(s)local k=s.k%8 s.k=k+1 for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end end s.f=f s.u=u if @SYNC then return end f(s)"
++ 0 -> 1	"--[[@cb]]gtt(0,20)local s=self if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end local function p(x,y,l)s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))glpfs(a,l,252,250,0)glt(a,l,42)end local function f(s)if s.h or s.n==0 then return end s.j=s.j%s.n+1 local v=s.g[s.j]p(v//128,v%128,2)end s.f=f if s.h then local x,y=s.x,s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 p(x,y,1)return end if @SYNC then return end f(s)"
++ 0 -> 1	"--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local function u(s)if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}end local function f(s)local k=(s.k or 0)%8 s.k=k+1 u(s)for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end end s.f=f s.u=u if @SYNC then return end f(s)"
++ 0 -> 1	"--[[@cb]]self.p={}self.k=0 self.q=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end self.rtmrx_cb=function(s,h,b)if b==250 then local u=s.u if u then u(s)end s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil local u=s.u if u then u(s)end elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)"
++ 0 -> 1	"125"
++ 0 -> 1	"166"
++ 0 -> 1	"75"
++ 0 -> 1	"Clocks a point"
+
+## the comment lines
+196 files; 48458 lines, 31147 code, 13418 comment, 3893 blank, 4112 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/ghost.ts | 194 | 229 | 90 | 119 | 71 | 90 |
+| src/lib/catalog/entries/radar-points.ts | 193 | 237 | 89 | 114 | 68 | 86 |
+| src/lib/catalog/entries/steps.ts | 165 | 215 | 81 | 112 | 64 | 85 |
+| **totals (196 -> 196 files)** | 48329 | 48458 | 13333 | 13418 | 4054 | 4112 |
+
+3 file(s) moved
+
+## check and lint
+check: 1789741012709 COMPLETED 659 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 1002 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp adfaae8
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object ccb860ca292da12a315bdb06781a7e79228641be src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: e6d0ee3b6bac9f74b07a3d9621513e81c57f8d2dfeabe294c47d5fd10e28ae2d (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 e6d0ee3b6bac9f74b07a3d9621513e81c57f8d2dfeabe294c47d5fd10e28ae2d
+SCOPED CSS sha256 5aa7323e1a4541d3e97fac31f23569c4c275fc5512dcba052dcf6c558010c20d
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 35983e18c87f5166b76ef0296ce5867a04050c0641e86f896e32337e1668634e (71 files)
+
+## the titles
+TITLES sha256 79ce1bc2f9a91c10abdb11071c60ac622944b986a4569d52c4e4b32aedc43d73 (1003 vitest titles incl. todo, 106 playwright runs)
+
+## src/ against the before-record's HEAD 6fd3260782e53452649f7f385737bafa1e3ecaeb
+git diff --name-status: 8 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-12
+wire moved: set 1e4ba5c9796f1ea4b2d15f397aa6e8102c94b67567dd730314ef43a7a008b0cd -> 53a8e1140365486c464232a4432c0a06b2f57021e952efe49f32a256bb904b97; full 627cfb5b749f46c715d750c21a214d66aed2f14c788a47bf2a0f088dd327f46d -> 850747bf8314a82609d26d58fe32473ad141787263f0a9a9cbdedaf3a54d52af
+  ~ E/ghost/defaults/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/defaults/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/corner/setup d181ba7184e0dded -> 77b927000b2e8790
+  ~ E/ghost/corner/timer 22e66fa8073a1c3b -> e1604da776ab0e8e
+  ~ E/ghost/knob recordColour=0/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob recordColour=0/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob recordColour=1/setup 5500986313151924 -> d75ff471c9ad4e78
+  ~ E/ghost/knob recordColour=1/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob recordColour=2/setup 1cb843efaa11a2ee -> b8611699760fbf3f
+  ~ E/ghost/knob recordColour=2/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob recordColour=3/setup 67aeb29b2abb054f -> ecc501b52bfd74af
+  ~ E/ghost/knob recordColour=3/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob recordColour=4/setup adac0bf81b2c4b49 -> b42f15578eca6dd7
+  ~ E/ghost/knob recordColour=4/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob ghostColour=0/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob ghostColour=0/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob ghostColour=1/setup 5f9d32e4486c784b -> eeca6bc885961821
+  ~ E/ghost/knob ghostColour=1/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob ghostColour=2/setup 8c1f70d1cff73155 -> de3967ee7d6afed0
+  ~ E/ghost/knob ghostColour=2/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob ghostColour=3/setup dea448d0be4a4c76 -> 11b2855b8b048254
+  ~ E/ghost/knob ghostColour=3/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob ghostColour=4/setup f232f1daff9b7db9 -> b0c9e13d84be02fc
+  ~ E/ghost/knob ghostColour=4/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob loopLength=0/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob loopLength=0/timer 561e79cf1638adf8 -> 91cf241368ff85f8
+  ~ E/ghost/knob loopLength=1/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob loopLength=1/timer 6ccd6615340e1180 -> 25b0d79ca0c172f6
+  ~ E/ghost/knob loopLength=2/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob loopLength=2/timer 2a90ce1941c5c1fb -> 298872105c81b226
+  ~ E/ghost/knob loopLength=3/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob loopLength=3/timer 590a207705d9a86c -> f3c9d8cae3268764
+  ~ E/ghost/knob loopLength=4/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob loopLength=4/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob cc=0/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob cc=0/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob cc=1/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob cc=1/timer 0b31ac0af29e8594 -> 1bea60ba040d070a
+  ~ E/ghost/knob cc=2/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob cc=2/timer d282acb737cacb26 -> 05cd6c4d7d33fb67
+  ~ E/ghost/knob cc=3/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob cc=3/timer cfeef484470490e3 -> aa8b249bfd76f391
+  ~ E/ghost/knob channel=0/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=0/timer cab6862c24f50fca -> 6ef5acb0ba212f9e
+  ~ E/ghost/knob channel=1/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=1/timer b36825b5d4b0ab92 -> b70392c2441a8f53
+  ~ E/ghost/knob channel=2/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=2/timer 98f12d9a63cf0ad1 -> 02096320e5f39a71
+  ~ E/ghost/knob channel=3/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=3/timer 4ad93e5f962d0efb -> 3972536ffbf38a61
+  ~ E/ghost/knob channel=4/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=4/timer 079f09f588ee622a -> ccec09cf9f543227
+  ~ E/ghost/knob channel=5/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=5/timer 14e1676bef57dad2 -> aeaa2a69d51306ac
+  ~ E/ghost/knob channel=6/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=6/timer 20a63767c6949115 -> fb28444e82f28330
+  ~ E/ghost/knob channel=7/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=7/timer 2e0fb5bd711fb44e -> c2eb8a3b8c8a04cb
+  ~ E/ghost/knob channel=8/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=8/timer ea545f85ce4c36f9 -> 17165d6b4eb5f4f3
+  ~ E/ghost/knob channel=9/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=9/timer 240c5f255eccdf16 -> bba3a62ec08177bf
+  ~ E/ghost/knob channel=10/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=10/timer 7775d4f423bbc3dd -> 21f0d5572233506f
+  ~ E/ghost/knob channel=11/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=11/timer f09e676fef171c63 -> 6c08e5e4c0b1e86a
+  ~ E/ghost/knob channel=12/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=12/timer fecc2fbf246b6719 -> 717372eadfabd763
+  ~ E/ghost/knob channel=13/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=13/timer d906721e89ba16bb -> f9319886551f4ea1
+  ~ E/ghost/knob channel=14/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=14/timer 3b509909686e42ee -> 9a05bbc3c0a5c2cf
+  ~ E/ghost/knob channel=15/setup 24954a1941b82221 -> a7102bfb2cc97ad7
+  ~ E/ghost/knob channel=15/timer 4f391d0126ccd9e9 -> 7218e05d40ff8b2b
+  - E/ghost/cross-product (8000 states)
+  ~ E/steps/defaults/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/defaults/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/corner/setup a06b2d6304155c8d -> c6666f9a5d570cf5
+  ~ E/steps/corner/timer c64af807d011ca75 -> 3b95f3d2edba5e41
+  ~ E/steps/knob tempo=0/setup 6e9c5ee978899a44 -> c696eaa6a362d51f
+  ~ E/steps/knob tempo=0/timer 248524c938388cdc -> 6c35705f38661b1d
+  ~ E/steps/knob tempo=1/setup 7d3c513f7b064454 -> bce1e8dbbb7a9c19
+  ~ E/steps/knob tempo=1/timer 3312cf654ba0f9bc -> 232a7f5b693f8e71
+  ~ E/steps/knob tempo=2/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob tempo=2/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob tempo=3/setup d31ed07c13234689 -> bb465d63c5b61109
+  ~ E/steps/knob tempo=3/timer 9aea541419036658 -> a46798923ce725c0
+  ~ E/steps/knob tempo=4/setup 76fc7c4c54dc1f08 -> 0b33d07ec7595d94
+  ~ E/steps/knob tempo=4/timer ae6262bf7db9035b -> d379591a931ab80b
+  ~ E/steps/knob armed=0/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob armed=0/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob armed=1/setup 046444e19c062239 -> 7af9bb42049ef168
+  ~ E/steps/knob armed=1/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob armed=2/setup 27b587d7c4e6cbd5 -> 8ab623a040441ea3
+  ~ E/steps/knob armed=2/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob armed=3/setup 4a3f55237e64dbeb -> a229e3842b29bb22
+  ~ E/steps/knob armed=3/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob sweep=0/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob sweep=0/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob sweep=1/setup aa7b78059c05478a -> ade105830bbc6569
+  ~ E/steps/knob sweep=1/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob sweep=2/setup 1f33e31657393c9c -> 76dbc83918e09027
+  ~ E/steps/knob sweep=2/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob sweep=3/setup 08bb88bd7c6ddc17 -> ca80a765bd65847a
+  ~ E/steps/knob sweep=3/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob trail=0/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob trail=0/timer 8331fd0070d77132 -> ba8f278c4bcf3067
+  ~ E/steps/knob trail=1/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob trail=1/timer 11ee98bcca421b46 -> 87917e1b177b3d01
+  ~ E/steps/knob trail=2/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob trail=2/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob trail=3/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob trail=3/timer 9eb3a063e1a89e43 -> 96b61ae782d443b7
+  ~ E/steps/knob note=0/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob note=0/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob note=1/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob note=1/timer 6977a33a59b6406a -> ef7e82aa5f33b7c9
+  ~ E/steps/knob note=2/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob note=2/timer 211d9096eee66125 -> 92429cc3a2f80d37
+  ~ E/steps/knob note=3/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob note=3/timer 950e7bbd0d62d510 -> a6ea6d7567931901
+  ~ E/steps/knob channel=0/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob channel=0/timer b525520361359a5b -> c2b4cd6b50f69ab3
+  ~ E/steps/knob channel=1/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob channel=1/timer 0f0541a942c16453 -> 6e5a11dceef413fc
+  ~ E/steps/knob channel=2/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob channel=2/timer 5368bf11bb81a3e4 -> 8f6df1b8bd3a4add
+  ~ E/steps/knob channel=3/setup a09f92d5f72a2590 -> 2f309380426d8cac
+  ~ E/steps/knob channel=3/timer b4737aa10c3a5a15 -> bb6320863babfded
+  - E/steps/cross-product (5120 states)
+  ~ E/radar-points/defaults/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/defaults/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/corner/setup 098be95c16bb45aa -> 170d3b3241c8410f
+  ~ E/radar-points/corner/timer b9488774ac911f7f -> 0ec96df532c85a58
+  ~ E/radar-points/knob scale=0/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob scale=0/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob scale=1/setup d3f4117dc7f7f063 -> 841144e1839c5ff0
+  ~ E/radar-points/knob scale=1/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob scale=2/setup 0cf0867b6e0a67a6 -> 128c2ae79cf40c4c
+  ~ E/radar-points/knob scale=2/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob scale=3/setup 9a858412f84fd07c -> 84d602ebd36c4389
+  ~ E/radar-points/knob scale=3/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob scale=4/setup 437acd49dfe48861 -> 77903736ea1c7f63
+  ~ E/radar-points/knob scale=4/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob root=0/setup 5f8ffa3f116e3a19 -> 1f27f384889b7735
+  ~ E/radar-points/knob root=0/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob root=1/setup 9bdf10e0625c04d4 -> 55253d891c544d26
+  ~ E/radar-points/knob root=1/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob root=2/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob root=2/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob root=3/setup 172c82a525453021 -> 4d68d1b8ad66d118
+  ~ E/radar-points/knob root=3/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob root=4/setup 5e7fe84ca56f6244 -> dbcdf2c96b1b5cbc
+  ~ E/radar-points/knob root=4/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweepColour=0/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob sweepColour=0/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweepColour=1/setup 0b0bfe3edbae1122 -> bbd8bf6a896f6745
+  ~ E/radar-points/knob sweepColour=1/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweepColour=2/setup add2b70730d9acec -> b39b3e4ebd2e0ade
+  ~ E/radar-points/knob sweepColour=2/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweepColour=3/setup 5df1a17ffc30aed6 -> df9bbf4ec83b0a01
+  ~ E/radar-points/knob sweepColour=3/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweepColour=4/setup 78bd79f16e53e5a7 -> c7f9235d9b8bf5cc
+  ~ E/radar-points/knob sweepColour=4/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweep=0/setup ab26a46a6f65d5f0 -> dfff321c4fe5a06d
+  ~ E/radar-points/knob sweep=0/timer 1fc3dcb1beeaac42 -> 51381533ad175ef6
+  ~ E/radar-points/knob sweep=1/setup 045486faeb22b06c -> 10453708851f245a
+  ~ E/radar-points/knob sweep=1/timer fbaa3ffe6b3c2039 -> d305ca97f141c4b4
+  ~ E/radar-points/knob sweep=2/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob sweep=2/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob sweep=3/setup 7ae9df731e8cfe13 -> 54a88d490fc60ad9
+  ~ E/radar-points/knob sweep=3/timer 9865b747b6372d16 -> 473d23c66e055d20
+  ~ E/radar-points/knob sweep=4/setup f2188a221177a30a -> a74b0ea4da8db762
+  ~ E/radar-points/knob sweep=4/timer 385e31d8872268ba -> 39eda8ca444014ee
+  ~ E/radar-points/knob channel=0/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=0/timer 121ac048f934c9bf -> 45a2390fd868b2c1
+  ~ E/radar-points/knob channel=1/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=1/timer ab0b4a4ba924abad -> 474b3b3cd1cb869f
+  ~ E/radar-points/knob channel=2/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=2/timer f75a8651b2eebd88 -> 2a1c4ccc6f928732
+  ~ E/radar-points/knob channel=3/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=3/timer a78b8a557db2103a -> 59ee0d68419667db
+  ~ E/radar-points/knob channel=4/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=4/timer b82d9a0dae239031 -> 940a3c58b35d9412
+  ~ E/radar-points/knob channel=5/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=5/timer 489f500ace8312b4 -> b8e7e6a711f5d101
+  ~ E/radar-points/knob channel=6/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=6/timer 2dedfb1f801c63dd -> b9bd8ce360d791fa
+  ~ E/radar-points/knob channel=7/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=7/timer 05b761f4d7a4459e -> f6e7cb28e164cc16
+  ~ E/radar-points/knob channel=8/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=8/timer bd57e98170e24e95 -> 2bfc860684cb96ed
+  ~ E/radar-points/knob channel=9/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=9/timer 81287f64b4adc2d5 -> 1d69ef30a6b1cd31
+  ~ E/radar-points/knob channel=10/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=10/timer cd30841ea79cc776 -> 291bef80ef44a705
+  ~ E/radar-points/knob channel=11/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=11/timer 6f362573e8b1ed62 -> 0f2a1ab1901769c9
+  ~ E/radar-points/knob channel=12/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=12/timer 5c8abde846f6189f -> efd5c823627fcfe6
+  ~ E/radar-points/knob channel=13/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=13/timer acbf9b8fc51f295a -> bbbbee548ff4e76e
+  ~ E/radar-points/knob channel=14/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=14/timer f18c96e9a2252f9c -> e8c94cc648b40957
+  ~ E/radar-points/knob channel=15/setup a713925a62dddf6c -> 7259ca73f10e5911
+  ~ E/radar-points/knob channel=15/timer d559ed9a10aec28c -> 13491f2ae060d015
+  - E/radar-points/cross-product (10000 states)
+  + E/ghost/knob sync=0/setup
+  + E/ghost/knob sync=0/timer
+  + E/ghost/knob sync=1/setup
+  + E/ghost/knob sync=1/timer
+  + E/ghost/knob division=0/setup
+  + E/ghost/knob division=0/timer
+  + E/ghost/knob division=1/setup
+  + E/ghost/knob division=1/timer
+  + E/ghost/knob division=2/setup
+  + E/ghost/knob division=2/timer
+  + E/ghost/cross-product (48000 states)
+  + E/steps/knob sync=0/setup
+  + E/steps/knob sync=0/timer
+  + E/steps/knob sync=1/setup
+  + E/steps/knob sync=1/timer
+  + E/steps/knob division=0/setup
+  + E/steps/knob division=0/timer
+  + E/steps/knob division=1/setup
+  + E/steps/knob division=1/timer
+  + E/steps/knob division=2/setup
+  + E/steps/knob division=2/timer
+  + E/steps/cross-product (30720 states)
+  + E/radar-points/knob sync=0/setup
+  + E/radar-points/knob sync=0/timer
+  + E/radar-points/knob sync=1/setup
+  + E/radar-points/knob sync=1/timer
+  + E/radar-points/knob division=0/setup
+  + E/radar-points/knob division=0/timer
+  + E/radar-points/knob division=1/setup
+  + E/radar-points/knob division=1/timer
+  + E/radar-points/knob division=2/setup
+  + E/radar-points/knob division=2/timer
+  + E/radar-points/cross-product (60000 states)
+FAIL: the wire

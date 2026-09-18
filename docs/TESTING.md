@@ -6399,3 +6399,107 @@ one pointer) - multitouch is proved in the VM; the gate's quick constant is the 
 already 12 lines at `e8c22ec` (`comment-lines.mjs --todo` prints it; 10B left it) and is not
 touched here beyond one wire line; ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`;
 the worktree `../hangar-gate-11` was removed after the records were copied.
+
+## 2026-09-18 change 12 - MIDI clock sync on STEPS, RADAR POINTS and GHOST
+
+`BENCH-2026-09-16.txt` section 12: ORBIT's clock idiom (change 8, bench-verified the same day -
+"MIDI sync works perfectly") on three more sequencer cards; RADAR is the ported preset and is
+change 12b's, untouched. Three source commits and one audition commit, no push, no device, no
+deploy: `63ad1ed` feat(catalog) - STEPS; `4dd7837` feat(catalog) - RADAR POINTS; `d1519f3`
+feat(catalog) - GHOST; `adfaae8` docs(audition) - rows 35 to 37 and `ROW_COUNT` 37; then this
+section, the Done paragraph under section 12, a dated line in `docs/entries/library.md`, the gate
+script's quick constant at what the runs prove (95 / 1002), and the gate records `gate/change-12.*`
+(before, at `6fd3260` - the coordinator's 12b docs commit landed on `cdc1548` while this change
+ran, `src/` identical - on a clean worktree `../hangar-gate-12` with its own `npm ci`; removed
+after the records were copied) and `gate/change-12-after.*` (at `adfaae8`). The two shared spec
+files were staged per card (`stamp.spec.ts`'s `grew` list, `lua-smoke.spec.ts`'s proofs) so each
+card's commit is green on its own tree.
+
+**What moved in the suites.** `lua-smoke.spec.ts` 43 -> 46: STEPS (Internal's eight columns on
+the wire - on / off of `@NOTE+7` on channel 9 - and k at 8; External: the Timer sends nothing and
+moves no column over three periods, twelve clocks before Start do nothing, Start zeroes the
+count, the first clock lands column 0, the seventh column 1 with column 0's release, 200 Timer
+ticks move nothing, Stop after column 2 releases its row, clocks and 254 do nothing while stopped,
+Continue keeps the count at 13 and the sixth clock lands column 3, Start releases and resets and
+the clock lands column 0; Division 12 and 3 with the one-period caveat; the words and the
+preview), RADAR POINTS (two points armed under External, the Timer rolling no ring over sixteen
+periods and lighting no ring cell, ring 0 on the first clock after Start, ring 1 on the seventh
+with all eight cells lit on layer 2 and no ring-4 cell, ring 2 on the thirteenth with ring 1's
+release, 200 Timer ticks moving nothing, Stop releasing the pending point, Continue from the
+kept count with nothing released twice, the eight-step cycle with its three quiet steps and the
+next pass, Start releasing and resetting; Division 12; the words and the preview) and GHOST (the
+three-cell drag recorded live under External - ten points at 20 ms - with the pair sent live and
+a Y for every X, the Timer replaying nothing over 200 ticks after the lift with j at 0 and no
+path cell lit, twelve clocks before Start doing nothing, Start then one point a clock - the
+down's raw pair on CC 16 / 17 and its LED at phase 252 on layer 2 - the recorded coordinates
+over one lap, the wrap, 200 Timer ticks sending nothing, Stop freezing it with the key still
+pulsing, Continue at the next point, Start restarting; Clocks a point 3 - point 1 on the first
+clock, point 2 on the fourth, ten points over thirty; the words, the rail and the preview). The
+first RADAR POINTS draft published the release as `s.o` - the pitch table - and the existing
+RADAR POINTS, residue and parity cases caught it on the first full run (`attempt to index a
+function value (field 'o')`); the release is `s.u` on both cards that have one. `catalog.spec.ts`:
+the cap reads `SYNC_CARD_KNOBS` (orbit 14, steps 8, radar-points 7, ghost 7; 6 elsewhere);
+`knobs.lua.spec.ts` the same four by id; `stamp.spec.ts`: STEPS and GHOST join the grown - the
+captured six- and five-knob `x` payloads land `unreadable` by the length check, the captured
+default vectors still carry no stamp; `audition.spec.ts` `ROW_COUNT` 34 -> 37. Every existing case
+on the three cards (the swipe, the boundary finger, the 81 LED centres, the parity tap, the
+residue, GHOST's record / replay / reset twice and its calibrated key, RADAR POINTS's ping ring
+by ring) is untouched and green; `frames.spec.ts` and `demo.spec.ts` held without a regeneration.
+
+**Counts, carried + delta:** quick (the `server` project, the gate's pipeline) 95 / 999 + 1 todo
+-> **95 / 1002 + 1 todo** (+0 / +3), green twice at `--maxWorkers=2` (the gate's after-run through
+`check-counts.mjs 95 1002` and a second pass); check 659 -> **659** (0 / 0); lint clean (prettier
+on the three files it named, by name); sweep `4 19` green (the wire's cross-products: STEPS 5,120
+-> 30,720 states, RADAR POINTS 10,000 -> 60,000, GHOST 8,000 -> 48,000 - all under hash-wire's
+sampling ceiling, so every state is hashed); e2e 91 / 106 -> **91 / 106** (no title added; c3 21
+passed); audition rows 34 -> **37**; utilities **44** -> **44** (0 appeared, 0 disappeared; the raw
+CSS `e6d0ee3b…` and the scoped `5aa7323e…` equal on both sides); catalog **27**; testids **321**
+equal; copy exports equal; OG 27 files / 159,169 B / `9becd682…` equal; `frames.json` `ccb860ca`
+and the three other fixtures equal; `src/` 9 modified / 0 added / 0 deleted / 0 renamed.
+
+**The costs** (RGB444 picker corner, pinned `compressScript` after `initLuaFormatter()`; every
+knob state a fixed point passing `checkSyntax`): STEPS Setup 420 -> **727** (181 free), Timer 260
+-> **361** (547 free), 720 / 359 at the defaults; RADAR POINTS Setup 592 -> **892** (16 free - the
+tightest Setup in the catalog; the callback in the Timer was costed at ~625 / ~530 and not taken:
+it would lose a Start inside the first `@PERIOD`), Timer 288 -> **380** (528 free), 891 / 378;
+GHOST Setup 491 -> **730** (178 free), Timer 409 -> **484** (424 free), 725 / 480. No system slot
+on any card. The default records moved only by the idiom's own strings - `self.q=0`, the
+callback, `grxm(2,0)`, the published routines and `if false then return end f(s)` (and, on STEPS,
+`gtt(0,15000//125)` for `gtt(0,120)`) - and the rest frames did not move.
+
+**The gate's terms** (`--before change-12` at `6fd3260`, `--after change-12 --against change-12
+--check 659` at `adfaae8`; the after-record's dirty flag reads 1 for the gate script's own quick
+constant, the one uncommitted file): the wire set `1e4ba5c9…` -> `53a8e114…` and full `627cfb5b…`
+-> `850747bf…`, 2,802 -> 2,832 records: **2,595 byte-identical, 204 moved - STEPS 54, RADAR POINTS
+76, GHOST 74 - 3 removed and 33 added** (the three `cross-product` records renamed by their state
+counts, and ten `knob sync=… / division=…` records per card), **0 outside the three cards**; the
+sandbox set `3bdb5974…` equal; the census `0cb162ee…` -> `7300d394…` (2,860 -> 2,862 literals);
+the copy exports `09a12df9…` equal; the testids `ee1f20c1…` equal (321); the scoped CSS
+`5aa7323e…` equal, the raw `e6d0ee3b…` equal; the utilities 44 -> 44; the titles `a110ec22…` ->
+`79ce1bc2…` (1,000 -> 1,003 vitest titles incl. todo; 106 playwright runs); the JS `3d9cf59c…` ->
+`35983e18…` (71 files); the OG equal; the fixtures equal; check 659; lint 0; quick exit 0 at 95
+/ 1002 (the before's quick term read `no Vitest summary lines`, the pipe as 10B and 11); the
+comment-lines record: 3 files moved (the three entries). The script exits 1 at the wire by
+design.
+
+**Chunks** (a fresh detached wrangler dev on 4173, stopped through PowerShell, HTTP 000 after; the
+user's 5173 untouched; the build stamped `adfaae8`): c3 by its two files **21 passed** (30.4 s,
+three workers). c1 not run: no e2e title reads STEPS, RADAR POINTS or GHOST (`tuning.e2e.ts`
+drives AURORA and ARC, `install.e2e.ts` AURORA and LUMEN).
+
+**Departures from the brief:** STEPS's column decay pair moved WITH the step rather than staying
+on the Timer (it names column k; on the Timer under External it would re-arm the held column
+every period and paint a column the clock had not reached); the release is a second published
+routine `s.u` (the brief named none; `s.o` is RADAR POINTS's pitch table); STEPS's tempo is a
+16th (`15000//@BPM`, ladder 75 100 125 166 250 - today's five periods exactly), not the eighth
+the brief's header sentence implied (250 BPM as a default is a number no DAW shows; the old knob
+comment already called 120 ms "125 bpm"); GHOST's Division is `Clocks a point` 1 / 2 / 3 as a
+`count` rail (`1 2 3` as `mode` literals collide with CHORUS's `2` and ORBIT's `3` in
+`MODE_TABLES`), not ORBIT's set; RADAR POINTS's Setup sits at 892 (the brief's order - Setup
+first - holds; `BUDGET_ERROR` 890 is the vendored compiler's line with no consumer under
+`src/lib`); the audition rows landed in their own docs commit before the gate's after-run so
+`src/` was clean for it, so there are two docs commits; GHOST's channel list is a generated
+`CHANNELS` array of the same sixteen strings; the before HEAD is `6fd3260`, not the brief's
+`cdc1548`; `library.ts`, `sequence.ts`, `src/vendor/`, the manifest, `Knob.svelte`,
+`ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts`, RADAR and every other entry
+untouched; ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`; not deployed.

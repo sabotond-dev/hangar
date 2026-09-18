@@ -505,3 +505,8 @@ function by measurement: 255/0 has 66 free and 255/6 has 35, the callback is a h
 seventy characters and its step routine is the entry's own, so nothing here would pay for
 itself. `library.ts` is untouched by the change; the callers named in its section 5 still say
 EUCLID where they mean ORBIT, because that file is on the change's untouched list.
+
+2026-09-18 (change 12): STEPS, RADAR POINTS and GHOST took the idiom on the user's word, each in
+its own entry (`docs/entries/steps.md`, `radar-points.md`, `ghost.md`, the change 12 sections);
+still an idiom, not a library function, and `library.ts` is untouched again. The two cards that
+hold notes publish a release beside the step (`s.u` beside `s.f`) for the DAW's Start and Stop.
