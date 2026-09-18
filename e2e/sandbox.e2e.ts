@@ -28,7 +28,8 @@
 // untouched on the way (D-14 Q7). Nothing here claims a module would answer
 // the same: runbook row M is where that is asked. (The sixth is that loop; the
 // seventh, change 10B, is the options walk - a fader set Relative and Spring, a
-// button set Note and Toggle, a knob set Relative, recovered from the draft.) THE PUT-BACK HALF LEFT AT
+// button set Note and Toggle, a knob set Relative, recovered from the draft; the
+// eighth, change 11, an XY pad's Touches - the count, its helper, both refusals.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -1142,5 +1143,64 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("field-mode")).toHaveValue("relative-twos");
 
     expect(consoleErrors, "no console error on the options walk").toEqual([]);
+  });
+
+  test("the Touches walk (change 11): an XY pad's Touches select 1 to 5 with its helper, 3 lands as one entry, a CC number typed too high for the count is refused on its field with the line, a count too high for the controllers is refused on the select with the same line and the select snaps back, and the draft recovered on a reload", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+
+    // X, a click, Escape: the pad selected, Touches at 1 with the helper.
+    await plate.focus();
+    await page.keyboard.press("x");
+    await clickCell(plate, 3, 0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("inspector-name")).toHaveText("XY pad 1");
+    await expect(sandbox).toHaveAttribute("data-depth", "1");
+    await expect(page.getByTestId("field-touches")).toHaveValue("1");
+    await expect(page.getByTestId("region-inspector")).toContainText(
+      "Every finger sends on its own pair",
+    );
+    expect(await page.getByTestId("touches-problem").count()).toBe(0);
+    // 3 lands as one entry.
+    await page.getByTestId("field-touches").selectOption("3");
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    await expect(page.getByTestId("field-touches")).toHaveValue("3");
+    // A CC number typed at 126 is past 3 fingers' ceiling of 123: the line
+    // on the field, the model untouched; 120 lands.
+    await page.getByTestId("field-cc").fill("126");
+    await expect(page.getByTestId("field-cc-message")).toContainText(
+      "With 3 touches a CC number is 0 to 123",
+    );
+    await page.getByTestId("field-cc").fill("120");
+    await expect(page.getByTestId("field-cc-message")).toHaveCount(0);
+    await page.getByTestId("field-cc").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    // 5 fingers would put the last pair past 127 with the CC at 120: the
+    // select refuses with its line and snaps back to 3; no entry.
+    await page.getByTestId("field-touches").selectOption("5");
+    await expect(page.getByTestId("touches-problem")).toContainText(
+      "With 5 touches a CC number is 0 to 119",
+    );
+    await expect(page.getByTestId("field-touches")).toHaveValue("3");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    // 2 lands, the line goes.
+    await page.getByTestId("field-touches").selectOption("2");
+    await expect(page.getByTestId("touches-problem")).toHaveCount(0);
+    await expect(sandbox).toHaveAttribute("data-depth", "4");
+
+    // THE DRAFT: reloaded, the pad reads 2 fingers and CC 120.
+    await page.waitForTimeout(400);
+    await page.reload();
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    const again = page.getByTestId("surface-plate");
+    await clickCell(again, 4, 1);
+    await expect(page.getByTestId("inspector-name")).toHaveText("XY pad 1");
+    await expect(page.getByTestId("field-touches")).toHaveValue("2");
+    await expect(page.getByTestId("field-cc")).toHaveValue("120");
+
+    expect(consoleErrors, "no console error on the Touches walk").toEqual([]);
   });
 });

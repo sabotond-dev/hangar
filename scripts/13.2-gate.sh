@@ -16,7 +16,7 @@
 # a before-record without one reads "not recorded", stated; scripts/gate/hash-wire.mjs); the
 # three string hashes (hash-strings.mjs); the per-file
 # comment-line record (comment-lines.mjs); svelte-check's last line, asserted at --check <n>; lint;
-# the quick suite through check-counts.mjs 95 995 with the JSON reporter for the titles; the build;
+# the quick suite through check-counts.mjs 99 1018 with the JSON reporter for the titles; the build;
 # the fixtures' git status and hash-objects; the raw built CSS (recorded, expected to move - Tailwind
 # scans comments, D-21) and the SCOPED CSS with the utilities delta by name (css-terms.mjs); the OG
 # count and bytes; the normalised built JS (recorded; asserted equal only under --js-equal); the sorted
@@ -30,8 +30,8 @@ export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")/.." || exit 2
 
 GATE=".planning/phases/13.2-readability/gate"
-QUICK_FILES=95
-QUICK_TESTS=995
+QUICK_FILES=99
+QUICK_TESTS=1018
 FIXTURES="src/lib/catalog/frames.json src/lib/fidelity/golden-frames.json src/lib/fidelity/preset-baseline.json src/lib/transport/fixtures/synthetic-zona.json"
 REFUSED_PATHS="src/vendor src/lib/fidelity/upstream-manifest.json src/lib/ui/Knob.svelte src/lib/ui/ColourPicker.svelte"
 
