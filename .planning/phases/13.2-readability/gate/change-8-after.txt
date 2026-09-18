@@ -1,0 +1,1415 @@
+# 13.2 gate --after change-8 --against change-8 --check 658
+HEAD c504753 (c504753dbe0b9eb65f7a1c3b084e171d36b85286); dirty (src e2e scripts docs) 1; free memory 4.54 GB; 2026-09-18T00:43:34Z
+before-record HEAD fd5e1bfd395da056702e24c65108b79247d392e3
+
+## the wire
+2775 strings from 19 Lua entries + 8 presets + library + defaults + Sandbox page 3
+WIRE SET 75d0c1ebae22e5c43da648c4a4c6d8e98a5b116d80f2848c319ec823b9424532
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE FULL 5c2e72273c11a284a2c3caca248c6125912ec87fd7e34737bfed3ab53b168144
+154 Sandbox strings from 11 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner
+WIRE SANDBOX SET 40b44316545f91a2cb4d8d7c5d2c859db904916e823b564ed568bc4055a88f01
+
+## the strings
+194 files; 2783 distinct literals (6447 occurrences); 7 copy modules; 318 data-testids
+literal census sha256 991aab0d4779975722ad0749d2d9afa9f2c9b105512dce9d2adca4f343f9506d
+copy exports   sha256 071be34f41ca007e19687ffe51d756e80d4fc61586628c0c7159644fed49f181
+data-testids   sha256 74e0cfd6a25e32186c0841e58e1045eecc1d74826be49ddd05d063f5102d768d
+- 1 -> 0	"--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glc(a,2,@RINGC,1)glp(a,2,0)end self.c={}self.p={}self.i={}local h={@PULSES}for d=1,3 do local n=d*8 local u={}local v={}for t=0,n-1 do local q=t//(d*2)local w=t%(d*2)local a,b if q==0 then a,b=d,w-d elseif q==1 then a,b=d-w,d elseif q==2 then a,b=-d,d-w else a,b=w-d,-d end local m=a+4+(b+4)*9 u[t]=m self.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end self.c[d]=u self.p[d]=v end self.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,s.c[d][t]),1,s.p[d][t]and 255 or 0)end gtt(0,@TEMPO)"
+- 1 -> 0	"--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end"
+- 1 -> 0	"./entries/euclid"
+- 9 -> 8	"10"
+- 9 -> 8	"11"
+- 9 -> 10	"12"
+- 7 -> 6	"13"
+- 7 -> 6	"14"
+- 18 -> 17	"15"
+- 1 -> 0	"2,3,5"
+- 6 -> 5	"24"
+- 1 -> 0	"3,5,7"
+- 1 -> 0	"3,8,11"
+- 3 -> 2	"30"
+- 1 -> 0	"34"
+- 9 -> 8	"36"
+- 1 -> 0	"4,8,16"
+- 6 -> 5	"40"
+- 12 -> 11	"48"
+- 1 -> 0	"5,9,13"
+- 10 -> 9	"60"
+- 1 -> 0	"7,11,17"
+- 5 -> 4	"@NOTE"
+- 2 -> 1	"@RINGC"
+- 1 -> 0	"Base note"
+- 2 -> 0	"Euclid"
+- 1 -> 0	"Ring colour"
+- 2 -> 0	"Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern."
+- 62 -> 65	"colour"
+- 3 -> 0	"euclid"
+- 4 -> 5	"false"
+- 4 -> 5	"helper type-helper"
+- 27 -> 29	"mode"
+- 30 -> 33	"note"
+- 3 -> 2	"numeric"
+- 1 -> 0	"ringColour"
+- 15 -> 16	"text"
+- 62 -> 63	"true"
++ 0 -> 1	"--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glp(a,2,0)end local s=self s.c={}s.p={}s.i={}s.k=0 s.q=0 local h={@PULSES}for d=1,4 do local n=d*8 local u={}local v={}for t=0,n-1 do local a,b=d,t%(d*2)-d for j=1,t//(d*2)do a,b=-b,a end local m=a+4+(b+4)*9 u[t]=m s.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end s.c[d]=u s.p[d]=v end s.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end s.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,m),1,s.p[d][t]and 255 or 0)end grxm(2,@SYNC and 3 or 0)gtt(0,@TEMPO)"
++ 0 -> 1	"--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local function f(s)local c={@R1C,@R2C,@R3C,@R4C}local n={@N1,@N2,@N3,@N4}local k=s.k s.k=(k+1)%96 for d=1,4 do local t=k%(d*8)local a=glag(0,s.c[d][t])glc(a,2,c[d*3-2],c[d*3-1],c[d*3],1)glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,n[d],0,0)if s.p[d][t]then s:gms(@CH,144,n[d],100,0)end end end s.f=f if @SYNC then return end f(s)"
++ 0 -> 1	"./entries/orbit"
++ 0 -> 1	"16th"
++ 0 -> 1	"2,3,5,7"
++ 0 -> 1	"3,5,7,11"
++ 0 -> 1	"3,8,11,19"
++ 0 -> 1	"32nd"
++ 0 -> 1	"4,8,12,16"
++ 0 -> 1	"5,9,13,17"
++ 0 -> 1	"7,11,17,23"
++ 0 -> 1	"8th"
++ 0 -> 1	"@DIV"
++ 0 -> 1	"@N1"
++ 0 -> 1	"@N2"
++ 0 -> 1	"@N3"
++ 0 -> 1	"@N4"
++ 0 -> 1	"@R1C"
++ 0 -> 1	"@R2C"
++ 0 -> 1	"@R3C"
++ 0 -> 1	"@R4C"
++ 0 -> 1	"@SYNC"
++ 0 -> 1	"A note here is C-1 to G9, or 0 to 127."
++ 0 -> 1	"Division"
++ 0 -> 1	"External"
++ 0 -> 2	"Four Euclidean rings, a colour and a note each, on their tempo or your DAW’s clock; tap a step to change it."
++ 0 -> 1	"Internal"
++ 0 -> 2	"Orbit"
++ 0 -> 1	"Ring 1 MIDI note"
++ 0 -> 1	"Ring 1 colour"
++ 0 -> 1	"Ring 2 MIDI note"
++ 0 -> 1	"Ring 2 colour"
++ 0 -> 1	"Ring 3 MIDI note"
++ 0 -> 1	"Ring 3 colour"
++ 0 -> 1	"Ring 4 MIDI note"
++ 0 -> 1	"Ring 4 colour"
++ 0 -> 1	"Sync"
++ 0 -> 1	"The browser preview has no MIDI clock, so it runs the internal tempo here. Your ZONA follows your DAW."
++ 0 -> 1	"division"
++ 0 -> 1	"f(self, {13, 0, 0}, ${}) return true"
++ 0 -> 1	"local f = self.rtmrx_cb if type(f) ~= \"function\" then return false end "
++ 0 -> 1	"note1"
++ 0 -> 1	"note2"
++ 0 -> 1	"note3"
++ 0 -> 1	"note4"
++ 0 -> 3	"orbit"
++ 0 -> 1	"preview-held"
++ 0 -> 1	"ring1Colour"
++ 0 -> 1	"ring2Colour"
++ 0 -> 1	"ring3Colour"
++ 0 -> 1	"ring4Colour"
++ 0 -> 1	"sync"
+
+## the comment lines
+195 files; 47168 lines, 30314 code, 13043 comment, 3811 blank, 4041 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/brightness.ts | 365 | 367 | 56 | 57 | 14 | 14 |
+| src/lib/catalog/entries/orbit.ts (new) | - | 271 | - | 91 | - | 64 |
+| src/lib/catalog/listing.ts | 496 | 499 | 148 | 151 | 12 | 12 |
+| src/lib/catalog/types.ts | 190 | 197 | 83 | 89 | 11 | 11 |
+| src/lib/share/stamp.ts | 425 | 474 | 130 | 142 | 13 | 13 |
+| src/lib/sim/lua-host.ts | 785 | 805 | 203 | 212 | 12 | 12 |
+| src/lib/sim/lua-pad-sim.ts | 174 | 190 | 40 | 45 | 9 | 9 |
+| src/lib/tune/inspector-copy.ts | 240 | 255 | 98 | 108 | 16 | 16 |
+| src/lib/tune/knobs.lua.ts | 44 | 49 | 29 | 32 | 10 | 10 |
+| src/lib/tune/model.ts | 961 | 970 | 240 | 242 | 13 | 13 |
+| src/lib/tune/view.ts | 673 | 729 | 189 | 210 | 18 | 18 |
+| src/lib/ui/MidiField.svelte | 279 | 304 | 31 | 34 | 14 | 14 |
+| src/lib/ui/TuningRegion.svelte | 737 | 748 | 119 | 121 | 15 | 15 |
+| src/lib/catalog/entries/euclid.ts (gone) | 185 | - | 78 | - | 62 | - |
+| **totals (195 -> 195 files)** | 46864 | 47168 | 12953 | 13043 | 4039 | 4041 |
+
+14 file(s) moved
+
+## check and lint
+check: 1789692240221 COMPLETED 658 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 983 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp c504753
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object ccb860ca292da12a315bdb06781a7e79228641be src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 56d81122574f9fa8fdc436a4fe436d435a96a8eac9c73527f31d1506c5059e46
+SCOPED CSS sha256 7f88b4f4f10ef13a3af2bd30dd4b8f2d277569edd9b9a4687cedea5b5b76b7f2
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 062043aac5fd6d9689adb7f35c1511b9e7eef1fe39a1089cc72cb4645859d946 (72 files)
+
+## the titles
+TITLES sha256 39b22413f9ebbb612079e7f862ba80527a90c33252276f13888cbc693e9968cc (984 vitest titles incl. todo, 103 playwright runs)
+
+## src/ against the before-record's HEAD fd5e1bfd395da056702e24c65108b79247d392e3
+git diff --name-status: 34 modified, 1 added, 1 deleted, 0 renamed
+  D	src/lib/catalog/entries/euclid.ts
+  A	src/lib/catalog/entries/orbit.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-8
+wire moved: set 25aada35e9ce2c640a29f84111bfd28dae4375c567434036757638024031823b -> 75d0c1ebae22e5c43da648c4a4c6d8e98a5b116d80f2848c319ec823b9424532; full 14ef80ae8c00776637c8ec95641cd47a31d39fbe54abcd8bbaf4508af92ae518 -> 5c2e72273c11a284a2c3caca248c6125912ec87fd7e34737bfed3ab53b168144
+  - E/euclid/defaults/setup
+  - E/euclid/defaults/timer
+  - E/euclid/corner/setup
+  - E/euclid/corner/timer
+  - E/euclid/knob tempo=0/setup
+  - E/euclid/knob tempo=0/timer
+  - E/euclid/knob tempo=1/setup
+  - E/euclid/knob tempo=1/timer
+  - E/euclid/knob tempo=2/setup
+  - E/euclid/knob tempo=2/timer
+  - E/euclid/knob tempo=3/setup
+  - E/euclid/knob tempo=3/timer
+  - E/euclid/knob tempo=4/setup
+  - E/euclid/knob tempo=4/timer
+  - E/euclid/knob tempo=5/setup
+  - E/euclid/knob tempo=5/timer
+  - E/euclid/knob pulses=0/setup
+  - E/euclid/knob pulses=0/timer
+  - E/euclid/knob pulses=1/setup
+  - E/euclid/knob pulses=1/timer
+  - E/euclid/knob pulses=2/setup
+  - E/euclid/knob pulses=2/timer
+  - E/euclid/knob pulses=3/setup
+  - E/euclid/knob pulses=3/timer
+  - E/euclid/knob pulses=4/setup
+  - E/euclid/knob pulses=4/timer
+  - E/euclid/knob pulses=5/setup
+  - E/euclid/knob pulses=5/timer
+  - E/euclid/knob ringColour=0/setup
+  - E/euclid/knob ringColour=0/timer
+  - E/euclid/knob ringColour=1/setup
+  - E/euclid/knob ringColour=1/timer
+  - E/euclid/knob ringColour=2/setup
+  - E/euclid/knob ringColour=2/timer
+  - E/euclid/knob ringColour=3/setup
+  - E/euclid/knob ringColour=3/timer
+  - E/euclid/knob ringColour=4/setup
+  - E/euclid/knob ringColour=4/timer
+  - E/euclid/knob trail=0/setup
+  - E/euclid/knob trail=0/timer
+  - E/euclid/knob trail=1/setup
+  - E/euclid/knob trail=1/timer
+  - E/euclid/knob trail=2/setup
+  - E/euclid/knob trail=2/timer
+  - E/euclid/knob trail=3/setup
+  - E/euclid/knob trail=3/timer
+  - E/euclid/knob trail=4/setup
+  - E/euclid/knob trail=4/timer
+  - E/euclid/knob note=0/setup
+  - E/euclid/knob note=0/timer
+  - E/euclid/knob note=1/setup
+  - E/euclid/knob note=1/timer
+  - E/euclid/knob note=2/setup
+  - E/euclid/knob note=2/timer
+  - E/euclid/knob note=3/setup
+  - E/euclid/knob note=3/timer
+  - E/euclid/knob note=4/setup
+  - E/euclid/knob note=4/timer
+  - E/euclid/knob note=5/setup
+  - E/euclid/knob note=5/timer
+  - E/euclid/knob note=6/setup
+  - E/euclid/knob note=6/timer
+  - E/euclid/knob channel=0/setup
+  - E/euclid/knob channel=0/timer
+  - E/euclid/knob channel=1/setup
+  - E/euclid/knob channel=1/timer
+  - E/euclid/knob channel=2/setup
+  - E/euclid/knob channel=2/timer
+  - E/euclid/knob channel=3/setup
+  - E/euclid/knob channel=3/timer
+  - E/euclid/knob channel=4/setup
+  - E/euclid/knob channel=4/timer
+  - E/euclid/knob channel=5/setup
+  - E/euclid/knob channel=5/timer
+  - E/euclid/knob channel=6/setup
+  - E/euclid/knob channel=6/timer
+  - E/euclid/knob channel=7/setup
+  - E/euclid/knob channel=7/timer
+  - E/euclid/knob channel=8/setup
+  - E/euclid/knob channel=8/timer
+  - E/euclid/knob channel=9/setup
+  - E/euclid/knob channel=9/timer
+  - E/euclid/knob channel=10/setup
+  - E/euclid/knob channel=10/timer
+  - E/euclid/knob channel=11/setup
+  - E/euclid/knob channel=11/timer
+  - E/euclid/knob channel=12/setup
+  - E/euclid/knob channel=12/timer
+  - E/euclid/knob channel=13/setup
+  - E/euclid/knob channel=13/timer
+  - E/euclid/knob channel=14/setup
+  - E/euclid/knob channel=14/timer
+  - E/euclid/knob channel=15/setup
+  - E/euclid/knob channel=15/timer
+  - E/euclid/cross-product (100800 states)
+  + E/orbit/defaults/setup
+  + E/orbit/defaults/timer
+  + E/orbit/corner/setup
+  + E/orbit/corner/timer
+  + E/orbit/knob tempo=0/setup
+  + E/orbit/knob tempo=0/timer
+  + E/orbit/knob tempo=1/setup
+  + E/orbit/knob tempo=1/timer
+  + E/orbit/knob tempo=2/setup
+  + E/orbit/knob tempo=2/timer
+  + E/orbit/knob tempo=3/setup
+  + E/orbit/knob tempo=3/timer
+  + E/orbit/knob tempo=4/setup
+  + E/orbit/knob tempo=4/timer
+  + E/orbit/knob tempo=5/setup
+  + E/orbit/knob tempo=5/timer
+  + E/orbit/knob pulses=0/setup
+  + E/orbit/knob pulses=0/timer
+  + E/orbit/knob pulses=1/setup
+  + E/orbit/knob pulses=1/timer
+  + E/orbit/knob pulses=2/setup
+  + E/orbit/knob pulses=2/timer
+  + E/orbit/knob pulses=3/setup
+  + E/orbit/knob pulses=3/timer
+  + E/orbit/knob pulses=4/setup
+  + E/orbit/knob pulses=4/timer
+  + E/orbit/knob pulses=5/setup
+  + E/orbit/knob pulses=5/timer
+  + E/orbit/knob ring1Colour=0/setup
+  + E/orbit/knob ring1Colour=0/timer
+  + E/orbit/knob ring1Colour=1/setup
+  + E/orbit/knob ring1Colour=1/timer
+  + E/orbit/knob ring1Colour=2/setup
+  + E/orbit/knob ring1Colour=2/timer
+  + E/orbit/knob ring1Colour=3/setup
+  + E/orbit/knob ring1Colour=3/timer
+  + E/orbit/knob ring1Colour=4/setup
+  + E/orbit/knob ring1Colour=4/timer
+  + E/orbit/knob ring2Colour=0/setup
+  + E/orbit/knob ring2Colour=0/timer
+  + E/orbit/knob ring2Colour=1/setup
+  + E/orbit/knob ring2Colour=1/timer
+  + E/orbit/knob ring2Colour=2/setup
+  + E/orbit/knob ring2Colour=2/timer
+  + E/orbit/knob ring2Colour=3/setup
+  + E/orbit/knob ring2Colour=3/timer
+  + E/orbit/knob ring2Colour=4/setup
+  + E/orbit/knob ring2Colour=4/timer
+  + E/orbit/knob ring3Colour=0/setup
+  + E/orbit/knob ring3Colour=0/timer
+  + E/orbit/knob ring3Colour=1/setup
+  + E/orbit/knob ring3Colour=1/timer
+  + E/orbit/knob ring3Colour=2/setup
+  + E/orbit/knob ring3Colour=2/timer
+  + E/orbit/knob ring3Colour=3/setup
+  + E/orbit/knob ring3Colour=3/timer
+  + E/orbit/knob ring3Colour=4/setup
+  + E/orbit/knob ring3Colour=4/timer
+  + E/orbit/knob ring4Colour=0/setup
+  + E/orbit/knob ring4Colour=0/timer
+  + E/orbit/knob ring4Colour=1/setup
+  + E/orbit/knob ring4Colour=1/timer
+  + E/orbit/knob ring4Colour=2/setup
+  + E/orbit/knob ring4Colour=2/timer
+  + E/orbit/knob ring4Colour=3/setup
+  + E/orbit/knob ring4Colour=3/timer
+  + E/orbit/knob ring4Colour=4/setup
+  + E/orbit/knob ring4Colour=4/timer
+  + E/orbit/knob trail=0/setup
+  + E/orbit/knob trail=0/timer
+  + E/orbit/knob trail=1/setup
+  + E/orbit/knob trail=1/timer
+  + E/orbit/knob trail=2/setup
+  + E/orbit/knob trail=2/timer
+  + E/orbit/knob trail=3/setup
+  + E/orbit/knob trail=3/timer
+  + E/orbit/knob trail=4/setup
+  + E/orbit/knob trail=4/timer
+  + E/orbit/knob sync=0/setup
+  + E/orbit/knob sync=0/timer
+  + E/orbit/knob sync=1/setup
+  + E/orbit/knob sync=1/timer
+  + E/orbit/knob division=0/setup
+  + E/orbit/knob division=0/timer
+  + E/orbit/knob division=1/setup
+  + E/orbit/knob division=1/timer
+  + E/orbit/knob division=2/setup
+  + E/orbit/knob division=2/timer
+  + E/orbit/knob note1=0/setup
+  + E/orbit/knob note1=0/timer
+  + E/orbit/knob note1=1/setup
+  + E/orbit/knob note1=1/timer
+  + E/orbit/knob note1=2/setup
+  + E/orbit/knob note1=2/timer
+  + E/orbit/knob note1=3/setup
+  + E/orbit/knob note1=3/timer
+  + E/orbit/knob note1=4/setup
+  + E/orbit/knob note1=4/timer
+  + E/orbit/knob note1=5/setup
+  + E/orbit/knob note1=5/timer
+  + E/orbit/knob note1=6/setup
+  + E/orbit/knob note1=6/timer
+  + E/orbit/knob note1=7/setup
+  + E/orbit/knob note1=7/timer
+  + E/orbit/knob note1=8/setup
+  + E/orbit/knob note1=8/timer
+  + E/orbit/knob note1=9/setup
+  + E/orbit/knob note1=9/timer
+  + E/orbit/knob note1=10/setup
+  + E/orbit/knob note1=10/timer
+  + E/orbit/knob note1=11/setup
+  + E/orbit/knob note1=11/timer
+  + E/orbit/knob note1=12/setup
+  + E/orbit/knob note1=12/timer
+  + E/orbit/knob note1=13/setup
+  + E/orbit/knob note1=13/timer
+  + E/orbit/knob note1=14/setup
+  + E/orbit/knob note1=14/timer
+  + E/orbit/knob note1=15/setup
+  + E/orbit/knob note1=15/timer
+  + E/orbit/knob note1=16/setup
+  + E/orbit/knob note1=16/timer
+  + E/orbit/knob note1=17/setup
+  + E/orbit/knob note1=17/timer
+  + E/orbit/knob note1=18/setup
+  + E/orbit/knob note1=18/timer
+  + E/orbit/knob note1=19/setup
+  + E/orbit/knob note1=19/timer
+  + E/orbit/knob note1=20/setup
+  + E/orbit/knob note1=20/timer
+  + E/orbit/knob note1=21/setup
+  + E/orbit/knob note1=21/timer
+  + E/orbit/knob note1=22/setup
+  + E/orbit/knob note1=22/timer
+  + E/orbit/knob note1=23/setup
+  + E/orbit/knob note1=23/timer
+  + E/orbit/knob note1=24/setup
+  + E/orbit/knob note1=24/timer
+  + E/orbit/knob note1=25/setup
+  + E/orbit/knob note1=25/timer
+  + E/orbit/knob note1=26/setup
+  + E/orbit/knob note1=26/timer
+  + E/orbit/knob note1=27/setup
+  + E/orbit/knob note1=27/timer
+  + E/orbit/knob note1=28/setup
+  + E/orbit/knob note1=28/timer
+  + E/orbit/knob note1=29/setup
+  + E/orbit/knob note1=29/timer
+  + E/orbit/knob note1=30/setup
+  + E/orbit/knob note1=30/timer
+  + E/orbit/knob note1=31/setup
+  + E/orbit/knob note1=31/timer
+  + E/orbit/knob note1=32/setup
+  + E/orbit/knob note1=32/timer
+  + E/orbit/knob note1=33/setup
+  + E/orbit/knob note1=33/timer
+  + E/orbit/knob note1=34/setup
+  + E/orbit/knob note1=34/timer
+  + E/orbit/knob note1=35/setup
+  + E/orbit/knob note1=35/timer
+  + E/orbit/knob note1=36/setup
+  + E/orbit/knob note1=36/timer
+  + E/orbit/knob note1=37/setup
+  + E/orbit/knob note1=37/timer
+  + E/orbit/knob note1=38/setup
+  + E/orbit/knob note1=38/timer
+  + E/orbit/knob note1=39/setup
+  + E/orbit/knob note1=39/timer
+  + E/orbit/knob note1=40/setup
+  + E/orbit/knob note1=40/timer
+  + E/orbit/knob note1=41/setup
+  + E/orbit/knob note1=41/timer
+  + E/orbit/knob note1=42/setup
+  + E/orbit/knob note1=42/timer
+  + E/orbit/knob note1=43/setup
+  + E/orbit/knob note1=43/timer
+  + E/orbit/knob note1=44/setup
+  + E/orbit/knob note1=44/timer
+  + E/orbit/knob note1=45/setup
+  + E/orbit/knob note1=45/timer
+  + E/orbit/knob note1=46/setup
+  + E/orbit/knob note1=46/timer
+  + E/orbit/knob note1=47/setup
+  + E/orbit/knob note1=47/timer
+  + E/orbit/knob note1=48/setup
+  + E/orbit/knob note1=48/timer
+  + E/orbit/knob note1=49/setup
+  + E/orbit/knob note1=49/timer
+  + E/orbit/knob note1=50/setup
+  + E/orbit/knob note1=50/timer
+  + E/orbit/knob note1=51/setup
+  + E/orbit/knob note1=51/timer
+  + E/orbit/knob note1=52/setup
+  + E/orbit/knob note1=52/timer
+  + E/orbit/knob note1=53/setup
+  + E/orbit/knob note1=53/timer
+  + E/orbit/knob note1=54/setup
+  + E/orbit/knob note1=54/timer
+  + E/orbit/knob note1=55/setup
+  + E/orbit/knob note1=55/timer
+  + E/orbit/knob note1=56/setup
+  + E/orbit/knob note1=56/timer
+  + E/orbit/knob note1=57/setup
+  + E/orbit/knob note1=57/timer
+  + E/orbit/knob note1=58/setup
+  + E/orbit/knob note1=58/timer
+  + E/orbit/knob note1=59/setup
+  + E/orbit/knob note1=59/timer
+  + E/orbit/knob note1=60/setup
+  + E/orbit/knob note1=60/timer
+  + E/orbit/knob note1=61/setup
+  + E/orbit/knob note1=61/timer
+  + E/orbit/knob note1=62/setup
+  + E/orbit/knob note1=62/timer
+  + E/orbit/knob note1=63/setup
+  + E/orbit/knob note1=63/timer
+  + E/orbit/knob note1=64/setup
+  + E/orbit/knob note1=64/timer
+  + E/orbit/knob note1=65/setup
+  + E/orbit/knob note1=65/timer
+  + E/orbit/knob note1=66/setup
+  + E/orbit/knob note1=66/timer
+  + E/orbit/knob note1=67/setup
+  + E/orbit/knob note1=67/timer
+  + E/orbit/knob note1=68/setup
+  + E/orbit/knob note1=68/timer
+  + E/orbit/knob note1=69/setup
+  + E/orbit/knob note1=69/timer
+  + E/orbit/knob note1=70/setup
+  + E/orbit/knob note1=70/timer
+  + E/orbit/knob note1=71/setup
+  + E/orbit/knob note1=71/timer
+  + E/orbit/knob note1=72/setup
+  + E/orbit/knob note1=72/timer
+  + E/orbit/knob note1=73/setup
+  + E/orbit/knob note1=73/timer
+  + E/orbit/knob note1=74/setup
+  + E/orbit/knob note1=74/timer
+  + E/orbit/knob note1=75/setup
+  + E/orbit/knob note1=75/timer
+  + E/orbit/knob note1=76/setup
+  + E/orbit/knob note1=76/timer
+  + E/orbit/knob note1=77/setup
+  + E/orbit/knob note1=77/timer
+  + E/orbit/knob note1=78/setup
+  + E/orbit/knob note1=78/timer
+  + E/orbit/knob note1=79/setup
+  + E/orbit/knob note1=79/timer
+  + E/orbit/knob note1=80/setup
+  + E/orbit/knob note1=80/timer
+  + E/orbit/knob note1=81/setup
+  + E/orbit/knob note1=81/timer
+  + E/orbit/knob note1=82/setup
+  + E/orbit/knob note1=82/timer
+  + E/orbit/knob note1=83/setup
+  + E/orbit/knob note1=83/timer
+  + E/orbit/knob note1=84/setup
+  + E/orbit/knob note1=84/timer
+  + E/orbit/knob note1=85/setup
+  + E/orbit/knob note1=85/timer
+  + E/orbit/knob note1=86/setup
+  + E/orbit/knob note1=86/timer
+  + E/orbit/knob note1=87/setup
+  + E/orbit/knob note1=87/timer
+  + E/orbit/knob note1=88/setup
+  + E/orbit/knob note1=88/timer
+  + E/orbit/knob note1=89/setup
+  + E/orbit/knob note1=89/timer
+  + E/orbit/knob note1=90/setup
+  + E/orbit/knob note1=90/timer
+  + E/orbit/knob note1=91/setup
+  + E/orbit/knob note1=91/timer
+  + E/orbit/knob note1=92/setup
+  + E/orbit/knob note1=92/timer
+  + E/orbit/knob note1=93/setup
+  + E/orbit/knob note1=93/timer
+  + E/orbit/knob note1=94/setup
+  + E/orbit/knob note1=94/timer
+  + E/orbit/knob note1=95/setup
+  + E/orbit/knob note1=95/timer
+  + E/orbit/knob note1=96/setup
+  + E/orbit/knob note1=96/timer
+  + E/orbit/knob note1=97/setup
+  + E/orbit/knob note1=97/timer
+  + E/orbit/knob note1=98/setup
+  + E/orbit/knob note1=98/timer
+  + E/orbit/knob note1=99/setup
+  + E/orbit/knob note1=99/timer
+  + E/orbit/knob note1=100/setup
+  + E/orbit/knob note1=100/timer
+  + E/orbit/knob note1=101/setup
+  + E/orbit/knob note1=101/timer
+  + E/orbit/knob note1=102/setup
+  + E/orbit/knob note1=102/timer
+  + E/orbit/knob note1=103/setup
+  + E/orbit/knob note1=103/timer
+  + E/orbit/knob note1=104/setup
+  + E/orbit/knob note1=104/timer
+  + E/orbit/knob note1=105/setup
+  + E/orbit/knob note1=105/timer
+  + E/orbit/knob note1=106/setup
+  + E/orbit/knob note1=106/timer
+  + E/orbit/knob note1=107/setup
+  + E/orbit/knob note1=107/timer
+  + E/orbit/knob note1=108/setup
+  + E/orbit/knob note1=108/timer
+  + E/orbit/knob note1=109/setup
+  + E/orbit/knob note1=109/timer
+  + E/orbit/knob note1=110/setup
+  + E/orbit/knob note1=110/timer
+  + E/orbit/knob note1=111/setup
+  + E/orbit/knob note1=111/timer
+  + E/orbit/knob note1=112/setup
+  + E/orbit/knob note1=112/timer
+  + E/orbit/knob note1=113/setup
+  + E/orbit/knob note1=113/timer
+  + E/orbit/knob note1=114/setup
+  + E/orbit/knob note1=114/timer
+  + E/orbit/knob note1=115/setup
+  + E/orbit/knob note1=115/timer
+  + E/orbit/knob note1=116/setup
+  + E/orbit/knob note1=116/timer
+  + E/orbit/knob note1=117/setup
+  + E/orbit/knob note1=117/timer
+  + E/orbit/knob note1=118/setup
+  + E/orbit/knob note1=118/timer
+  + E/orbit/knob note1=119/setup
+  + E/orbit/knob note1=119/timer
+  + E/orbit/knob note1=120/setup
+  + E/orbit/knob note1=120/timer
+  + E/orbit/knob note1=121/setup
+  + E/orbit/knob note1=121/timer
+  + E/orbit/knob note1=122/setup
+  + E/orbit/knob note1=122/timer
+  + E/orbit/knob note1=123/setup
+  + E/orbit/knob note1=123/timer
+  + E/orbit/knob note1=124/setup
+  + E/orbit/knob note1=124/timer
+  + E/orbit/knob note1=125/setup
+  + E/orbit/knob note1=125/timer
+  + E/orbit/knob note1=126/setup
+  + E/orbit/knob note1=126/timer
+  + E/orbit/knob note1=127/setup
+  + E/orbit/knob note1=127/timer
+  + E/orbit/knob note2=0/setup
+  + E/orbit/knob note2=0/timer
+  + E/orbit/knob note2=1/setup
+  + E/orbit/knob note2=1/timer
+  + E/orbit/knob note2=2/setup
+  + E/orbit/knob note2=2/timer
+  + E/orbit/knob note2=3/setup
+  + E/orbit/knob note2=3/timer
+  + E/orbit/knob note2=4/setup
+  + E/orbit/knob note2=4/timer
+  + E/orbit/knob note2=5/setup
+  + E/orbit/knob note2=5/timer
+  + E/orbit/knob note2=6/setup
+  + E/orbit/knob note2=6/timer
+  + E/orbit/knob note2=7/setup
+  + E/orbit/knob note2=7/timer
+  + E/orbit/knob note2=8/setup
+  + E/orbit/knob note2=8/timer
+  + E/orbit/knob note2=9/setup
+  + E/orbit/knob note2=9/timer
+  + E/orbit/knob note2=10/setup
+  + E/orbit/knob note2=10/timer
+  + E/orbit/knob note2=11/setup
+  + E/orbit/knob note2=11/timer
+  + E/orbit/knob note2=12/setup
+  + E/orbit/knob note2=12/timer
+  + E/orbit/knob note2=13/setup
+  + E/orbit/knob note2=13/timer
+  + E/orbit/knob note2=14/setup
+  + E/orbit/knob note2=14/timer
+  + E/orbit/knob note2=15/setup
+  + E/orbit/knob note2=15/timer
+  + E/orbit/knob note2=16/setup
+  + E/orbit/knob note2=16/timer
+  + E/orbit/knob note2=17/setup
+  + E/orbit/knob note2=17/timer
+  + E/orbit/knob note2=18/setup
+  + E/orbit/knob note2=18/timer
+  + E/orbit/knob note2=19/setup
+  + E/orbit/knob note2=19/timer
+  + E/orbit/knob note2=20/setup
+  + E/orbit/knob note2=20/timer
+  + E/orbit/knob note2=21/setup
+  + E/orbit/knob note2=21/timer
+  + E/orbit/knob note2=22/setup
+  + E/orbit/knob note2=22/timer
+  + E/orbit/knob note2=23/setup
+  + E/orbit/knob note2=23/timer
+  + E/orbit/knob note2=24/setup
+  + E/orbit/knob note2=24/timer
+  + E/orbit/knob note2=25/setup
+  + E/orbit/knob note2=25/timer
+  + E/orbit/knob note2=26/setup
+  + E/orbit/knob note2=26/timer
+  + E/orbit/knob note2=27/setup
+  + E/orbit/knob note2=27/timer
+  + E/orbit/knob note2=28/setup
+  + E/orbit/knob note2=28/timer
+  + E/orbit/knob note2=29/setup
+  + E/orbit/knob note2=29/timer
+  + E/orbit/knob note2=30/setup
+  + E/orbit/knob note2=30/timer
+  + E/orbit/knob note2=31/setup
+  + E/orbit/knob note2=31/timer
+  + E/orbit/knob note2=32/setup
+  + E/orbit/knob note2=32/timer
+  + E/orbit/knob note2=33/setup
+  + E/orbit/knob note2=33/timer
+  + E/orbit/knob note2=34/setup
+  + E/orbit/knob note2=34/timer
+  + E/orbit/knob note2=35/setup
+  + E/orbit/knob note2=35/timer
+  + E/orbit/knob note2=36/setup
+  + E/orbit/knob note2=36/timer
+  + E/orbit/knob note2=37/setup
+  + E/orbit/knob note2=37/timer
+  + E/orbit/knob note2=38/setup
+  + E/orbit/knob note2=38/timer
+  + E/orbit/knob note2=39/setup
+  + E/orbit/knob note2=39/timer
+  + E/orbit/knob note2=40/setup
+  + E/orbit/knob note2=40/timer
+  + E/orbit/knob note2=41/setup
+  + E/orbit/knob note2=41/timer
+  + E/orbit/knob note2=42/setup
+  + E/orbit/knob note2=42/timer
+  + E/orbit/knob note2=43/setup
+  + E/orbit/knob note2=43/timer
+  + E/orbit/knob note2=44/setup
+  + E/orbit/knob note2=44/timer
+  + E/orbit/knob note2=45/setup
+  + E/orbit/knob note2=45/timer
+  + E/orbit/knob note2=46/setup
+  + E/orbit/knob note2=46/timer
+  + E/orbit/knob note2=47/setup
+  + E/orbit/knob note2=47/timer
+  + E/orbit/knob note2=48/setup
+  + E/orbit/knob note2=48/timer
+  + E/orbit/knob note2=49/setup
+  + E/orbit/knob note2=49/timer
+  + E/orbit/knob note2=50/setup
+  + E/orbit/knob note2=50/timer
+  + E/orbit/knob note2=51/setup
+  + E/orbit/knob note2=51/timer
+  + E/orbit/knob note2=52/setup
+  + E/orbit/knob note2=52/timer
+  + E/orbit/knob note2=53/setup
+  + E/orbit/knob note2=53/timer
+  + E/orbit/knob note2=54/setup
+  + E/orbit/knob note2=54/timer
+  + E/orbit/knob note2=55/setup
+  + E/orbit/knob note2=55/timer
+  + E/orbit/knob note2=56/setup
+  + E/orbit/knob note2=56/timer
+  + E/orbit/knob note2=57/setup
+  + E/orbit/knob note2=57/timer
+  + E/orbit/knob note2=58/setup
+  + E/orbit/knob note2=58/timer
+  + E/orbit/knob note2=59/setup
+  + E/orbit/knob note2=59/timer
+  + E/orbit/knob note2=60/setup
+  + E/orbit/knob note2=60/timer
+  + E/orbit/knob note2=61/setup
+  + E/orbit/knob note2=61/timer
+  + E/orbit/knob note2=62/setup
+  + E/orbit/knob note2=62/timer
+  + E/orbit/knob note2=63/setup
+  + E/orbit/knob note2=63/timer
+  + E/orbit/knob note2=64/setup
+  + E/orbit/knob note2=64/timer
+  + E/orbit/knob note2=65/setup
+  + E/orbit/knob note2=65/timer
+  + E/orbit/knob note2=66/setup
+  + E/orbit/knob note2=66/timer
+  + E/orbit/knob note2=67/setup
+  + E/orbit/knob note2=67/timer
+  + E/orbit/knob note2=68/setup
+  + E/orbit/knob note2=68/timer
+  + E/orbit/knob note2=69/setup
+  + E/orbit/knob note2=69/timer
+  + E/orbit/knob note2=70/setup
+  + E/orbit/knob note2=70/timer
+  + E/orbit/knob note2=71/setup
+  + E/orbit/knob note2=71/timer
+  + E/orbit/knob note2=72/setup
+  + E/orbit/knob note2=72/timer
+  + E/orbit/knob note2=73/setup
+  + E/orbit/knob note2=73/timer
+  + E/orbit/knob note2=74/setup
+  + E/orbit/knob note2=74/timer
+  + E/orbit/knob note2=75/setup
+  + E/orbit/knob note2=75/timer
+  + E/orbit/knob note2=76/setup
+  + E/orbit/knob note2=76/timer
+  + E/orbit/knob note2=77/setup
+  + E/orbit/knob note2=77/timer
+  + E/orbit/knob note2=78/setup
+  + E/orbit/knob note2=78/timer
+  + E/orbit/knob note2=79/setup
+  + E/orbit/knob note2=79/timer
+  + E/orbit/knob note2=80/setup
+  + E/orbit/knob note2=80/timer
+  + E/orbit/knob note2=81/setup
+  + E/orbit/knob note2=81/timer
+  + E/orbit/knob note2=82/setup
+  + E/orbit/knob note2=82/timer
+  + E/orbit/knob note2=83/setup
+  + E/orbit/knob note2=83/timer
+  + E/orbit/knob note2=84/setup
+  + E/orbit/knob note2=84/timer
+  + E/orbit/knob note2=85/setup
+  + E/orbit/knob note2=85/timer
+  + E/orbit/knob note2=86/setup
+  + E/orbit/knob note2=86/timer
+  + E/orbit/knob note2=87/setup
+  + E/orbit/knob note2=87/timer
+  + E/orbit/knob note2=88/setup
+  + E/orbit/knob note2=88/timer
+  + E/orbit/knob note2=89/setup
+  + E/orbit/knob note2=89/timer
+  + E/orbit/knob note2=90/setup
+  + E/orbit/knob note2=90/timer
+  + E/orbit/knob note2=91/setup
+  + E/orbit/knob note2=91/timer
+  + E/orbit/knob note2=92/setup
+  + E/orbit/knob note2=92/timer
+  + E/orbit/knob note2=93/setup
+  + E/orbit/knob note2=93/timer
+  + E/orbit/knob note2=94/setup
+  + E/orbit/knob note2=94/timer
+  + E/orbit/knob note2=95/setup
+  + E/orbit/knob note2=95/timer
+  + E/orbit/knob note2=96/setup
+  + E/orbit/knob note2=96/timer
+  + E/orbit/knob note2=97/setup
+  + E/orbit/knob note2=97/timer
+  + E/orbit/knob note2=98/setup
+  + E/orbit/knob note2=98/timer
+  + E/orbit/knob note2=99/setup
+  + E/orbit/knob note2=99/timer
+  + E/orbit/knob note2=100/setup
+  + E/orbit/knob note2=100/timer
+  + E/orbit/knob note2=101/setup
+  + E/orbit/knob note2=101/timer
+  + E/orbit/knob note2=102/setup
+  + E/orbit/knob note2=102/timer
+  + E/orbit/knob note2=103/setup
+  + E/orbit/knob note2=103/timer
+  + E/orbit/knob note2=104/setup
+  + E/orbit/knob note2=104/timer
+  + E/orbit/knob note2=105/setup
+  + E/orbit/knob note2=105/timer
+  + E/orbit/knob note2=106/setup
+  + E/orbit/knob note2=106/timer
+  + E/orbit/knob note2=107/setup
+  + E/orbit/knob note2=107/timer
+  + E/orbit/knob note2=108/setup
+  + E/orbit/knob note2=108/timer
+  + E/orbit/knob note2=109/setup
+  + E/orbit/knob note2=109/timer
+  + E/orbit/knob note2=110/setup
+  + E/orbit/knob note2=110/timer
+  + E/orbit/knob note2=111/setup
+  + E/orbit/knob note2=111/timer
+  + E/orbit/knob note2=112/setup
+  + E/orbit/knob note2=112/timer
+  + E/orbit/knob note2=113/setup
+  + E/orbit/knob note2=113/timer
+  + E/orbit/knob note2=114/setup
+  + E/orbit/knob note2=114/timer
+  + E/orbit/knob note2=115/setup
+  + E/orbit/knob note2=115/timer
+  + E/orbit/knob note2=116/setup
+  + E/orbit/knob note2=116/timer
+  + E/orbit/knob note2=117/setup
+  + E/orbit/knob note2=117/timer
+  + E/orbit/knob note2=118/setup
+  + E/orbit/knob note2=118/timer
+  + E/orbit/knob note2=119/setup
+  + E/orbit/knob note2=119/timer
+  + E/orbit/knob note2=120/setup
+  + E/orbit/knob note2=120/timer
+  + E/orbit/knob note2=121/setup
+  + E/orbit/knob note2=121/timer
+  + E/orbit/knob note2=122/setup
+  + E/orbit/knob note2=122/timer
+  + E/orbit/knob note2=123/setup
+  + E/orbit/knob note2=123/timer
+  + E/orbit/knob note2=124/setup
+  + E/orbit/knob note2=124/timer
+  + E/orbit/knob note2=125/setup
+  + E/orbit/knob note2=125/timer
+  + E/orbit/knob note2=126/setup
+  + E/orbit/knob note2=126/timer
+  + E/orbit/knob note2=127/setup
+  + E/orbit/knob note2=127/timer
+  + E/orbit/knob note3=0/setup
+  + E/orbit/knob note3=0/timer
+  + E/orbit/knob note3=1/setup
+  + E/orbit/knob note3=1/timer
+  + E/orbit/knob note3=2/setup
+  + E/orbit/knob note3=2/timer
+  + E/orbit/knob note3=3/setup
+  + E/orbit/knob note3=3/timer
+  + E/orbit/knob note3=4/setup
+  + E/orbit/knob note3=4/timer
+  + E/orbit/knob note3=5/setup
+  + E/orbit/knob note3=5/timer
+  + E/orbit/knob note3=6/setup
+  + E/orbit/knob note3=6/timer
+  + E/orbit/knob note3=7/setup
+  + E/orbit/knob note3=7/timer
+  + E/orbit/knob note3=8/setup
+  + E/orbit/knob note3=8/timer
+  + E/orbit/knob note3=9/setup
+  + E/orbit/knob note3=9/timer
+  + E/orbit/knob note3=10/setup
+  + E/orbit/knob note3=10/timer
+  + E/orbit/knob note3=11/setup
+  + E/orbit/knob note3=11/timer
+  + E/orbit/knob note3=12/setup
+  + E/orbit/knob note3=12/timer
+  + E/orbit/knob note3=13/setup
+  + E/orbit/knob note3=13/timer
+  + E/orbit/knob note3=14/setup
+  + E/orbit/knob note3=14/timer
+  + E/orbit/knob note3=15/setup
+  + E/orbit/knob note3=15/timer
+  + E/orbit/knob note3=16/setup
+  + E/orbit/knob note3=16/timer
+  + E/orbit/knob note3=17/setup
+  + E/orbit/knob note3=17/timer
+  + E/orbit/knob note3=18/setup
+  + E/orbit/knob note3=18/timer
+  + E/orbit/knob note3=19/setup
+  + E/orbit/knob note3=19/timer
+  + E/orbit/knob note3=20/setup
+  + E/orbit/knob note3=20/timer
+  + E/orbit/knob note3=21/setup
+  + E/orbit/knob note3=21/timer
+  + E/orbit/knob note3=22/setup
+  + E/orbit/knob note3=22/timer
+  + E/orbit/knob note3=23/setup
+  + E/orbit/knob note3=23/timer
+  + E/orbit/knob note3=24/setup
+  + E/orbit/knob note3=24/timer
+  + E/orbit/knob note3=25/setup
+  + E/orbit/knob note3=25/timer
+  + E/orbit/knob note3=26/setup
+  + E/orbit/knob note3=26/timer
+  + E/orbit/knob note3=27/setup
+  + E/orbit/knob note3=27/timer
+  + E/orbit/knob note3=28/setup
+  + E/orbit/knob note3=28/timer
+  + E/orbit/knob note3=29/setup
+  + E/orbit/knob note3=29/timer
+  + E/orbit/knob note3=30/setup
+  + E/orbit/knob note3=30/timer
+  + E/orbit/knob note3=31/setup
+  + E/orbit/knob note3=31/timer
+  + E/orbit/knob note3=32/setup
+  + E/orbit/knob note3=32/timer
+  + E/orbit/knob note3=33/setup
+  + E/orbit/knob note3=33/timer
+  + E/orbit/knob note3=34/setup
+  + E/orbit/knob note3=34/timer
+  + E/orbit/knob note3=35/setup
+  + E/orbit/knob note3=35/timer
+  + E/orbit/knob note3=36/setup
+  + E/orbit/knob note3=36/timer
+  + E/orbit/knob note3=37/setup
+  + E/orbit/knob note3=37/timer
+  + E/orbit/knob note3=38/setup
+  + E/orbit/knob note3=38/timer
+  + E/orbit/knob note3=39/setup
+  + E/orbit/knob note3=39/timer
+  + E/orbit/knob note3=40/setup
+  + E/orbit/knob note3=40/timer
+  + E/orbit/knob note3=41/setup
+  + E/orbit/knob note3=41/timer
+  + E/orbit/knob note3=42/setup
+  + E/orbit/knob note3=42/timer
+  + E/orbit/knob note3=43/setup
+  + E/orbit/knob note3=43/timer
+  + E/orbit/knob note3=44/setup
+  + E/orbit/knob note3=44/timer
+  + E/orbit/knob note3=45/setup
+  + E/orbit/knob note3=45/timer
+  + E/orbit/knob note3=46/setup
+  + E/orbit/knob note3=46/timer
+  + E/orbit/knob note3=47/setup
+  + E/orbit/knob note3=47/timer
+  + E/orbit/knob note3=48/setup
+  + E/orbit/knob note3=48/timer
+  + E/orbit/knob note3=49/setup
+  + E/orbit/knob note3=49/timer
+  + E/orbit/knob note3=50/setup
+  + E/orbit/knob note3=50/timer
+  + E/orbit/knob note3=51/setup
+  + E/orbit/knob note3=51/timer
+  + E/orbit/knob note3=52/setup
+  + E/orbit/knob note3=52/timer
+  + E/orbit/knob note3=53/setup
+  + E/orbit/knob note3=53/timer
+  + E/orbit/knob note3=54/setup
+  + E/orbit/knob note3=54/timer
+  + E/orbit/knob note3=55/setup
+  + E/orbit/knob note3=55/timer
+  + E/orbit/knob note3=56/setup
+  + E/orbit/knob note3=56/timer
+  + E/orbit/knob note3=57/setup
+  + E/orbit/knob note3=57/timer
+  + E/orbit/knob note3=58/setup
+  + E/orbit/knob note3=58/timer
+  + E/orbit/knob note3=59/setup
+  + E/orbit/knob note3=59/timer
+  + E/orbit/knob note3=60/setup
+  + E/orbit/knob note3=60/timer
+  + E/orbit/knob note3=61/setup
+  + E/orbit/knob note3=61/timer
+  + E/orbit/knob note3=62/setup
+  + E/orbit/knob note3=62/timer
+  + E/orbit/knob note3=63/setup
+  + E/orbit/knob note3=63/timer
+  + E/orbit/knob note3=64/setup
+  + E/orbit/knob note3=64/timer
+  + E/orbit/knob note3=65/setup
+  + E/orbit/knob note3=65/timer
+  + E/orbit/knob note3=66/setup
+  + E/orbit/knob note3=66/timer
+  + E/orbit/knob note3=67/setup
+  + E/orbit/knob note3=67/timer
+  + E/orbit/knob note3=68/setup
+  + E/orbit/knob note3=68/timer
+  + E/orbit/knob note3=69/setup
+  + E/orbit/knob note3=69/timer
+  + E/orbit/knob note3=70/setup
+  + E/orbit/knob note3=70/timer
+  + E/orbit/knob note3=71/setup
+  + E/orbit/knob note3=71/timer
+  + E/orbit/knob note3=72/setup
+  + E/orbit/knob note3=72/timer
+  + E/orbit/knob note3=73/setup
+  + E/orbit/knob note3=73/timer
+  + E/orbit/knob note3=74/setup
+  + E/orbit/knob note3=74/timer
+  + E/orbit/knob note3=75/setup
+  + E/orbit/knob note3=75/timer
+  + E/orbit/knob note3=76/setup
+  + E/orbit/knob note3=76/timer
+  + E/orbit/knob note3=77/setup
+  + E/orbit/knob note3=77/timer
+  + E/orbit/knob note3=78/setup
+  + E/orbit/knob note3=78/timer
+  + E/orbit/knob note3=79/setup
+  + E/orbit/knob note3=79/timer
+  + E/orbit/knob note3=80/setup
+  + E/orbit/knob note3=80/timer
+  + E/orbit/knob note3=81/setup
+  + E/orbit/knob note3=81/timer
+  + E/orbit/knob note3=82/setup
+  + E/orbit/knob note3=82/timer
+  + E/orbit/knob note3=83/setup
+  + E/orbit/knob note3=83/timer
+  + E/orbit/knob note3=84/setup
+  + E/orbit/knob note3=84/timer
+  + E/orbit/knob note3=85/setup
+  + E/orbit/knob note3=85/timer
+  + E/orbit/knob note3=86/setup
+  + E/orbit/knob note3=86/timer
+  + E/orbit/knob note3=87/setup
+  + E/orbit/knob note3=87/timer
+  + E/orbit/knob note3=88/setup
+  + E/orbit/knob note3=88/timer
+  + E/orbit/knob note3=89/setup
+  + E/orbit/knob note3=89/timer
+  + E/orbit/knob note3=90/setup
+  + E/orbit/knob note3=90/timer
+  + E/orbit/knob note3=91/setup
+  + E/orbit/knob note3=91/timer
+  + E/orbit/knob note3=92/setup
+  + E/orbit/knob note3=92/timer
+  + E/orbit/knob note3=93/setup
+  + E/orbit/knob note3=93/timer
+  + E/orbit/knob note3=94/setup
+  + E/orbit/knob note3=94/timer
+  + E/orbit/knob note3=95/setup
+  + E/orbit/knob note3=95/timer
+  + E/orbit/knob note3=96/setup
+  + E/orbit/knob note3=96/timer
+  + E/orbit/knob note3=97/setup
+  + E/orbit/knob note3=97/timer
+  + E/orbit/knob note3=98/setup
+  + E/orbit/knob note3=98/timer
+  + E/orbit/knob note3=99/setup
+  + E/orbit/knob note3=99/timer
+  + E/orbit/knob note3=100/setup
+  + E/orbit/knob note3=100/timer
+  + E/orbit/knob note3=101/setup
+  + E/orbit/knob note3=101/timer
+  + E/orbit/knob note3=102/setup
+  + E/orbit/knob note3=102/timer
+  + E/orbit/knob note3=103/setup
+  + E/orbit/knob note3=103/timer
+  + E/orbit/knob note3=104/setup
+  + E/orbit/knob note3=104/timer
+  + E/orbit/knob note3=105/setup
+  + E/orbit/knob note3=105/timer
+  + E/orbit/knob note3=106/setup
+  + E/orbit/knob note3=106/timer
+  + E/orbit/knob note3=107/setup
+  + E/orbit/knob note3=107/timer
+  + E/orbit/knob note3=108/setup
+  + E/orbit/knob note3=108/timer
+  + E/orbit/knob note3=109/setup
+  + E/orbit/knob note3=109/timer
+  + E/orbit/knob note3=110/setup
+  + E/orbit/knob note3=110/timer
+  + E/orbit/knob note3=111/setup
+  + E/orbit/knob note3=111/timer
+  + E/orbit/knob note3=112/setup
+  + E/orbit/knob note3=112/timer
+  + E/orbit/knob note3=113/setup
+  + E/orbit/knob note3=113/timer
+  + E/orbit/knob note3=114/setup
+  + E/orbit/knob note3=114/timer
+  + E/orbit/knob note3=115/setup
+  + E/orbit/knob note3=115/timer
+  + E/orbit/knob note3=116/setup
+  + E/orbit/knob note3=116/timer
+  + E/orbit/knob note3=117/setup
+  + E/orbit/knob note3=117/timer
+  + E/orbit/knob note3=118/setup
+  + E/orbit/knob note3=118/timer
+  + E/orbit/knob note3=119/setup
+  + E/orbit/knob note3=119/timer
+  + E/orbit/knob note3=120/setup
+  + E/orbit/knob note3=120/timer
+  + E/orbit/knob note3=121/setup
+  + E/orbit/knob note3=121/timer
+  + E/orbit/knob note3=122/setup
+  + E/orbit/knob note3=122/timer
+  + E/orbit/knob note3=123/setup
+  + E/orbit/knob note3=123/timer
+  + E/orbit/knob note3=124/setup
+  + E/orbit/knob note3=124/timer
+  + E/orbit/knob note3=125/setup
+  + E/orbit/knob note3=125/timer
+  + E/orbit/knob note3=126/setup
+  + E/orbit/knob note3=126/timer
+  + E/orbit/knob note3=127/setup
+  + E/orbit/knob note3=127/timer
+  + E/orbit/knob note4=0/setup
+  + E/orbit/knob note4=0/timer
+  + E/orbit/knob note4=1/setup
+  + E/orbit/knob note4=1/timer
+  + E/orbit/knob note4=2/setup
+  + E/orbit/knob note4=2/timer
+  + E/orbit/knob note4=3/setup
+  + E/orbit/knob note4=3/timer
+  + E/orbit/knob note4=4/setup
+  + E/orbit/knob note4=4/timer
+  + E/orbit/knob note4=5/setup
+  + E/orbit/knob note4=5/timer
+  + E/orbit/knob note4=6/setup
+  + E/orbit/knob note4=6/timer
+  + E/orbit/knob note4=7/setup
+  + E/orbit/knob note4=7/timer
+  + E/orbit/knob note4=8/setup
+  + E/orbit/knob note4=8/timer
+  + E/orbit/knob note4=9/setup
+  + E/orbit/knob note4=9/timer
+  + E/orbit/knob note4=10/setup
+  + E/orbit/knob note4=10/timer
+  + E/orbit/knob note4=11/setup
+  + E/orbit/knob note4=11/timer
+  + E/orbit/knob note4=12/setup
+  + E/orbit/knob note4=12/timer
+  + E/orbit/knob note4=13/setup
+  + E/orbit/knob note4=13/timer
+  + E/orbit/knob note4=14/setup
+  + E/orbit/knob note4=14/timer
+  + E/orbit/knob note4=15/setup
+  + E/orbit/knob note4=15/timer
+  + E/orbit/knob note4=16/setup
+  + E/orbit/knob note4=16/timer
+  + E/orbit/knob note4=17/setup
+  + E/orbit/knob note4=17/timer
+  + E/orbit/knob note4=18/setup
+  + E/orbit/knob note4=18/timer
+  + E/orbit/knob note4=19/setup
+  + E/orbit/knob note4=19/timer
+  + E/orbit/knob note4=20/setup
+  + E/orbit/knob note4=20/timer
+  + E/orbit/knob note4=21/setup
+  + E/orbit/knob note4=21/timer
+  + E/orbit/knob note4=22/setup
+  + E/orbit/knob note4=22/timer
+  + E/orbit/knob note4=23/setup
+  + E/orbit/knob note4=23/timer
+  + E/orbit/knob note4=24/setup
+  + E/orbit/knob note4=24/timer
+  + E/orbit/knob note4=25/setup
+  + E/orbit/knob note4=25/timer
+  + E/orbit/knob note4=26/setup
+  + E/orbit/knob note4=26/timer
+  + E/orbit/knob note4=27/setup
+  + E/orbit/knob note4=27/timer
+  + E/orbit/knob note4=28/setup
+  + E/orbit/knob note4=28/timer
+  + E/orbit/knob note4=29/setup
+  + E/orbit/knob note4=29/timer
+  + E/orbit/knob note4=30/setup
+  + E/orbit/knob note4=30/timer
+  + E/orbit/knob note4=31/setup
+  + E/orbit/knob note4=31/timer
+  + E/orbit/knob note4=32/setup
+  + E/orbit/knob note4=32/timer
+  + E/orbit/knob note4=33/setup
+  + E/orbit/knob note4=33/timer
+  + E/orbit/knob note4=34/setup
+  + E/orbit/knob note4=34/timer
+  + E/orbit/knob note4=35/setup
+  + E/orbit/knob note4=35/timer
+  + E/orbit/knob note4=36/setup
+  + E/orbit/knob note4=36/timer
+  + E/orbit/knob note4=37/setup
+  + E/orbit/knob note4=37/timer
+  + E/orbit/knob note4=38/setup
+  + E/orbit/knob note4=38/timer
+  + E/orbit/knob note4=39/setup
+  + E/orbit/knob note4=39/timer
+  + E/orbit/knob note4=40/setup
+  + E/orbit/knob note4=40/timer
+  + E/orbit/knob note4=41/setup
+  + E/orbit/knob note4=41/timer
+  + E/orbit/knob note4=42/setup
+  + E/orbit/knob note4=42/timer
+  + E/orbit/knob note4=43/setup
+  + E/orbit/knob note4=43/timer
+  + E/orbit/knob note4=44/setup
+  + E/orbit/knob note4=44/timer
+  + E/orbit/knob note4=45/setup
+  + E/orbit/knob note4=45/timer
+  + E/orbit/knob note4=46/setup
+  + E/orbit/knob note4=46/timer
+  + E/orbit/knob note4=47/setup
+  + E/orbit/knob note4=47/timer
+  + E/orbit/knob note4=48/setup
+  + E/orbit/knob note4=48/timer
+  + E/orbit/knob note4=49/setup
+  + E/orbit/knob note4=49/timer
+  + E/orbit/knob note4=50/setup
+  + E/orbit/knob note4=50/timer
+  + E/orbit/knob note4=51/setup
+  + E/orbit/knob note4=51/timer
+  + E/orbit/knob note4=52/setup
+  + E/orbit/knob note4=52/timer
+  + E/orbit/knob note4=53/setup
+  + E/orbit/knob note4=53/timer
+  + E/orbit/knob note4=54/setup
+  + E/orbit/knob note4=54/timer
+  + E/orbit/knob note4=55/setup
+  + E/orbit/knob note4=55/timer
+  + E/orbit/knob note4=56/setup
+  + E/orbit/knob note4=56/timer
+  + E/orbit/knob note4=57/setup
+  + E/orbit/knob note4=57/timer
+  + E/orbit/knob note4=58/setup
+  + E/orbit/knob note4=58/timer
+  + E/orbit/knob note4=59/setup
+  + E/orbit/knob note4=59/timer
+  + E/orbit/knob note4=60/setup
+  + E/orbit/knob note4=60/timer
+  + E/orbit/knob note4=61/setup
+  + E/orbit/knob note4=61/timer
+  + E/orbit/knob note4=62/setup
+  + E/orbit/knob note4=62/timer
+  + E/orbit/knob note4=63/setup
+  + E/orbit/knob note4=63/timer
+  + E/orbit/knob note4=64/setup
+  + E/orbit/knob note4=64/timer
+  + E/orbit/knob note4=65/setup
+  + E/orbit/knob note4=65/timer
+  + E/orbit/knob note4=66/setup
+  + E/orbit/knob note4=66/timer
+  + E/orbit/knob note4=67/setup
+  + E/orbit/knob note4=67/timer
+  + E/orbit/knob note4=68/setup
+  + E/orbit/knob note4=68/timer
+  + E/orbit/knob note4=69/setup
+  + E/orbit/knob note4=69/timer
+  + E/orbit/knob note4=70/setup
+  + E/orbit/knob note4=70/timer
+  + E/orbit/knob note4=71/setup
+  + E/orbit/knob note4=71/timer
+  + E/orbit/knob note4=72/setup
+  + E/orbit/knob note4=72/timer
+  + E/orbit/knob note4=73/setup
+  + E/orbit/knob note4=73/timer
+  + E/orbit/knob note4=74/setup
+  + E/orbit/knob note4=74/timer
+  + E/orbit/knob note4=75/setup
+  + E/orbit/knob note4=75/timer
+  + E/orbit/knob note4=76/setup
+  + E/orbit/knob note4=76/timer
+  + E/orbit/knob note4=77/setup
+  + E/orbit/knob note4=77/timer
+  + E/orbit/knob note4=78/setup
+  + E/orbit/knob note4=78/timer
+  + E/orbit/knob note4=79/setup
+  + E/orbit/knob note4=79/timer
+  + E/orbit/knob note4=80/setup
+  + E/orbit/knob note4=80/timer
+  + E/orbit/knob note4=81/setup
+  + E/orbit/knob note4=81/timer
+  + E/orbit/knob note4=82/setup
+  + E/orbit/knob note4=82/timer
+  + E/orbit/knob note4=83/setup
+  + E/orbit/knob note4=83/timer
+  + E/orbit/knob note4=84/setup
+  + E/orbit/knob note4=84/timer
+  + E/orbit/knob note4=85/setup
+  + E/orbit/knob note4=85/timer
+  + E/orbit/knob note4=86/setup
+  + E/orbit/knob note4=86/timer
+  + E/orbit/knob note4=87/setup
+  + E/orbit/knob note4=87/timer
+  + E/orbit/knob note4=88/setup
+  + E/orbit/knob note4=88/timer
+  + E/orbit/knob note4=89/setup
+  + E/orbit/knob note4=89/timer
+  + E/orbit/knob note4=90/setup
+  + E/orbit/knob note4=90/timer
+  + E/orbit/knob note4=91/setup
+  + E/orbit/knob note4=91/timer
+  + E/orbit/knob note4=92/setup
+  + E/orbit/knob note4=92/timer
+  + E/orbit/knob note4=93/setup
+  + E/orbit/knob note4=93/timer
+  + E/orbit/knob note4=94/setup
+  + E/orbit/knob note4=94/timer
+  + E/orbit/knob note4=95/setup
+  + E/orbit/knob note4=95/timer
+  + E/orbit/knob note4=96/setup
+  + E/orbit/knob note4=96/timer
+  + E/orbit/knob note4=97/setup
+  + E/orbit/knob note4=97/timer
+  + E/orbit/knob note4=98/setup
+  + E/orbit/knob note4=98/timer
+  + E/orbit/knob note4=99/setup
+  + E/orbit/knob note4=99/timer
+  + E/orbit/knob note4=100/setup
+  + E/orbit/knob note4=100/timer
+  + E/orbit/knob note4=101/setup
+  + E/orbit/knob note4=101/timer
+  + E/orbit/knob note4=102/setup
+  + E/orbit/knob note4=102/timer
+  + E/orbit/knob note4=103/setup
+  + E/orbit/knob note4=103/timer
+  + E/orbit/knob note4=104/setup
+  + E/orbit/knob note4=104/timer
+  + E/orbit/knob note4=105/setup
+  + E/orbit/knob note4=105/timer
+  + E/orbit/knob note4=106/setup
+  + E/orbit/knob note4=106/timer
+  + E/orbit/knob note4=107/setup
+  + E/orbit/knob note4=107/timer
+  + E/orbit/knob note4=108/setup
+  + E/orbit/knob note4=108/timer
+  + E/orbit/knob note4=109/setup
+  + E/orbit/knob note4=109/timer
+  + E/orbit/knob note4=110/setup
+  + E/orbit/knob note4=110/timer
+  + E/orbit/knob note4=111/setup
+  + E/orbit/knob note4=111/timer
+  + E/orbit/knob note4=112/setup
+  + E/orbit/knob note4=112/timer
+  + E/orbit/knob note4=113/setup
+  + E/orbit/knob note4=113/timer
+  + E/orbit/knob note4=114/setup
+  + E/orbit/knob note4=114/timer
+  + E/orbit/knob note4=115/setup
+  + E/orbit/knob note4=115/timer
+  + E/orbit/knob note4=116/setup
+  + E/orbit/knob note4=116/timer
+  + E/orbit/knob note4=117/setup
+  + E/orbit/knob note4=117/timer
+  + E/orbit/knob note4=118/setup
+  + E/orbit/knob note4=118/timer
+  + E/orbit/knob note4=119/setup
+  + E/orbit/knob note4=119/timer
+  + E/orbit/knob note4=120/setup
+  + E/orbit/knob note4=120/timer
+  + E/orbit/knob note4=121/setup
+  + E/orbit/knob note4=121/timer
+  + E/orbit/knob note4=122/setup
+  + E/orbit/knob note4=122/timer
+  + E/orbit/knob note4=123/setup
+  + E/orbit/knob note4=123/timer
+  + E/orbit/knob note4=124/setup
+  + E/orbit/knob note4=124/timer
+  + E/orbit/knob note4=125/setup
+  + E/orbit/knob note4=125/timer
+  + E/orbit/knob note4=126/setup
+  + E/orbit/knob note4=126/timer
+  + E/orbit/knob note4=127/setup
+  + E/orbit/knob note4=127/timer
+  + E/orbit/knob channel=0/setup
+  + E/orbit/knob channel=0/timer
+  + E/orbit/knob channel=1/setup
+  + E/orbit/knob channel=1/timer
+  + E/orbit/knob channel=2/setup
+  + E/orbit/knob channel=2/timer
+  + E/orbit/knob channel=3/setup
+  + E/orbit/knob channel=3/timer
+  + E/orbit/knob channel=4/setup
+  + E/orbit/knob channel=4/timer
+  + E/orbit/knob channel=5/setup
+  + E/orbit/knob channel=5/timer
+  + E/orbit/knob channel=6/setup
+  + E/orbit/knob channel=6/timer
+  + E/orbit/knob channel=7/setup
+  + E/orbit/knob channel=7/timer
+  + E/orbit/knob channel=8/setup
+  + E/orbit/knob channel=8/timer
+  + E/orbit/knob channel=9/setup
+  + E/orbit/knob channel=9/timer
+  + E/orbit/knob channel=10/setup
+  + E/orbit/knob channel=10/timer
+  + E/orbit/knob channel=11/setup
+  + E/orbit/knob channel=11/timer
+  + E/orbit/knob channel=12/setup
+  + E/orbit/knob channel=12/timer
+  + E/orbit/knob channel=13/setup
+  + E/orbit/knob channel=13/timer
+  + E/orbit/knob channel=14/setup
+  + E/orbit/knob channel=14/timer
+  + E/orbit/knob channel=15/setup
+  + E/orbit/knob channel=15/timer
+  + E/orbit/cross-product (629856 states)
+FAIL: the wire

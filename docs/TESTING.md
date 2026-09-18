@@ -5655,6 +5655,211 @@ picker's lock on the Bloom colour block stays because `ColourPicker.svelte` is n
 it should go too. (h) Older shared CHORUS links land `older` or `unreadable` (the stamp's rules).
 (i) Changes 1 to 6 and 9's questions still stand.
 
+## 2026-09-18 change 8 - EUCLID becomes ORBIT: a fourth ring, a colour and a typed note per ring, the tempo rail reversed, MIDI clock sync
+
+Outside the GSD cycle, the user's word recorded verbatim in `BENCH-2026-09-16.txt` section 8:
+"Euclid: rename it to smth crfeative. Add one more ring the farest one from the center. Tempo
+slider is in the wrong direction the bigger tempo should be on right side. each ring should have
+their own color. It should be able to get sync from a software or daw, its in the Editor,
+implement that for the sequencer profiles. its under function called MIDI rtm callback handler.
+Remove base not and you should be able to select a note for each ring from C -2 to G 8 so full
+range." - with the six answers of the same day (Orbit; TUNE-01's six lifted for this card; Sync
+plus a Division knob; 36 38 42 46; names and numbers both; the sync on ORBIT alone, saved as a
+sequencer piece). The firmware read first (the sources on this machine, `../grid-fw`), two forms
+costed under the pinned `compressScript` after `initLuaFormatter()`, then one source commit
+(`c504753`, on `fd5e1bf`), then this section, the record's Done paragraph and the gate records
+`gate/change-8.*` (before, at `fd5e1bf`, in a clean worktree `../hangar-gate-8` with its own
+`npm ci` and build - never a junction) and `gate/change-8-after.*`.
+
+**The rename.** `git mv` for the entry (`euclid.ts` -> `orbit.ts`), its history (`euclid.md` ->
+`orbit.md`) and the e2e fixture; id `orbit`, name Orbit, `/playground/orbit/`, `orbit.png`. The
+old address is the fourteenth dead one, recorded where the previous thirteen are: `local.spec.ts`'s
+`REMOVED` (twelve -> thirteen ids, `KNOWN` reads `orbit`, the drop counted 13) beside the nine of
+11-01, the three of 12-04 and `tpad` of 12-10 (TESTING.md's 13.2-06 item 18 counts the
+addresses). `stamp.spec.ts` reads the fixture's two captured EUCLID records under ORBIT through a
+`RENAMED` map (the fixture untouched): the default vector encodes to a stamp now - `tempo: 3` was
+110 ms and is 140 on the reversed list - and the entry's own defaults still carry none; the wild
+`x` stamp lands `unreadable` (fourteen knobs, two wide fields). `docs/HARDWARE-AUDITION.md` rows 2,
+3 and 25's Config cells re-cased Euclid -> Orbit in place (13-19's way), their prose append-only.
+
+**The clock idiom, and its evidence.** `grid-fw/common/src/lua/decode.lua:42-44`: `pass_rtm =
+function(el, x) if el.rtmrx_cb then el:rtmrx_cb({ x[1], x[2], x[3] }, x[4]) end end` - a header
+triple and ONE byte, so the spelling is `self.rtmrx_cb=function(s,h,b)`, exactly what the Editor's
+face (`grid-editor/.../FunctionStartFace.svelte:27`, "MIDI Real-Time RX callback handler (clock,
+start, stop, etc.)") offers as `self.rtmrx_cb(self, header, rtm)`. `grid_usb_midi.c:200-210` puts the
+raw byte on the wire, `grid_decode.c:388` gates the class on `rx_mode` and `:420` pushes the byte;
+`init.lua:10-15` has MIDIRTM off by default (`grxm(2,0)`) and `l_grid_rx_mode` (`grid_lua_api.c:832`)
+needs a NUMBER as its mode. The package's `rx_mode` usage line agrees ("2=MIDIRTM ... 0x02=handle
+\_external"); `midi_rx_register` (`gmrr`) is the voice-message registration and not the clock's road.
+The Setup: `s.k=0 s.q=0`, `s.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or
+b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0
+and f then f(s)end s.q=s.q+1 end end` and `grxm(2,@SYNC and 3 or 0)`; the Timer: `local function
+f(s) ... end s.f=f if @SYNC then return end f(s)`. The callback reaches the routine through a
+field READ (`local f=s.f`) because host-surface.spec.ts refuses a field call; 254 (active sensing)
+runs nothing because the run test is `b==250 or b==251`, never `b>249`. Saved as an idiom in
+`docs/entries/orbit.md` with a pointer in `docs/entries/library.md`, not a library function:
+255/0 has 66 free and 255/6 35, the callback is ~170 characters and the step routine is the
+entry's own. STEPS, RADAR POINTS and SONAR untouched. The one caveat: the routine is published by
+the Timer's first call, at most one `@TEMPO` period after the Setup, so a clock inside that period
+is counted, not stepped (the pattern stays in phase; the first step's notes are lost).
+
+**Budget, the two forms.** (i) Everything in the Setup with the step routine there and the Timer
+calling it: **976, 68 over**. (ii) chosen - the step routine, the twelve-channel colour table and
+the four-note table in the Timer (the head colours its cell as it lights it), the callback in the
+Setup, and the ring walk as one rotation (`local a,b=d,t%(d*2)-d for j=1,t//(d*2)do a,b=-b,a end`,
+the same cell order, 50 cheaper): **Setup 726 -> 846** (182 -> 62 free), **Timer 237 -> 404** (671 ->
+504 free); 843 / 383 at the defaults. No system slot. `brightness.ts` gains `orbit: { palettes:
+["c"] }`. The Sync literal is a boolean folded to `3` or `0` (numeric `0` / `3` is four cheaper but
+`0` is CHORUS's inversion literal in the mode table).
+
+**The knobs, fourteen** (TUNE-01's six lifted for this card by the user's word, answer 2; the next
+gate amends the rule, REQUIREMENTS untouched; `catalog.spec` and `knobs.lua.spec` admit fourteen on
+ORBIT by name): `@TEMPO` Tempo `70 90 110 140 180 240` (the brief's "today's values reversed in
+order", 110 still the default - the right end is the slowest; a BPM readout is a question below),
+`@PULSES` Pulses `3,5,7,11 2,3,5,7 5,9,13,17 3,8,11,19 4,8,12,16 7,11,17,23`, **`@R1C`..`@R4C`
+Ring 1..4 colour** (one palette; cyan, spring green, violet, white at the defaults), `@TRAIL` as it
+was, **`@SYNC` Sync** (kind `mode`, `false` / `true` worded Internal / External by `view.ts`'s
+`SYNC_WORDS`; `previewIndex: 0`), **`@DIV` Division** (`12 6 3` worded 8th / 16th / 32nd by
+`DIVISION_WORDS`; 16th the default), **`@N1`..`@N4` Ring 1..4 MIDI note** (kind `note`, 0..127,
+36 38 42 46 at the defaults - kick, snare, closed hat, open hat), `@CH`. **`@RINGC` and `@NOTE` are
+retired.** The ring notes are MIDI destinations by their label's word (surprise.ts's predicate),
+so they sit under MIDI output as typed fields and are never rolled; `surprise.spec`'s four-id pin
+admits `note1..4` and its excluded set reads thirty-three.
+
+**The typed note field.** `view.ts`'s `noteNumber` is the other direction of `noteName`, in its
+spelling (C4 = 60, so 0 is C-1 and 127 is G9; Live's C-2..G8 is the same 0..127 an octave lower in
+name): `C#3`, `Db3` and `49` all read 49, `H3`, `128`, `G#9` and `-1` are refused. `MidiField.svelte`
+takes a name or a number for a `note` knob, refuses with `NOTE_OFFERED` ("A note here is C-1 to G9,
+or 0 to 127."), shows the name as its readout and offers the full keyboard (`inputmode="text"`);
+the pinned lines `problem = offeredLine(knob.id, literals)`, `problem = TYPE_A_NUMBER` and the cc
+field's `inputmode="numeric"` stay. The stamp carries the index: a WIDE knob (past
+`STAMP_OPTION_CEILING` 32) rides two base-32 characters, high first, on `w` and `x` (`fieldChars`,
+`WIDE_FIELD_CHARS`, `luaPayloadLength`; `STAMP_WIDE_CEILING` 1,024); every rack without one is
+encoded byte for byte as before. ORBIT's `w` payload is 28 characters. `knobs.lua.spec` names the
+four wide knobs; `stamp-roundtrip.sweep` holds them in Pass A (39,720 vectors) and walks them in a
+new Pass C (513); `hash-wire.mjs` samples a cross-product past a million states at every knob's
+first / default / last (ORBIT's full product is 10^17; 629,856 hashed), every other entry as before.
+
+**The preview.** `LuaKnob.previewIndex?` (types.ts) and `previewIndices` in `lua-pad-sim.ts`,
+applied in `createLuaPadSim` alone: the browser renders Sync at Internal whatever the knob says
+(no MIDI clock reaches a preview), while the wire, the meters and the stamp carry the choice;
+`model.ts` names the held knobs in `TuneView.previewHeld` and `TuningRegion.svelte` shows
+`PREVIEW_INTERNAL_CLOCK` under Behavior (`data-testid="preview-held"`). `lua-host.ts` gains
+`rtm(byte)`, test-facing and synchronous - the call `decode.lua` makes - so the VM proof drives the
+callback the way a DAW would and reads the routing gate off `rxMode`.
+
+**The VM proof** (`lua-smoke.spec.ts`, the 42nd test of the CONT-02 describe): Internal asks
+`grxm(2,0)`; the first Timer call sends an off then an on per ring on 36 38 42 46, channel 0; over
+96 steps (1,056 ticks) the note-ons per ring are 36 / 30 / 28 / 33 - the pulses times the cycles,
+so the outer ring proves its 32 steps by count - and the outer ring's pulses fall on steps 0 3 6
+... 30; every ring cell carries its ring's colour on layer 2 after one cycle; External asks
+`grxm(2,3)`, the Timer sends nothing and moves no step over three periods, clocks before Start do
+nothing, the first clock after Start is step 0, the seventh is step 1 (the 16th), 200 Timer ticks
+move nothing, Stop halts through twelve clocks and active sensing, Continue goes on from clock 7
+and the count's twelfth clock is step 3, Start resets to 0; an 8th steps at clocks 13 and 25 after
+Start and a 32nd at 4 and 7 when the first clock arrived before the Timer published the routine
+(counted, not stepped); the words, `previewIndices` and the note field. The swipe test's
+eligible set reads four rings (row 4's two outer cells toggle now); the gradient test's outer-ring
+tap reads the third ring, and the naive divisor lands on the fourth (the wrong ring, where it used
+to be no ring).
+
+**Counts, carried + delta:** quick 95 / 982 + 1 todo -> **95 / 983 + 1 todo** (+0 / +1), green
+twice at `--maxWorkers=2` (once alone, once inside the gate); check 658 -> **658** (+0), 0 / 0;
+lint clean; sweep `4 19` green (`lua-entries` 1,213 -> **1,804** combinations; the Lua roundtrip
+Pass A 39,720, Pass B 135,168, Pass C 513); e2e 88 titles / 103 runs -> **88 / 103** (+0 / +0; one
+install title reads ORBIT); audition rows 33 -> **34**; OG 27 files, 158,644 -> **159,169 B**
+(`euclid.png` 6,029 gone, `orbit.png` 6,554, 34 of 81 lit; built, not tracked); `frames.json`
+`c153c746` -> `ccb860ca`, ORBIT's block alone (EUCLID's 30 / 45 / 50 / 51 / 45 lit bytes at ticks
+0 / 37 / 101 / 500 / 1,009 -> ORBIT's 52 / 74 / 82 / 81 / 74), byte-identical on a second
+regeneration; `utilities` 44 -> **44**; catalog 27 -> **27**. Specs moved: `lua-smoke` 41 -> 42 and
+three retitled, `stamp.spec` (the rename map, the length rule), `knobs.lua.spec` (one retitled),
+`stamp-roundtrip.sweep` (Pass C, `exempted` 30 -> 33, `wide` 4), `surprise.spec` (one retitled),
+`local.spec`, `audition.spec` (one retitled), `colour-picker.spec` (12 / 7 / 4 / 4: ORBIT's four
+colour knobs count with the three-colour entries), `catalog.spec`, `view.spec`, `model.spec`,
+`state.spec`, `url.spec`, `copy.spec`, `filter.spec`, `collections.spec`, `transfer.spec`,
+`config-shape.spec`, `wire-pin.spec`; `install.e2e`'s picture check is a ratio band 0.42..0.58
+(the first c1 run read 221 -> 118, 8 off half: ORBIT's white outer head over an orange marker sums
+two layers and the brightest channel moves with the head's phase at the sample).
+
+**The gate's terms** (`--before change-8` at `fd5e1bf` in the clean worktree; `--after change-8
+--against change-8 --check 658` at `c504753`, dirty 1 - the gate script's constants, below):
+equal - the sandbox set `40b44316…`, the three other fixtures (`golden-frames` `3a1d71da`,
+`preset-baseline` `eca808d2`, `synthetic-zona` `8b78c396`), **the SCOPED CSS `7f88b4f4…`** (the raw
+CSS `56d81122…` too), the utilities 44 -> 44 (0 appeared, 0 disappeared; the five named by markup
+intact), check 658, lint, the build (stamp `c504753`), the refuse-list `--stat` empty; moved as a
+feature moves them - the wire set `25aada35…` -> `75d0c1eb…` and full `14ef80ae…` -> `5c2e7227…`,
+1,752 -> 2,802 records, **1,657 byte-identical, 0 moved, 95 removed - every one `E/euclid/` - and
+1,145 added - every one `E/orbit/`**, the cross-product key `E/euclid/cross-product (100800
+states)` -> `E/orbit/cross-product (629856 states)` (the sampled product); the census `290eeeee…`
+-> `991aab0d…` (2,747 -> 2,783 literals: EUCLID's two strings, its sentence and its pulse triples
+gone, ORBIT's strings, the quadruples, `false` / `true`, `Internal` / `External`, `8th` / `16th` /
+`32nd`, the ring labels and the two copy lines in); the copy exports `7ec85d4a…` -> `071be34f…`
+(`NOTE_OFFERED`, `PREVIEW_INTERNAL_CLOCK`); the testids `70dfe98a…` -> `74e0cfd6…` (317 -> 318:
+`preview-held`); `frames.json` (above); the OG `67a7beec…` -> `9becd682…`; the titles `b5de55e2…`
+-> `39b22413…` (983 -> 984 vitest titles: one added, six retitled by the rename or a count;
+103 playwright runs, one retitled); the JS `f57bbcf0…` -> `062043aa…` (72 files); `src/` 34
+modified / 1 added / 1 deleted / 0 renamed (git reads the entry as a delete and an add: most of
+its text moved). The script exits 1 at the wire by design; the later terms are compared from the
+two records. `scripts/13.2-gate.sh`'s `QUICK_FILES=94` / `QUICK_TESTS=966` had been stale since
+change 5 (the gate's quick term printed `quick exit 1` in every record since, the before-record
+of this change included); they read **95 / 983** now - the figures this change's runs prove -
+and the header comment with them, the only edit to that script, landed in the docs commit.
+
+**Chunks** (`scripts/gate/e2e-chunks.sh`, a fresh detached wrangler dev on 4173 per chunk on the
+build at `c504753`, stopped through PowerShell, HTTP 000 after each; the user's 5173 untouched):
+c1 **1 failed / 32 passed** at three workers (the install title, the ±6 tolerance above), then
+**33 passed** (rerun `c1-rerun`) after the band; c2 **2 failed / 20 passed** at three workers
+(`browse:299`, `:343` - the grid read before hydration, the flake changes 3, 4 and 6 recorded),
+then **22 passed** at `--workers 1` on a fresh server (rerun `c2-w1-change8`, the script's body
+with one flag and its `cd` changed, run from the scratchpad); c3 **21 passed**; c4 **16 passed**
+(catalog, fidelity, first-experience, library - the ORBIT fixture import, sandbox); c5 **11 passed**
+(artifacts - `orbit.png` served, radius, skeleton, smoke). Every chunk run: the rename reaches
+install, browse, first-experience, library and the artifacts.
+
+**Outside `src/`:** `docs/HARDWARE-AUDITION.md` row 34 and its dated paragraph, rows 2 / 3 / 25's
+cells, the cost row `euclid 722 / 233 / 6` -> `orbit 843 / 383 / 14`; `docs/entries/orbit.md` (the
+old header and both old strings verbatim, the forms costed, the clock idiom with its evidence,
+what moved); `docs/entries/library.md` a dated pointer (its section 5 still says EUCLID where it
+means ORBIT: `library.ts` is on the untouched list and the doc mirrors it); `e2e/fixtures/library/
+orbit-copy.hangar.json` a real export through `transfer.ts` (fourteen knobs). `.planning/ROADMAP.md`,
+`REQUIREMENTS.md` and `STATE.md` untouched; CAT-04 stays `[ ]`. No device, no deploy, no push;
+`src/vendor/`, `library.ts`, `sequence.ts`, the manifest, `Knob.svelte`, `ColourPicker.svelte`,
+`pad-sim.ts`, `firmware-oracle.spec.ts`, every other entry untouched (the gate's `--stat` and the
+wire's per-string diff).
+
+**Deviations, stated.** (1) Files beyond the brief's list moved for the typed field, the preview
+and the stamp - `types.ts`, `lua-pad-sim.ts`, `model.ts`, `view.ts`, `inspector-copy.ts`,
+`MidiField.svelte`, `TuningRegion.svelte`, `stamp.ts`, `knobs.lua.ts`, `lua-host.ts`,
+`hash-wire.mjs` - because a 128-option knob overflows one stamp character, a name needs a parser,
+and the browser has no clock. (2) The copy exports and the testids moved beyond the rename: two
+copy lines (`NOTE_OFFERED`, `PREVIEW_INTERNAL_CLOCK`) and one testid (`preview-held`), each what
+"says so" costs. (3) `hash-wire.mjs` samples ORBIT's product (above): the full product is 10^17
+and cannot be hashed; every other entry's record is byte-identical. (4) The note range is spelled
+C-1..G9 (`noteName`'s C4 = 60), not the brief's C-2..G8 - the same 0..127; the field must
+round-trip its own readout (CHORUS's Key reads "C3" for 48 by the same rule). (5) The Tempo list
+is reversed as the brief spelled it, so the right end reads 240 and is the slowest step. (6) The
+picture check in `install.e2e` is a ratio band (above). (7) The colour-picker split re-recorded:
+ORBIT's four colour knobs land in the three-or-more bucket. (8) `library.md`'s stale EUCLID names
+in its section 5 are left, mirroring the untouched `library.ts`. (9) The card sentence changed
+(D-05's register: "Four Euclidean rings, a colour and a note each, on their tempo or your DAW’s
+clock; tap a step to change it."). (10) The clock arrives at the callback within the Timer's first
+period unpublished (above).
+
+**Questions for the user.** (a) Tempo: the list reads 70..240 ms left to right as the brief spelled
+the reversal, so the bigger number is on the right and it is the SLOWER step; a BPM readout
+(`gtt(0,15000//@BPM)`, +7 on each event, the same six periods to a millisecond: 214 167 136 107 83 62) would put the bigger number and the faster tempo on the right together - say which. (b) The
+note field spells 0..127 as C-1..G9 (the readout's rule); Live writes the same range C-2..G8 - say
+if the readout should move to Live's spelling everywhere (CHORUS's Key would read "C2"). (c) Under
+External the rings wait for Start (or Continue); clock alone runs nothing - say if clock alone
+should run them. (d) The routine the clock steps through is published by the Timer's first call,
+so a clock inside the first `@TEMPO` period after a Store is counted and not stepped. (e) The
+browser preview holds Sync at Internal and says so; say if you would rather the preview stood
+still under External. (f) Ring 4's default colour is white; the OG and the card show it over the
+orange markers. (g) The pulse sets for four rings are the executor's (`3,5,7,11` the default).
+(h) Every EUCLID link shared before today lands `unreadable` and the card opens at its defaults.
+(i) TUNE-01's six-knob rule needs its amendment at the next gate. (j) Changes 1 to 7 and 9's
+questions still stand.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

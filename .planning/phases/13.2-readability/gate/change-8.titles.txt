@@ -1,0 +1,1086 @@
+vitest D-01: never a rounded corner (src/lib/ui/radius.spec.ts) layer A: no border-radius above zero is authored outside the declared allowlist, the six circles are exactly D-15's, and no rounded utility sits in a class string
+vitest D-01: never a rounded corner (src/lib/ui/radius.spec.ts) layer B: the built CSS carries no radius above zero that the allowlisted sources did not declare, and it refuses to read a missing or stale build
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) an unplug of a live session is immediate, and a detected port that leaves returns to idle
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) catches a THROWN activation failure at the call site and names it
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) decides the capability in the calling frame, with nothing attached and nothing asked
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) forget() closes first, then revokes; without forget() it is a no-op and the control never renders
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) holds every announcement until released, replaces a held one, and speaks once on release
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) identifies the module from a real hardware capture, and writes nothing
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) ignores an arriving port that is not a ZONA, and any arrival while a transport is live
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) maps every failure onto its phase, one row each
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) offers a granted, attached ZONA and never opens it
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) onClass fans every decoded class out, and the identity keeps folding beside it
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) onConnection reports connected and closed, in order, once each
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) reads an empty list as not plugged in, never as no grant
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) refuses a rig with no ZONA by naming the module on the cable, and closes the port
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) the identity keeps folding: a live page number, a sorted rig, and no republish on lastSeen alone
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) the replug adopts the new port object, and one click reconnects with no chooser
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) the transport view writes, and refuses a raw onData
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) the watchdog fires only on the missed disconnect, and silence alone is not a state
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) three transitions in one window are one utterance, the last one, and a fold is none
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) two controls, one chooser: a second connect() while one is in flight is a no-op
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) writeLock keeps the session quiet on an unplug, and announce speaks through the one region
+vitest DeviceSession: capability, the offer, the chooser, identification (D-05, D-06, CONN-01, CONN-05, CONN-06, CONN-07) writes nothing across a whole visit, and cannot
+vitest FOUND-02 tracked font binaries (the gate npm run licenses cannot be) every allowlist row carries a family, a licensee and a licence that is not an SPDX id
+vitest FOUND-02 tracked font binaries (the gate npm run licenses cannot be) every allowlist row points at a path that is tracked and on disk
+vitest FOUND-02 tracked font binaries (the gate npm run licenses cannot be) every allowlisted path is export-ignored in .gitattributes
+vitest FOUND-02 tracked font binaries (the gate npm run licenses cannot be) every tracked font binary outside licenses/ carries an allowlist row
+vitest FOUND-02 tracked font binaries (the gate npm run licenses cannot be) gen-licenses.mjs names every allowlisted family
+vitest FOUND-02 tracked font binaries (the gate npm run licenses cannot be) the wordmark asset has no dimensions, six currentColor fills, zero hex fills, and a viewBox equal to its re-measured ink box at 8.06:1
+vitest HANGAR's nine against the vendored nine (src/lib/catalog/presets.ts) carries no INTENDED_DIVERGENCE row that is unjustified or already closed
+vitest HANGAR's nine against the vendored nine (src/lib/catalog/presets.ts) declares a cost the compiler agrees with, for all nine
+vitest HANGAR's nine against the vendored nine (src/lib/catalog/presets.ts) differs from the vendored shelf only where a row says so
+vitest HANGAR's nine against the vendored nine (src/lib/catalog/presets.ts) is the same nine, in the same order, and never a tenth
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 1. the token ladder is exactly these eleven names and no twelfth --color-* exists in the file
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 10. the focus ring is present and is the action colour at 2px
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 11. the favicon is the 9x9 mark, not a framework logo
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 2. every one of the eleven parses as a colour and equals the Bible's value, --color-action equal to #DCFF71 by D-16 and to nothing else
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 3. the contrast table is computed from the file and every pair lands on §12's figure; text clears 4.5:1 and the boundary clears 3:1 on all three surfaces
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 4. --color-divider FAILS 3:1 on every surface, which is why it is decorative only (WCAG 1.4.11)
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 5. the boundary rule: no rule in app.css or any component puts --color-divider on a property that bounds a control
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 6. the selection rule: any selector painting --color-raised as a selected state also declares the 3px action left rule and an action-coloured label
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 7. the type scale's eight roles are declared at 36 / 30 / 17 for the headings (D-17), and 11px appears only as tracked uppercase
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 8. the font stacks are declared and Inter Variable leads the sans stack
+vitest IDENT-01 identity tokens (src/app.css) - the Bible's eleven and no twelfth 9. --font-display names the family of every display @font-face in the file
+vitest IDENT-01 the instrument register (10-UI-SPEC 19.1g) scan 1: the register line holds from the instrument side - the pill is authored once, in src/app.css, and never under a .front-door selector
+vitest IDENT-01 the instrument register (10-UI-SPEC 19.1g) scan 2: the pill is Primary's fill and Secondary's outline, it reaches no Quiet control, and every pill resolves both 44px axes
+vitest IDENT-01 the instrument register (10-UI-SPEC 19.1g) scan 5: the index form is retired with the Bible, mono is a list of five, and no row gained a rule
+vitest IDENT-01 the instrument register (10-UI-SPEC 19.1g) scan 6: the ground is solid - html and body paint the workspace token, nothing is painted over them, and the retired texture vocabulary names no rule and no component
+vitest IDENT-01 the unlit cell (10-UI-SPEC 19.1a as amended, A-58, A-59) scan 8: the unlit cell is drawn as a cell, in the token, and the pad that lights nothing is still dark
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) CLEAR writes five defaults and PUT BACK five originals in SLOTS order, the classifier reads the first, the third and the fourth write, and the phase list is 13-12's less the store's unconfirmed
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) CLEAR writes the firmware's own default configuration into RAM, then stores it - ACK-gated, proved by the read-back - and only then says cleared
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) PUT BACK writes the snapshot's strings the same way and lands restored
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a Store returns the page to its firmware default, writes the configuration, stores it, and kept is said after the acknowledgement, a heartbeat and a matching re-fetch - eighteen frames, one click
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a clear whose second acknowledgement never comes is partial, never cleared
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a clear whose store is acknowledged but never reads back is kept-mismatch, never cleared
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a clear whose store never acknowledges is cleared once the read-back matches, different bytes land kept-mismatch, and a read-back that never answers is cleared by the user's word
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a late acknowledgement lands kept when the read-back matches
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a partial names which of the five landed on a Store's second leg, and the partial that cannot happen does not
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a read-back that never matches is kept-mismatch after three rounds
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a serial that is not answered degrades to a session-only snapshot
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a surface through the one writer (13-17) a surface lands in the tuner's own shape, and the store consumes it by the one path an entry takes
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a surface through the one writer (13-17) a surface's five strings go out in SLOTS order, the classifier names which of five landed, and the impossible partial is still impossible
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) a surface through the one writer (13-17) over budget refuses before the wire: a surface over 908 disables Store, names the cause, and sends zero frames
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) after a keep, PUT BACK stores too; when its read-back never matches, it is restored-unconfirmed
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) an empty fetched string is snapshot-failed, and everything stays disabled
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) an existing record wins and is never overwritten, a record from before the timer slot restores the 255/6 default and says so, and one from before the utility slot restores the 255/4 default and says so
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) an unplug mid-write is lost, the session keeps quiet, and a reconnect finds the record
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) five strings go out in the one order on every leg that writes, and the store proof reads five per round
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) flash only what you have heard - Store stays armed on a change inside the budget, disarms when the pair is withdrawn and on a session drop, a refused click writes nothing, a page change re-snapshots, and the select's change is switchPage: the heartbeat then exactly one switch in that order, refused where it must be, and never parked at requested
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) no snapshot, no clear - and the fourteen-row enablement table
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) none landed is nothing-landed - by refusal with one attempt, by timeout with three, and the timeout escalates the pacing
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) nothing is written without a click, armed means Store may write, and the probe's TRY ON DEVICE writes exactly five, the system timer first and the utility third, verbatim
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) on a rig the store is allowed and resolves once
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) one landed script is partial, and it names what landed - on the probe's TRY and on a Store's second leg, whose classifier reads that leg alone
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) over budget, and measuring, never reach the wire
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) the file's shape: four specifiers, no raw onData, no direct write, no interval, no derived
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) the slow line is a timer on the store, spoken once, and never an interval
+vitest InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE-01, SAFE-03, SAFE-04, SAFE-07) the snapshot is taken at connect, in order, before ready
+vitest SURPRISE ME never lands over budget (TUNE-07) a Lua entry fits by construction, so its roll is one pass
+vitest SURPRISE ME never lands over budget (TUNE-07) a compiler that always refuses stops at the bound and leaves the ladder a state to resolve
+vitest SURPRISE ME never lands over budget (TUNE-07) a draw that repeats the state it replaced is rejected and rolled again
+vitest SURPRISE ME never lands over budget (TUNE-07) held knobs shrink the roll: a two-option knob alone burns all twelve draws, and the lock never reaches the stamp
+vitest SURPRISE ME never lands over budget (TUNE-07) the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is these twenty-nine knobs on twenty entries
+vitest SURPRISE ME never lands over budget (TUNE-07) two thousand draws per compiler-driven entry, every one inside 908
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) a module that is not a ZONA is its own outcome, carrying what it said it was
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) a port that answers nothing at all is a different outcome from the wrong module
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) a rig refuses by naming the module on the cable, not the first one that spoke
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) names the ZONA from its own heartbeat, with the firmware and the page it reported
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) reads the capability from the environment, and absence beats insecurity
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) registers exactly one data callback and never reaches the transport's write
+vitest TRY ON DEVICE: connect and identify, never write (D-13, D-22) writes nothing across a full open, identify and close cycle, and cannot
+vitest a canvas whose backing store dies (src/lib/sim/host.ts) comes back by the event on a still card, and by the next paint on an animating one
+vitest a canvas whose backing store dies (src/lib/sim/host.ts) drops the cached context and the scratch on contextlost, and paints through neither
+vitest a canvas whose backing store dies (src/lib/sim/host.ts) removes both listeners on unregister and on destroy
+vitest aurora, the default state advances phase by rate per tick and repeats every 128 ticks
+vitest aurora, the default state an expired comet cell renders at most a couple of counts
+vitest aurora, the default state arms the diagonal wave exactly as the compiler emits it
+vitest aurora, the default state comet writes on UP too, exactly as compiled
+vitest aurora, the default state pops the touch before the LED tick: the comet cell shows one advance
+vitest aurora, the default state the slow keeper re-arms the look layer at tick 30000 and not layer 1
+vitest brightness clamps the detent and resets it when nothing lights
+vitest brightness compiles byte-identically at Full to a state that was never dimmed
+vitest brightness hides the knob on exactly the trackpad among shipped presets
+vitest brightness keeps every scaled coefficient expression inside 0..255 at every detent
+vitest brightness keeps the table's shape: five detents, plain words, 15 floor
+vitest brightness never scales at the default: the ledger prices the same rows
+vitest brightness parity, compiler to sim a dimmed-then-restored state renders the never-dimmed frame
+vitest brightness parity, compiler to sim blocks: palette and dim track match at Half
+vitest brightness parity, compiler to sim drift: scaled endpoints land exactly on the end columns, Lua pinned
+vitest brightness parity, compiler to sim perFinger: the scaled coefficients parsed from the Lua drive the paint
+vitest brightness parity, compiler to sim rails: fader coefficients and whites match at Dim
+vitest brightness parity, compiler to sim shares the funnel: scaleChannel vectors and the table words
+vitest brightness parity, compiler to sim wave and comet: armed stops equal the emitted literals at Dim and Half
+vitest brightness parity, compiler to sim zones: checkerboard, dark square and held colour match at Dim and Half
+vitest brightness prices the dimmed stamp one character over the full one
+vitest brightness scales channels by hand-checked vectors and is the identity at 100
+vitest brightness scales the emitted literals at Dim, spot-checked by hand
+vitest brightness survives the clone like every other field
+vitest build configuration shape every probe route under /dev/ is linked from nowhere
+vitest build configuration shape excludes grid-protocol from dependency pre-bundling
+vitest build configuration shape exposes the quick and sweep test scripts
+vitest build configuration shape has no svelte.config file to shadow the Vite config
+vitest build configuration shape keeps Prettier at grid-editor parity
+vitest build configuration shape keeps the vendored tree out of svelte-check
+vitest build configuration shape passes Kit options flat, not wrapped in a Kit object
+vitest build configuration shape pins the vendored tree out of end-of-line normalisation
+vitest build configuration shape runs the invariant sweep as its own Vitest project
+vitest build configuration shape runs the vendored BOTOR suites instead of quarantining them out of the run
+vitest build configuration shape the built front door does not preload the protocol chunk
+vitest build configuration shape the front door never reaches the compiler at module scope
+vitest build configuration shape the walking skeleton page imports nothing outside the protocol and transport surfaces
+vitest build configuration shape the walking skeleton page never reaches the compile surface or the vendored tree
+vitest capture recorder (D-07) a rejected frame is recorded with ok false and the decoder's reason
+vitest capture recorder (D-07) a step carries sentAt, settledAt, latencyMs, attempts and outcome
+vitest capture recorder (D-07) an inbound chunk and the frame the scanner cut from it are recorded separately
+vitest capture recorder (D-07) every outbound write is recorded as a tx bytes event with its hex
+vitest capture recorder (D-07) the capture declares its schema, source and run block
+vitest capture recorder (D-07) the capture survives a round trip through JSON and back into the fake transport
+vitest catalog copy, counted rather than read (CONT-03) coins no tag nobody declared, and carries every tag it declares
+vitest catalog copy, counted rather than read (CONT-03) computes the census the copy rules are counted over
+vitest catalog copy, counted rather than read (CONT-03) gives every configuration one line of its own
+vitest catalog copy, counted rather than read (CONT-03) protects the two search anchors the shipped suites depend on
+vitest catalog copy, counted rather than read (CONT-03) writes the punctuation the house writes, over every string it authored
+vitest catalog golden frames agrees with the Phase 3 tripwire on every ported entry
+vitest catalog golden frames covers every catalog entry, and only catalog entries
+vitest catalog golden frames gives every entry an engine
+vitest catalog golden frames proves every entry's declared restsBlack, in both directions
+vitest catalog golden frames still hashes to the recorded frames at every tick
+vitest catalog metadata and shape (CONT-02, CONT-03) agrees with the vendored shelf on every ported name and description
+vitest catalog metadata and shape (CONT-02, CONT-03) builds the Profile-Cloud object and sorts without mutating
+vitest catalog metadata and shape (CONT-02, CONT-03) carries complete metadata on every entry
+vitest catalog metadata and shape (CONT-02, CONT-03) carries eight of the nine shelf presets, each exactly once, and names the ninth
+vitest catalog metadata and shape (CONT-02, CONT-03) gives every entry a unique url slug
+vitest catalog metadata and shape (CONT-02, CONT-03) holds knobs only on hand-authored Lua entries (D-12, TUNE-01)
+vitest catalog metadata and shape (CONT-02, CONT-03) keeps defaults in step with knobs
+vitest catalog metadata and shape (CONT-02, CONT-03) never extends the vendored shelf (D-09)
+vitest catalog metadata and shape (CONT-02, CONT-03) restates the pinned package's constants correctly
+vitest catalog metadata and shape (CONT-02, CONT-03) stores a preview engine that is derived, never chosen
+vitest collections at the user's four answers (src/lib/store/collections.ts) 1. create, rename and delete round-trip, and a store that throws degrades every outcome to absent
+vitest collections at the user's four answers (src/lib/store/collections.ts) 2. fork A (many): a record is in two collections at once, deleting it removes it from every one, and an unknown id is dropped on read and counted
+vitest collections at the user's four answers (src/lib/store/collections.ts) 3. fork B (session): delete returns the vector, the store holds no trace, a reload finds nothing, the held vector restores it, and after the session nothing can
+vitest collections at the user's four answers (src/lib/store/collections.ts) 4. fork D (no): the export carries no membership, an import lands unfiled, and a file that claims a collection creates none
+vitest compiler-to-sim pinning aurora: the decay pair in the Lua matches the table and the sim
+vitest compiler-to-sim pinning aurora: the keeper refreshes exactly the layers the plan animates
+vitest compiler-to-sim pinning aurora: the sim uses the exact stops, rate and wavelength the Lua carries
+vitest compiler-to-sim pinning bloom: the tick count and front constant come from the same formula
+vitest compiler-to-sim pinning dial: radius and absolute emit their pinned forms only when asked
+vitest compiler-to-sim pinning dial: the emitted constants are the ones the sim imports
+vitest compiler-to-sim pinning faders: the bar law and rail predicate are the ones the sim runs
+vitest compiler-to-sim pinning hard edge emits the mid-black override exactly when the sim applies it
+vitest compiler-to-sim pinning ninepads: the checkerboard literals match the state and the dim ratio
+vitest compiler-to-sim pinning pins the expression strings the sim evaluates in JS
+vitest compiler-to-sim pinning scan, drift, showpiece, spiral swirl and edge ripple stay pinned too
+vitest compiler-to-sim pinning zones: the watchdog thresholds and fast period are in the Lua
+vitest docs/HARDWARE-AUDITION.md (D-16, the hardware audition) auditions every shipped hand-authored configuration
+vitest docs/HARDWARE-AUDITION.md (D-16, the hardware audition) keeps the install-order rule, its reason and Morph's exemption
+vitest docs/HARDWARE-AUDITION.md (D-16, the hardware audition) keeps thirty-three numbered rows, each with a reason it cannot be simulated
+vitest docs/HARDWARE-AUDITION.md (D-16, the hardware audition) names only real configurations, and Mirror only as an optional row
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) every answer cites its evidence
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) every cited fixture exists on disk
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) no answer is left as TBD
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) the measured latencies and the shipped timeouts are both stated
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) the results document answers all six questions under their own headings
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) the shipped timeouts are the ones the results document recorded
+vitest docs/SKELETON-RESULTS.md (FOUND-01 criterion 5) the store caveat and the page-change restore rule are both recorded
+vitest engine vectors from grid_led.c V1: reproduces the factory ramp table exactly
+vitest engine vectors from grid_led.c V2: one full layer caps at 126, which is 254/512 of 255
+vitest engine vectors from grid_led.c V3: layers add before the divide, two give 253 and three clamp at 255
+vitest engine vectors from grid_led.c V4: the weight closed form sums to 254 and meets at 127/128
+vitest engine vectors from grid_led.c V5: the sine table spot values and the measured glc composite
+vitest engine vectors from grid_led.c V6: the tick advances phase before the freeze and lands dark
+vitest engine vectors from grid_led.c V6b: every DECAY_TABLE row lands its fade in phase 1..7
+vitest engine vectors from grid_led.c V7: uint8 narrowing wraps two's complement
+vitest engine vectors from grid_led.c V8: an unknown shape falls through to ramp up
+vitest engine vectors from grid_led.c V9: glc derives min c/20, mid c/2, max c with truncation
+vitest export as a file and import refused before it opens (src/lib/store/transfer.ts) 1. an exported record round-trips byte-for-byte, schema and kind included, and the download revokes its URL
+vitest export as a file and import refused before it opens (src/lib/store/transfer.ts) 2. a wrong app or an unreadable schema is unreadable and writes nothing - the store is untouched
+vitest export as a file and import refused before it opens (src/lib/store/transfer.ts) 3. an older shape lands older, on the base configuration - matched against stamp.spec.ts's 'lands older on a resized knob and never restored on a changed rack'
+vitest export as a file and import refused before it opens (src/lib/store/transfer.ts) 4. a surface with an off-surface or overlapping region is refused with the region named; a knob index outside its list is refused with the knob named
+vitest export as a file and import refused before it opens (src/lib/store/transfer.ts) 5. brightness (change 5) travels with a record: a Playground copy and a Sandbox surface round-trip it through the file, an older file without the field lands at 255, the schema's range is catalog/brightness.ts's, and 0 or 256 is unreadable
+vitest fake transport a corrupt fault flips a checksum character so the frame is refused by the decoder
+vitest fake transport a delay fault defers the response by the milliseconds it names
+vitest fake transport a disconnect fault stops the transport after the named number of outbound frames
+vitest fake transport a drop fault withholds the matching response and nothing else
+vitest fake transport a truncate fault stops mid-frame and leaves the scanner holding a partial
+vitest fake transport replay emits the recorded chunks in order
+vitest fake transport the responder answers a fetch with a report carrying the stored config
+vitest fake transport the responder echoes the request id into an acknowledgement's LASTHEADER
+vitest fast taps and the first-finger claim claims on the DOWNUP tap, and the park sits outside the gate
+vitest fast taps and the first-finger claim lets a first-finger latch card take fast taps
+vitest fast taps, dots and scaled wires joystick: a fast tap cannot leave the home cell dark
+vitest fast taps, dots and scaled wires joystick: the two-finger survivor re-parks on its own lift
+vitest fast taps, dots and scaled wires latch plus scale: the latched wire plays the baked table
+vitest fast taps, dots and scaled wires latch: a fast tap latches on a first-finger card
+vitest fast taps, dots and scaled wires the 4x4 card draws dots and moves the held dot one write at a time
+vitest fast taps, dots and scaled wires the 4x4 latch dot stays lit until the next press
+vitest fast taps, dots and scaled wires watchdog plus scale: the stale note-off plays the table too
+vitest forbidden instructions (D-06) no shipped module names an erase or clear instruction
+vitest forbidden instructions (D-06) only the descriptor module encodes a packet
+vitest forbidden instructions (D-06) the builders produce only the eight instructions HANGAR is allowed to send
+vitest forbidden instructions (D-06) the heartbeat type that disables page changes is never sent
+vitest forbidden instructions (D-06) the page-change and page-discard classes are built in the descriptor module and named nowhere else
+vitest format grafts and corrupted payloads declines a d payload that needs no v4 field, as corruption
+vitest format grafts and corrupted payloads declines a payload whose bend bits read 11
+vitest format grafts and corrupted payloads no one-character format graft can ever load a DIFFERENT card
+vitest formatting parity with grid-editor (D-15) _pad.ts formats identically under HANGAR's and BOTOR's Prettier
+vitest formatting parity with grid-editor (D-15) can see the BOTOR checkout
+vitest formatting parity with grid-editor (D-15) pad-sim-host.ts formats identically under HANGAR's and BOTOR's Prettier
+vitest frame decode guard a checksum-corrupted frame is refused and never reaches the class decoder
+vitest frame decode guard a good frame decodes to its classes with its BRC parameters
+vitest frame decode guard an acknowledgement decodes its LASTHEADER and leaves the config fields undefined
+vitest frame decode guard returns every class in the frame, never just the first
+vitest frame decode guard the guard is truthiness because the failure return is undefined, never false
+vitest frame scanner a whole frame in one chunk emits one frame and empties the buffer
+vitest frame scanner eight kilobytes with no delimiter resets the buffer and reports the overflow once
+vitest frame scanner every split point emits one byte-identical frame
+vitest frame scanner leading garbage is absorbed by the first frame and the next one resyncs
+vitest frame scanner the EOT alone in the second chunk still emits the frame
+vitest frame scanner the emitted frame ends with EOT and two checksum characters, and a stray terminator byte inside the payload does not split it
+vitest frame scanner the terminator alone in the second chunk still emits the frame
+vitest frame scanner three coalesced frames emit three frames in order
+vitest frame scanner two frames plus a trailing partial retain the partial
+vitest golden frames (D-07 regression tripwire) aurora frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) covers nine presets at five ticks and labels the static ones
+vitest golden frames (D-07 regression tripwire) dial frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) faders frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) joystick frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) ninepads frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) pinwheel frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) radar frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) refuses to run in regeneration mode
+vitest golden frames (D-07 regression tripwire) starfield frames are unchanged at every recorded tick
+vitest golden frames (D-07 regression tripwire) tpad frames are unchanged at every recorded tick
+vitest grid-protocol pin declares exactly the pinned version
+vitest grid-protocol pin every catalog preset compressScript cost is byte-identical to the recorded baseline
+vitest grid-protocol pin is declared in package.json with no range operator
+vitest grid-protocol pin is installed at exactly the pinned version
+vitest grid-protocol pin pins the version BOTOR measured its cost baseline against
+vitest hand-authored Lua entries execute (CONT-02) arms one cell per cell a swipe crosses, on EUCLID, SONAR and STEPS
+vitest hand-authored Lua entries execute (CONT-02) builds, and lights the pad under a finger
+vitest hand-authored Lua entries execute (CONT-02) carries LUMEN's depth knob all the way to the emitted bytes, downwards, only below the top row, and to exact black at its deepest
+vitest hand-authored Lua entries execute (CONT-02) carries TRACKPAD's Setup byte for byte and its wire call for call, and paints a comet that follows the finger, holds under a still one, and fades to phase 0 inside the tail
+vitest hand-authored Lua entries execute (CONT-02) carries both of STRIP's controls from 0 to 127, and never outside seven bits
+vitest hand-authored Lua entries execute (CONT-02) drives STRIP's two controls on their own controllers, and neither on the other's
+vitest hand-authored Lua entries execute (CONT-02) drives a CONSOLE column across its whole travel and reaches 127
+vitest hand-authored Lua entries execute (CONT-02) gives a MORPH corner tap one message, and leaves the morph alone
+vitest hand-authored Lua entries execute (CONT-02) holds WHEELS' mod wheel across a lift, and lets neither wheel move the other
+vitest hand-authored Lua entries execute (CONT-02) holds a boundary finger on one cell on EUCLID, STEPS, RADAR POINTS and SONAR, counted
+vitest hand-authored Lua entries execute (CONT-02) holds a finger on the line between two cells, and toggles once per cell crossed
+vitest hand-authored Lua entries execute (CONT-02) keeps ARC stopped under a wobbling finger, still tracking, and resumes at the exact rate
+vitest hand-authored Lua entries execute (CONT-02) keeps MORPH's weights moving inside a cell, holds its trail on ONE cell, and saturates inside the margin
+vitest hand-authored Lua entries execute (CONT-02) keeps every trackpad gesture and flashes the edge the finger moves toward, to phase 0, from the Timer
+vitest hand-authored Lua entries execute (CONT-02) lands CHORUS's I chord at the bottom-left in root position on every key, walks the seven degrees upward, shifts the set by an octave from the two top-right pads and refuses past two, sends nothing from an octave pad, voices Smart as the closest inversion and Off as root position, and lights the picture and the shift from the Timer
+vitest hand-authored Lua entries execute (CONT-02) leaves no cell lit that a never-touched run leaves dark
+vitest hand-authored Lua entries execute (CONT-02) moves ARC's heart and ARC's controller together, at three depths
+vitest hand-authored Lua entries execute (CONT-02) moves a muted CONSOLE column silently, and sends the moved level on unmute
+vitest hand-authored Lua entries execute (CONT-02) never re-arms a keeper on a layer carrying a decaying trail
+vitest hand-authored Lua entries execute (CONT-02) never trusts a lift, on the same id or another: three presses release and a quiet contact releases
+vitest hand-authored Lua entries execute (CONT-02) records a GHOST path, replays it, and takes it back on the red corner - twice
+vitest hand-authored Lua entries execute (CONT-02) rolls RADAR POINTS' ping out ring by ring, and a point taken away falls silent on the next pass
+vitest hand-authored Lua entries execute (CONT-02) runs ARC as an LFO: six waves over one cycle, the offset fader on column 8 live in every state, two contacts by role, the stop tap on cell 40 and not on the column
+vitest hand-authored Lua entries execute (CONT-02) sends LUMEN's colour as framed seven-bit hex over sysex once per colour, and its two axis CCs once per moved axis
+vitest hand-authored Lua entries execute (CONT-02) sends a MORPH corner only when that corner moved, and never a stale zero
+vitest hand-authored Lua entries execute (CONT-02) sends the same on a fast tap as on a slow one
+vitest hand-authored Lua entries execute (CONT-02) sends the same on a fast tap as on a slow one, on the nine COMPILED presets
+vitest hand-authored Lua entries execute (CONT-02) sets what MORPH's four corners send dead centre, holds 127 under the finger and 0 opposite, and is the identity at its default
+vitest hand-authored Lua entries execute (CONT-02) shows STAGE's live, lined-up and idle zones as THREE states
+vitest hand-authored Lua entries execute (CONT-02) sounds ONE CHORUS chord at a time, and releases a chord whose finger went quiet
+vitest hand-authored Lua entries execute (CONT-02) springs WHEELS' pitch home to exactly 8192, on the wire and in the light together
+vitest hand-authored Lua entries execute (CONT-02) stops ARC on a centre tap and resumes it on the next, once per press
+vitest hand-authored Lua entries execute (CONT-02) survives the gesture plus two hundred further ticks, and sends something
+vitest hardware-verified constants keeps the budget at 908 characters per event
+vitest hardware-verified constants keeps the measured seam lengths
+vitest hardware-verified constants keeps the two ZONA event numbers
+vitest hardware-verified constants keeps the two keeper periods
+vitest licence and notices (FOUND-04) carries the licence artefacts into build/ when a build is present
+vitest licence and notices (FOUND-04) is not stale: every production dependency appears in the notices
+vitest licence and notices (FOUND-04) keeps internal planning material out of the source archive
+vitest licence and notices (FOUND-04) materialises the full licence texts
+vitest licence and notices (FOUND-04) names grid-protocol as GPLv3 — the package with no licence field
+vitest licence and notices (FOUND-04) names the lua formatter and its StyLua provenance
+vitest licence and notices (FOUND-04) ships the verbatim GPLv3 text with the project copyright notice
+vitest light that actually lights drives both layers for the two-layer showpiece
+vitest light that actually lights keeps Look on layer 2 and Touch on layer 1
+vitest light that actually lights never sets motion on a layer that was given no colour
+vitest light that actually lights reaches for separate colour stops only where the ratio cannot hold
+vitest light that actually lights says so when a drawn control takes the layers a Look wanted
+vitest light that actually lights says so when the showpiece takes the layer Touch wanted
+vitest light that actually lights sets min, mid and max from one colour call
+vitest look kinds a hard edge forces the mid stop black on layer 2
+vitest look kinds look layers freeze at tick 65535 when the user owns the timer
+vitest look kinds pinwheel evaluates the swirl expression with Lua floor and mod
+vitest look kinds radar arms the ripple with fixed 45 and rings-from-centre rate
+vitest look kinds starfield keys the shimmer to the hardware index
+vitest look kinds the editor timer keeps the look alive past tick 65535
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) aurora compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) aurora raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) dial compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) dial raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) every declared preset divergence is real and justified - VACUOUS over the rows while the table is empty, and not vacuous about the rule
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) faders compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) faders raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) joystick compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) joystick raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) ninepads compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) ninepads raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) pinwheel compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) pinwheel raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) radar compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) radar raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) starfield compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) starfield raw and compressed lengths equal the recorded baseline
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) the fixture covers exactly the vendored catalog at the pinned protocol version
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) tpad compiles to character-identical Setup and Timer Lua
+vitest nine shelf presets against BOTOR's own compiler (criterion 3) tpad raw and compressed lengths equal the recorded baseline
+vitest nothing costs what it does not have to emits its bodies in the minifier's own normal form
+vitest nothing costs what it does not have to emits no comment except the marker
+vitest nothing costs what it does not have to writes the marker exactly as the editor would
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) a busy port names Grid Editor and gives the recovery in order
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) a cancelled chooser is a different state from a busy port
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) a racing open is its own state and never the raw browser text
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) an unplugged port is told apart from a busy one by the port's own connected flag
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) an unrecognised error still lands in a named state carrying its raw text
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) no message says Chromium, and the unsupported one names the browsers that work
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) the already-open copy is a sentence with no recovery and no raw report
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) the copy names the control that is actually on the screen
+vitest open failure taxonomy (CONN-02, CONN-04, CONN-05) the recovery steps are exactly close the other tab, quit, unplug, wait, replug, reload, connect
+vitest orientation changes the compiled body when an axis is inverted
+vitest orientation defaults calibration to identity
+vitest orientation never flips a touch axis unless the user asked for it
+vitest orientation puts logical (0,0) at the top left and runs plain row-major
+vitest orientation reads a touched cell row-major and rescales it for fine resolution
+vitest orientation un-serpentines the hardware LED store index
+vitest outbound descriptors a config at the limit is refused before it can be built
+vitest outbound descriptors a fetch carries the desktop's parameter names and values
+vitest outbound descriptors a non-printable character is refused and its index named
+vitest outbound descriptors a store is a global broadcast with no class parameters
+vitest outbound descriptors a write carries an ACTIONLENGTH equal to the string it sends
+vitest outbound descriptors encodeRequest returns the id the acknowledgement will echo
+vitest outbound descriptors every descriptor round-trips through encode and decode
+vitest outbound descriptors moduleKeyOf is 32 lowercase hex characters, stable, and distinct for distinct words
+vitest outbound descriptors the filters name REPORT for a fetch and ACKNOWLEDGE for a write and a store
+vitest outbound descriptors the frame lengths on the wire are the measured ones
+vitest outbound descriptors the host heartbeat is global and carries type 255
+vitest outbound descriptors the serial-number fetch is addressed to the module, and its report decodes to four words
+vitest outbound descriptors the system element travels as ff in both the descriptor and the filter
+vitest outbound descriptors the three page requests encode with the package's class codes and offsets, and their filters take the module's own report and refuse a stranger's
+vitest protocol constants agrees with the touch element's own event table
+vitest protocol constants carries the system element's three events and its setup's default
+vitest protocol constants carries the system element's timer default, read from the package and never typed
+vitest protocol constants carries the touch element's own two defaults, selected by event number
+vitest protocol constants carries the version triple the CONFIG descriptors send
+vitest protocol constants filters the picker to the product identity and never the bootloader
+vitest protocol constants holds both defaults canonical under the pinned minifier
+vitest protocol constants identifies a ZONA only when the hwcfg is passed as a number
+vitest protocol constants reads the 909 config limit and the 250 ms heartbeat interval from the pinned package
+vitest reading a pad back does not guess when there is no stamp
+vitest reading a pad back hands Your code back untouched
+vitest reading a pad back names the danger when a foreign block claims a slot we own
+vitest reading a pad back never accuses its own actions
+vitest reading a pad back restores our own configuration exactly
+vitest reading a pad back treats a stamp it cannot read as no stamp, never as a corrupt one
+vitest request queue a disconnect mid-write rejects the pending waiter and leaves no unhandled rejection
+vitest request queue a dropped acknowledgement produces exactly three writes and then a named failure
+vitest request queue a heartbeat arriving mid-wait never resolves the waiter
+vitest request queue a negative acknowledgement rejects after one write and is never retried
+vitest request queue a request is not complete until an acknowledgement arrives, never on a resolved write
+vitest request queue every rejection carries the wording Phase 7's retry policy reads
+vitest request queue one outstanding request: the second write waits for the first to settle
+vitest request queue the deadline decides, not the arrival order
+vitest response matcher a heartbeat never resolves a waiter, even against a loose filter
+vitest response matcher a negative acknowledgement rejects immediately
+vitest response matcher a report is never matched on the request id
+vitest response matcher a report matches on class, instruction, source, page, element and event
+vitest response matcher a response from another module's address does not match
+vitest response matcher an acknowledgement carrying a different id does not match
+vitest response matcher an acknowledgement matches only when the id it echoes is the request id
+vitest scales and the latch bakes minor and pentatonic from their own degree tables
+vitest scales and the latch bakes the major table with the base note inside
+vitest scales and the latch clamps the BASE, not the entries, so no two zones share a note
+vitest scales and the latch composes the latch with a scale
+vitest scales and the latch keeps the 9x9 grid chromatic by construction
+vitest scales and the latch keeps the latched picture lit and drops the watchdog
+vitest scales and the latch keeps the watchdog on the scaled momentary card, table included
+vitest scales and the latch latches on press, fast DOWNUP taps included
+vitest scales and the latch leaves the chromatic momentary card byte-identical
+vitest scales and the latch prices the scale and the latch as their own ledger rows
+vitest scales and the latch tells the Map section the real note range
+vitest scales and the latch walks two octaves on the 4x4 grid
+vitest sends: faders blocks layout paints the whole column group on layer 1
+vitest sends: faders draws the rails frame at 252 and the level bars from the exact law
+vitest sends: note zones draws the checkerboard at the exact dim ratio
+vitest sends: note zones plays legato across zones and moves the held highlight
+vitest sends: note zones releases the note and highlight on UP and stays quiet after
+vitest sends: note zones snake order mirrors the odd zone rows
+vitest sends: note zones the watchdog expires a silent contact but leaves the highlight lit
+vitest sends: the dial absolute mode: accumulates from 64, survives lifts, pins at the stops
+vitest sends: the dial clamps a violent flick at 127 and never wraps
+vitest sends: the dial crosses the atan seam without a half-turn burst
+vitest sends: the dial dives through the centre without a jump
+vitest sends: the dial first finger only: a second contact never steals the dial
+vitest sends: the dial ignores the deadzone and re-baselines on the way out
+vitest sends: the dial one exact full turn emits exactly 4096/K ticks, both directions
+vitest sends: the dial relative mode never emits 64 anywhere
+vitest sends: the dial resets on touch-down so a new touch never inherits a jump
+vitest sends: the dial scales with the sensitivity detent through the shared table
+vitest sends: the dial stays silent under micro-jitter and never emits 64
+vitest sends: the dial the radius stream is off by default and monotone when on
+vitest sends: whole-pad XY hiRes widens the axis range and scales to 14 bits
+vitest sends: whole-pad XY keeps the 0..127 range for ordinary states
+vitest sends: whole-pad XY radar sends CC pairs from the first finger only
+vitest serpentine geometry agrees with the corrected ledIndexToCell for every hardware index
+vitest serpentine geometry is a bijection and self-inverse over all 81 LEDs
+vitest serpentine geometry matches the firmware lookup table verbatim in both directions
+vitest solo means solo, measured at the wire dial: turn and distance solo to their own controllers
+vitest solo means solo, measured at the wire faders: the solo guards the MIDI and leaves every level bar live
+vitest solo means solo, measured at the wire xy hiRes: the 14-bit pair solos as one stream
+vitest solo means solo, measured at the wire xy: each axis solos to its own controller
+vitest src/lib/catalog/calibration.ts (12.1-01, the measured map) holds nine strictly increasing knots per axis inside 0..127, measured once, with the discarded target and the corner source of KY[0] named
+vitest src/lib/catalog/calibration.ts (12.1-01, the measured map) is the Lua U in TypeScript: knots to n*64, 0 to 0, 127 to 512, integer and monotone over 0..127, the half-pitch at a knot midpoint
+vitest src/lib/catalog/calibration.ts (12.1-01, the measured map) maps LED coordinates forward to the sensor: knots at the LEDs, floored midpoints between, saturation outside, x8 at hi-res, monotone throughout
+vitest src/lib/catalog/calibration.ts (12.1-01, the measured map) renders the one literal library.ts puts on the wire, with no space in it
+vitest streams and solo keeps the LED picture live outside a fader solo's guard
+vitest streams and solo lists every stream in plain words with the real numbers
+vitest streams and solo lists unsoloable streams with a why instead of hiding them
+vitest streams and solo never reaches the ledger, the fit solver or the stamp
+vitest streams and solo readPad of a solo-written pair returns the base card
+vitest streams and solo solo compiles a variant under the real card's stamp
+vitest streams and solo throws on an unsoloable stream and deletes a stale solo
+vitest streams and solo yields nothing for trackpad, none and suppressed sends
+vitest the Lua VM stays out of a cold load engine.ts reaches the Lua wrapper only through a dynamic import
+vitest the Lua VM stays out of a cold load one module and one only names the VM package
+vitest the Lua VM stays out of a cold load the catalog reaches neither the simulator nor the VM
+vitest the Lua formatter gate (FOUND-05) cost through HANGAR's surface awaits the gate and returns the recorded baseline
+vitest the Lua formatter gate (FOUND-05) the fit ladder through HANGAR's surface awaits the gate before it measures
+vitest the Lua formatter gate (FOUND-05) the gate is memoised: every caller awaits one initialisation
+vitest the Lua formatter gate (FOUND-05) the simulator is not gated: PadSim renders with the formatter uninitialised
+vitest the Lua formatter gate (FOUND-05) the vendored cost path refuses before the gate resolves, and says so out loud
+vitest the Lua formatter gate (FOUND-05) validate through HANGAR's surface never reports not-ready and never invents a syntax error
+vitest the Lua host change-gates the touch FIFO, caps it at ten, and pops exactly one per tick
+vitest the Lua host exports the surface the VM actually has, in both directions
+vitest the Lua host gates the VM lazily and memoised, and one factory serves every host
+vitest the Lua host installs the system Setup alone with a no-op tim, has no G, and says so on the first finger
+vitest the Lua host re-arms the timer only where the body re-arms it, exactly as the pcall demands
+vitest the Lua host records a bare gmss whole, and the surface it joined is sixteen names on a booted VM
+vitest the Lua host records midi_send in order with the channel first, and raises on an unregistered call
+vitest the Lua host resolves glag through the serpentine, and moves exactly 40 of the 81 cells
+vitest the Lua host runs the system Setup before Setup, and rebuilds it empty on every restart
+vitest the Lua host runs the system Timer as self.tim before the system Setup, and the pair again on every restart
+vitest the Lua host truncates a colour channel to uint8 rather than clamping it
+vitest the Lua host wraps a genuinely inert sim, so a later parity result cannot be its own answer
+vitest the Lua host zeroes a fractional argument instead of rounding it or throwing
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) dims a preset the same way on both sides at brightness 128: the compiler's Lua with its colours scaled at landing, run in the VM beside the library, against the dimmed PadSim the workspace previews - every frame byte within two units, the brightest about half - for the eight presets at rest and under a finger
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) draws a finger the same way on both engines for the eight HANGAR presets: the compiler's Lua beside the library against a live PadSim, 243 records after every sample
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) gives both engines one interchangeable SimEngine surface
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) is not a vacuous comparison
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) renders the frames Phase 3 recorded in golden-frames.json
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) renders the same frames as a live PadSim at all five sampled ticks
+vitest the Lua route reproduces the vendored simulator (Wave 0 gate) reproduces all 2187 layer records for all nine presets
+vitest the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts) carries every declared knob across without transforming it
+vitest the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts) keeps every knob on both routes inside the stamp's one base-32 character
+vitest the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts) renders: every shipped Lua knob gets a widget, and none falls through on malformed data
+vitest the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts) resolves the default from the entry's own table and never disagrees with the knob
+vitest the OG images and the heads that point at them (SHARE-04) gives every prerendered configuration page a complete Open Graph head
+vitest the OG images and the heads that point at them (SHARE-04) gives the shelf itself the same head, on the opening centre's picture
+vitest the OG images and the heads that point at them (SHARE-04) holds exactly one image per routed configuration
+vitest the OG images and the heads that point at them (SHARE-04) paints real LEDs, not just the dot field and the frame
+vitest the OG images and the heads that point at them (SHARE-04) writes 1200 x 630 truecolour PNGs under a megabyte
+vitest the OG pad renderer copies a lit cell's firmware bytes across its whole 48 x 48 block
+vitest the OG pad renderer fills a 1200 x 630 buffer whose ground outside the frame is black
+vitest the OG pad renderer paints unlit cells as one flattened dot and the frame as one stroke
+vitest the OG pad renderer places the face, the cells and the frame where the spec puts them
+vitest the PNG encoder carries a CRC on every chunk that verifies over type and data
+vitest the PNG encoder holds an IDAT that inflates back to the scanlines it was given
+vitest the PNG encoder opens with the PNG signature and closes with an empty IEND
+vitest the PNG encoder stays far under a megabyte, and stays out of every client chunk
+vitest the PNG encoder writes an IHDR that decodes to its own arguments
+vitest the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02) 1. costs one, four, eight, twelve and sixteen elements at the picker corner: all five under 908, the dearest sixteen's finding closed
+vitest the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02) 2. proves dead-branch elimination by a measured pair: four faders with and without the other three branches
+vitest the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02) 3. renders M with exactly 81 entries, each 0 or a valid row index, equal to geometry.ts's map cell for cell
+vitest the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02) 4. passes both class gates over the emitted text with the gates' own needles, and emits no decay
+vitest the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02) 5. passes checkSyntax on every surface, defines no library name, and calls only names the library exports
+vitest the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02) 6. the surface's brightness (change 5): every colour in J scaled by max(1, floor(v*b/255)), the runtime's Timer and 255/4 untouched, 255 and an absent field byte-identical, the meter the picker corner at full, the landing the scaled Setup, never longer
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 1. a contact keeps the region it landed in: dragged off the fader's edge into the XY pad, the fader still receives and the pad receives nothing until a lift
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 2. a Button's note-off fires on every release path, the same-id re-press first: a re-press, an end code, another contact on the same region, and the Timer sweep
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 3. a vertical fader reads 127 at its top LED and 0 at its bottom LED on the precomputed calibrated bounds, sends on change only, and clamps beyond its end LEDs
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 4. the XY pad sends one CC per moved axis, scaled to the region's bounds
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 5. the Knob is a real rotary: a clockwise turn accumulates through the wrap with no negative step, counter-clockwise decrements, both ends clamp, the dead zone changes nothing, and a 2 x 2 is refused with the derived reason
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 6. passes both class gates over every emitted runtime text with the gates' own needles, defines only its own names and calls only the library's
+vitest the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01, BUILD-03, BUILD-04, CONT-02, PREV-02) 7. the measured cost: canonical under compressScript, beside the research's 861 and D-08's 150-200, with the ceiling in kinds under two slots and three
+vitest the Sandbox's geometry rules (BUILD-01, BUILD-02) 1. refuses every off-surface shape with the field named, and the previous valid value survives
+vitest the Sandbox's geometry rules (BUILD-01, BUILD-02) 2. makes overlap unrepresentable: one cell shared is a conflict naming both, and no map is returned
+vitest the Sandbox's geometry rules (BUILD-01, BUILD-02) 3. duplicates into the first free window in reading order, and a full surface deletes nothing
+vitest the Sandbox's geometry rules (BUILD-01, BUILD-02) 4. warns at a shared edge naming both, not at one cell of gap, and a warning never blocks; the cap refuses the seventeenth
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 1. the empty state: the real plate with its lattice, section 8's instruction verbatim, one starter action and one template, and no question-mark placeholder anywhere
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 2. element first and area first, both by clicks alone with no pointer-move, and the keyboard route across the plate
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 3. the element list is a complete alternative to the plate: every region selected from the list by the keyboard alone, the plate's selection following and the inspector re-targeting
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 4. the mode switch: in Play the palette is disabled with a reason, the handles are gone and the fields are read-only with a reason; back in Edit the same region is selected and the history is the same length - in both directions
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 5. validation preserves: an out-of-range width keeps the last valid value in the model, the message stays until corrected, and no intermediate invalid surface ever reached the model
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 6. undo covers everything structural - place, move, resize, rename, recolour, duplicate and delete - each undone and redone; a numeric field's keystrokes are one entry; and the depth is the same after a mode round trip
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 7. a handle drag commits through the editor on release: resizeSelectedTo moves a fader to the box, one entry undone and redone; an overlapping or too-small box is refused with its line and the surface is the same object; Play and an empty selection change nothing
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 8. every new element takes the next of the four-entry palette by creation order - the first PALETTE[0], the fifth PALETTE[0] again, a deletion not counted, a loaded surface continuing from its count - and the four are distinct RGB444 triples with the first the action colour
+vitest the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts) 9. the surface's brightness (change 5): one typed field under Appearance with or without a selection, its helper naming the surface, read-only in Play; the editor records one coalesced entry per edit, undone and redone, refused in Play, 255 the field's absence
+vitest the Timer event goes to a 20 ms tick only when something else needs the slot
+vitest the Timer event keeps a continuous look alive for 41 characters
+vitest the Timer event keeps both layers alive for the showpiece
+vitest the Timer event re-arms before it does anything else
+vitest the Timer event stops generating a Timer body when the user took the slot
+vitest the animating flag is true for a running look, false for a static instrument
+vitest the animating flag rises on a comet touch and settles once the trail expires
+vitest the animating flag stays false when fre is zero even while a timeout counts
+vitest the axes knob emits only the chosen axis and never renumbers a stream
+vitest the axes knob keeps the ccBase clamp exactly as both-axes
+vitest the axes knob keeps the hiRes pair on the surviving axis
+vitest the axes knob refunds real budget when one axis is off
+vitest the brightness scaler (src/lib/catalog/brightness.ts) 1. the rules: 255 is the identity, 128 halves with floor, a lit channel never goes below 1, 0 stays 0; a coefficient floors to 0; the field parses 1..255 and refuses the rest by kind
+vitest the brightness scaler (src/lib/catalog/brightness.ts) 2. the shapes: a literal triplet, morph's linear form (non-negative at every brightness), a preset's per-finger form and drift ramp, cull's palette through its index, snake's painter by name, and a phase never touched
+vitest the brightness scaler (src/lib/catalog/brightness.ts) 3. coverage: every colour argument of every painter call is reached on all nineteen Lua entries at its sampled states and on every preset at its sampled states; every declared site is found, and no undeclared entry needs one
+vitest the brightness scaler (src/lib/catalog/brightness.ts) 4. the wire: 255 is byte-identical on every string above; at 128 and at 1 no string is longer, every one still passes checkSyntax; Trackpad 903 / Chorus / Console measured at the picker corner at 255, 128 and 1
+vitest the brightness scaler (src/lib/catalog/brightness.ts) 5. imports nothing: the module is pure string arithmetic, so a component under src/lib/ui/ may name it (config-shape.spec.ts test 13 permits it by exact path on this proof)
+vitest the brightness scaler (src/lib/catalog/brightness.ts) 6. the retired preset knob (change 5b): no card offers it, `baseStateFor` pins Full, a pre-5b link whose brightness was Full still restores byte for byte and one whose brightness was not lands unreadable - the codec untouched
+vitest the browse facets (src/lib/browse/facets.ts) declares a closed vocabulary of thirteen in two facets
+vitest the browse facets (src/lib/browse/facets.ts) gives every entry exactly three terms, one FOR and two FEELS, and leaves no term unused
+vitest the browse facets (src/lib/browse/facets.ts) imports nothing at all, and bounds the legacy ?tag= table
+vitest the browse facets (src/lib/browse/facets.ts) keeps both health rules: no FOR term below two, no FEELS term outside six to eighteen
+vitest the browse filter (src/lib/browse/filter.ts) ORs within a facet and ANDs across them, and an unknown term returns nothing
+vitest the browse filter (src/lib/browse/filter.ts) disables a chip that would return nothing given the OTHER facet, and disables none when nothing is active
+vitest the browse filter (src/lib/browse/filter.ts) folds case and diacritics, and does it locale-independently
+vitest the browse filter (src/lib/browse/filter.ts) has no power syntax: a typed $tag: is four literal characters
+vitest the browse filter (src/lib/browse/filter.ts) searches the name, the description and the tags, and requires every term
+vitest the browse filter (src/lib/browse/filter.ts) stands thirteen chips, and every one of them is carried by two or more entries
+vitest the browse grid arithmetic (src/lib/browse/grid.ts) ArrowDown and ArrowUp move by the column count and clamp at both ends
+vitest the browse grid arithmetic (src/lib/browse/grid.ts) ArrowRight and ArrowLeft move by one and clamp at both ends
+vitest the browse grid arithmetic (src/lib/browse/grid.ts) Home is the first card, End is the last, and any other key is not ours
+vitest the browse grid arithmetic (src/lib/browse/grid.ts) an empty grid answers nothing, and a grid of one answers zero
+vitest the browse grid arithmetic (src/lib/browse/grid.ts) columnsForWidth is the approved ladder, at every boundary and one either side
+vitest the browse grid arithmetic (src/lib/browse/grid.ts) columnsFromTemplate reads a rendered template and clamps an unrendered one to one
+vitest the browse listing (src/lib/catalog/listing.ts) derives motion from restsBlack first, then from the recorded frames
+vitest the browse listing (src/lib/catalog/listing.ts) gives every unmoving entry a sentence, and never a second copy of one
+vitest the browse listing (src/lib/catalog/listing.ts) imports nothing at runtime
+vitest the browse listing (src/lib/catalog/listing.ts) restates the catalog exactly, field by field
+vitest the browse listing (src/lib/catalog/listing.ts) the listed ids partition into the row and the excluded list, and ROUTED is all of them
+vitest the browse query string (src/lib/browse/query.ts) encodes a space and a diacritic, and repeats each parameter once per active chip in activation order
+vitest the browse query string (src/lib/browse/query.ts) falls back on a retired sort, migrates a legacy tag, and trims the query
+vitest the browse query string (src/lib/browse/query.ts) imports nothing but ./sort, and names no catalog, no $app and no vendor in code
+vitest the browse query string (src/lib/browse/query.ts) round-trips every state through the address unchanged
+vitest the browse query string (src/lib/browse/query.ts) serialises the default query to nothing at all, so /playground/ is the canonical address
+vitest the browse return record (src/lib/browse/return.ts) clears the record, and a read after a clear offers no way back
+vitest the browse return record (src/lib/browse/return.ts) degrades to undefined on anything malformed, and never throws
+vitest the browse return record (src/lib/browse/return.ts) is a no-op with no store at all, and never names sessionStorage in code
+vitest the browse return record (src/lib/browse/return.ts) writes a record that reads back identical
+vitest the browse sort orders (src/lib/browse/sort.ts) FEATURED puts the featured first and then sorts by name, exactly as the catalog does
+vitest the browse sort orders (src/lib/browse/sort.ts) NAME agrees with the catalog's own name order
+vitest the browse sort orders (src/lib/browse/sort.ts) sorting never reorders its input in place
+vitest the browse sort orders (src/lib/browse/sort.ts) the name comparison is by code point, not by locale
+vitest the browse sort orders (src/lib/browse/sort.ts) the two orders are stable and total over the catalog
+vitest the budget budgets on the uncompressed length, which is the binding one
+vitest the budget counts characters reserved by foreign actions
+vitest the budget fits every kind combination we can reach
+vitest the budget fits every preset inside 908 on both events
+vitest the budget holds every preset to its declared cost
+vitest the budget keeps the Timer event far from its own ceiling
+vitest the budget measures against the real shortifier
+vitest the budget reports the tighter event as the free slot count
+vitest the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05) every detent is a stored, reachable RGB444 colour, and the picker's arithmetic IS the lattice knob's
+vitest the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05) the cheap-step ticks are derived from the literal, and share the default marker's shape
+vitest the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05) the fence: none of A-09's six forbidden shapes appears, and rgb() is carved out to the detents
+vitest the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05) the picker contributes exactly one canvas, so the worst entry shows two rather than four
+vitest the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05) the selector is rendered only when an entry has more than one colour knob, and the shelf splits 12 / 6 / 3 / 5
+vitest the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05) the unaffordable guard fires on a synthetic near-wall entry and is measured at zero on the shelf
+vitest the committed captures (FOUND-01 criterion 5) at least one committed capture came from real hardware
+vitest the committed captures (FOUND-01 criterion 5) every recorded chunk from the module replays into a frame that decodes
+vitest the committed captures (FOUND-01 criterion 5) the capture records the restore heartbeat as its own step
+vitest the committed captures (FOUND-01 criterion 5) the hardware capture identifies a ZONA the way the protocol package does
+vitest the committed synthetic capture every recorded chunk replays into a frame that decodes
+vitest the committed synthetic capture matches the schema and is marked synthetic
+vitest the committed synthetic capture the capture's closing step is the restore heartbeat
+vitest the decay idiom 1. every literal decay pair lands on phase 0
+vitest the decay idiom 2. every declared value of a parameterised decay lands on phase 0
+vitest the decay idiom 3. KNOWN_VIOLATIONS is exhaustive and shrinking
+vitest the demonstration finger (src/lib/sim/demo.ts) closes every contact it opens, and reaches the firmware one sample per contact per tick
+vitest the demonstration finger (src/lib/sim/demo.ts) imports nothing that reaches the compile surface
+vitest the device UI's structural rules Device actions in the footer: one mount of the disclosure, two openers naming one panel, the five states and FORGET's gate unchanged, focus returned to the opener, and nothing modal
+vitest the device UI's structural rules every component that renders a control declares the 44px floor on both axes
+vitest the device UI's structural rules every install sentence on screen comes from the copy modules
+vitest the device UI's structural rules exactly one session live region on the site, and the destination zone is not it
+vitest the device UI's structural rules fourteen phases are each accounted for, the four the spec has no row for are present by name, the three uncertain phases keep three distinct bodies and three distinct clauses, and the bar takes the draft and the device as two props
+vitest the device UI's structural rules monospace is scoped to the numerals and never reaches a sentence
+vitest the device UI's structural rules no destination review: a change on the Target select is the whole switch, nothing under src/lib/ui/ mounts a review, and the store's one caller of the target's confirm() is confirmPage
+vitest the device UI's structural rules no device component names a new colour
+vitest the device UI's structural rules the ARIA contract: caption hidden, describedby everywhere, four expanders, a hidden mark, no dialog, one hydration marker
+vitest the device UI's structural rules the connection control renders nine slot states from seventeen phases and three capability answers, is present with its reason where it cannot connect, is a button exactly when a click acts, and names one panel
+vitest the device UI's structural rules the destination zone: one component for both routes - Target, Store described by the honesty line and stored on one click with nothing opening in its place, the reason, the refusal, the switching or unverified line, a failure's block; no Apply, no Put back, no confirmation; nothing that is a dialog
+vitest the device UI's structural rules the header locks under a write, says where the copy is, and the announcer is untouched
+vitest the device UI's structural rules the header's Clear: a 44px box in the connection zone, one click and no confirmation (A-45 kept by the user's word, 13.1 D-04), the reason as the caption when disabled, clearLine as the description when live, the busy label through its one leg, nothing animates
+vitest the device UI's structural rules the seven are listed and on disk, and none reaches the compiler
+vitest the device UI's structural rules there is exactly one live region among the seven, and it is the announcer's
+vitest the dial state model forces one finger, standard resolution and a legal detent
+vitest the dial state model inits the accumulator, and the level only in absolute mode
+vitest the dial state model proposes dropping the radius stream on the fit ladder
+vitest the dial state model resets the dial knobs when the kind moves away, like every kind
+vitest the display apostrophe (src/lib/browse/typographic.ts) curls Ghost's finger's, and changes nothing else in the sentence
+vitest the display apostrophe (src/lib/browse/typographic.ts) curls Morph's corner's, and changes nothing else in the sentence
+vitest the display apostrophe (src/lib/browse/typographic.ts) curls Radar's vendored sentence, which is read from the shipped catalog
+vitest the display apostrophe (src/lib/browse/typographic.ts) leaves everything else exactly as it was
+vitest the domain tables defaults to the stateless option everywhere
+vitest the domain tables keeps a wave from degenerating into a scan
+vitest the domain tables keeps every decay pair landing dark
+vitest the domain tables keeps every preset self-consistent
+vitest the domain tables quantises colour to the fidelity the stamp carries
+vitest the domain tables snaps a trail length onto a real pair
+vitest the domain tables snaps speed to a rate, because nothing exists between 1 and 2
+vitest the fast-tap guard 1. every 'contact ended' guard escapes the fast tap
+vitest the fast-tap guard 2. every 'contact started' guard admits the fast tap
+vitest the fast-tap guard 3. DECLARED_EXCEPTIONS is justified and closed
+vitest the fit ladder and the over-budget block (TUNE-04, TUNE-05) a real reserve puts the tightest card over 908, in the compiler's own words
+vitest the fit ladder and the over-budget block (TUNE-04, TUNE-05) the compiler never proposes degrading the control the hand is on
+vitest the fit ladder and the over-budget block (TUNE-04, TUNE-05) the first step saves exactly what it says it saves, per event
+vitest the fit ladder and the over-budget block (TUNE-04, TUNE-05) the ladder's own sentence is what the line renders, byte for byte
+vitest the fit ladder and the over-budget block (TUNE-04, TUNE-05) the over-budget block is complete, and nothing in the tuning model can reach a port
+vitest the fit solver never proposes degrading the control the hand is on
+vitest the fit solver prints a sentence a user can refuse, and a real saving
+vitest the fit solver proposes and never applies
+vitest the fit solver reports the state as it stands when it already fits
+vitest the fit solver says why when no ladder exists rather than degrading Sends
+vitest the fit solver sheds in the specified order and ends inside the budget
+vitest the five stores (src/lib/store/*.ts) 10. the intro flag is written once and a refusing browser sees the intro every time; the motion word is 13-04's, unchanged
+vitest the five stores (src/lib/store/*.ts) 6. recent caps at twelve, dedupes by id, and six is what a caller asking for six gets
+vitest the five stores (src/lib/store/*.ts) 7. a draft round-trips: write, read, edit, read, remove, read - editedAt moving and createdAt not - and another kind's draft survives
+vitest the five stores (src/lib/store/*.ts) 8. favorites drop an id the catalog no longer carries on read, and the drop is counted
+vitest the five stores (src/lib/store/*.ts) 9. a saved copy is created and never overwritten from its source; rename moves editedAt, duplicate is new, delete is one id
+vitest the formatter prefetch shim (src/lib/tune/idle.ts) cancels on whichever path it took, and a second cancel is harmless
+vitest the formatter prefetch shim (src/lib/tune/idle.ts) falls back to a short timer on a browser with no idea what idle means
+vitest the formatter prefetch shim (src/lib/tune/idle.ts) uses requestIdleCallback with a two-second timeout where there is one
+vitest the front-door row (src/lib/catalog/front-door.ts) every row entry is the catalog's own entry, and an engine exists for it
+vitest the front-door row (src/lib/catalog/front-door.ts) the declared motion is what the golden frames record, for every member and for the hero
+vitest the front-door row (src/lib/catalog/front-door.ts) the excluded entry is excluded because it is dark, the catalog agrees, and the hero does not rest black
+vitest the front-door row (src/lib/catalog/front-door.ts) the module stays out of the compiler's chunk, and the quiet copy is the shelf's own
+vitest the front-door row (src/lib/catalog/front-door.ts) the row and the exclusions partition the catalog
+vitest the gallery's structural rules a card shows one category and one tag from tags[0] and tags[1], tags[2] nowhere, one sentence from description, and exactly one accessible link name
+vitest the gallery's structural rules every browse control declares the 44px floor
+vitest the gallery's structural rules no popularity metric is shown or faked anywhere on the gallery
+vitest the gallery's structural rules the MADE FOR rows equal FOR_TERMS member for member, in order, through FOR_LABELS - the count printed, never typed - and there is exactly one facet row on the page
+vitest the gallery's structural rules the count is said three ways, and only one of them is a live region
+vitest the gallery's structural rules the favorite star round-trips through the store, reflects a preset state on mount, and an id the catalog no longer carries is dropped with the drop counted
+vitest the gallery's structural rules the gallery uses the eleven tokens and nothing else
+vitest the gallery's structural rules the grid is a list of links, not a listbox and not a grid
+vitest the gallery's structural rules the search field is at the iOS zoom floor
+vitest the gradient (12.1) centres TRACKPAD's edge flash on the calibrated row and column, where the naive divisor was one off near the edge
+vitest the gradient (12.1) clears a contact's block through E on the Timer sweep and on a lost-lift re-press
+vitest the gradient (12.1) draws GHOST's live finger as the gradient in @RECC, lights the comet and the ghost on the LED through N, and erases on LED (8,8) but records on LED (7,7) where the naive divisor read cell 80
+vitest the gradient (12.1) draws the bilinear finger in the colour it is handed, heals a recoloured cell, and U is its TypeScript twin at every value
+vitest the gradient (12.1) draws the finger on CHORUS, CONSOLE, MORPH and LUMEN in each entry's colour at nine LED centres and a midpoint, follows MORPH's and LUMEN's colour knobs, clears MORPH's on a lift before its early return and refuses its second finger, and leaves LUMEN's A byte-identical to 12-11
+vitest the gradient (12.1) draws the finger on all 81 LED centres of EUCLID, STEPS, RADAR POINTS and SONAR in each entry's colour, toggles EUCLID's outer ring on the first tap, and keeps the sweeps' centre dot through a sweep expiry and a lost-lift re-press
+vitest the gradient (12.1) holds Q's cell across a band that is a fraction of the LED pitch, per segment, and lands the bench case on cell 16
+vitest the gradient (12.1) stamps K's decaying finger on the measured knots at the twin's starts, leaves a zero-weight neighbour's own decay alone, colours the four cells only when handed a colour, and keeps G's picture across the revision
+vitest the gradient (12.1) stops ARC on the calibrated centre through N, where the naive divisor would have missed
+vitest the guarded primitive (src/lib/store/local.ts) 1. an absent key reads as undefined, and the module imports nothing and names no window
+vitest the guarded primitive (src/lib/store/local.ts) 2. a corrupt value - not JSON, or JSON of the wrong shape - reads as undefined and is NOT deleted
+vitest the guarded primitive (src/lib/store/local.ts) 3. a setItem that throws quota makes writeJson return false, and the previous value survives
+vitest the guarded primitive (src/lib/store/local.ts) 4. a store whose property access throws makes every function return the absent answer
+vitest the guarded primitive (src/lib/store/local.ts) 5. a .v1 record and a .v2 record coexist: the v2 reader returns v2 and never opens, writes or deletes v1
+vitest the host surface a hand-authored entry may call (D-07) accepts a bare gmss and still refuses a bare gms
+vitest the host surface a hand-authored entry may call (D-07) gates against the registration itself, not a copy of it
+vitest the host surface a hand-authored entry may call (D-07) keeps the two asymmetries asymmetric, over a corpus that is real
+vitest the host surface a hand-authored entry may call (D-07) refuses a call the vendored trap scanner accepts
+vitest the host surface a hand-authored entry may call (D-07) resolves every call site in every hand-authored entry
+vitest the host surface a hand-authored entry may call (D-07) resolves the touch library itself, and it reaches exactly seven host names
+vitest the install flow's copy contract (the Bible, the batch, D-23) holds every string against the documents that authored it: the Bible verbatim, the batch as approved
+vitest the install flow's copy contract (the Bible, the batch, D-23) imports nothing at all, so any first-paint component may name it
+vitest the install flow's copy contract (the Bible, the batch, D-23) obeys the register mechanically, over every export and every builder's sample: the punctuation, the case, the engine, the paraphrase
+vitest the install flow's copy contract (the Bible, the batch, D-23) the closed sets: three reasons, three more, twelve utterances, and titles that end without a full stop
+vitest the install flow's copy contract (the Bible, the batch, D-23) the formatters: nothingLandedBlock and lostBlock
+vitest the install flow's copy contract (the Bible, the batch, D-23) the honesty caps are retired by name, and every rule that travelled with them and stayed still holds
+vitest the intro (src/lib/ui/intro.spec.ts) 1. the page renders PDF page 1 - eyebrow, the two headline lines with the second in the action colour, both sub-lines, both cards, the import line and the three steps - and the only uppercase strings are the short labels the PDF sets in uppercase
+vitest the intro (src/lib/ui/intro.spec.ts) 2. Card A is Explore Playground for a first visit and Resume draft, named and dated in words, for a returning one - and the route performs zero navigations in both cases
+vitest the intro (src/lib/ui/intro.spec.ts) 3. a storage that throws on access renders the first-visit page - the safe direction - and does not throw
+vitest the intro (src/lib/ui/intro.spec.ts) 4. the hero is one live pad through the shared host with the 200px wake margin, is interactive, and resolves to a non-dark front-door member
+vitest the intro (src/lib/ui/intro.spec.ts) 5. the intro declares its height rule (13.1-01, D-01): the layout's intro centre is a 100dvh column's remainder and a size container with overflow hidden, the intro reads it in cq units through layout.ts's numbers, the headline is clamped locally with .type-display untouched, the hero's square is bounded by its stage, and the stacked band opts out - a scan, never the fit itself
+vitest the joystick adds one conditional in the end path, with exact rest literals
+vitest the joystick and the latch, at the wire fine-resolution bend splits exactly like the emitted Lua
+vitest the joystick and the latch, at the wire joystick: live bend on the MSB, mod inverted, exact rests on lift
+vitest the joystick and the latch, at the wire joystick: the home cell is lit from power-on and the dot parks there
+vitest the joystick and the latch, at the wire nine pads latch: press toggles, lift does nothing, nothing expires
+vitest the joystick and the latch, at the wire nine pads major: the wire plays the same table the Lua bakes
+vitest the joystick and the latch, at the wire radar with the spring: one decaying pulse at centre, as compiled
+vitest the joystick falls to zero when asked, and a bend axis still centres
+vitest the joystick fires one decaying comet pulse at home instead, on the comet
+vitest the joystick holds by default: no rest sends without the spring
+vitest the joystick keeps a solo to exactly one stream, spring and bend included
+vitest the joystick keeps the pulse off the kinds whose picture cannot carry it
+vitest the joystick moves the home cell where the rests really are
+vitest the joystick parks the glow dot on the home cell, lit from power-on
+vitest the joystick prices the spring as its own ledger row
+vitest the joystick resets what the kind cannot read
+vitest the joystick rests at bit-exact 8192 in fine resolution
+vitest the joystick rides the bend lane on the MSB at standard resolution
+vitest the joystick splits the fine-resolution bend itself: gms has no pair mode for it
+vitest the joystick springs silently when nothing can show it
+vitest the joystick tells the DAW the truth about the bend lane
+vitest the ledger charges each sheet what turning it off would actually free
+vitest the ledger names every row in plain words and prices it differentially
+vitest the ledger prices a candidate change before it is committed
+vitest the module's original, as a record (src/lib/device/snapshot.ts) a malformed or wrong-version record reads as absent, never partial
+vitest the module's original, as a record (src/lib/device/snapshot.ts) a record round-trips through persistIfAbsent and readSnapshot, with its timestamp
+vitest the module's original, as a record (src/lib/device/snapshot.ts) a second module and a second page each get their own entry
+vitest the module's original, as a record (src/lib/device/snapshot.ts) a throwing store and an undefined store degrade without throwing
+vitest the module's original, as a record (src/lib/device/snapshot.ts) a v1 record is read with the caller's default page init, system timer AND utility, is never overwritten, and a v4 entry missing one is absent
+vitest the module's original, as a record (src/lib/device/snapshot.ts) a v2 record is read with the caller's default system timer and utility and fromV2, a v3 record with the default utility and fromV3, neither is overwritten, a v4 record round-trips five, and the older keys are byte-unchanged
+vitest the module's original, as a record (src/lib/device/snapshot.ts) an existing page entry is never overwritten
+vitest the module's original, as a record (src/lib/device/snapshot.ts) imports nothing at all, and names no window
+vitest the module's original, as a record (src/lib/device/snapshot.ts) rememberLast and lastModuleId round-trip, and a store with no record has no last
+vitest the named seams charges Your code to the budget
+vitest the named seams copies Your code through byte for byte and never parses it
+vitest the named seams emits nothing at all when Your code is empty
+vitest the named seams emits only the hook the user's code actually fills
+vitest the named seams lets the caller override the detected seams
+vitest the no-op cycle SLOTS is the single source of the order: the frames equal the list row for row, and the caller's key order changes nothing
+vitest the no-op cycle a config report never moves the active page
+vitest the no-op cycle a second module is named, and the store is a broadcast that stays allowed
+vitest the no-op cycle a write to a page the module is not on is refused, and the refusal is not retried
+vitest the no-op cycle identify reads the active page from the class riding in the same frame
+vitest the no-op cycle identify reads the module type, revision, firmware and heartbeat type from one frame
+vitest the no-op cycle the burst probe issues exactly twenty read-only fetches and reports its spread
+vitest the no-op cycle the cycle's final outbound frame is a heartbeat carrying type 255
+vitest the no-op cycle the fetch returns all five events with their strings and their own latencies
+vitest the no-op cycle the restore heartbeat is still sent when a write is refused
+vitest the no-op cycle the write-back sends the system timer, then the page init, then the utility, then Timer, then Setup
+vitest the no-op cycle writeAll sends five strings verbatim, and writeBack is its adapter
+vitest the no-op cycle writeAll sends system timer, system, system utility, Timer, Setup in that order and no other, and the two-event adapters are gone
+vitest the pad painter (src/lib/sim/paint.ts) issues exactly one draw call and none of the forbidden ones
+vitest the pad painter (src/lib/sim/paint.ts) maps cell n to pixel n, with no transposition and no offset
+vitest the pad painter (src/lib/sim/paint.ts) reuses one ImageData across paints instead of allocating per frame
+vitest the pad painter (src/lib/sim/paint.ts) writes a lit cell with its exact colour at alpha 255
+vitest the pad painter (src/lib/sim/paint.ts) writes an unlit cell at alpha 0 so the dot field shows through
+vitest the page target (13-12, D-06) Apply is disabled from the affirmative until the module's OWN report carries the requested page; a report of another page updates `reported` and leaves it disabled
+vitest the page target (13-12, D-06) a switch sends the restore heartbeat BEFORE the page change, proved by the frame order - and still does straight after a write, which is the case the order exists for
+vitest the page target (13-12, D-06) no report inside the window lands `unverified` - Apply stays disabled, nothing reads as switched - and a late report still resolves it
+vitest the page target (13-12, D-06) the page list comes from the module's PAGECOUNT answer: a module answering 2 offers two pages, not four, and the file names no count of its own
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) defaults every knob to the position the card actually ships at
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) derives the colour binding from the state instead of tabulating it
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) exposes exactly the kinds BOTOR declares for each card, both directions
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) gives every shelf card three to six real knobs
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) reaches 4x4 from an APPENDED NINE PADS knob, and says what 4x4 looks like
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) reads back every index it writes, on every knob of every card
+vitest the per-preset knob descriptors (src/lib/tune/knobs.preset.ts) ships no decorative knob: every option changes the compiled Lua
+vitest the preset sweep every shelf card simulates clean for 200 ticks
+vitest the preset sweep setState rebuilds from scratch like a page load
+vitest the scripted ZONA a config write to a page that is not active is refused with a NACK echoing the id
+vitest the scripted ZONA a serial-number fetch is answered only when it is addressed
+vitest the scripted ZONA a store copies RAM into flash, and a power cycle brings flash back
+vitest the scripted ZONA the system element's RAM is kept apart from the touch element's, and every report echoes the element it was asked about
+vitest the session's copy contract (06-UI-SPEC) holds every string against the documents that authored it: the Bible verbatim, the batch as approved
+vitest the session's copy contract (06-UI-SPEC) imports nothing at all, so any component may name it on the first paint
+vitest the session's copy contract (06-UI-SPEC) interpolates the rendering surface's label and hard-codes no control name
+vitest the session's copy contract (06-UI-SPEC) maps all seventeen phases onto the nine slot states, and starting is S1
+vitest the session's copy contract (06-UI-SPEC) names nine states, partitioned six and three, all of them terminal-looking
+vitest the session's copy contract (06-UI-SPEC) obeys the register mechanically, names two browsers on purpose, and names no engine
+vitest the settings stamp carries every field the chosen kinds read, at the edges of their domains
+vitest the settings stamp clamps the top of the CC range to the fader count
+vitest the settings stamp keeps a shelf card's stamp short
+vitest the settings stamp keeps every fader's controller number inside the MIDI range
+vitest the settings stamp leaves room for the 14-bit pair when xy is high resolution
+vitest the settings stamp names our actions and only ours
+vitest the settings stamp prices the marker at one character per payload character
+vitest the settings stamp refuses a payload it cannot read rather than guessing
+vitest the settings stamp restores a state exactly through the stamp
+vitest the settings stamp survives the marker regex the runtime parses with
+vitest the settings stamp uses an alphabet the shortifier leaves alone
+vitest the share URL agrees with the origin the deploy script publishes to
+vitest the share URL imports nothing, and cannot navigate
+vitest the share URL is the canonical trailing-slash path, with no fragment at the defaults
+vitest the share URL puts a stamp in the hash, exactly once, and never in the query string
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 1. the frame declares its regions, each a landmark, with the announcer present exactly once and first in the document
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 2. the nav renders three items, marks exactly one current, and the current one carries both the action colour and the 2px underline
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 3. the context bar renders three zones, and the third is a destination or the sentence - never absent
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 4. the footer carries the GPLv3 block byte-identical to git's, and the Help & shortcuts · Device actions pair with the motion control under Help & shortcuts
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 5. the frame resolves section 13's re-derived table at four widths, read from layout.ts; the inspector stays inside its clamp; the surface never exceeds its maximum
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 6. every interactive element in the shell resolves both 44px axes under (pointer: coarse), and the rule is keyed to pointer and not to a width
+vitest the shell: one frame, six regions, one set of numbers (src/lib/ui/shell.spec.ts) 7. the header's connection zone carries the Clear snippet BEFORE the connection snippet in both variants, the layout mounts <Clear /> there once, and the zone is a 12px-gapped container that takes the row's slack (13.1-05, D-04)
+vitest the simulation clock (src/lib/sim/schedule.ts) carries exactly the vendored host's constants
+vitest the simulation clock (src/lib/sim/schedule.ts) clamps the gap before dividing, so a restored tab cannot fast-forward
+vitest the simulation clock (src/lib/sim/schedule.ts) defaults an absent core count to eight rather than to zero
+vitest the simulation clock (src/lib/sim/schedule.ts) gives the hero the faster paint cadence, and halves both on a low-power machine
+vitest the simulation clock (src/lib/sim/schedule.ts) paints at exactly the interval and not one millisecond before it
+vitest the simulation clock (src/lib/sim/schedule.ts) spends a carried remainder on the next frame
+vitest the simulation clock (src/lib/sim/schedule.ts) turns a frame gap into whole ticks and carries the remainder
+vitest the simulator host (src/lib/sim/host.ts) cannot starve the visitor's finger, because a demo card holds its own five slots
+vitest the simulator host (src/lib/sim/host.ts) clamps a five second gap: the clamp decides how far it catches up, not the gap
+vitest the simulator host (src/lib/sim/host.ts) delivers a demo card's own gesture to a pad that is not the hero, through its own sampler
+vitest the simulator host (src/lib/sim/host.ts) does not restart an engine that is registered again after a step
+vitest the simulator host (src/lib/sim/host.ts) drives every registered pad from one animation frame, and owns the 9 by 9 backing store
+vitest the simulator host (src/lib/sim/host.ts) is a no-op after destroy
+vitest the simulator host (src/lib/sim/host.ts) keeps a demo card running when its engine has settled, and freezes it under reduced motion
+vitest the simulator host (src/lib/sim/host.ts) leaves nothing behind when it is destroyed
+vitest the simulator host (src/lib/sim/host.ts) lets a finger move the hero even under reduced motion, one sample per tick
+vitest the simulator host (src/lib/sim/host.ts) paints the frame an animation expires on, then stops asking for frames
+vitest the simulator host (src/lib/sim/host.ts) paints the new engine at once, before the loop runs again
+vitest the simulator host (src/lib/sim/host.ts) re-stills the pad on a swap under reduced motion, and ignores an id it does not know
+vitest the simulator host (src/lib/sim/host.ts) repaints every registered pad without touching an engine, an observer or a backing store
+vitest the simulator host (src/lib/sim/host.ts) repaints the hero no faster than 33 ms and a side pad no faster than 50 ms
+vitest the simulator host (src/lib/sim/host.ts) stills the row to the representative frame, and a live toggle takes effect without a remount
+vitest the simulator host (src/lib/sim/host.ts) swaps the engine under a live pad and keeps the canvas, the observer and the slot
+vitest the simulator host (src/lib/sim/host.ts) ticks a 25 ms gap twice and carries the remainder into the next
+vitest the simulator host (src/lib/sim/host.ts) ticks a pad only when it is inside the coverflow window AND inside the viewport
+vitest the sixteen dots draws sixteen dots at the odd intersections, gutters dark
+vitest the sixteen dots inverts the order mapping into the dot address
+vitest the sixteen dots keeps the latch dot lit through the same single write
+vitest the sixteen dots leaves the 3x3 checkerboard exactly as it was
+vitest the sixteen dots repaints one LED per pad change instead of sweeping all 81
+vitest the stamp across versions carries the axes and dial fields at the edges of their domains
+vitest the stamp across versions declines a c payload grafted onto an older format character
+vitest the stamp across versions declines a d payload grafted onto an older format character
+vitest the stamp across versions declines a truncated v2 payload rather than half-reading it
+vitest the stamp across versions declines a v1 payload that claims the dial, as corruption
+vitest the stamp across versions decodes every older format to Full brightness
+vitest the stamp across versions decodes every older format to the new joystick and scale defaults
+vitest the stamp across versions still decodes yesterday's stamps to the same states, forever
+vitest the stamp across versions still writes yesterday's stamps, bit for bit
+vitest the stamp across versions writes and reads the v3 stamps, bit for bit
+vitest the stamp across versions writes and reads the v4 stamps, bit for bit
+vitest the stamp across versions writes format c only when brightness is not Full
+vitest the stamp across versions writes format d only when a joystick or scale field is in play
+vitest the stamp across versions writes the new format only when the state needs it
+vitest the stamp: encoding emits nothing at the defaults and a decodable payload once a knob moves
+vitest the stamp: format x lands older on a resized knob and never restored on a changed rack
+vitest the stamp: format x refuses every malformed payload as unreadable
+vitest the stamp: format x round-trips every Lua entry over both corners and every single move
+vitest the stamp: the entry-consistency check refuses another card's stamp and accepts this card's own base link
+vitest the stamp: the entry-consistency check refuses each route's stamp under the other route's entry
+vitest the stamp: the envelope is idempotent, on both routes and through a restore
+vitest the stamp: the envelope keeps Pomodoro's four original intervals on their four original indices
+vitest the stamp: the envelope parses only a z. fragment, and claims four collision-proof letters
+vitest the three traps are unbuildable closes every division that reaches a light or an output
+vitest the three traps are unbuildable closes every square root before it reaches a light
+vitest the three traps are unbuildable emits the four phases as event nibbles on a stateless send
+vitest the three traps are unbuildable finds each trap in a hand-written sample
+vitest the three traps are unbuildable finds no trap in any generated body
+vitest the three traps are unbuildable keeps every generated body free of bare division outside the trackpad
+vitest the three traps are unbuildable latches a zone send on the zone, not on the event nibble
+vitest the three traps are unbuildable never asks firmware for automatic phase
+vitest the three traps are unbuildable never emits e == 5 anywhere
+vitest the three traps are unbuildable never gates on the contact id
+vitest the tick-locked finger (src/lib/sim/touch.ts) coalesces MOVEs to the newest and keeps DOWN and UP in their place
+vitest the tick-locked finger (src/lib/sim/touch.ts) delivers at most one sample per contact per call
+vitest the tick-locked finger (src/lib/sim/touch.ts) drops every contact and frees every slot on clear
+vitest the tick-locked finger (src/lib/sim/touch.ts) is tick-locked: three MOVEs between ticks cost one delivery each tick
+vitest the tick-locked finger (src/lib/sim/touch.ts) maps the centre of the n-th ninth of the canvas to the knot the sensor reports for LED n
+vitest the tick-locked finger (src/lib/sim/touch.ts) produces exactly one UP however many times a lift is reported
+vitest the tick-locked finger (src/lib/sim/touch.ts) reads the y table on the y axis, and the two axes differ where the tables do
+vitest the tick-locked finger (src/lib/sim/touch.ts) returns 0 rather than NaN for a zero-width element
+vitest the tick-locked finger (src/lib/sim/touch.ts) tracks five contacts, ignores a sixth, and frees a slot on the UP's delivery
+vitest the touch library (CONT-02, PREV-01) 1. costs what it says on both slots, and each is its own fixed point
+vitest the touch library (CONT-02, PREV-01) 2. names every global with one capital except KX and KY, defines each in exactly one slot, and collides with nothing
+vitest the touch library (CONT-02, PREV-01) 3. passes the pinned syntax check and both class gates, on both strings
+vitest the touch library (CONT-02, PREV-01) 4. keeps state and the map in 255/0 and every LED write and send in 255/6, joined by exactly one self:tim()
+vitest the touch library (CONT-02, PREV-01) 5. puts calibration.ts's knots on the wire verbatim, once
+vitest the touch library (CONT-02, PREV-01) 6. lands every K stamp on phase 0 from a start that is a multiple of 6, keeps N in the map's slot, and draws through Z and Y exactly what 12.1-03's G drew
+vitest the tuner (TUNE-02, TUNE-03) TURN IT DOWN's back-off publishes undefined, then the resolved pair
+vitest the tuner (TUNE-02, TUNE-03) a Lua entry waits for its fresh VM, and is never told a ladder it does not have
+vitest the tuner (TUNE-02, TUNE-03) a knob index lands a different pair on LUMEN and on NINE PADS - the two entries the bench said had not changed
+vitest the tuner (TUNE-02, TUNE-03) a knob turn repaints on the same tick: the preview is not debounced
+vitest the tuner (TUNE-02, TUNE-03) brightness: 128 lands the scaled strings on both routes and the meters measure them, the preview dims to about half, the view carries it, Randomize never moves it, Reset settings puts it back, and 255 is the strings as shipped
+vitest the tuner (TUNE-02, TUNE-03) destroy cancels a pending measurement and leaves no timer behind
+vitest the tuner (TUNE-02, TUNE-03) five turns inside the debounce window are one compile, and the meters go stale rather than blank
+vitest the tuner (TUNE-02, TUNE-03) lands both halves of the library for a Lua entry and for a preset alike - the store's defaults are CLEAR's alone
+vitest the tuner (TUNE-02, TUNE-03) lands the touch library for a Lua entry AND for a preset - every card lands it since 12.1-08b - and an explicit page init still wins
+vitest the tuner (TUNE-02, TUNE-03) needsLadder is the only door to the ladder, and there is exactly one of it
+vitest the tuner (TUNE-02, TUNE-03) onconfig carries the compiled pair with every landing, and undefined the instant a knob moves
+vitest the tuner (TUNE-02, TUNE-03) the engine it hands over is the row's, and destroy does not close it
+vitest the tuner (TUNE-02, TUNE-03) the first view says measuring, and the picture arrives before the formatter does
+vitest the tuner (TUNE-02, TUNE-03) the settled meters are the pinned minifier's own numbers, per event
+vitest the tuning UI's structural rules Brightness is one typed field under Appearance on every card: 1..255 with the last good value kept, out of range refused as 'Brightness is 1 to 255.', the marker and a per-field reset, never a knob and never rolled, Reset settings putting it back
+vitest the tuning UI's structural rules MIDI output is two typed fields over the knobs' closed lists: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel
+vitest the tuning UI's structural rules SURPRISE ME is a real disabled button when every knob is held, and its reason is 53 characters
+vitest the tuning UI's structural rules Undo randomize restores the prior indices in one click and is disabled before any roll, and a roll leaves every MIDI destination where it stood
+vitest the tuning UI's structural rules a changed field shows its marker and its own reset restores only that field, with the others proved unmoved
+vitest the tuning UI's structural rules every component that renders a control declares the 44px floor
+vitest the tuning UI's structural rules every one of the twelve knob kinds resolves to a widget the row renders, and the boundary is four words to a row and a select from five
+vitest the tuning UI's structural rules no tuning component names the compiler
+vitest the tuning UI's structural rules nothing in the tuning UI scrolls horizontally
+vitest the tuning UI's structural rules the MIDI monitor renders the host's existing log coalesced with an xN count, caps at 200, is absent on a preset entry, and announces nothing
+vitest the tuning UI's structural rules the accent census moves with the picker and the reserved list does not
+vitest the tuning UI's structural rules the error ink and its surface live in the two meter components inside the inspector, and on no button
+vitest the tuning UI's structural rules the region's arithmetic is present, and both constants are
+vitest the tuning panel's copy (src/lib/tune/copy.ts) obeys the register mechanically, over every string and every builder's output: the punctuation, the case, the engine, the retired words
+vitest the tuning panel's copy (src/lib/tune/copy.ts) the fit ladder keeps TUNE-04's fact - something was turned down, and WHICH - and lower-cases only the label's first character
+vitest the tuning panel's copy (src/lib/tune/copy.ts) the labels and captions: the Bible's lines where 13-09 put them, the batch's as approved, the retired ones gone, and the captions the short labels D-05 permits
+vitest the tuning panel's copy (src/lib/tune/copy.ts) writes the four over-budget sentences, both back-off lines and the primary control's reason, and the measured caps are retired by name
+vitest the tuning panel's copy (src/lib/tune/copy.ts) writes the meter strings and the forecast, with the fifth character in its one place
+vitest the tuning panel's copy (src/lib/tune/copy.ts) writes the stamp landings with SHARE-03's fact, the share lines and every live-region string, and imports nothing
+vitest the tuning state seam (src/lib/tune/state.ts) applies a knob purely: same arguments, same state, and the input untouched
+vitest the tuning state seam (src/lib/tune/state.ts) clears the shelf card and the audition, grounds the result and leaves the input alone
+vitest the tuning state seam (src/lib/tune/state.ts) makes a tuned stamp a field dump instead of the untuned shelf card
+vitest the tuning state seam (src/lib/tune/state.ts) reads back the index it wrote, on all three sheets
+vitest the tuning state seam (src/lib/tune/state.ts) resets to the card as published, and refuses to invent a state for a Lua entry
+vitest the tuning view seam (src/lib/tune/view.ts) carries the vendored EVENT_BUDGET, and reports it as the meter's limit
+vitest the tuning view seam (src/lib/tune/view.ts) floors the percentage inside the budget and ceils it outside
+vitest the tuning view seam (src/lib/tune/view.ts) gives a two-valued integer knob a word row, and leaves PINWHEEL's arms a rail
+vitest the tuning view seam (src/lib/tune/view.ts) gives every one of the twelve kinds a widget, and falls through to a rail
+vitest the tuning view seam (src/lib/tune/view.ts) imports nothing at all
+vitest the tuning view seam (src/lib/tune/view.ts) names hues, and shows an integer readout only when every value is one integer
+vitest the tuning view seam (src/lib/tune/view.ts) names notes and scales from the vocabulary the catalog and the compiler ship
+vitest the tuning view seam (src/lib/tune/view.ts) restates the vendored KnobKind union exactly, and no more
+vitest the tuning view seam (src/lib/tune/view.ts) skins a rail with dots at eight options and a track at nine
+vitest the wire pin: the bytes are the numbers (D-10, D-17) for every Lua entry, the published strings are the rendered text, and the rendered text is already canonical
+vitest the wire pin: the bytes are the numbers (D-10, D-17) for every compiler-driven entry, the published strings are the compiled text and their lengths are the meter's used figures
+vitest the wire pin: the bytes are the numbers (D-10, D-17) the bytes on the wire are the published strings, verbatim
+vitest the wire pin: the bytes are the numbers (D-10, D-17) the pair is undefined while measuring, and no write can be built from undefined
+vitest the write auditions through the same path minus the store
+vitest the write carries the diagnostics on the error it throws
+vitest the write does not retry a failure that is not transient
+vitest the write refuses to write anything when validation fails
+vitest the write reports a partial write when Setup will not land
+vitest the write retries a plain-object rejection carrying transient text
+vitest the write retries a transient serial failure and recovers
+vitest the write writes the Timer event first, always
+vitest touch delivery a dropped sample leaves the gate open for the next change
+vitest touch delivery change-gates identical samples and caps the FIFO at ten
+vitest touch kinds bloom fires on DOWN only and freezes mid-bright at the default trail
+vitest touch kinds brush 2 paints the clamped 2x2 footprint
+vitest touch kinds disturb writes a clipped 3x3 patch into the look's layer
+vitest touch kinds glow tracks one cell and forgets it on UP
+vitest touch kinds perFinger derives the contact hue and ignores ended samples
+vitest validation explains every suppression instead of silently dropping a sheet
+vitest validation passes every generated body through the real syntax check
+vitest validation reports an over-budget event in characters, not in shorts
+vitest validation reports no error for any preset
+vitest vendored BOTOR files (D-04, D-02) VENDOR.md names the same upstream, lists every vendored file, and describes a merge
+vitest vendored BOTOR files (D-04, D-02) every intended divergence is justified - VACUOUS over the rows while the table is empty, and not vacuous about the field
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/_pad.ts carries a provenance header naming the repository, path, commit and sync date
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/_pad.ts is byte-identical to upstream once the recorded deltas and divergences are inverted
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/pad-sim-host.ts carries a provenance header naming the repository, path, commit and sync date
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/pad-sim-host.ts is byte-identical to upstream once the recorded deltas and divergences are inverted
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/pad-sim.ts carries a provenance header naming the repository, path, commit and sync date
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/pad-sim.ts is byte-identical to upstream once the recorded deltas and divergences are inverted
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/tests/pad-invariants.test.js carries a provenance header naming the repository, path, commit and sync date
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/tests/pad-invariants.test.js is byte-identical to upstream once the recorded deltas and divergences are inverted
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/tests/pad-sim.test.js carries a provenance header naming the repository, path, commit and sync date
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/tests/pad-sim.test.js is byte-identical to upstream once the recorded deltas and divergences are inverted
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/tests/pad.test.js carries a provenance header naming the repository, path, commit and sync date
+vitest vendored BOTOR files (D-04, D-02) src/vendor/botor/tests/pad.test.js is byte-identical to upstream once the recorded deltas and divergences are inverted
+vitest vendored BOTOR files (D-04, D-02) the manifest pins the D-01 upstream commit
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on all 256 sine lookup entries
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on all 81 LED lookup cells in the direction the oracle declares
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on shape-to-intensity for every shape and phase, including an unknown shape
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on the colour stop derivation, including the forced-black branch
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on the layer scaling divisor and the layer count - unobservable through pad-sim.ts's public surface; see 03-VALIDATION.md, Manual-Only
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on the tick order at layer expiry
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees on the weight triple for all 256 phases
+vitest vendored simulator against the independently derived firmware oracle (PREV-06) agrees that the weight triple sums to one constant across every phase
+vitest write-back guard (D-09) a config at the limit is refused
+vitest write-back guard (D-09) a config one character under the limit is allowed
+vitest write-back guard (D-09) a non-printable character is refused and its index named
+vitest write-back guard (D-09) an empty config string is refused as the non-active-page shape
+vitest write-back guard (D-09) an undefined config string is refused and the event named
+vitest write-back guard (D-09) two trustworthy strings allow the write
+vitest zone geometry agrees with the touch mapping at every LED centre
+vitest zone geometry fills a fader bar to exactly nine rows at full value
+vitest zone geometry keeps zoneOf row-major and consistent at both resolutions
+vitest zone geometry lands the W#W#W#W#W rails on the four-fader touch boundaries
+vitest zone geometry maps every touch column into the pad's own coordinate space
+vitest zone geometry matches the recipes' published column maps
+playwright [chromium] › artifacts.e2e.ts › every configuration's link image is served by the built site
+playwright [chromium] › artifacts.e2e.ts › the source archive is the Corresponding Source and nothing else
+playwright [chromium] › artifacts.e2e.ts › the static build is complete
+playwright [chromium] › browse-webkit.e2e.ts › the shelf on a phone engine › a pad whose backing store dies gets its picture back where it sits @webkit
+playwright [chromium] › browse-webkit.e2e.ts › the shelf on a phone engine › a still configuration stays lit after a sort @webkit
+playwright [chromium] › browse-webkit.e2e.ts › the shelf on a phone engine › the browse screen renders on a phone @webkit
+playwright [chromium] › browse-webkit.e2e.ts › the shelf on a phone engine › the search field does not zoom the viewport @webkit
+playwright [chromium] › browse.e2e.ts › arriving on a browse screen somebody else composed › a filtered link renders its own set on the first paint
+playwright [chromium] › browse.e2e.ts › browse, open a configuration, and come back › browse, open a configuration, and come back to the same view
+playwright [chromium] › browse.e2e.ts › coming back to a browse screen you had already narrowed › the browser Back button returns the filtered view it left
+playwright [chromium] › browse.e2e.ts › the app frame fits the screen › at 1280 x 720 the browse screen, a fresh Sandbox surface, My configs and a workspace put nothing past the viewport: the document does not scroll and the footer's bottom edge is the viewport's
+playwright [chromium] › browse.e2e.ts › the browse screen for a visitor who asked for less motion › @webkit reduced motion snaps a normal entry to its representative frame, and it is not tick 0
+playwright [chromium] › browse.e2e.ts › the browse screen for a visitor who asked for less motion › reduced motion stills every card
+playwright [chromium] › browse.e2e.ts › the browse screen, with nothing plugged in › searching and tag chips narrow the grid, and CLEAR FILTERS brings it back
+playwright [chromium] › browse.e2e.ts › the browse screen, with nothing plugged in › sorting reorders the grid and the address
+playwright [chromium] › browse.e2e.ts › the browse screen, with nothing plugged in › the browse screen lists every configuration with its own description
+playwright [chromium] › browse.e2e.ts › the catalog with no pointer at all › the keyboard crosses the grid in one tab stop and opens a configuration
+playwright [chromium] › browse.e2e.ts › the engine hazard this phase created, in a browser › a hand-authored configuration's pad runs on arrival and keeps running once the tuner has published
+playwright [chromium] › browse.e2e.ts › the wall is really running, and it is measured rather than gated › a browse view with no Lua configuration in it fetches no WebAssembly
+playwright [chromium] › browse.e2e.ts › the wall is really running, and it is measured rather than gated › the cards animate, and the paint count over two seconds is recorded
+playwright [chromium] › catalog.e2e.ts › the Lua VM arrives only when a Lua configuration is opened › a cold catalog load fetches no WebAssembly at all
+playwright [chromium] › catalog.e2e.ts › the Lua VM arrives only when a Lua configuration is opened › opening a Lua configuration is what fetches the VM
+playwright [chromium] › fidelity.e2e.ts › the Lua formatter WASM resolves from the production build › the hidden probe compiles a shelf preset in a real browser against build/
+playwright [chromium] › fidelity.e2e.ts › the Lua formatter WASM resolves from the production build › the probe page is not linked from the site
+playwright [chromium] › first-experience.e2e.ts › a configuration's page on a browser that cannot install › with no Web Serial the control is present, disabled, and says why
+playwright [chromium] › first-experience.e2e.ts › a configuration's page, with no hardware attached › a still configuration really is still
+playwright [chromium] › first-experience.e2e.ts › a visitor who asked for less motion › reduced motion stills the intro's hero and the workspace's surface
+playwright [chromium] › first-experience.e2e.ts › every configuration's page › every configuration is a real file with its own description, and an off-row page is a workspace of its own with the rail as its way on
+playwright [chromium] › first-experience.e2e.ts › the intro, with no hardware attached › a first visit sees the intro with its hero running, a returning visitor is offered their draft, and neither is redirected
+playwright [chromium] › first-experience.e2e.ts › the intro, with no hardware attached › the intro fits the screen at 1920 x 1080, 1440 x 900, 1366 x 768 and 1280 x 720: no document scroll, no overflow inside the centre or the intro's own box, and every element PDF page 1 pins inside the viewport and above the strip
+playwright [chromium] › install.e2e.ts › the install controls on the engine that can never install › @webkit the install controls are present and disabled with their reasons, and PUT BACK is absent @webkit
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › @webkit Clear sends on the click with no confirmation, stores the defaults and the bar reads them stored after the proof; and where the browser cannot write, Clear is present and disabled with its reason @webkit
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › Store on ZONA is one click: nothing opens in its place, the click is the whole write, and on a rig the click stores too
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › a brightness typed before the click is the pair the module receives - EUCLID at 128 dims the picture to about half and Store sends every colour scaled, byte for byte the landing's arithmetic; 300 is refused in the field and the reset puts 255 back
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › a knob turned before the click is the pair the module receives - LUMEN's depth, on the real panel
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › after a store, a second store waits for a change
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › the bar writes on a click - the page's default, the configuration, the store - says storing, and locks the header while it writes
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › the destination menu lists the pages the module reports and sends nothing on open; a change sends the heartbeat then exactly one switch with no review; Store waits for the module's own report, and the store re-snapshots the new page
+playwright [chromium] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › the live region speaks once per outcome, and Escape is ignored while writing
+playwright [chromium] › install.e2e.ts › the install store on a scripted ZONA that answers from Node › KEEP ON DEVICE returns the page to its default, writes the pair, and is kept only after the read-back matches; a mismatch is named
+playwright [chromium] › install.e2e.ts › the install store on a scripted ZONA that answers from Node › TRY ON DEVICE lands all five acknowledgements, PUT BACK restores, and the trace names every state
+playwright [chromium] › install.e2e.ts › the install store on a scripted ZONA that answers from Node › a store whose acknowledgement never comes is proved by the read-back: kept on the keep leg, restored on the put-back leg
+playwright [chromium] › install.e2e.ts › the install store on a scripted ZONA that answers from Node › an unplug mid-write is lost, and the put-back waits for the module
+playwright [chromium] › install.e2e.ts › the install store on a scripted ZONA that answers from Node › one landed script is partial, none landed is nothing-landed, and both offer the way back
+playwright [chromium] › install.e2e.ts › the install store on a scripted ZONA that answers from Node › the snapshot is taken before any control enables, and nothing is written without a click
+playwright [chromium] › library.e2e.ts › My configs, with no hardware attached › a refused import is explained and writes nothing, a good one opens, and the library is a live table with a draft banner, export and undoable delete
+playwright [chromium] › radius.e2e.ts › no element on any route computes a corner radius above zero, and every 50% sits on a square box @webkit
+playwright [chromium] › sandbox.e2e.ts › the Sandbox, with a ZONA that answers from Node › the whole loop on a fake: a two-element surface exported as a file, re-imported on My configs, opened, stored on the fake ZONA on one click - the five defaults, five acknowledged writes with 255/4 among them, the store proved - with nothing opening first
+playwright [chromium] › sandbox.e2e.ts › the Sandbox, with no hardware attached › Edit -> Play -> Edit with the selection and the undo depth intact, the palette disabled with its reason in Play and a finger reaching the preview
+playwright [chromium] › sandbox.e2e.ts › the Sandbox, with no hardware attached › a handle drag resizes an element through the editor, a refused drag leaves it as it was, and Undo takes the drag back
+playwright [chromium] › sandbox.e2e.ts › the Sandbox, with no hardware attached › place, select and edit an element end to end - by clicks and typed numbers, never a drag - with the draft recovered and the meter honest
+playwright [chromium] › sandbox.e2e.ts › the Sandbox, with no hardware attached › the surface's brightness is one field under Appearance with or without a selection: 128 lands in the draft and is recovered on a reload, 0 is refused with the range line and the last good value kept, Undo takes it back, and the reset drops the field
+playwright [chromium] › session.e2e.ts › the session in an insecure context › an insecure context is a different message from an unsupported browser
+playwright [chromium] › session.e2e.ts › the session on a browser with no Web Serial › a browser with no Web Serial names the browsers that do @webkit
+playwright [chromium] › session.e2e.ts › the session with a granted ZONA on the cable › a granted ZONA is offered on load and one click connects it with no picker
+playwright [chromium] › session.e2e.ts › the session with a granted ZONA on the cable › a port held by another program names Grid Editor and gives the recovery in order
+playwright [chromium] › session.e2e.ts › the session with a granted ZONA on the cable › a whole visit writes nothing and can revoke its own permission
+playwright [chromium] › session.e2e.ts › the session with a granted ZONA on the cable › replugging offers the connection back, and the offer opens the new port
+playwright [chromium] › session.e2e.ts › the session with a granted ZONA on the cable › unplugging changes the page immediately, with no click
+playwright [chromium] › session.e2e.ts › the session with a scripted serial and nothing granted › a cancelled chooser is its own state, and a declined permission adds one sentence
+playwright [chromium] › session.e2e.ts › the session with a scripted serial and nothing granted › a granted-free browser rests at NO ZONA and writes nothing
+playwright [chromium] › session.e2e.ts › the shipped header on a browser with no Web Serial › @webkit the header names the browsers that can install and offers nothing to press @webkit
+playwright [chromium] › session.e2e.ts › the shipped header with a granted ZONA on the cable › a failure from the header opens its recovery and hands focus back on Escape
+playwright [chromium] › session.e2e.ts › the shipped header with a granted ZONA on the cable › one connection survives the front door, a configuration and the catalog
+playwright [chromium] › session.e2e.ts › the shipped header with a granted ZONA on the cable › the header shows the module a visitor connected to
+playwright [chromium] › session.e2e.ts › the three live regions with a granted ZONA on the cable › a session transition is announced once, and the other two regions stay quiet
+playwright [chromium] › skeleton.e2e.ts › the walking skeleton page with no Web Serial › the page explains itself when the browser has no Web Serial
+playwright [chromium] › skeleton.e2e.ts › the walking skeleton route on the built site › the skeleton route is served as a real file from the built site
+playwright [chromium] › smoke.e2e.ts › static build, no Web Serial › an unknown path returns a real 404
+playwright [chromium] › smoke.e2e.ts › static build, no Web Serial › licence, notices and source archive are served from the site root
+playwright [chromium] › smoke.e2e.ts › static build, no Web Serial › the page renders with the capability removed
+playwright [chromium] › smoke.e2e.ts › the preview gate (D-07) › refuses a request with no credentials and asks robots to stay away
+playwright [chromium] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › COPY LINK confirms in its own state @webkit
+playwright [chromium] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › a knob turn changes the pad and the meters settle @webkit
+playwright [chromium] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › a shared link lands with the knobs restored, and install is present but disabled @webkit
+playwright [chromium] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › the front door opens and a pad is animating @webkit
+playwright [chromium] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › the workspace opens with its panel and the rack never scrolls sideways @webkit
+playwright [chromium] › tuning.e2e.ts › a browser with no clipboard API › with no clipboard API the link is offered for selection instead
+playwright [chromium] › tuning.e2e.ts › a configuration the compiler refuses › an over-budget configuration shows the refusal line and disables Store
+playwright [chromium] › tuning.e2e.ts › a configuration the compiler refuses › the one-click back-off puts it back inside the budget
+playwright [chromium] › tuning.e2e.ts › sharing what the visitor made › COPY LINK confirms in its own state and copies the link
+playwright [chromium] › tuning.e2e.ts › sharing what the visitor made › a link that cannot be read lands on the configuration as it ships
+playwright [chromium] › tuning.e2e.ts › sharing what the visitor made › a shared link lands on the tuned configuration with the panel open
+playwright [chromium] › tuning.e2e.ts › turning a knob › RESET ALL puts every knob back and is disabled once they are back
+playwright [chromium] › tuning.e2e.ts › turning a knob › SURPRISE ME moves the knobs and lands inside the budget
+playwright [chromium] › tuning.e2e.ts › turning a knob › a CC number typed into the MIDI output field moves the knob to that value, one the knob does not offer is refused in the field with the offered values named and the last good value kept, and a Lua channel says it counts from 0
+playwright [chromium] › tuning.e2e.ts › turning a knob › a knob turn changes the pad
+playwright [chromium] › tuning.e2e.ts › turning a knob › the two measured numbers differ and both change on a knob turn
+playwright [webkit-phone] › browse-webkit.e2e.ts › the shelf on a phone engine › a pad whose backing store dies gets its picture back where it sits @webkit
+playwright [webkit-phone] › browse-webkit.e2e.ts › the shelf on a phone engine › a still configuration stays lit after a sort @webkit
+playwright [webkit-phone] › browse-webkit.e2e.ts › the shelf on a phone engine › the browse screen renders on a phone @webkit
+playwright [webkit-phone] › browse-webkit.e2e.ts › the shelf on a phone engine › the search field does not zoom the viewport @webkit
+playwright [webkit-phone] › browse.e2e.ts › the browse screen for a visitor who asked for less motion › @webkit reduced motion snaps a normal entry to its representative frame, and it is not tick 0
+playwright [webkit-phone] › install.e2e.ts › the install controls on the engine that can never install › @webkit the install controls are present and disabled with their reasons, and PUT BACK is absent @webkit
+playwright [webkit-phone] › install.e2e.ts › the install flow on the real page, with a ZONA that answers from Node › @webkit Clear sends on the click with no confirmation, stores the defaults and the bar reads them stored after the proof; and where the browser cannot write, Clear is present and disabled with its reason @webkit
+playwright [webkit-phone] › radius.e2e.ts › no element on any route computes a corner radius above zero, and every 50% sits on a square box @webkit
+playwright [webkit-phone] › session.e2e.ts › the session on a browser with no Web Serial › a browser with no Web Serial names the browsers that do @webkit
+playwright [webkit-phone] › session.e2e.ts › the shipped header on a browser with no Web Serial › @webkit the header names the browsers that can install and offers nothing to press @webkit
+playwright [webkit-phone] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › COPY LINK confirms in its own state @webkit
+playwright [webkit-phone] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › a knob turn changes the pad and the meters settle @webkit
+playwright [webkit-phone] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › a shared link lands with the knobs restored, and install is present but disabled @webkit
+playwright [webkit-phone] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › the front door opens and a pad is animating @webkit
+playwright [webkit-phone] › tuning-webkit.e2e.ts › the whole site except install, on a phone engine › the workspace opens with its panel and the rack never scrolls sideways @webkit
