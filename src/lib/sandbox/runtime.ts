@@ -91,14 +91,16 @@ export const STATE = "S=S or{}F=F or{}I=I or{}";
 /**
  * `R`: the release convention the library calls and the entry defines. Forget the contact's
  * region and its anchor; then the kind's release: a spring fader returns to its spring position
- * (held, sent, drawn - through its own branch with no finger), an absolute fader clears its bar,
- * a relative one keeps it; a momentary button that is on goes off through `K` (a toggle stays);
- * an XY pad and a knob clear. `E` calls it on every release path.
+ * (held, sent, drawn - through its own branch with no finger); any other fader keeps its bar
+ * where the finger left it, as a fader holds its position (the bench of 2026-09-18 read a bar
+ * going out on the lift as the fader falling to 0 - change 10C); a momentary button that is on
+ * goes off through `K` (a toggle stays); an XY pad and a knob clear. `E` calls it on every
+ * release path.
  */
 export const RELEASE =
   "R=function(s,i)local r=J[S[i]]S[i]=nil F[i]=nil if not r then return end " +
   "local t,f=r[5],r[14]" +
-  "if t<3 then if f//4>0 then r[17]=r[15]*127 I[1](s,i,r)elseif f%2<1 then Q(r)end " +
+  "if t<3 then if f//4>0 then r[17]=r[15]*127 I[1](s,i,r)end " +
   "elseif t==3 then if f%2<1 and r[17]then K(s,r)end else r[21]=nil Q(r)end end";
 
 /**

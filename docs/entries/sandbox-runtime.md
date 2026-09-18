@@ -460,8 +460,9 @@ at the phase `f(x,y)` returns, `Q(r)` a clear - in the region's colour, which th
 sets on layer 2 once (`glc(a,2,...)`, +27 in the paint; `Q` sets phases alone). The library's `G`
 finger is no longer called. Per kind: a fader's bar from its low end to the position (`k=p*(len-1)
 //127` rows or columns lit, so position 0 lights the low cell), redrawn on a moved position and
-held where the mode holds a value (Relative, Spring - `R` draws the spring return through the
-fader's own branch with no finger, `I[1](s,i,r)`), cleared on release under Absolute; a button's
+held on the lift under every mode (a fader holds its position; a Spring fader's `R` draws the
+spring return through the fader's own branch with no finger, `I[1](s,i,r)`) - change 10C, after
+the bench of 2026-09-18 read a bar going out on the lift as the fader falling to 0; a button's
 whole region while on (a toggle stays, a momentary and a radio member go dark with their off);
 the XY pad's row and column through the finger's cell `N(x,y)` (redrawn when the cell moves,
 cleared on release); the knob's cells whose angle from `b` lies within `k` - the arc from 7:30

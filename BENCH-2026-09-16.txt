@@ -1695,3 +1695,30 @@ layer B on a build that was absent or stale at that point of the script, green i
 `quick-B` and on the fresh build); `docs/CODE-STYLE.md`'s ten-line rule needed a fifth commit
 (`4e37b99`); ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`; the worktree
 `../hangar-gate-10b` was removed after the records were copied.
+
+> bug: in sandbox fader now jumps back to 0 by default thats not should happen
+
+**Done - change 10C, 2026-09-18 (`R` keeps a fader's bar on the lift).** Read against the deployed
+`e55398c`: no value is sent on the lift - `D` sends on change only and the release calls nothing
+for an Absolute fader - but 10B's release convention CLEARED the fader's bar on layer 2 when the
+finger left (`elseif f%2<1 then Q(r)end`, "an absolute fader clears its bar"), so the picture fell
+to dark the moment the finger lifted, which reads as the fader falling to 0. A fader holds its
+position; only a Spring fader moves on the lift. The clause is gone from `R` (runtime.ts): every
+fader's bar stays where the finger left it, the spring return unchanged, a button / an XY pad / a
+knob unchanged. `R` is 22 characters shorter, so the pinned figures moved with it (runtime.spec
+test 7: five 2817 -> 2795, four 2230 -> 2208, one fader on two slots 1343 -> 1321, page 3 on two
+slots 2847 -> 2825, on three [2010, 869] -> [2010, 847], on five [869, 908, 834, 783, 489] ->
+[847, 908, 834, 783, 489]; three slots now also fit a fader with a button and a button with an XY
+pad; emit.spec test 2's pair [1867, 3394, 1527] -> [1845, 3372, 1527]); test 13 asserts the bar
+after the lift instead of the clear. `docs/entries/sandbox-runtime.md` and the runbook's 10B
+paragraph say "held on the lift under every mode". Quick 99 files / 1014 tests + 1 todo green at
+`--maxWorkers=2`; check 659 / 0 / 0; lint and prettier clean on the touched files; the whole e2e
+suite twice on fresh detached servers (a chunk name alone runs everything): 101 passed / 4 failed
+each time, every red a `browse.e2e.ts` title of the recorded hydration family (`:299`, `:343`,
+`:1186`, and `:1263` / `:1404`), no Sandbox or install title red; `browse.e2e.ts` alone at
+`--workers 1` 13 passed / `:1404` red, and `:1404` alone red twice more on a fresh server at 2.6 GB
+free - then checked by hand on the built site at 127.0.0.1:4174: the search "pad" shows 11, the
+"show" chip on top of it exactly the three the test computes from the source (aurora, pinwheel,
+starfield), so the red is the typed query lost to hydration under load, not the listing. No entry,
+no library, no schema touched; the catalog wire is byte-identical by construction (the change is
+inside the Sandbox runtime's `R`). Not deployed - on the user's word.

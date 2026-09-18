@@ -932,7 +932,7 @@ const PINNED = {
   floorFromEmpty: [11, "budget"] as [number, string],
   /** M 169 (the research's 165), J at four rows 151 (13-15's 155 with the frame), the paint 128 (13-14's 101 plus layer 2's colour). */
   parts: [169, 151, 128],
-  deadBranches: [1867, 3394, 1527],
+  deadBranches: [1845, 3372, 1527],
   page3Placement: [
     "R:systemTimer",
     "O:system",

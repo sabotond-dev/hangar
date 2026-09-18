@@ -1272,21 +1272,27 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     }
   });
 
-  it("13. the pictures (answer 5): a fader's bar from its low end to the value, a button's whole region while on, the XY pad's crosshair through the finger, the knob's arc under absolute and a sector round the finger under relative - layer 2 in the region's colour, cleared on release except where the mode holds a value, the rest colour on layer 1 untouched", async () => {
+  it("13. the pictures (answer 5): a fader's bar from its low end to the value, a button's whole region while on, the XY pad's crosshair through the finger, the knob's arc under absolute and a sector round the finger under relative - layer 2 in the region's colour, cleared on release except where a value is held - every fader's bar, a toggle - the rest colour on layer 1 untouched", async () => {
     const { host, sim } = await open(PAGE3);
     try {
       // At rest nothing on layer 2; layer 1 carries the rest phase on a region's cell.
       expect(lit(sim, FILTER)).toEqual([]);
       expect(sim.layer(screenToHw(0, 0), 1).pha).toBe(48);
       // The fader: the top LED lights the whole bar; row 3 (position 50)
-      // lights two rows from the bottom; the release clears (absolute).
+      // lights two rows from the bottom; the release KEEPS the bar where the finger left it
+      // (change 10C: a fader holds its position; only a spring fader moves on the lift).
       step(host, "down", 0, at(0, 0));
       expect(lit(sim, FILTER).length).toBe(12);
       step(host, "move", 0, at(0, 3));
       expect(lit(sim, FILTER)).toEqual(["0,4", "1,4", "0,5", "1,5"]);
       expect(phase(sim, 0, 5)).toBe(255);
       step(host, "up", 0, at(0, 3));
-      expect(lit(sim, FILTER)).toEqual([]);
+      expect(lit(sim, FILTER), "the bar stays after the lift").toEqual([
+        "0,4",
+        "1,4",
+        "0,5",
+        "1,5",
+      ]);
       expect(sim.layer(screenToHw(0, 0), 1).pha, "layer 1 untouched").toBe(48);
       // The button: the whole region while held, dark on release.
       step(host, "down", 0, at(7, 0));
@@ -1420,16 +1426,16 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
   }, 120000);
 });
 
-/** The figures pinned by test 7, this tree, 2026-09-18 (change 10B). */
+/** The figures pinned by test 7, this tree, 2026-09-18 (change 10B; re-pinned at 10C - `R` 22 shorter). */
 const PINNED = {
-  five: 2817,
-  four: 2230,
+  five: 2795,
+  four: 2208,
   knobShare: 587,
-  oneFaderTwoSlots: 1343,
-  page3Two: 2847,
-  page3Three: [2010, 869] as [number, number | undefined],
-  page3Five: [869, 908, 834, 783, 489] as (number | undefined)[],
-  /** Two slots carry no kind at all since change 10B; three carry one kind alone. */
+  oneFaderTwoSlots: 1321,
+  page3Two: 2825,
+  page3Three: [2010, 847] as [number, number | undefined],
+  page3Five: [847, 908, 834, 783, 489] as (number | undefined)[],
+  /** Two slots carry no kind at all since change 10B; three carry one kind alone, or a fader with a button, or a button with an XY pad (10C). */
   fitsTwo: [] as string[],
-  fitsThree: ["v", "h", "vh", "b", "x", "k"],
+  fitsThree: ["v", "h", "vh", "b", "vb", "hb", "vhb", "x", "bx", "k"],
 };

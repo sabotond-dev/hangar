@@ -6263,3 +6263,18 @@ That spec is the production-build proof: it loads the unlinked `/dev/fidelity/` 
 ## Plan 13-08 - the gallery at `/playground/`, and the address move (2026-09-11)
 
 `/browse/` moved to `/playground/` and `/c/<id>/` to `/playground/<id>/` (13-CONTEXT D-20, move-clean: no forwarding page, every `/c/` and `/browse/` link dead). Read every such address in the sections above accordingly; `build/c/` and `build/browse/` no longer exist and `build/playground/` holds the gallery and the 26 workspace pages. `src/lib/ui/browse-ui.spec.ts` is **9** (6 + 3): the rail derived from `FOR_TERMS` with the observed count printed and exactly one facet row; the card's one category, one tag, one sentence and one accessible link name; the favorite star's round trip with the drop count against the live catalog. Its third title was rewritten against 13-03's eleven tokens. `src/lib/ui/instrument.spec.ts` scan 5 now holds A-42's index form ABSENT and the mono list at six (the card's metadata block went with the Bible). Unit: 88 files / 904 tests (+1 todo), sweep `4 19`. e2e: 78 titles / 94 runs, no title added and none deleted - `e2e/browse.e2e.ts` twelve in, twelve out; the sort is a `<select>`, the one chip row is the FOR facet (`tag-show`, `tag-play`, `tag-all`), the round trip scrolls the shell's centre column (`[data-testid="shell-centre"]`) rather than the window, and the session walk's two gallery hops assert the document and not the device slot (the shell's slot is 13-11's). wrangler 4.128.0 was started detached through PowerShell `Start-Process npx.cmd` per chunk (five chunks, 21 / 17 / 16 / 20 / 20) and did not die in any of them.
+
+## 2026-09-18 change 10C - a fader's bar stays on the lift
+
+The bench on the deployed `e55398c`: "in sandbox fader now jumps back to 0 by default". No value
+moved - `D` sends on change only - but 10B's `R` cleared an Absolute fader's bar on layer 2 when
+the finger left, and a bar going dark reads as the fader falling to 0. The clause is gone
+(`src/lib/sandbox/runtime.ts`, `RELEASE`): every fader keeps its bar where the finger left it, a
+Spring fader alone moves on the lift. `runtime.spec.ts` test 13 asserts the bar after the lift;
+test 7's pinned figures follow `R`'s 22 characters (five 2795, four 2208, one fader on two slots
+1321, page 3 two / three / five slots 2825 / [2010, 847] / [847, 908, 834, 783, 489]; three slots
+now fit `vb`, `hb`, `vhb`, `bx` as well); `emit.spec.ts` test 2's pair 1845 / 3372 / 1527. Quick
+99 / 1014 + 1 todo green twice at `--maxWorkers=2`; check 659; the full e2e suite twice on fresh
+servers 101 passed / 4 failed, every red a `browse.e2e.ts` hydration title (`:299`, `:343`,
+`:1186`, `:1263` or `:1404`), and `:1404` checked by hand on the built site (search "pad" + the
+"show" chip = aurora, pinwheel, starfield, the set the test computes). Catalog wire untouched.
