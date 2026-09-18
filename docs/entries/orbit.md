@@ -420,3 +420,19 @@ byte)` as `decode.lua` does, returns false when the entry defines none; the rout
   the fourteen-knob rack (`euclid-copy` renamed and regenerated); `library.e2e.ts` walks it.
 - The card sentence (D-05's register): "Four Euclidean rings, a colour and a note each, on their
   tempo or your DAW’s clock; tap a step to change it."
+
+## Change 8b, 2026-09-18 - the Tempo rail reads BPM, ascending
+
+The coordinator's follow-up to change 8's question (a): "bigger tempo on the right side" means
+FASTER on the right, and a bigger millisecond period is the opposite. So `@TEMPO` (a period in
+ms, reversed at change 8 to `70 90 110 140 180 240`) is `@BPM` (the token renamed; the knob's id
+stays `tempo`, because the stamp, the fixture rack and the specs read the id and a rename there
+would move the e2e fixture and every spec that names it for nothing), the values are beats per
+minute ascending, `60 90 110 136 160 200`, and both events read `gtt(0,15000//@BPM)` - a 16th
+at that tempo, 250 166 136 110 93 75 ms. **136 is the default**: `15000//136` is exactly the 110
+ms step EUCLID and change 8 had, so `frames.json` and the golden frame did not move (regenerated,
+byte-identical). The label reads Tempo (BPM) because `view.ts` has no unit path for a readout;
+the readout is the bare number. Costs at the RGB444 picker corner: Setup 846 -> **853** (55 free),
+Timer 404 -> **411** (497 free); 850 / 390 at the defaults - the +7 the form was costed at. The
+captured EUCLID default vector (`tempo: 3`) is the defaults again under ORBIT (`stamp.spec.ts`),
+since index 3 is the 110 ms step once more.

@@ -445,20 +445,17 @@ describe("the stamp: the envelope", () => {
       if (!each) continue;
       if (record.payload === null) {
         // ORBIT, at change 8 (2026-09-18, BENCH-2026-09-16.txt section 8): the
-        // captured EUCLID default vector names `tempo: 3`, which was 110 ms and
-        // is 140 ms since the Tempo list reversed (110 is index 2 now), and
-        // knobs that left (`ringColour`, `note`); so the vector is no longer
-        // the defaults and encodes to a stamp - CHORUS's shape at change 7.
-        // The entry's OWN defaults still carry none, which is what the null
-        // payload asserted; the fixture is not regenerated.
+        // captured EUCLID default vector names `tempo: 3` and knobs that left
+        // (`ringColour`, `note`), none of the eight that arrived. At change 8
+        // the reversed millisecond list put 110 at index 2, so the vector
+        // encoded to a stamp; at change 8b the BPM rail puts the same 110 ms
+        // step (136 BPM) back at index 3, and every departed knob reads its
+        // default, so the vector IS the defaults again and carries none - the
+        // plain assertion below, reached by a longer road. Not regenerated.
         if (renamed) {
           expect(
             encodeFor(each, indices),
-            `${record.entry} -> ${each.id}: the captured vector is no longer the defaults (change 8)`,
-          ).toBeDefined();
-          expect(
-            encodeFor(each, each.defaults),
-            `${each.id}: its own defaults must still carry no stamp`,
+            `${record.entry} -> ${each.id}: the captured vector is the defaults again (change 8b)`,
           ).toBeUndefined();
           nulls += 1;
           continue;

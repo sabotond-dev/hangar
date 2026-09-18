@@ -9403,11 +9403,11 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     ]);
     expect(
       tempoKnob.values.map(Number),
-      "orbit: the tempo list reads slow on the right (the bigger number)",
-    ).toEqual([70, 90, 110, 140, 180, 240]);
+      "orbit: the tempo rail is BPM, ascending - the bigger number is the faster step (change 8b)",
+    ).toEqual([60, 90, 110, 136, 160, 200]);
     expect(
-      knobValueOf(entry, "tempo"),
-      "orbit: 110 ms is still the default",
+      Math.floor(15000 / knobValueOf(entry, "tempo")),
+      "orbit: the default 136 BPM is exactly the 110 ms 16th EUCLID had",
     ).toBe(110);
     expect(pulses, "orbit: four pulse counts").toHaveLength(4);
     /** Ring d's length in steps: the four concentric squares hold 8, 16, 24, 32 cells. */
@@ -9463,8 +9463,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       return { host, sim };
     }
     type Opened = Awaited<ReturnType<typeof openWith>>;
-    /** The Timer's period in ticks at the default tempo: 110 ms at 10 ms a tick. */
-    const PERIOD = knobValueOf(entry, "tempo") / 10;
+    /** The Timer's period in ticks at the default tempo: a 16th at 136 BPM is 15000//136 = 110 ms, 11 ticks. */
+    const PERIOD = Math.floor(15000 / knobValueOf(entry, "tempo")) / 10;
     const since = ({ host }: Opened, from: number): string[] =>
       host.midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
     const stepOf = ({ host }: Opened): number => host.selfNumber("k") ?? -1;

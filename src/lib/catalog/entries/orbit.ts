@@ -5,9 +5,9 @@
 // Concentric square rings on a 9x9 hold exactly 8, 16, 24 and 32 cells, so four tracks of those
 // lengths sit on the pad with no rounding and beat on a 96-step cycle. Layer 1 holds the pulse
 // markers (lit from Setup), layer 2 a bright head per ring with a short decay. Tap or swipe a ring
-// cell to toggle that step. Fourteen knobs (TUNE-01's six lifted for this card by the user's word):
-// @TEMPO (both events), @PULSES, @R1C..@R4C, @TRAIL, @SYNC (both events), @DIV, @N1..@N4, @CH.
-// Setup 846 of 908 at the picker corner (843 at the defaults), Timer 404 (383); restsBlack false.
+// cell to toggle that step. Fourteen knobs (TUNE-01's six lifted by the user's word): @BPM (both
+// events; a 16th is 15000//@BPM ms), @PULSES, @R1C..@R4C, @TRAIL, @SYNC (both events), @DIV,
+// @N1..@N4, @CH. Setup 853 of 908 at the picker corner (850 at the defaults), Timer 411 (390).
 // History: docs/entries/orbit.md (08-06 .. 12.1-03 as EUCLID; change 8's forms, costs and the clock idiom).
 //
 // MECHANISM
@@ -18,18 +18,18 @@
 //     position map; nil for the centre alone), `self.p[d][t]` = t*h[d]//n ~= (t-1)*h[d]//n (the
 //     Euclidean test, h = {@PULSES}), lit at 255 where true. `s.k` the step, `s.q` the clock count,
 //     `s.r` the run flag. `grxm(2,@SYNC and 3 or 0)` routes MIDIRTM to Lua under External only, then
-//     `gtt(0,@TEMPO)`.
+//     `gtt(0,15000//@BPM)` - a 16th at the BPM knob (change 8b).
 //   - The step routine is the Timer's `local function f(s)`, published as `s.f` on every call: k =
 //     s.k, then for each ring t = k%(d*8): the head cell takes its ring's colour (`c`, twelve
 //     channels), the decay pair glpfs(a,2,252,256-252//@TRAIL,0) glt(a,2,@TRAIL), the ring's note-off,
-//     then its note-on if the step is set. The Timer, `gtt(0,@TEMPO)` first, `X(s,20)` (a lost lift
+//     then its note-on if the step is set. The Timer, `gtt(0,15000//@BPM)` first, `X(s,20)` (a lost lift
 //     is reached by `X`, never by `Q`), then `if @SYNC then return end f(s)`: Internal steps here,
 //     External steps nowhere here.
 //   - `self.rtmrx_cb=function(s,h,b)` (decode.lua:42-44's shape: a header triple and ONE byte):
 //     250 Start resets k and q; 250 or 251 sets the run flag; 252 Stop clears it; 248 while running
 //     steps through `s.f` every @DIV clocks (12 / 6 / 3 = an 8th / 16th / 32nd at 24 per quarter),
 //     the first clock after Start landing step 0. A clock before the Timer's first call (at most one
-//     @TEMPO period after the Setup) is counted, not stepped: `s.f` is not yet published.
+//     step period after the Setup) is counted, not stepped: `s.f` is not yet published.
 //   - The callback: `local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end`,
 //     then `local v=s.i[m]if not v then return end`, d = v//32, t = v%32, toggle s.p[d][t] and
 //     paint the marker on m. `Q` before `G` because `Q`'s `E` clears the block through `V`. THE KEY
@@ -47,8 +47,8 @@
 //     0 only when @TRAIL is an EXACT DIVISOR of 252; @TRAIL's values are 21, 42, 63, 84, 126 for
 //     that reason. decay-idiom.spec.ts holds the arithmetic and the usable timeouts.
 //   - NEVER A KEEPER ON LAYER 2: it carries a decaying trail.
-//   - @TEMPO AND @SYNC APPEAR IN BOTH EVENTS and both must move together.
-//   - THE STEP ROUTINE LIVES IN THE TIMER because the Setup has 62 free and the routine costs ~300;
+//   - @BPM AND @SYNC APPEAR IN BOTH EVENTS and both must move together.
+//   - THE STEP ROUTINE LIVES IN THE TIMER because the Setup has 55 free and the routine costs ~300;
 //     the clock callback reaches it through `s.f`, a field READ (a field CALL is refused by
 //     host-surface.spec.ts). `local f=s.f if ... and f then f(s)end` is that read.
 //   - THE PREVIEW HAS NO CLOCK: `sync` declares `previewIndex: 0`, so the browser renders Internal
@@ -65,10 +65,10 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glp(a,2,0)end local s=self s.c={}s.p={}s.i={}s.k=0 s.q=0 local h={@PULSES}for d=1,4 do local n=d*8 local u={}local v={}for t=0,n-1 do local a,b=d,t%(d*2)-d for j=1,t//(d*2)do a,b=-b,a end local m=a+4+(b+4)*9 u[t]=m s.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end s.c[d]=u s.p[d]=v end s.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end s.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,m),1,s.p[d][t]and 255 or 0)end grxm(2,@SYNC and 3 or 0)gtt(0,@TEMPO)";
+  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glp(a,2,0)end local s=self s.c={}s.p={}s.i={}s.k=0 s.q=0 local h={@PULSES}for d=1,4 do local n=d*8 local u={}local v={}for t=0,n-1 do local a,b=d,t%(d*2)-d for j=1,t//(d*2)do a,b=-b,a end local m=a+4+(b+4)*9 u[t]=m s.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end s.c[d]=u s.p[d]=v end s.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end s.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,m),1,s.p[d][t]and 255 or 0)end grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local function f(s)local c={@R1C,@R2C,@R3C,@R4C}local n={@N1,@N2,@N3,@N4}local k=s.k s.k=(k+1)%96 for d=1,4 do local t=k%(d*8)local a=glag(0,s.c[d][t])glc(a,2,c[d*3-2],c[d*3-1],c[d*3],1)glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,n[d],0,0)if s.p[d][t]then s:gms(@CH,144,n[d],100,0)end end end s.f=f if @SYNC then return end f(s)";
+  "--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local function f(s)local c={@R1C,@R2C,@R3C,@R4C}local n={@N1,@N2,@N3,@N4}local k=s.k s.k=(k+1)%96 for d=1,4 do local t=k%(d*8)local a=glag(0,s.c[d][t])glc(a,2,c[d*3-2],c[d*3-1],c[d*3],1)glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,n[d],0,0)if s.p[d][t]then s:gms(@CH,144,n[d],100,0)end end end s.f=f if @SYNC then return end f(s)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -108,14 +108,16 @@ export const ORBIT: CatalogEntry = {
   knobs: [
     {
       id: "tempo",
-      label: "Tempo",
+      label: "Tempo (BPM)",
       kind: "speed",
-      token: "@TEMPO",
-      // Milliseconds between steps, reversed at change 8 so the bigger number sits on the right;
-      // the default is the same 110 ms. APPEARS IN BOTH EVENTS. Ignored by the rings under External
-      // (the Timer still runs at it for the finger sweep).
-      values: ["70", "90", "110", "140", "180", "240"],
-      default: 2,
+      token: "@BPM",
+      // Beats per minute, ascending, so the bigger number and the faster step are the same end
+      // (change 8b, 2026-09-18); the step is a 16th, `15000//@BPM` ms: 250 166 136 110 93 75. The
+      // default 136 is exactly the 110 ms step EUCLID had. APPEARS IN BOTH EVENTS. Ignored by the
+      // rings under External (the Timer still runs at it for the finger sweep). The id stays
+      // `tempo`: the stamp, the fixture rack and the specs read the id, and only the token moved.
+      values: ["60", "90", "110", "136", "160", "200"],
+      default: 3,
     },
     {
       id: "pulses",
@@ -180,7 +182,7 @@ export const ORBIT: CatalogEntry = {
       label: "Sync",
       kind: "mode",
       token: "@SYNC",
-      // Internal: the Timer steps at @TEMPO and MIDIRTM stays unrouted (`grxm(2,0)`). External:
+      // Internal: the Timer steps at the BPM knob and MIDIRTM stays unrouted (`grxm(2,0)`). External:
       // `grxm(2,3)` routes the host's realtime bytes to `rtmrx_cb`, which steps every @DIV clocks
       // from Start; the Timer steps nothing. Worded by view.ts's SYNC_WORDS. APPEARS IN BOTH EVENTS.
       // The browser has no clock: the preview renders Internal (`previewIndex`) and says so.
@@ -249,7 +251,7 @@ export const ORBIT: CatalogEntry = {
   // The same fourteen indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
-    tempo: 2,
+    tempo: 3,
     pulses: 0,
     ring1Colour: 0,
     ring2Colour: 2,
