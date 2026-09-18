@@ -394,3 +394,112 @@ The editor gives a blank `cc: 0, channel: 1` as inert fields (schema.ts keeps on
 `freeController` skips blanks when handing out controllers); the inspector shows no MIDI output for
 it; the preview runs the same emitted Lua, so it shows the colour and ignores the finger without a
 line of its own.
+
+## The options, the pictures, the trim and five slots (2026-09-18, change 10B; `BENCH-2026-09-16.txt` section 10, answers 5 to 12)
+
+Part B of the Sandbox feature set: every sending kind gained MIDI options, every kind an animation
+on the module, and the runtime the room to carry them. What the row, the runtime and the slots are
+now, with the measured figures (the pinned `compressScript` after `initLuaFormatter()`, the RGB444
+picker corner, `runtime.spec.ts` tests 7 to 14 and `emit.spec.ts` tests 1 and 8).
+
+### The row: the box, then the tail
+
+`J`'s row is `{col,row,w,h,t,cc,c7,ch,r,g,b[,min,max,flags[,spring | cx,cy]]}`. The first four are
+the region's BOX in cells (13-15's kind-specific frame went: the pictures need the cells, and the
+frame is three characters of Lua per read - a vertical fader's bottom LED is `(r[2]+r[4]-1)*64`,
+its span `(r[4]-1)*64`). `c7` is the XY pad's second controller or the button's radio group (1..8,
+0 none); the toggle flag moved into the flag word. The TAIL is written only past the last
+non-default value: a region with every option at its default has the eleven columns it had, and
+`O` reads the missing columns as `0, 127, 0` once per sample (`r[12]=r[12]or 0 r[13]=r[13]or 127
+r[14]=r[14]or 0`, 46 characters once per surface). Column 15 is a spring fader's spring POSITION;
+columns 15 and 16 a knob's centre in raw units (always written - `emit.ts`'s `knobCentre`, the
+middle LED's knot or the floor of the middle two's midpoint, what `sensorAt` gives; it saved 85
+characters of runtime against ~9 per knob in the Setup). The price per region in the Setup, at the
+widest literals: a min alone `,100` +4, min and max `,100,120` +8, Relative `,0,127,1` +8, Relative
+at Full `,0,127,3` +8, Spring `,0,127,4,64` +11, everything on `,127,100,7,127` +14; page 3 with
+every option on 489 -> 525 (+36). The row/flag encoding beat one column per option (each boolean
+would cost `,0` on every row that has any later option) and a packed word of every option (a
+knob's centre and a spring position are numbers, not bits).
+
+**The flag word** (`model.ts` `flagsOf`): a fader's bit 0 Relative, bit 1 Full, bit 2 Spring; an XY
+pad's bits 0 and 1 the same; a button's bit 0 Toggle (`latch`), bit 1 a Note output; a knob's is its
+mode's index 0..3 (Absolute, two's complement, binary offset, sign magnitude). Read in the Lua as
+`f%2`, `f//2%2`, `f//4`, and `m` for the knob.
+
+### The runtime: positions, `W` folded into `D`, and the pictures
+
+Every continuous kind keeps a POSITION 0..127 along its travel and sends through one scale,
+`min + (max - min) * v // 127` - so a min above the max inverts the direction for nothing, and a
+spring value is stored as the first position that lands it exactly (the span is at most 127 wide,
+so consecutive positions differ by at most one value; `model.ts` `springPosition`; the
+representative region's 100 under 127..100 lands at 123). The scale lives inside `D(s,r,n,c,v)`,
+the "scale, then send on change of the sent value, kept in column `n`" helper: folding `W` into
+`D` saved 47 characters over a separate `W`. Relative faders and XY pads hold their position in
+FINE units (127 per position step, 0..16129) so a half-speed move of one raw unit is one exact
+increment with no float and no remainder; the onset anchors (`F[i]`) and changes nothing; a
+release keeps the value; a spring fader's first touch starts from `r[15]*127`. The knob's centre
+comes from the row; its absolute position is `r[17]`, the remainder `r[18]`; under a relative
+mode the detents crossed in the sample go out in the encoding (two's complement `k%128`, binary
+offset `64+k`, sign magnitude `k>0 and k or 64-k`) - at most 22 in one sample by construction
+(the wrap bounds a sample at 180 degrees), inside every encoding's 63, so no cap is written. The
+button's off is `K(s,r)`: note-off as status 128 with velocity 0 (ORBIT's spelling, the MIDI
+note-off proper; a DAW treats 144 with velocity 0 the same, but 128 is what a monitor shows as an
+off), else the min on the controller; on is 144 with the max as the velocity, or 176 with the max.
+A radio group is the seventh column, 1..8 (eight keeps the field's select one screen); a press
+turns every other on member off through `K` first (each sends its off and goes dark), a second
+press on an on toggle in a group turns it off.
+
+The state columns past the data: 17 the held fine position / the held x / the on-flag / the
+knob's position, 18 the held y / the knob's remainder, 19 and 20 the last sent value per
+controller, 21 the XY pad's crosshair cell (`runtime.ts` `STATE_COLUMNS`). Sending is on change
+of the sent value per region ACROSS touches: a re-press at the same value re-sends nothing (13-15
+re-sent per contact); a relative XY pad's first move reports the other axis's held value once.
+
+**The pictures** are the runtime's own `glp` on layer 2 through `Q(r,f)` - every cell of the box
+at the phase `f(x,y)` returns, `Q(r)` a clear - in the region's colour, which the Setup's paint now
+sets on layer 2 once (`glc(a,2,...)`, +27 in the paint; `Q` sets phases alone). The library's `G`
+finger is no longer called. Per kind: a fader's bar from its low end to the position (`k=p*(len-1)
+//127` rows or columns lit, so position 0 lights the low cell), redrawn on a moved position and
+held where the mode holds a value (Relative, Spring - `R` draws the spring return through the
+fader's own branch with no finger, `I[1](s,i,r)`), cleared on release under Absolute; a button's
+whole region while on (a toggle stays, a momentary and a radio member go dark with their off);
+the XY pad's row and column through the finger's cell `N(x,y)` (redrawn when the cell moves,
+cleared on release); the knob's cells whose angle from `b` lies within `k` - the arc from 7:30
+(135 degrees) to `position*270//127` under Absolute, the sector within 45 degrees of the finger
+under a relative mode - the centre cell dark, cleared on release. Layer 1's rest colour is never
+touched. The preview runs the same strings (`preview.ts`, five slots) and shows exactly this.
+
+### The trim and the five slots (answer 12)
+
+A Sandbox landing writes the TRIMMED library (`library-trim.ts`, sliced from `LIBRARY_PARTS` by
+name; `library.ts` untouched): 255/0 keeps the head, the map, `U E X N` and `self:tim()` - 842 ->
+460, **382 freed**; 255/6 keeps the marker alone - 873 -> 9, **864 freed** (`V G Z Y K A D` have
+no caller once the runtime draws its own pictures; `W Q` never were on the hot path). The names
+the trim retires are the runtime's to spend: it defines `S F I R O` and `Q D K`; it calls `E N U
+X`. `packRuntime` under five slots fills 255/6, 255/0 (each the trimmed half, then the head, then
+the parts), 255/4 and the Timer, LARGEST PART FIRST into the first slot with room (first-fit
+decreasing: in the parts' order the five-kind runtime did not pack - 255/0 and 255/4 were left with
+163 and 180 free while the Timer took 1,161). The parts, measured: R 249, O 323, Q 111, D 100, K
+114, I[1] 503 (both orientations, `I[2]=I[1]`), I[3] 298, I[4] 502, I[5] 608 - 2,817 with every
+branch, 2,230 without the knob (13-15's 1,340 / 1,042). Page 3 (every kind) lands 255/6 869 (39
+free), 255/0 908 (0 free), 255/4 834 (74 free), Timer 783 (125 free), Setup 489; the placement
+R:255/6 O:255/0 Q:Timer D:255/0 K:Timer I[1]:255/4 I[3]:255/4 I[4]:Timer I[5]:255/6. Every
+combination of kinds fits five slots (the dearest, four kinds with both fader orientations, 3,394
+of 3,632 across the four runtime slots); two slots carry NO kind any more (one fader 1,343), three
+carry one kind alone - the spec keeps both counts measured and the emitter's default stays 2 for
+the pins. The measured cost model covers five strings (`cost.ts` `measureSurface`, `land.ts`
+`refusalOf` in write order: System timer, System, Utility, Timer, Setup); the cap floor's
+representative is the dearest fader with every option on (`,127,100,7,123`): from an empty
+surface eleven of them fit before a string is over - the number the user no longer sees; from the
+dearest twelve, fifteen; the dearest sixteen at their defaults still fit (892 at five slots).
+
+### Retired, and the alternatives that lost
+
+The inline contingency (`runtime: "inline"`, the four inline branch texts, `RELEASE_WITH_BUTTON`,
+`OWN_NAMES_INLINE`) is gone: it read the kind's frame, could never carry a knob, was never shipped,
+and porting it to the box and the options would have been a second runtime to keep true; the
+dead-branch pair is measured through the split (four faders' runtime 1,867 with the fader branch
+alone, 3,394 with every branch). The knob's per-sample centre from the knots (`(KX[..]+KX[..])//2`,
+90 characters) lost to two row columns. A separate `W` lost to the fold into `D`. A cached bar
+position (`r[22]`) lost to redrawing the bar on every moved position. A cap on the knob's detents
+per sample was dead code and went. Two slots' and three slots' fits are recorded, not designed for.

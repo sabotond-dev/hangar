@@ -6028,6 +6028,105 @@ the route no longer calls `costOf` (still pinned by `emit.spec.ts`); the first `
 are not baselines; the gate's quick term at `e2947fc` printed `quick exit 1` on the stale constant
 (the JSON: 986 passed, 0 failed), which is why the constant moved in `e14fd6e`.
 
+## 2026-09-18 change 10B - the Sandbox's behaviour: min and max, relative and spring faders, CC or note buttons with radio groups, relative knobs, the pictures on the module, the trimmed library and five slots
+
+Part B of `BENCH-2026-09-16.txt` section 10 (answers 5 to 12 and the readings). Five source commits
+(`e8b3d07` feat(sandbox) - the schema's optional fields and the model's readers; `4685f38`
+feat(sandbox) - the runtime, the emitter, `library-trim.ts`, five slots, the cost model and the
+landing, `runtime.spec.ts` / `emit.spec.ts` / `install.spec.ts`, the wire harness; `3381d5a`
+feat(sandbox) - the editor, the copy, the inspector, the plate, the route, `sandbox-ui.spec.ts`;
+`4e37b99` chore(sandbox) - four headers back at the ten-line rule; `f4c0216` test(sandbox) - the
+e2e walk and the gate's quick constant), no push, no device, no deploy; then this section, the Done
+paragraph "10B" under section 10, a dated paragraph in `docs/INSTALL-RUNBOOK.md`, a section in
+`docs/entries/sandbox-runtime.md`, and the gate records `gate/change-10b.*` (before, at `654ee60`,
+on a clean worktree `../hangar-gate-10b` with its own `npm ci`; removed after the records were
+copied) and `gate/change-10b-after.*` (at `f4c0216`).
+
+**What moved in the suites.** `runtime.spec.ts` 7 -> 14 titles, every new one in the VM on the
+TRIMMED halves under five slots: 3 retitled (the box, not the frame), 6 rewritten (every slot count
+and every fixture through the gates; the runtime defines `S F I R O Q D K` - none a trimmed
+global, `Q D K` among the names the trim frees - and calls `E N U X`, never `G`), 7 rewritten (the
+parts; every combination of kinds under two, three and five slots - two carry none, three one kind
+alone, five every one; page 3 under all three; the pins), 8 new (min and max on every kind, the
+inversion, the XY pad's one pair, the button's off and on), 9 new (Relative at Half and Full: the
+touch sends nothing, 13 and 38 then 26 and 77 for the same two moves, held across touches,
+clamped at 0 once; the XY pad per axis), 10 new (Spring: 127 then 64 on the lift and the bar at
+three rows; Relative with the spring at 100: 121, 100, 121, 100), 11 new (a note output's 144 /
+128 at C4, the toggle's second press, the radio group across three buttons with One's off before
+Two's on), 12 new (the three encodings up and down, the detents crossed in one sample, the cap
+22 by construction, a scaled two's-complement knob sending 1 all the same), 13 new (the pictures
+on layer 2 per kind and mode, layer 1's 48 untouched, the held bar and the sector), 14 new (the
+trim: 842 -> 460 and 873 -> 9, the twelve trimmed globals, every fixture pressed, moved and lifted
+on every region with no error). `emit.spec.ts` 7 -> 8: 1 rewritten (two, three and five slots;
+the dearest sixteen at 892; the cap floor from twelve 15 and from empty 11 with the option-laden
+representative), 2 rewritten (the dead-branch pair through the split, 1,867 / 3,394 / 1,527; the
+inline contingency retired), 3 (the box, the tail, a knob's centre 64, 83 and the even-width
+midpoint), 4 and 5 (every slot count; `OWN_NAMES` `J M`; no capital call in the data half), 6
+(the five-slot halves carry no colour), 7 (on the trimmed halves), 8 new (the tail's trimming, the
+flag word, the price per option, the pack, the landing's five strings the trimmed halves and
+canonical, three slots' first refusal the Timer). `install.spec.ts`'s landing reads the trimmed
+halves (`startsWith(TRIMMED_LIBRARY)`, never the full library) and every one of the five canonical.
+`sandbox-ui.spec.ts` 11 -> 12: 5 pins the seven typed fields, 12 new (six option entries on a
+fader undone and redone, the refusals `VALUE_RANGE` / `NOTE_RANGE` with the model untouched, a
+knob's mode refused on a fader, a group off its range refused, Play locking every setter and
+select; the panel's fields per kind, `field-toggle` never `field-latch`, the note field reading
+`C4`, Min and Max gone under a relative knob with the helper that says so, no Behavior on a
+blank; `copy.ts` never spelling Latch; the route's five wires; a record with every field reads and
+`sideways` / 9 / 128 / `fast` are refused whole). `e2e/sandbox.e2e.ts` 6 -> 7 titles: the loop on
+the fake asserts 255/6 and 255/0 open with the trimmed library and 255/4 with the runtime's head;
+the seventh new (the options walk: F, Relative, Full, Spring, 200 refused and 100 typed, Min 127 /
+Max 0; B, Toggle, Note, `H3` refused and `C#3` typed, Group 3; K, Relative (2's comp.) taking Min
+and Max away, one Undo bringing Min back; the draft recovered on a reload with every field).
+
+**Counts, carried + delta:** quick 95 / 986 + 1 todo -> **95 / 995 + 1 todo** (+0 / +9: `runtime`
+7 -> 14, `emit` 7 -> 8, `sandbox-ui` 11 -> 12), green at `--maxWorkers=2` (`quick-A` 45.1 s,
+`quick-B` 54.2 s); check 658 -> **659** (+1: `library-trim.ts`), 0 / 0; lint clean; sweep
+`4 19` green (`lua-entries` 1,804 combinations, worst 906 of 908); e2e 89 titles / 104 runs ->
+**90 / 105** (+1 / +1: the options walk); utilities **44** -> **44** (0 appeared, 0 disappeared -
+`absolute`, `relative`, `inline`, `hidden` and `fixed` were among the 44 already); catalog **27**,
+no entry touched; testids 316 -> **319** (`field-latch` gone; `field-toggle`, `field-mode`,
+`field-speed`, `field-spring`, `field-output`, `field-group` new; `field-spring-value`,
+`field-note`, `field-min` and `field-max` are the `field-{FIELD_IDS[field]}` template); OG 27
+files, 159,169 B unmoved; `frames.json`, the golden frames, the preset baseline and the synthetic
+ZONA byte-identical.
+
+**The gate's terms** (`--before change-10b` at `654ee60` on the worktree; `--after change-10b
+--against change-10b --check 659` at `f4c0216`): equal - **every catalog string byte-identical
+(zero `E/` or `P/` movers in the wire's per-string diff; the system halves' catalog records
+unmoved - only the Sandbox landing trims them)**, all four fixtures by hash-object, the OG 27 files
+/ 159,169 B `9becd682…`, the utilities 44 -> 44, lint, the refuse-list `--stat` empty, the build
+(stamp `f4c0216`), `src/` 17 modified / 1 added (`library-trim.ts`) / 0 deleted / 0 renamed;
+check 658 -> 659 (the one file); moved as a feature moves them - the wire set `7cda3c4b…` ->
+`d312d08b…` and full `bcf8063c…` -> `3f1d5374…` (13 records moved, every one `S/page3/…` - the
+Sandbox's page 3 in the base set: its landed five, its emitted and corner strings, its two-slot
+pair); **the sandbox set `5fcc2955…` -> `03d5482c…`: 168 -> 361 records, 30 byte-identical
+(`emitted-2-slots/mapmode`, the empty string, on twelve fixtures; `landed/timer` and
+`emitted-at-corner/timer` on the nine without a knob - a Timer of the arm and the sweep alone),
+138 moved (every other record of the twelve fixtures), 0 removed, 193 added (the five-slot
+`system` / `systemTimer` / `setup` / `timer` / `mapmode` of the twelve, and the seven new
+fixtures' nineteen each: `runtime/scaled`, `relative-half`, `relative-full`, `spring`, `notes`,
+`knobs`, `emit/page3-options`)**; the census `522c873a…` -> `e38e23d9…` (2,779 -> 2,835 literals,
+194 -> 195 files: the five branch texts and the release replaced, `G(s,i,e,x,y,2,...)` 1 -> 0,
+`Latch` and its helper 1 -> 0, `field-latch` 1 -> 0; the thirty new copy strings, `absolute` 3 ->
+14, `relative` 1 -> 2 as a word and the five mode literals, `min` / `max` / `spring` / `note` /
+`group` / `output` as fields, `System` and `System timer` 2 -> 4); the copy exports `27be101c…`
+-> `fe2f7209…` (LATCH and LATCH_HELPER retired by name; thirty added); the testids `017609a1…` ->
+`23525109…` (316 -> 319); the SCOPED CSS `e7045f06…` -> `5aa7323e…` (RegionInspector's one new
+rule, `.helper + .grid, .check + .grid`) and the raw CSS `8c4ed778…` -> `e6d0ee3b…`; the titles
+`fa250c25…` -> `25fb536f…` (987 -> 996 vitest incl. todo: nine added, six retitled; 104 -> 105
+playwright); the JS `e131c040…` -> `f1caea60…` (71 files). **The quick term:** **The gate's quick term** printed `check-counts: no Vitest summary lines found on stdin` / `quick exit 1` in BOTH records (the pipe inside the script; the JSON beside each: 985 passed / 1 failed before, 994 / 1 after - the one `radius.spec.ts` layer B, which reads the built CSS and the script builds AFTER the quick term); the same pipeline run by hand on the built tree at `f4c0216` read `observed 95 files, 995 tests passed, 1 todo` and `matches the expected counts`, exit 0, and the raw suite was green twice more (`quick-A`, `quick-B`).
+The script exits 1 at the wire by design; the later terms are compared from the two records.
+
+**Chunks** (fresh detached wrangler dev on 4173, stopped through PowerShell, HTTP 000 after each;
+the user's 5173 untouched): c4 **18 passed** (catalog, fidelity, first-experience, library,
+sandbox - the seven Sandbox titles among them) on the build at `3381d5a`'s tree; c5 **1 failed /
+10 passed** on that build (`artifacts:63`, the source archive stamped `654ee60` against HEAD
+`3381d5a` - the build predated the commits), then **11 passed** on the gate's build at `f4c0216`
+(rerun `c5-change10b`); c2 **1 failed / 21 passed** at three workers (`browse:343` - the grid read
+before hydration, the flake changes 3, 4, 6 and 10A recorded), then **1 failed / 21 passed** again (the same `browse:343`) and `browse:343` alone **1 passed** twice on fresh servers (reruns `c2-alone-343-change10b`, `-2`) at `--workers
+1` on a fresh server (rerun `c2-w1-change10b`). c1 and c3 not run: no install, session or tuning
+title reads the Sandbox.
+
 ## Why the vendored tree is excluded from type-checking but not from the test run
 
 `tsconfig.json` has `checkJs: true`, and the three vendored BOTOR test files are untyped JavaScript.

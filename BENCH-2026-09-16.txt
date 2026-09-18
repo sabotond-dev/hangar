@@ -1521,3 +1521,177 @@ the brief's file list did not name them (the first pinned the Sandbox's two mete
 ledger line named the room line); the `install.spec.ts` over-budget title reads `TOO_FULL_TO_STORE`
 now; ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`; the worktree `../hangar-gate-10a`
 was removed after the records were copied.
+
+### Done, 2026-09-18, change 10B - the behaviour (part B of the Sandbox feature set)
+
+Five source commits, no push, no device, no deploy: `e8b3d07` feat(sandbox) - the schema's
+optional fields and the model's readers; `4685f38` feat(sandbox) - the runtime, the emitter,
+`library-trim.ts`, five slots, the cost model, the landing, `runtime.spec.ts` / `emit.spec.ts` /
+`install.spec.ts`, the wire harness; `3381d5a` feat(sandbox) - the editor, the copy, the inspector,
+the plate, the route, `sandbox-ui.spec.ts`; `4e37b99` chore(sandbox) - four headers back at the
+ten-line rule; `f4c0216` test(sandbox) - the e2e walk and the gate's quick constant; then this
+paragraph with `docs/TESTING.md`'s "2026-09-18 change 10B", the dated paragraph in
+`docs/INSTALL-RUNBOOK.md`, a section in `docs/entries/sandbox-runtime.md`, and the gate records
+`gate/change-10b.*` (before, at `654ee60`, in a clean worktree `../hangar-gate-10b` with its own
+`npm ci` and build; removed after the records were copied) and `gate/change-10b-after.*` (at `f4c0216`).
+
+**The row and the flag word (answer 12).** `J`'s row is `{col,row,w,h,t,cc,c7,ch,r,g,b}` and then a
+TAIL `min,max,flags` written only past the last non-default value, with a spring fader's spring
+POSITION as column 15 and a knob's centre in raw units as columns 15 and 16: a region with every
+option at its default has the eleven columns it had (the first four are the BOX in cells now,
+13-15's kind frame went - the pictures need the cells and the frame is three characters of Lua per
+read), and `O` reads the missing columns as `0, 127, 0` once per sample. `c7` is the XY pad's
+second controller or the button's radio group; the toggle moved into the flag word: a fader's bit 0
+Relative, bit 1 Full, bit 2 Spring; an XY pad's bits 0 and 1; a button's bit 0 Toggle (the schema
+keeps `latch`), bit 1 a Note output; a knob's its mode's index 0..3. **The cost per region** in the
+Setup at the widest literals (the pinned `compressScript` after `initLuaFormatter()`, the picker
+corner): a min alone `,100` +4, min and max `,100,120` +8, Relative `,0,127,1` +8, Relative at Full
++8, Spring `,0,127,4,64` +11, everything on `,127,100,7,127` +14, a knob's centre `,0,127,0,64,83`
++13; page 3 with every option on 489 -> 525 (+36). The alternatives - one column per option (each
+boolean `,0` on every later-optioned row) and one packed word for everything (a spring position and
+a centre are numbers) - lost.
+
+**The runtime (answers 5 to 11).** Every continuous kind keeps a POSITION 0..127 along its travel
+and sends through one scale, `min + (max - min) * v // 127`, folded into `D(s,r,n,c,v)` - scale,
+send on change of the sent value, kept in column `n` - so a min above the max inverts the direction
+for nothing and the spring value is stored as the first position that lands it exactly (the span is
+at most 127 wide; `model.ts` `springPosition`). Relative faders and XY pads hold their position in
+FINE units (127 a step, 0..16129): the onset anchors and changes nothing, a move adds the
+displacement times 64 or 127, clamped; the value is held between touches; a spring fader's first
+touch starts from the spring. **The note-off spelling is status 128 with velocity 0** (ORBIT's, the
+note-off proper; on is 144 with the max as the velocity). **The radio group is 1..8** (`GROUP_MAX`,
+the seventh column; None is 0): a press turns every other on member off through `K` first, each
+sending its off and going dark; a second press on an on toggle in a group turns it off. **The knob's
+step rule:** one message per sample carrying the detents crossed in that sample in the encoding
+(two's complement `k%128`, binary offset `64+k`, sign magnitude `k>0 and k or 64-k`) - one
+normally, two or three on a fast turn, at most 22 by construction (the wrap bounds a sample at 180
+degrees), so no cap is written; Min and Max do not apply and the helper says so. **The pictures**
+are the runtime's own `glp` on layer 2 through `Q(r,f)` in the region's colour (the paint sets
+layer 2's colour once; the library's `G` finger is no longer called): a fader's bar from its low
+end to the position (held under Relative, returning to the spring under Spring, cleared under
+Absolute); a button's whole region while on (a toggle stays lit); the XY pad's row and column
+through the finger's cell; the knob's arc from 7:30 to `position*270//127` under Absolute and the
+sector within 45 degrees of the finger under a relative mode, the centre dark, cleared on release.
+Layer 1's rest colour is never touched; the preview runs the same five strings.
+
+**The branches, before -> after** (characters, canonical): R 100 -> 249, O 264 -> 323, the fader
+`I[1]` 116 and `I[2]` 116 -> one text 503 for both orientations (`I[2]=I[1]`), `I[3]` 143 -> 298,
+`I[4]` 218 -> 502, `I[5]` 330 -> 608; new `Q` 111 (the painter), `D` 100 (the scaled send), `K` 114
+(a button's off); the runtime alone 1,340 -> 2,817 with every branch, 1,042 -> 2,230 without the
+knob. **The trim:** a Sandbox landing writes `library-trim.ts`'s halves, sliced from
+`LIBRARY_PARTS` by name (`library.ts` untouched, every catalog record unmoved): **255/0 keeps the
+head, the map, `U E X N` and `self:tim()` - 842 -> 460, 382 freed; 255/6 keeps the marker alone -
+873 -> 9, 864 freed.** The runtime spends the names the trim retires (`Q D K`) beside `S F I R O`
+and calls `E N U X`. `packRuntime` under five slots fills 255/6, 255/0, 255/4 and the Timer LARGEST
+PART FIRST (in the parts' own order the five-kind runtime did not pack). **A full-featured
+five-kind surface** (page 3, every kind): 255/6 869 (39 free), 255/0 908 (0 free), 255/4 834 (74
+free), Timer 783 (125 free), Setup 489; placement R:255/6 O:255/0 Q:Timer D:255/0 K:Timer
+I[1]:255/4 I[3]:255/4 I[4]:Timer I[5]:255/6; every combination of kinds fits five (the dearest,
+3,394 of 3,632 across the four runtime slots); two slots carry no kind any more, three one kind
+alone (the emitter's default stays 2 for the pins). **The cap floor with every option on** - the
+number the user no longer sees: the dearest fader (cc 127, channel 16, the corner, min 127, max 100,
+Relative at Full, the spring at 100 -> `,127,100,7,123`) fits **eleven** times from an empty
+surface before a string is over; from the dearest twelve, fifteen; the dearest sixteen at their
+defaults still fit (892 at five slots).
+
+**The VM cases** (`runtime.spec.ts` 7 -> 14 titles, every new one on the trimmed halves under five
+slots): 8 min and max on every kind - the fader 20..80 sends 80, 20, 67, the inverted horizontal
+100..50 sends 100, 50, 83, the XY pad's one pair 10..20 on both axes, the knob 64..127 sending on
+change of the VALUE (22 messages for 45 detents), the button 5..100 on and off; 9 Relative at Half
+(a touch sends nothing; 13 then 38 for two moves; held across a lift; clamped at 0 sent once; the XY
+pad per axis, the other axis reporting its held value once) and at Full (26, 77); 10 Spring (127
+then 64 on the lift, the bar at three rows; Relative with the spring at 100: 121, 100, 121, 100;
+the spring value clamped into min..max lands exactly); 11 the button (144:127 / 128:0 at C4; the
+toggle's second press; the radio group across three buttons, One's off before Two's on, a momentary
+member's release, a second press on an on toggle); 12 the three encodings up and down, two or three
+detents in one message, `KNOB_STEP_CAP` 22, a scaled two's-complement knob sending 1 all the same;
+13 the pictures per kind and mode read off layer 2 (12 cells, 4 rows, the crosshair's 5 of 9, the
+arc's low cell then two then three, the centre dark, layer 1's 48 untouched; the held bar and the
+sector); 14 the trim (842 -> 460, 873 -> 9, the twelve trimmed globals, canonical) and every
+fixture pressed, moved and lifted on every region with no error. `emit.spec.ts` 7 -> 8: the tail's
+trimming and the flag word, the price per option, the pack (page 3 with every option packs as page
+3: the runtime is per kind), the landing's five strings the trimmed halves and canonical.
+
+**The sandbox-set diff per fixture** (the gate's `--sandbox` term, 168 -> 361 records): the
+twelve fixtures of 10A each keep `emitted-2-slots/mapmode` (the empty string) and, without a knob,
+`landed/timer` and `emitted-at-corner/timer` (the arm and the sweep alone) - 30 byte-identical - and
+move every other record (138: 13 on `runtime/page3`, `emit/page3` and `emit/page3-blanks`, 11 on
+each of the other nine) and gain the five-slot five (`system`, `systemTimer`, `setup`, `timer`,
+`mapmode`) - 60 added; the seven new fixtures (`runtime/scaled`, `relative-half`, `relative-full`,
+`spring`, `notes`, `knobs`, `emit/page3-options`) add nineteen each - 133; 0 removed. **The base
+wire set moved by its thirteen `S/page3/…` records alone** (the Sandbox's page 3 sits in the base
+set: its landed five, its emitted and corner three, its two-slot pair); **zero `E/` or `P/` movers -
+every catalog string byte-identical, the system halves' catalog records unmoved.**
+
+**Counts, carried + delta:** quick 95 / 986 + 1 todo -> **95 / 995 + 1 todo** (+0 / +9: `runtime`
+7 -> 14, `emit` 7 -> 8, `sandbox-ui` 11 -> 12), green twice at `--maxWorkers=2` (`quick-A` 45.1 s,
+`quick-B` 54.2 s); check 658 -> **659** (+1, `library-trim.ts`), 0 / 0; lint clean; sweep `4 19`
+green (`lua-entries` 1,804 combinations, worst 906 of 908); e2e 89 titles / 104 runs -> **90 /
+105** (+1 / +1: the options walk); utilities **44** -> **44** (0 appeared, 0 disappeared); catalog
+**27**, no entry touched; testids 316 -> **319** (`field-latch` gone; `field-toggle`, `field-mode`,
+`field-speed`, `field-spring`, `field-output`, `field-group` new; `field-spring-value`,
+`field-note`, `field-min`, `field-max` the `field-{id}` template); OG 27 files, 159,169 B unmoved;
+`frames.json`, the golden frames, the preset baseline and the synthetic ZONA byte-identical.
+
+**The gate's terms** (`--before change-10b` at `654ee60` on the worktree; `--after change-10b
+--against change-10b --check 659` at `f4c0216`): equal - every catalog string, all four fixtures
+by hash-object, the OG 27 files / 159,169 B `9becd682…`, the utilities 44 -> 44, lint, the
+refuse-list `--stat` empty, the build (stamp `f4c0216`), `src/` 17 modified / 1 added / 0 deleted
+/ 0 renamed; check 658 -> 659; moved as a feature moves them - the wire set `7cda3c4b…` ->
+`d312d08b…` and full `bcf8063c…` -> `3f1d5374…` (the thirteen `S/page3/…` above); the sandbox set
+`5fcc2955…` -> `03d5482c…` (above); the census `522c873a…` -> `e38e23d9…` (2,779 -> 2,835
+literals, 194 -> 195 files: the five branch texts and the release replaced, `G(s,i,e,x,y,2,…)`,
+`Latch`, its helper and `field-latch` 1 -> 0; the thirty new copy strings, the five mode literals,
+`absolute` 3 -> 14, `System` / `System timer` 2 -> 4); the copy exports `27be101c…` -> `fe2f7209…`
+(`LATCH` / `LATCH_HELPER` retired by name, thirty added: `TOGGLE`, `TOGGLE_HELPER`, `MODE`,
+`MODE_ABSOLUTE`, `MODE_RELATIVE`, `MODE_HELPER`, `KNOB_MODE_WORDS`, `KNOB_RELATIVE_HELPER`, `SPEED`,
+`SPEED_HALF`, `SPEED_FULL`, `SPEED_HELPER`, `SPRING`, `SPRING_HELPER`, `SPRING_VALUE`, `OUTPUT`,
+`OUTPUT_CC`, `OUTPUT_NOTE`, `NOTE_NUMBER`, `NOTE_HELPER`, `GROUP`, `GROUP_NONE`, `groupWord`,
+`GROUP_HELPER`, `MIN`, `MAX`, `MIN_MAX_HELPER`, `BUTTON_MIN_MAX_HELPER`, `VALUE_RANGE`, `NOTE_RANGE`);
+the testids `017609a1…` -> `23525109…` (316 -> 319); the SCOPED CSS `e7045f06…` -> `5aa7323e…`
+(RegionInspector's one new rule, `.helper + .grid, .check + .grid`) and the raw CSS `8c4ed778…` ->
+`e6d0ee3b…`; the titles `fa250c25…` -> `25fb536f…` (987 -> 996 vitest incl. todo, 104 -> 105
+playwright); the JS `e131c040…` -> `f1caea60…` (71 files). The script exits 1 at the wire by
+design; the later terms are compared from the two records. **The gate's quick term** printed `check-counts: no Vitest summary lines found on stdin` / `quick exit 1` in BOTH records (the pipe inside the script; the JSON beside each: 985 passed / 1 failed before, 994 / 1 after - the one `radius.spec.ts` layer B, which reads the built CSS and the script builds AFTER the quick term); the same pipeline run by hand on the built tree at `f4c0216` read `observed 95 files, 995 tests passed, 1 todo` and `matches the expected counts`, exit 0, and the raw suite was green twice more (`quick-A`, `quick-B`).
+
+**Chunks** (fresh detached wrangler dev on 4173, stopped through PowerShell, HTTP 000 after each;
+your 5173 untouched): c4 **18 passed** (catalog, fidelity, first-experience, library, sandbox - the
+seven Sandbox titles among them); c5 **1 failed / 10 passed** on the tree's build stamped `654ee60`
+(`artifacts:63`, the stale stamp against HEAD `3381d5a`), then **11 passed** on the gate's build at
+`f4c0216` (rerun `c5-change10b`); c2 **1 failed / 21 passed** at three workers and again at
+`--workers 1` (`browse:343`, the grid read before hydration, the flake changes 3, 4, 6 and 10A
+recorded), then `browse:343` alone **1 passed** twice on fresh servers (reruns
+`c2-alone-343-change10b`, `-2`). c1 and c3 not run: no install, session or tuning title reads the
+Sandbox (`install.e2e.ts` names no Sandbox frame; the trimmed halves reach the fake through
+`sandbox.e2e.ts`'s loop, re-aimed).
+
+**Questions for the user.** (a) The note-off is status 128 / velocity 0 (ORBIT's spelling); say if
+you want 144 / 0 instead. (b) The radio group is 1..8; say if you want more. (c) A relative knob
+sends the detents crossed in one sample as one message (usually 1; 2 or 3 on a fast turn); say if
+you want exactly one step per message instead. (d) A relative fader or XY pad starts from 0 on its
+first ever touch (from the spring value with a spring); say if it should start from the centre.
+(e) A second press on an on toggle inside a radio group turns it off (TouchOSC keeps one member
+always on); say which you want. (f) The XY pad's relative mode reports the other axis's held value
+once on the first move; say if it should stay silent. (g) Sending is on change of the sent value
+per region across touches now (13-15 re-sent per contact): a re-press at the same value sends
+nothing; say if a fresh touch should re-send. (h) The knob's arc runs 7:30 to 4:30 (270 degrees)
+with the centre cell dark; say if you want a full circle or the centre lit. (i) The inline
+contingency (`runtime: "inline"`) is retired by name - it read the old frame and could never carry
+a knob; say if it should come back. (j) Two slots carry no kind and three slots one kind alone now;
+the emitter's default stays 2 for the specs' pins - say if the default should move to 5.
+(k) Changes 1 to 10A's questions still stand.
+
+**Not supported by the tree / departures from the brief:** `W` is not a separate scale function -
+it is folded into `D` (47 characters cheaper); the knob's centre is two row columns, not the knots
+(85 characters of runtime); the fader's two orientations are one text; the pictures set phases
+alone and the Setup's paint sets layer 2's colour (+27 in the paint, once); the packer is first-fit
+DECREASING (the parts' own order did not pack the five-kind runtime); the inline contingency is
+retired; `install.spec.ts`'s landing assertions read the trimmed halves; `hash-wire.mjs` records
+the five-slot halves under `--sandbox` (the base set's `S/page3/` records moved with the feature -
+the brief's "catalog wire set byte-identical" holds for every `E/` and `P/` record); the gate's
+quick term printed "no Vitest summary lines" in BOTH records (the pipe into `check-counts.mjs`
+inside the script; the JSON beside it: 985 / 1 before, 994 / 1 after, the one `radius.spec.ts`
+layer B on a build that was absent or stale at that point of the script, green in `quick-A` /
+`quick-B` and on the fresh build); `docs/CODE-STYLE.md`'s ten-line rule needed a fifth commit
+(`4e37b99`); ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`; the worktree
+`../hangar-gate-10b` was removed after the records were copied.
