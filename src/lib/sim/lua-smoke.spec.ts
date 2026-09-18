@@ -29,8 +29,8 @@ import {
 } from "../catalog/library";
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
-import { blankPadState, renderLua } from "./lua-pad-sim";
-import { widgetFor, wordFor } from "../tune/view";
+import { blankPadState, previewIndices, renderLua } from "./lua-pad-sim";
+import { noteName, noteNumber, widgetFor, wordFor } from "../tune/view";
 
 /** Ticks after the gesture, long enough for a decay to expire many times. */
 const SETTLE_TICKS = 200;
@@ -1006,7 +1006,7 @@ async function sweepConsoleColumn(
 // ---------------------------------------------------------------------------
 // THE SWIPE FAMILY (plan 11-08)
 //
-// EUCLID, SONAR and STEPS all toggle a cell, and all three used to filter every
+// ORBIT (EUCLID until change 8), SONAR and STEPS all toggle a cell, and all three used to filter every
 // MOVE out at the first line of the touch callback - so a finger drawn across
 // the pad changed the cell it landed on and nothing else. Measured, before the
 // fix: a 128-sample swipe along row 4 changed 0 cells on EUCLID (its landing
@@ -1039,20 +1039,20 @@ type SwipeEntry = {
   readonly why: string;
 };
 
-/** Chebyshev distance from the centre cell (4,4). EUCLID's ring number. */
+/** Chebyshev distance from the centre cell (4,4). ORBIT's ring number (1..4 since change 8). */
 function ringOf(cell: number): number {
   return Math.max(Math.abs((cell % 9) - 4), Math.abs(Math.floor(cell / 9) - 4));
 }
 
 const SWIPE_ENTRIES: readonly SwipeEntry[] = [
   {
-    id: "euclid",
+    id: "orbit",
     armLayer: 1,
-    eligible: (cell) => ringOf(cell) >= 1 && ringOf(cell) <= 3,
+    eligible: (cell) => ringOf(cell) >= 1 && ringOf(cell) <= 4,
     why:
-      "EUCLID's rings are the three concentric squares at Chebyshev distance " +
-      "1, 2 and 3; the centre and the outermost square carry no step, and its " +
-      "Setup leaves self.i nil for both",
+      "ORBIT's rings are the four concentric squares at Chebyshev distance " +
+      "1, 2, 3 and 4 (the outermost square is the fourth ring since change 8); " +
+      "only the centre carries no step, and its Setup leaves self.i nil there",
   },
   {
     id: "sonar",
@@ -1898,7 +1898,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     expect(report.length, "every stage of the mute probe ran").toBe(6);
   }, 120000);
 
-  it("arms one cell per cell a swipe crosses, on EUCLID, SONAR and STEPS", async () => {
+  it("arms one cell per cell a swipe crosses, on ORBIT, SONAR and STEPS", async () => {
     const report: string[] = [];
 
     for (const row of SWIPE_ENTRIES) {
@@ -1958,7 +1958,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         `${row.id}: A SWIPE MUST ARM EVERY CELL IT CROSSES, ONCE EACH. The ` +
           "callback used to filter every MOVE out at its first line, so a " +
           "drag changed only the cell it landed on: measured before the fix, " +
-          "0 cells on euclid and 1 on sonar and steps. " +
+          "0 cells on euclid (orbit since change 8) and 1 on sonar and steps. " +
           `${row.why}. Observed [${swiped.join(", ")}]`,
       ).toEqual(crossed);
 
@@ -6974,7 +6974,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // PROBE RULE 1, ON THE PROBE'S OWN NUMBERS (Q2). The user's trace was
     // 71, 72, 71, 71, 71 from a finger that was not moving, and `71*9//128 = 4`
     // while `72*9//128 = 5` - so the naive read flips the cell on a one-unit
-    // wobble. That is what EUCLID, STEPS and RADAR POINTS reported as "not
+    // wobble. That is what EUCLID (ORBIT now), STEPS and RADAR POINTS reported as "not
     // precise", and this is the test that says it cannot happen again.
     const sim = new PadSim(blankPadState());
     const host = await createLuaHost({
@@ -7440,7 +7440,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     readonly why: string;
   }[] = [
     {
-      id: "euclid",
+      id: "orbit",
       armLayer: 1,
       why: "the ring markers are layer 1; the running head and its trail are layer 2",
     },
@@ -7479,7 +7479,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
   /** The naive read of one axis - what every one of the four used to compute. */
   const naiveAxis = (v: number): number => Math.floor((v * 9) / 128);
 
-  it("holds a boundary finger on one cell on EUCLID, STEPS, RADAR POINTS and SONAR, counted", async () => {
+  it("holds a boundary finger on one cell on ORBIT, STEPS, RADAR POINTS and SONAR, counted", async () => {
     // THE GESTURE IS A REAL BOUNDARY WOBBLE AND NOT A STILL FINGER, and that is
     // asserted before anything is measured through an entry. The naive column
     // for 71, 72, 71, 72, 71, 73, 72 is 4, 5, 4, 5, 4, 5, 5 - FIVE crossings
@@ -7648,7 +7648,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // THE SWEEP IS WIRED, NOT MERELY PRESENT.
     //
     // SONAR carries this half, and the reason is arithmetic: its @PERIOD
-    // default is 70 ms against RADAR POINTS' 140, EUCLID's 110 and STEPS's
+    // default is 70 ms against RADAR POINTS' 140, ORBIT's 110 and STEPS's
     // 120, so 21 Timer calls are 147 ticks here and up to 294 elsewhere - the
     // same proof at half the run. A DOWN with no UP is Q6.5 exactly: four of
     // five contacts never sent their code 5 after a five-finger chord, and
@@ -9379,6 +9379,362 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length, "every stage of the chorus probe ran").toBe(4);
   }, 120000);
+
+  it("runs ORBIT: four rings step and send their own notes from the Timer under Internal with 32 steps on the outer ring and each ring's colour on its cells, External ignores the Timer's tempo and steps every Division clocks from Start, Stop halts, Continue resumes, active sensing does nothing, the preview holds Internal, and the note field reads C#3 and 49 alike", async () => {
+    // CHANGE 8 (2026-09-18, BENCH-2026-09-16.txt section 8). The host has no
+    // MIDI input, so the DAW's realtime bytes are driven straight at the
+    // configuration's `rtmrx_cb` through `host.rtm(byte)` - the same call
+    // `decode.lua:42-44` makes - and the routing gate the firmware applies
+    // first (`grid_decode.c:388`, `rx_mode`) is read off `host.rxMode`.
+    const entry = entryById("orbit");
+    const notes = [1, 2, 3, 4].map((d) => knobValueOf(entry, `note${d}`));
+    const channel = knobValueOf(entry, "channel");
+    const pulsesKnob = entry.knobs.find((knob) => knob.id === "pulses");
+    const tempoKnob = entry.knobs.find((knob) => knob.id === "tempo");
+    const syncKnob = entry.knobs.find((knob) => knob.id === "sync");
+    const divisionKnob = entry.knobs.find((knob) => knob.id === "division");
+    if (!pulsesKnob || !tempoKnob || !syncKnob || !divisionKnob)
+      throw new Error("orbit: pulses, tempo, sync and division knobs expected");
+    const pulses = pulsesKnob.values[entry.defaults.pulses]
+      .split(",")
+      .map(Number);
+    expect(notes, "orbit: the GM drum map inner to outer").toEqual([
+      36, 38, 42, 46,
+    ]);
+    expect(
+      tempoKnob.values.map(Number),
+      "orbit: the tempo list reads slow on the right (the bigger number)",
+    ).toEqual([70, 90, 110, 140, 180, 240]);
+    expect(
+      knobValueOf(entry, "tempo"),
+      "orbit: 110 ms is still the default",
+    ).toBe(110);
+    expect(pulses, "orbit: four pulse counts").toHaveLength(4);
+    /** Ring d's length in steps: the four concentric squares hold 8, 16, 24, 32 cells. */
+    const lengthOf = (d: number): number => d * 8;
+    /** The Euclidean test the Setup bakes: is step t of ring d a pulse. */
+    const pulseAt = (d: number, t: number): boolean => {
+      const n = lengthOf(d);
+      const h = pulses[d - 1];
+      return Math.floor((t * h) / n) !== Math.floor(((t - 1) * h) / n);
+    };
+    /** The cells of ring d, in the Setup's own order: (d, t%(2d)-d) turned a quarter t//(2d) times. */
+    const cellsOf = (d: number): number[] => {
+      const out: number[] = [];
+      for (let t = 0; t < lengthOf(d); t += 1) {
+        let a = d;
+        let b = (t % (d * 2)) - d;
+        for (let j = 0; j < Math.floor(t / (d * 2)); j += 1) {
+          const na = -b;
+          b = a;
+          a = na;
+        }
+        out.push(a + 4 + (b + 4) * 9);
+      }
+      return out;
+    };
+    for (let d = 1; d <= 4; d += 1) {
+      const cells = cellsOf(d);
+      expect(
+        new Set(cells).size,
+        `ring ${d}: ${lengthOf(d)} distinct cells`,
+      ).toBe(lengthOf(d));
+      for (const cell of cells)
+        expect(
+          ringOf(cell),
+          `ring ${d}: cell ${cell} at Chebyshev distance ${d}`,
+        ).toBe(d);
+    }
+    expect(
+      cellsOf(4),
+      "the outer ring is the outermost square, 32 cells",
+    ).toHaveLength(32);
+
+    async function openWith(over: Record<string, number>) {
+      const { setup, timer } = renderLua(entry, { ...entry.defaults, ...over });
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup,
+        timer,
+      });
+      return { host, sim };
+    }
+    type Opened = Awaited<ReturnType<typeof openWith>>;
+    /** The Timer's period in ticks at the default tempo: 110 ms at 10 ms a tick. */
+    const PERIOD = knobValueOf(entry, "tempo") / 10;
+    const since = ({ host }: Opened, from: number): string[] =>
+      host.midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
+    const stepOf = ({ host }: Opened): number => host.selfNumber("k") ?? -1;
+    const clocksOf = ({ host }: Opened): number => host.selfNumber("q") ?? -1;
+    const CLOCK = 248;
+    const START = 250;
+    const CONTINUE = 251;
+    const STOP = 252;
+    const SENSING = 254;
+    const report: string[] = [];
+
+    // -----------------------------------------------------------------------
+    // 1. INTERNAL: the Timer steps every ring, the notes are each ring's own.
+    {
+      const run = await openWith({});
+      const { host, sim } = run;
+      try {
+        expect(host.errors, "orbit: the Setup raised").toEqual([]);
+        expect(
+          host.rxMode,
+          "Internal asks grxm(2,0): MIDIRTM stays unrouted",
+        ).toBe(0);
+        expect(
+          host.midi,
+          "nothing is sent before the first Timer call",
+        ).toHaveLength(0);
+        host.run(PERIOD + 1);
+        // Step 0 is a pulse on every ring (t*h//n is 0 and (t-1)*h//n is -1), so
+        // the first call sends four note-offs and four note-ons, inner to outer.
+        expect(
+          since(run, 0),
+          "the first step: an off then an on per ring, on the ring's note",
+        ).toEqual(
+          [1, 2, 3, 4].flatMap((d) => [
+            `${channel}:128:${notes[d - 1]}:0`,
+            `${channel}:144:${notes[d - 1]}:100`,
+          ]),
+        );
+        // A whole 96-step cycle: every ring's note-ons are exactly its pulses
+        // times its cycles, so the outer ring proves its 32 steps by count.
+        const mark = host.midi.length;
+        host.run(PERIOD * 95);
+        expect(stepOf(run), "96 steps wrap to 0").toBe(0);
+        const ons = host.midi.slice(mark).filter((m) => m.cmd === 144);
+        for (let d = 1; d <= 4; d += 1) {
+          const own = ons.filter((m) => m.p1 === notes[d - 1]).length;
+          const expected = pulses[d - 1] * (96 / lengthOf(d)) - 1;
+          expect(
+            own,
+            `ring ${d}: ${pulses[d - 1]} pulses over ${lengthOf(d)} steps, ${96 / lengthOf(d)} cycles in 96 steps (step 0 already counted)`,
+          ).toBe(expected);
+        }
+        expect(
+          host.midi.filter((m) => m.cmd === 128).length,
+          "one note-off per ring per step",
+        ).toBe(96 * 4);
+        // The outer ring's on-steps are the Euclidean pattern over 32, read off
+        // the calls: step t of ring 4 is call t within its cycle.
+        const offsOf4 = host.midi
+          .map((m, at) => ({ m, at }))
+          .filter(({ m }) => m.cmd === 128 && m.p1 === notes[3]);
+        const onSteps = offsOf4
+          .map(({ at }, t) =>
+            host.midi[at + 1]?.cmd === 144 && host.midi[at + 1]?.p1 === notes[3]
+              ? t % 32
+              : -1,
+          )
+          .filter((t) => t >= 0);
+        const expectedOn = Array.from({ length: 32 }, (_, t) => t).filter((t) =>
+          pulseAt(4, t),
+        );
+        expect(
+          [...new Set(onSteps)].sort((a, b) => a - b),
+          "the outer ring's pulses over 32 steps",
+        ).toEqual(expectedOn);
+        // Every ring cell carries its ring's colour on layer 2 after one cycle.
+        for (let d = 1; d <= 4; d += 1) {
+          const colour = entry.knobs
+            .find((knob) => knob.id === `ring${d}Colour`)!
+            .values[entry.defaults[`ring${d}Colour`]].split(",")
+            .map(Number);
+          for (const cell of cellsOf(d)) {
+            expect(
+              [...sim.layer(hwOfCell(cell), 2).max],
+              `ring ${d}: cell ${cell} carries its ring's colour on layer 2`,
+            ).toEqual(colour);
+          }
+        }
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          `  Internal: 96 steps in ${PERIOD * 96} ticks, note-ons per ring ${[
+            1, 2, 3, 4,
+          ]
+            .map((d) => ons.filter((m) => m.p1 === notes[d - 1]).length + 1)
+            .join("/")}, outer-ring pulses at steps ${expectedOn.join(" ")}`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. EXTERNAL: the Timer steps nothing; the clock does, every Division.
+    {
+      const run = await openWith({ sync: 1 });
+      const { host } = run;
+      try {
+        expect(
+          host.rxMode,
+          "External asks grxm(2,3): MIDIRTM routed to Lua",
+        ).toBe(3);
+        host.run(PERIOD * 3);
+        expect(
+          host.midi,
+          "the Timer sends nothing under External",
+        ).toHaveLength(0);
+        expect(stepOf(run), "the Timer steps nothing under External").toBe(0);
+        // Clocks before Start do nothing: the rings wait for the DAW's play.
+        for (let n = 0; n < 12; n += 1)
+          expect(host.rtm(CLOCK), "the handler exists").toBe(true);
+        expect(stepOf(run), "clocks before Start step nothing").toBe(0);
+        expect(host.midi, "clocks before Start send nothing").toHaveLength(0);
+        // Start, then the first clock lands step 0; the 16th is six clocks.
+        host.rtm(START);
+        expect(clocksOf(run), "Start resets the clock count").toBe(0);
+        host.rtm(CLOCK);
+        expect(since(run, 0), "the first clock after Start is step 0").toEqual(
+          [1, 2, 3, 4].flatMap((d) => [
+            `${channel}:128:${notes[d - 1]}:0`,
+            `${channel}:144:${notes[d - 1]}:100`,
+          ]),
+        );
+        expect(stepOf(run)).toBe(1);
+        for (let n = 0; n < 5; n += 1) host.rtm(CLOCK);
+        expect(
+          stepOf(run),
+          "five more clocks: still inside the first 16th",
+        ).toBe(1);
+        host.rtm(CLOCK);
+        expect(stepOf(run), "the seventh clock is the second step").toBe(2);
+        // The Timer's tempo is ignored: two hundred ticks move no step.
+        const before = host.midi.length;
+        host.run(200);
+        expect(stepOf(run), "the Timer does not step under External").toBe(2);
+        expect(host.midi.length, "nor send").toBe(before);
+        // Stop halts; clocks and active sensing after it do nothing.
+        host.rtm(STOP);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        host.rtm(SENSING);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        expect(stepOf(run), "Stop halts the rings").toBe(2);
+        expect(host.midi.length, "nothing sent while stopped").toBe(before);
+        // Continue resumes where it was: the count goes on from 7.
+        host.rtm(CONTINUE);
+        expect(clocksOf(run), "Continue keeps the clock count").toBe(7);
+        for (let n = 0; n < 5; n += 1) host.rtm(CLOCK);
+        expect(
+          stepOf(run),
+          "five clocks on: the count is 12, not yet stepped",
+        ).toBe(2);
+        host.rtm(CLOCK);
+        expect(stepOf(run), "the clock at count twelve is the third step").toBe(
+          3,
+        );
+        // Start again resets to step 0 and runs.
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(
+          stepOf(run),
+          "Start resets to step 0, and the clock lands it",
+        ).toBe(1);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          `  External at the 16th: step 0 on the first clock after Start, step 1 on the seventh; 200 Timer ticks moved nothing; Stop held it; Continue went on from clock 7; Start reset it`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. THE DIVISION: an 8th is twelve clocks, a 32nd three; and a clock that
+    //    arrives before the Timer has published the step routine is counted,
+    //    not stepped (the one-period caveat the entry's header states).
+    for (const [index, clocks] of [
+      [0, 12],
+      [2, 3],
+    ] as const) {
+      const run = await openWith({ sync: 1, division: index });
+      const { host } = run;
+      try {
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(
+          stepOf(run),
+          `division ${divisionKnob.values[index]}: a clock before the first Timer call is counted, not stepped`,
+        ).toBe(0);
+        expect(clocksOf(run)).toBe(1);
+        host.run(PERIOD + 1);
+        // The lost step 0 costs nothing in phase: the step routine is published now, and the
+        // clock whose count is a multiple of the division lands the step it always would have.
+        for (let n = 0; n < clocks; n += 1) host.rtm(CLOCK);
+        expect(
+          stepOf(run),
+          `division ${divisionKnob.values[index]}: clock ${clocks + 1} after Start is step 1`,
+        ).toBe(1);
+        for (let n = 0; n < clocks; n += 1) host.rtm(CLOCK);
+        expect(
+          stepOf(run),
+          `division ${divisionKnob.values[index]}: ${clocks} more clocks, one more step`,
+        ).toBe(2);
+        report.push(
+          `  Division ${divisionKnob.values[index]} clocks a step: steps at clocks ${clocks + 1} and ${clocks * 2 + 1} after Start (the first clock arrived before the Timer published the routine: counted, not stepped)`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. THE WORDS, THE PREVIEW AND THE NOTE FIELD.
+    expect(
+      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+      "Sync reads Internal / External",
+    ).toEqual(["Internal", "External"]);
+    expect(widgetFor(syncKnob.kind, syncKnob.values)).toBe("words");
+    expect(
+      divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
+      "Division reads 8th / 16th / 32nd",
+    ).toEqual(["8th", "16th", "32nd"]);
+    expect(widgetFor(divisionKnob.kind, divisionKnob.values)).toBe("words");
+    expect(
+      previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync,
+      "the preview renders Internal whatever Sync says (no clock reaches a browser)",
+    ).toBe(0);
+    expect(
+      previewIndices(entry, entry.defaults)?.tempo,
+      "every other index is the visitor's",
+    ).toBe(entry.defaults.tempo);
+    for (const d of [1, 2, 3, 4]) {
+      const knob = entry.knobs.find(
+        (candidate) => candidate.id === `note${d}`,
+      )!;
+      expect(knob.values, `note${d}: every MIDI note`).toHaveLength(128);
+      expect(
+        wordFor("note", knob.values[knob.default]),
+        `note${d}: the readout is the name`,
+      ).toBe(noteName(notes[d - 1]));
+    }
+    expect(noteNumber("C#3"), "C#3 is 49").toBe(49);
+    expect(noteNumber("49"), "49 is 49").toBe(49);
+    expect(noteNumber(" db3 "), "a flat, lower case, padded").toBe(49);
+    expect(
+      noteNumber("C-1"),
+      "the bottom of the range, in noteName's spelling (C4 = 60)",
+    ).toBe(0);
+    expect(noteNumber("G9"), "the top of the range").toBe(127);
+    expect(noteNumber("128"), "128 is refused").toBeUndefined();
+    expect(noteNumber("H3"), "H3 is refused").toBeUndefined();
+    expect(noteNumber("G#9"), "G#9 is past 127").toBeUndefined();
+    expect(noteNumber("-1"), "-1 is refused").toBeUndefined();
+    expect(noteName(49), "and back").toBe("C#3");
+
+    process.stdout.write(
+      "\nORBIT, four rings, a colour and a note each, Internal or the DAW's clock (change 8, 2026-09-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length, "every stage of the orbit probe ran").toBe(4);
+  }, 120000);
 });
 
 // ---------------------------------------------------------------------------
@@ -9414,7 +9770,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
 describe("the gradient (12.1)", () => {
   /**
-   * The EUCLID shape of the callback, with Q first (see the header above):
+   * The EUCLID (now ORBIT) shape of the callback, with Q first (see the header above):
    * the cell Q returns goes out as CC 1 so the test can read it, and G draws
    * the finger white on layer 0.
    */
@@ -9879,7 +10235,7 @@ describe("the gradient (12.1)", () => {
   /**
    * The finger colour an entry hands to G, READ OFF THE RENDERED SETUP - the
    * three literals after the layer in its one `G(s,i,e,x,y,0,r,g,b)` call
-   * (white on EUCLID and STEPS, the rendered @SWEEPC on RADAR POINTS and SONAR;
+   * (white on ORBIT and STEPS, the rendered @SWEEPC on RADAR POINTS and SONAR;
    * 12.1-CONTEXT D-13). Not read off a knob: STEPS has a @SWEEPC knob of its
    * own for the sweeping column and hands G white regardless.
    */
@@ -9899,7 +10255,7 @@ describe("the gradient (12.1)", () => {
     return Number(m[1]);
   };
 
-  it("draws the finger on all 81 LED centres of EUCLID, STEPS, RADAR POINTS and SONAR in each entry's colour, toggles EUCLID's outer ring on the first tap, and keeps the sweeps' centre dot through a sweep expiry and a lost-lift re-press", async () => {
+  it("draws the finger on all 81 LED centres of ORBIT, STEPS, RADAR POINTS and SONAR in each entry's colour, toggles ORBIT's third ring on the first tap, and keeps the sweeps' centre dot through a sweep expiry and a lost-lift re-press", async () => {
     // PLAN 12.1-03. Each of the four sequencers now writes `Q` first, then
     // `G(s,i,e,x,y,0,<colour>)`, so the cell Q toggles and the LED G lights are
     // the same LED because both read U over the measured map. RADAR POINTS
@@ -9911,7 +10267,7 @@ describe("the gradient (12.1)", () => {
     const SWEEPS = new Set(["radar-points", "sonar"]);
     const midX = Math.floor((KX[4] + KX[5]) / 2);
 
-    for (const id of ["euclid", "steps", "radar-points", "sonar"]) {
+    for (const id of ["orbit", "steps", "radar-points", "sonar"]) {
       const entry = entryById(id);
       const sweep = SWEEPS.has(id);
       const colour = fingerColourOf(entry);
@@ -9957,9 +10313,9 @@ describe("the gradient (12.1)", () => {
           identity.push(row);
         }
         expect(host.errors, `${id}: ${host.errors.join(" | ")}`).toEqual([]);
-        if (id === "euclid") {
+        if (id === "orbit") {
           report.push(
-            "  EUCLID, the 81 LED centres, # where the press lit its own cell " +
+            "  ORBIT, the 81 LED centres, # where the press lit its own cell " +
               "alone (the map is the identity):",
           );
           for (const row of identity) report.push(`    ${row}`);
@@ -10022,13 +10378,15 @@ describe("the gradient (12.1)", () => {
           );
         }
 
-        // 3. EUCLID'S OUTER RING, the tap the bench said needed several tries.
-        //    LED (1,4) is cell 37, Chebyshev distance 3 - the outer Euclid
-        //    ring. The naive divisor reads that same press as a cell on NO
-        //    ring (computed here), which is why `if not v then return end`
-        //    dropped it silently; through Q it flips the step on the first
-        //    try, seen on layer 1.
-        if (id === "euclid") {
+        // 3. THE THIRD RING (EUCLID's outer one until change 8), the tap the
+        //    bench said needed several tries. LED (1,4) is cell 37, Chebyshev
+        //    distance 3. The naive divisor reads that same press as a cell on
+        //    the square outside it (computed here) - on NO ring while EUCLID had
+        //    three, which is why `if not v then return end` dropped it silently;
+        //    on ORBIT that square is the fourth ring, so the naive read would
+        //    have toggled the WRONG ring. Through Q it flips the right step on
+        //    the first try, seen on layer 1.
+        if (id === "orbit") {
           const cell = 1 + 4 * 9;
           const naive =
             Math.floor((KX[1] * 9) / 128) + Math.floor((KY[4] * 9) / 128) * 9;
@@ -10039,19 +10397,19 @@ describe("the gradient (12.1)", () => {
           host.touchUp(0, KX[1], KY[4]);
           host.tick();
           report.push(
-            `  EUCLID: a press dead on LED (1,4) toggles cell ${cell} (ring ` +
+            `  ORBIT: a press dead on LED (1,4) toggles cell ${cell} (ring ` +
               `${ringOf(cell)}): layer 1 ${before} -> ${after}; the naive ` +
-              `divisor read cell ${naive} (ring ${ringOf(naive)}, on no ring)`,
+              `divisor read cell ${naive} (ring ${ringOf(naive)}, the wrong ring)`,
           );
-          expect(ringOf(cell), "cell 37 is on the outer Euclid ring").toBe(3);
+          expect(ringOf(cell), "cell 37 is on the third ring").toBe(3);
           expect(
             after,
-            "EUCLID: the first tap on the outer ring did not flip the step",
+            "ORBIT: the first tap on the third ring did not flip the step",
           ).not.toBe(before);
           expect(
             ringOf(naive),
-            "the naive divisor reads the outer-ring press as a cell on no " +
-              "ring - the tap that needed several tries",
+            "the naive divisor reads the third-ring press as a cell on the " +
+              "square outside it - the tap that needed several tries",
           ).toBe(4);
         }
 

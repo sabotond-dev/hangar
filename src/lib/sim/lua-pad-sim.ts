@@ -73,6 +73,22 @@ export function renderLua(
   return { setup, timer };
 }
 
+/**
+ * The indices the PREVIEW renders: a knob that declares `previewIndex` is held there whatever the
+ * visitor chose, because the browser cannot honour the choice (ORBIT's Sync: no MIDI clock reaches
+ * a preview). `renderLua` itself never reads it - the wire and the meters carry the chosen index.
+ */
+export function previewIndices(
+  entry: CatalogEntry,
+  knobs?: Readonly<Record<string, number>>,
+): Readonly<Record<string, number>> | undefined {
+  const held = entry.knobs.filter((knob) => knob.previewIndex !== undefined);
+  if (held.length === 0) return knobs;
+  const out: Record<string, number> = { ...(knobs ?? {}) };
+  for (const knob of held) out[knob.id] = knob.previewIndex as number;
+  return out;
+}
+
 /** A SimEngine backed by a real Lua 5.4 VM over the vendored LED engine. */
 export class LuaPadSim implements SimEngine {
   private readonly host: LuaHost;
@@ -158,7 +174,7 @@ export async function createLuaPadSim(
   knobs?: Readonly<Record<string, number>>,
   brightness: number = BRIGHTNESS_FULL,
 ): Promise<LuaPadSim> {
-  const rendered = renderLua(entry, knobs);
+  const rendered = renderLua(entry, previewIndices(entry, knobs));
   const sites = sitesFor(entry.id);
   const setup = scaleLua(rendered.setup, brightness, sites);
   const timer = scaleLua(rendered.timer, brightness, sites);

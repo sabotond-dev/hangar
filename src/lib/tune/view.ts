@@ -128,6 +128,13 @@ export type TuneView = {
   brightness: number;
   /** False when the card declares `rollable: false` (change 7): no Randomize, no Undo, no row lock. */
   rollable: boolean;
+  /**
+   * The ids of the knobs the browser preview is holding at their `previewIndex` because the visitor
+   * chose a position the browser cannot honour (change 8: ORBIT's Sync at External - no MIDI clock
+   * reaches a preview). Empty on every other card and at every honoured position; the inspector says
+   * so under Behavior whenever it is not.
+   */
+  previewHeld: readonly string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -190,6 +197,31 @@ const INVERSION_WORDS = {
   "0": "Off",
   "2": "Smart",
 } as const;
+
+/**
+ * ORBIT's clock source (change 8, 2026-09-18), keyed by the Lua boolean the knob substitutes: the
+ * Setup folds it to `grxm(2,3)` or `grxm(2,0)` and the Timer steps only when it is false. Booleans,
+ * not 0 / 3, so no mode literal collides with the inversion's.
+ */
+const SYNC_WORDS = {
+  false: "Internal",
+  true: "External",
+} as const;
+
+/** ORBIT's step division under External (change 8): MIDI clocks per step, 24 to the quarter. */
+const DIVISION_WORDS = {
+  "12": "8th",
+  "6": "16th",
+  "3": "32nd",
+} as const;
+
+/** The `mode` tables after the dial's own two words, tried in this order; every key is unique across them. */
+const MODE_TABLES: readonly Readonly<Record<string, string>>[] = [
+  SHAPE_WORDS,
+  INVERSION_WORDS,
+  SYNC_WORDS,
+  DIVISION_WORDS,
+];
 
 /** The compiler's `BendAxis`. */
 const BEND_WORDS = {
@@ -284,6 +316,30 @@ export function noteName(midi: number): string {
   return `${NOTE_NAMES[index]}${Math.floor(n / 12) - 1}`;
 }
 
+/** `C#3` / `Db3` / `c#3` -> a letter, an optional accidental, an octave -2..9. The other direction of `noteName`. */
+const NOTE_TEXT = /^([A-Ga-g])([#b]?)(-?[0-9]+)$/;
+
+/**
+ * The MIDI number a typed note names, 0..127, or undefined (change 8, 2026-09-18: ORBIT's ring
+ * notes are typed). Names and numbers alike, in `noteName`'s own spelling (C4 = 60, so 0 is C-1 and
+ * 127 is G9 - Live's C-2..G8 is the same 0..127 one octave lower in name): `C#3` and `49` both give
+ * 49; `Db3` too; `C-1` is 0 and `G9` 127; `H3`, `128`, `G#9` and `-1` are refused. Trimmed; the
+ * letter's case is free.
+ */
+export function noteNumber(text: string): number | undefined {
+  const typed = text.trim();
+  if (INTEGER.test(typed)) {
+    const n = Number.parseInt(typed, 10);
+    return n >= 0 && n <= 127 ? n : undefined;
+  }
+  const m = NOTE_TEXT.exec(typed);
+  if (m === null) return undefined;
+  const letter = NOTE_NAMES.indexOf(m[1].toUpperCase());
+  const accidental = m[2] === "#" ? 1 : m[2] === "b" ? -1 : 0;
+  const n = (Number.parseInt(m[3], 10) + 1) * 12 + letter + accidental;
+  return n >= 0 && n <= 127 ? n : undefined;
+}
+
 /**
  * The display word for one value of one kind, or undefined when the kind has
  * no table or the value is not in it. `widgetFor` uses this to decide whether
@@ -307,13 +363,13 @@ export function wordFor(
               ? SPRING_WORDS
               : undefined;
   if (table) {
-    return (
-      table[literal] ??
-      (kind === "mode"
-        ? ((SHAPE_WORDS as Readonly<Record<string, string>>)[literal] ??
-          (INVERSION_WORDS as Readonly<Record<string, string>>)[literal])
-        : undefined)
-    );
+    const own = table[literal];
+    if (own !== undefined || kind !== "mode") return own;
+    for (const more of MODE_TABLES) {
+      const word = more[literal];
+      if (word !== undefined) return word;
+    }
+    return undefined;
   }
   if (kind === "note") {
     return INTEGER.test(literal)

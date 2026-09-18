@@ -258,35 +258,35 @@
         "animating": true
       }
     ],
-    "euclid": [
+    "orbit": [
       {
         "tick": 0,
-        "sha256": "c8fed8e89467d6ec7acc8bd8de7ff3f12a2acd632331b1af2d204c092720b9f0",
-        "nonZeroBytes": 30,
+        "sha256": "a69abaada33633ba0be3a7f05862311cb2a15fa14434fcc5551cf7a7fa395388",
+        "nonZeroBytes": 52,
         "animating": true
       },
       {
         "tick": 37,
-        "sha256": "fbf5e753419967d3353477c6c8238dba7703a91609a77b4d51db88415ac1bb16",
-        "nonZeroBytes": 45,
+        "sha256": "4dfb886bd7be475a697b4526211dbf7c141fed05d8e4db66d89d1875367b3404",
+        "nonZeroBytes": 74,
         "animating": true
       },
       {
         "tick": 101,
-        "sha256": "bf6a7a89ec0ad828238f1ffbbce15ef71750b15a330581fd1518fa6e7646a795",
-        "nonZeroBytes": 50,
+        "sha256": "ec1a68aafe76f20bc5ec6347d2c3e5b126b0cd2663108b41d278bf95f4c74daa",
+        "nonZeroBytes": 82,
         "animating": true
       },
       {
         "tick": 500,
-        "sha256": "a5a2d8adb2fe0bbdd0b325e954250b4090bae4dcc5b152a696c3664619e4f578",
-        "nonZeroBytes": 51,
+        "sha256": "b0c1ba96e0dcf9c7616b33a4613aa6fca2c8baa792fa71c77dcc7b12ab6625dc",
+        "nonZeroBytes": 81,
         "animating": true
       },
       {
         "tick": 1009,
-        "sha256": "e21cd5611db6f1cf9cca40ecf286ddf27453db774aced2f9fe937e5133cf1504",
-        "nonZeroBytes": 45,
+        "sha256": "110d092acf0e642f65ad46f8254de9d4cf9c9dd7afbe9b2a2012390df76c2b48",
+        "nonZeroBytes": 74,
         "animating": true
       }
     ],

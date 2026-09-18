@@ -249,13 +249,13 @@ describe("the browse filter (src/lib/browse/filter.ts)", () => {
       matches(byId("aurora"), "glowing"),
       "a term in the description only",
     ).toBe(true);
-    // "sequencing" is one of EUCLID's three tags and appears in neither its
+    // "sequencing" is one of ORBIT's three tags and appears in neither its
     // name nor its description, which is what makes it a tags-only term. It
     // replaces "polyrhythm", which was one of the twenty-seven singletons D-10
     // retired - and a search that could only be anchored on a singleton is
     // itself a symptom of the vocabulary this plan re-cut.
     expect(
-      matches(byId("euclid"), "sequencing"),
+      matches(byId("orbit"), "sequencing"),
       "a term in the tags only",
     ).toBe(true);
     expect(

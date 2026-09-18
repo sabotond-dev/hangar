@@ -577,14 +577,20 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // RE-RECORDED 2026-09-17 (TRACKPAD COMET, BENCH-2026-09-16.txt section 4):
     // two colour knobs, the trail's and the head's, so `two` 6 to 7 and the
     // catalog 26 to 27; nothing else moved.
+    //
+    // RE-RECORDED 2026-09-18 (change 8, BENCH-2026-09-16.txt section 8): EUCLID
+    // (one colour knob) became ORBIT with FOUR - a colour per ring - which the
+    // `else` above counts with the three-colour entries, so `none` 13 to 12
+    // and `three` 3 to 4; the catalog still 27. ORBIT is the first entry past
+    // three colour knobs, and the picker's selector renders four options for it.
     expect(
       split,
-      "the colour-knob split moved. 13 entries render no selector (one colour knob), 7 render two options, 3 render three, and 4 have no picker at all",
-    ).toEqual({ none: 13, two: 7, three: 3, noPicker: 4 });
+      "the colour-knob split moved. 12 entries render no selector (one colour knob), 7 render two options, 4 render three or more, and 4 have no picker at all",
+    ).toEqual({ none: 12, two: 7, three: 4, noPicker: 4 });
     expect(
       three.sort(),
-      "the three-colour entries are console, strip and wheels - the worst case the canvas budget (test 6; two, not four, since MIX TWO left at 13-10) is measured against",
-    ).toEqual(["console", "strip", "wheels"]);
+      "the three-or-more-colour entries are console, orbit (four), strip and wheels - the worst case the canvas budget (test 6; two, not four, since MIX TWO left at 13-10) is measured against",
+    ).toEqual(["console", "orbit", "strip", "wheels"]);
     expect(
       CATALOG.length,
       "the catalog is no longer 26 entries, so the split above is a different denominator",

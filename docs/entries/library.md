@@ -493,3 +493,15 @@ and `function N` by the planner, by the plan-check and again by plan
 across all fourteen files in that directory: zero matches. The one firmware
 global that is close to a single capital is `EFN`, which is three.
 ```
+
+## 2026-09-18 (change 8): the MIDI clock idiom lives in an entry, not here
+
+ORBIT (EUCLID until change 8) follows a DAW's clock through `self.rtmrx_cb=function(s,h,b)` and a
+step routine the Timer publishes as a field the callback reads. It is the reusable sequencer
+piece the user asked to save (BENCH-2026-09-16.txt section 8, answer 6), and it is written out in
+`docs/entries/orbit.md` under "The clock idiom" with the firmware and protocol evidence; STEPS,
+RADAR POINTS and SONAR take it later on the user's word. It is an idiom and not a library
+function by measurement: 255/0 has 66 free and 255/6 has 35, the callback is a hundred and
+seventy characters and its step routine is the entry's own, so nothing here would pay for
+itself. `library.ts` is untouched by the change; the callers named in its section 5 still say
+EUCLID where they mean ORBIT, because that file is on the change's untouched list.

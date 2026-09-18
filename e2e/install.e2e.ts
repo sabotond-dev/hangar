@@ -225,7 +225,7 @@ import {
 import { LUMEN } from "../src/lib/catalog/entries/lumen";
 // Change 5's title: the entry whose Setup carries a literal colour, and the
 // scaler the landing applies - pure string arithmetic, nothing heavy for the runner.
-import { EUCLID } from "../src/lib/catalog/entries/euclid";
+import { ORBIT } from "../src/lib/catalog/entries/orbit";
 import { scaleLua, sitesFor } from "../src/lib/catalog/brightness";
 import { BRIGHTNESS_RANGE } from "../src/lib/tune/inspector-copy";
 import {
@@ -2331,7 +2331,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(consoleErrors).toEqual([]);
   });
 
-  test("a brightness typed before the click is the pair the module receives - EUCLID at 128 dims the picture to about half and Store sends every colour scaled, byte for byte the landing's arithmetic; 300 is refused in the field and the reset puts 255 back", async ({
+  test("a brightness typed before the click is the pair the module receives - ORBIT at 128 dims the picture to about half and Store sends every colour scaled, byte for byte the landing's arithmetic; 300 is refused in the field and the reset puts 255 back", async ({
     page,
   }) => {
     // CHANGE 5 (2026-09-17). model.spec.ts proves the tuner lands scaleLua's
@@ -2342,18 +2342,18 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // canvas before and after: the brightest channel at 128 is about half of
     // 255's. What is read is the module's RAM, as the LUMEN title above.
     const consoleErrors = collectErrors(page);
-    const zona = await openReal(page, moduleState(19), undefined, EUCLID.id);
+    const zona = await openReal(page, moduleState(19), undefined, ORBIT.id);
     await connectOnPage(page, zona);
 
-    // The Setup as shipped, derived from euclid.ts at its defaults - the same
+    // The Setup as shipped, derived from orbit.ts at its defaults - the same
     // substitution renderLua makes, and what the module holds after click one.
-    expect(EUCLID.source.kind).toBe("lua");
-    let shipped = EUCLID.source.kind === "lua" ? EUCLID.source.setup : "";
-    for (const knob of EUCLID.knobs) {
+    expect(ORBIT.source.kind).toBe("lua");
+    let shipped = ORBIT.source.kind === "lua" ? ORBIT.source.setup : "";
+    for (const knob of ORBIT.knobs) {
       shipped = shipped.split(knob.token).join(knob.values[knob.default]);
     }
-    const dimmed = scaleLua(shipped, 128, sitesFor(EUCLID.id));
-    expect(dimmed, "128 moves EUCLID's Setup").not.toBe(shipped);
+    const dimmed = scaleLua(shipped, 128, sitesFor(ORBIT.id));
+    expect(dimmed, "128 moves ORBIT's Setup").not.toBe(shipped);
     expect(dimmed.length).toBeLessThanOrEqual(shipped.length);
 
     const brightest = async (): Promise<number> => {
@@ -2371,7 +2371,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
             m = Math.max(m, data[k], data[k + 1], data[k + 2]);
           }
           return m;
-        }, canvasOf(EUCLID.id));
+        }, canvasOf(ORBIT.id));
         max = Math.max(max, at);
         await page.waitForTimeout(80);
       }
@@ -2385,7 +2385,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       "click one: the Setup as shipped",
     ).toBe(shipped);
     const fullMax = await brightest();
-    expect(fullMax, "EUCLID lights something at rest").toBeGreaterThan(100);
+    expect(fullMax, "ORBIT lights something at rest").toBeGreaterThan(100);
 
     // THE FIELD: under Appearance, at 255, nothing to reset.
     const field = page.getByTestId("brightness-field");
@@ -2404,10 +2404,24 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(reset).toBeEnabled();
     await expect(input).not.toHaveAttribute("aria-invalid", "true");
     const dimMax = await brightest();
+    // A RATIO BAND, NOT +-6 (change 8, 2026-09-18). EUCLID's brightest channel
+    // was one layer's alone (a marker's red, a cyan head's blue: each capped at
+    // 49.6 percent, 126 at full), so half was exact to the phase. ORBIT's outer
+    // head is white over the orange markers, so the brightest channel is the
+    // SUM of two layers and moves with the head's decay phase at the instant
+    // sampled (126 + 126p): six samples 80 ms apart catch a different phase in
+    // each state, and the two maxima differ by up to 63 |dp| beyond the
+    // arithmetic - measured 221 -> 118 on the first run, 8 off half. The bytes
+    // on the wire are asserted exactly below; the picture is "about half".
+    const ratio = dimMax / fullMax;
     expect(
-      Math.abs(dimMax - Math.floor(fullMax / 2)),
-      `the picture at 128 is not about half of 255's (${fullMax} -> ${dimMax})`,
-    ).toBeLessThanOrEqual(6);
+      ratio,
+      `the picture at 128 is not about half of 255's (${fullMax} -> ${dimMax}, ratio ${ratio.toFixed(3)})`,
+    ).toBeGreaterThanOrEqual(0.42);
+    expect(
+      ratio,
+      `the picture at 128 is more than about half (${fullMax} -> ${dimMax})`,
+    ).toBeLessThanOrEqual(0.58);
 
     // The store saw the change: Store is live again, and click two sends the scaled bytes.
     await expect(keepControl(page)).toBeEnabled();
@@ -2420,18 +2434,18 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(zona.state.configs[EVENT_TIMER]).toBe(
       scaleLua(
         (() => {
-          let t = EUCLID.source.kind === "lua" ? EUCLID.source.timer : "";
-          for (const knob of EUCLID.knobs) {
+          let t = ORBIT.source.kind === "lua" ? ORBIT.source.timer : "";
+          for (const knob of ORBIT.knobs) {
             t = t.split(knob.token).join(knob.values[knob.default]);
           }
           return t;
         })(),
         128,
-        sitesFor(EUCLID.id),
+        sitesFor(ORBIT.id),
       ),
     );
     console.log(
-      `EUCLID on the wire: 255 -> ${shipped.length} characters, 128 -> ${dimmed.length} characters; the picture ${fullMax} -> ${dimMax}`,
+      `ORBIT on the wire: 255 -> ${shipped.length} characters, 128 -> ${dimmed.length} characters; the picture ${fullMax} -> ${dimMax}`,
     );
 
     // 300 is refused in the field: aria-invalid, the range line, the last

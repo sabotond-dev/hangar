@@ -38,6 +38,7 @@ import {
   compilerKnobs,
   decodeFor,
   encodeFor,
+  fieldChars,
   parseHash,
   readLuaColourPayload,
   stampKnobs,
@@ -68,6 +69,14 @@ const entry = (id: string): CatalogEntry => {
   if (!found) throw new Error(`the catalog lost ${id}`);
   return found;
 };
+
+/**
+ * The ids the fixture captured that the catalog has since RENAMED (change 8, 2026-09-18: EUCLID is
+ * ORBIT, the fourteenth dead address). The fixture is not regenerated - its records are history - so
+ * a captured id is read under the entry that carries it now, and what its stamps land is declared
+ * where the loop reads them.
+ */
+const RENAMED: Readonly<Record<string, string>> = { euclid: "orbit" };
 
 const luaEntries = () => CATALOG.filter((each) => each.preview === "lua");
 const padsimEntries = () => CATALOG.filter((each) => each.preview === "padsim");
@@ -180,10 +189,20 @@ describe("the stamp: format x", () => {
           payload?.[0],
           `${each.id} at ${vector.label}: ${colours} colour knob(s) must emit format ${format}`,
         ).toBe(format);
+        // One character per knob, three per colour and TWO per wide knob (change 8: ORBIT's four
+        // ring notes), plus the format and the shape - `fieldChars` is the one rule for all three.
         expect(
           payload?.length,
-          `${each.id} at ${vector.label}: one character per knob and three per colour, plus the format and the shape`,
-        ).toBe(2 + knobs.length + colours * (COLOUR_FIELD_CHARS - 1));
+          `${each.id} at ${vector.label}: one character per knob, three per colour and two per wide knob, plus the format and the shape`,
+        ).toBe(2 + knobs.reduce((n, knob) => n + fieldChars(knob), 0));
+        expect(
+          colours * (COLOUR_FIELD_CHARS - 1),
+          `${each.id}: every colour knob is three characters`,
+        ).toBe(
+          knobs
+            .filter((knob) => knob.kind === "colour")
+            .reduce((n, knob) => n + fieldChars(knob) - 1, 0),
+        );
         expect(
           decodeFor(each, payload),
           `${each.id} at ${vector.label}: did not round-trip`,
@@ -199,11 +218,11 @@ describe("the stamp: format x", () => {
     // into a graceful failure. An ADDED or REMOVED knob moves the payload
     // LENGTH as well, which the length check catches first and reports as
     // unreadable - both are honest, and neither is a silently wrong restore.
-    const each = entry("euclid");
+    const each = entry("orbit");
     const knobs = stampKnobs(each);
-    expect(knobs.length, "euclid has knobs").toBeGreaterThan(1);
+    expect(knobs.length, "orbit has knobs").toBeGreaterThan(1);
     const payload = encodeFor(each, tunedOf(each));
-    expect(payload, "euclid encodes").toEqual(expect.any(String));
+    expect(payload, "orbit encodes").toEqual(expect.any(String));
 
     const resized: CatalogEntry = {
       ...each,
@@ -239,10 +258,10 @@ describe("the stamp: format x", () => {
   });
 
   it("refuses every malformed payload as unreadable", () => {
-    const each = entry("euclid");
+    const each = entry("orbit");
     const knobs = stampKnobs(each);
     const good = encodeFor(each, tunedOf(each));
-    if (typeof good !== "string") throw new Error("euclid did not encode");
+    if (typeof good !== "string") throw new Error("orbit did not encode");
 
     const outsideAlphabet = "w";
     expect(
@@ -320,11 +339,11 @@ describe("the stamp: the entry-consistency check", () => {
 
   it("refuses each route's stamp under the other route's entry", () => {
     const aurora = entry("aurora");
-    const euclid = entry("euclid");
+    const orbit = entry("orbit");
 
-    const lua = encodeFor(euclid, tunedOf(euclid));
-    if (typeof lua !== "string") throw new Error("euclid did not encode");
-    // `euclid` carries a ringColour knob, so it emits `w`. Both HANGAR letters
+    const lua = encodeFor(orbit, tunedOf(orbit));
+    if (typeof lua !== "string") throw new Error("orbit did not encode");
+    // `orbit` carries four ring colour knobs, so it emits `w`. Both HANGAR letters
     // are refused under a compiler entry, and both are asserted here rather
     // than only the one this subject happens to produce.
     expect(lua[0], "the Lua route uses a HANGAR format letter").toBe(
@@ -349,11 +368,11 @@ describe("the stamp: the entry-consistency check", () => {
     const compiler = encodeFor(aurora, tunedOf(aurora));
     if (typeof compiler !== "string") throw new Error("aurora did not encode");
     expect(
-      decodeFor(euclid, compiler),
+      decodeFor(orbit, compiler),
       "a BOTOR format under a Lua entry must be unreadable",
     ).toEqual({ kind: "unreadable" });
     expect(
-      decodeFor(euclid, "paurora"),
+      decodeFor(orbit, "paurora"),
       "a preset stamp under a Lua entry must be unreadable",
     ).toEqual({ kind: "unreadable" });
   });
@@ -418,10 +437,32 @@ describe("the stamp: the envelope", () => {
     let nulls = 0;
     for (const record of WILD) {
       const indices = record.indices;
-      const each = byId(record.entry);
+      // A captured id the catalog renamed is read under its new id (change 8:
+      // EUCLID's two records under ORBIT); the fixture keeps the old one.
+      const renamed = record.entry in RENAMED;
+      const each = byId(RENAMED[record.entry] ?? record.entry);
       expect(each, `wild-stamps.json names ${record.entry}`).toBeDefined();
       if (!each) continue;
       if (record.payload === null) {
+        // ORBIT, at change 8 (2026-09-18, BENCH-2026-09-16.txt section 8): the
+        // captured EUCLID default vector names `tempo: 3`, which was 110 ms and
+        // is 140 ms since the Tempo list reversed (110 is index 2 now), and
+        // knobs that left (`ringColour`, `note`); so the vector is no longer
+        // the defaults and encodes to a stamp - CHORUS's shape at change 7.
+        // The entry's OWN defaults still carry none, which is what the null
+        // payload asserted; the fixture is not regenerated.
+        if (renamed) {
+          expect(
+            encodeFor(each, indices),
+            `${record.entry} -> ${each.id}: the captured vector is no longer the defaults (change 8)`,
+          ).toBeDefined();
+          expect(
+            encodeFor(each, each.defaults),
+            `${each.id}: its own defaults must still carry no stamp`,
+          ).toBeUndefined();
+          nulls += 1;
+          continue;
+        }
         // CHORUS, at change 7 (2026-09-18, BENCH-2026-09-16.txt section 7): the
         // captured default vector names `key: 4` (48 was the fifth of eight
         // roots; it is the first of twelve now) and a `bloomSpeed` that left,
@@ -495,7 +536,12 @@ describe("the stamp: the envelope", () => {
       // the shape character could say `older`. Never restored with a wrong
       // spread read as a wrong voicing. The fixture is not regenerated.
       const resized = record.entry === "pomodoro";
-      const grew = record.entry === "arc" || record.entry === "morph";
+      // ORBIT joins the grown: EUCLID's six-knob `x` payload is the wrong
+      // length for fourteen knobs and two wide fields (change 8), by design.
+      const grew =
+        record.entry === "arc" ||
+        record.entry === "morph" ||
+        record.entry === "euclid";
       const replaced = record.entry === "chorus";
       expect(
         decodeFor(each, record.payload),
@@ -528,7 +574,7 @@ describe("the stamp: the envelope", () => {
     // The fixture is only evidence if the tree has moved past it: at least one
     // captured entry must now emit a DIFFERENT format from the one recorded.
     const moved = WILD.filter((record) => {
-      const each = byId(record.entry);
+      const each = byId(RENAMED[record.entry] ?? record.entry);
       if (!each || record.payload === null) return false;
       return encodeFor(each, record.indices)?.[0] !== record.payload[0];
     });
@@ -635,7 +681,7 @@ describe("the stamp: the envelope", () => {
   it("is idempotent, on both routes and through a restore", () => {
     // The consistency check IS an idempotence assertion, so a codec that were
     // not idempotent would fail test 5 for entirely the wrong reason.
-    const subjects = [entry("aurora"), entry("dial"), entry("euclid")];
+    const subjects = [entry("aurora"), entry("dial"), entry("orbit")];
     for (const each of subjects) {
       const indices = tunedOf(each);
       const once = encodeFor(each, indices);

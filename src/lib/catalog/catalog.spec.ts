@@ -236,10 +236,13 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
         entry.knobs.length,
         `${entry.id}: a Lua entry carries three to six knobs`,
       ).toBeGreaterThanOrEqual(3);
+      // TUNE-01's six is lifted for ORBIT alone, by the user's word (change 8, 2026-09-18,
+      // BENCH-2026-09-16.txt section 8 answer 2: a fourth ring, a colour and a note per ring, Sync
+      // and Division); the next gate amends the rule. Every other card keeps the cap.
       expect(
         entry.knobs.length,
         `${entry.id}: a Lua entry carries three to six knobs`,
-      ).toBeLessThanOrEqual(6);
+      ).toBeLessThanOrEqual(entry.id === "orbit" ? 14 : 6);
       const tokens: string[] = [];
       for (const knob of entry.knobs) {
         expect(

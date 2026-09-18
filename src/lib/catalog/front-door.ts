@@ -54,7 +54,7 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "Hand-authored Lua rather than a ported preset, and the ring is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. It replaced the tpad preset as the trackpad card under plan 12-10; the front door is a curated row and it joins it deliberately or not at all.",
   },
   {
-    id: "euclid",
+    id: "orbit",
     why: "The front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
   },
   {

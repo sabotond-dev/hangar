@@ -216,9 +216,9 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
   it("2. fork A (many): a record is in two collections at once, deleting it removes it from every one, and an unknown id is dropped on read and counted", () => {
     const { store, map } = fakeStore();
     const arc = copy("copy:arc:1", "arc");
-    const euclid = copy("copy:euclid:1", "euclid");
+    const orbit = copy("copy:orbit:1", "orbit");
     expect(saveCopy(store, arc)).toBe("written");
-    expect(saveCopy(store, euclid)).toBe("written");
+    expect(saveCopy(store, orbit)).toBe("written");
     const known = knownIn(store);
 
     createCollection(store, "c-live", "Live set", T0);
@@ -228,10 +228,10 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
     // the first (that would be fork A's other answer).
     expect(setMember(store, "c-live", arc.id, true)).toBe("written");
     expect(setMember(store, "c-studio", arc.id, true)).toBe("written");
-    expect(setMember(store, "c-live", euclid.id, true)).toBe("written");
+    expect(setMember(store, "c-live", orbit.id, true)).toBe("written");
     let list = readCollections(store, known).list;
     expect(collectionsOf(list, arc.id)).toEqual(["c-live", "c-studio"]);
-    expect(collectionsOf(list, euclid.id)).toEqual(["c-live"]);
+    expect(collectionsOf(list, orbit.id)).toEqual(["c-live"]);
 
     // Filing twice is a success with no second write; unfiling from one
     // leaves the other.
@@ -256,10 +256,9 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
       orphaned,
       `${arc.id} was deleted and is still filed in: ${orphaned.join(", ")}`,
     ).toEqual([]);
-    expect(
-      collectionsOf(list, euclid.id),
-      "the neighbour is untouched",
-    ).toEqual(["c-live"]);
+    expect(collectionsOf(list, orbit.id), "the neighbour is untouched").toEqual(
+      ["c-live"],
+    );
     expect(
       removeFromAll(store, "copy:nobody:1"),
       "not filed: no write",
@@ -277,7 +276,7 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
             id: "c-live",
             name: "Live set",
             createdAt: T0,
-            members: [euclid.id, "copy:forge:gone", "copy:keys:gone"],
+            members: [orbit.id, "copy:forge:gone", "copy:keys:gone"],
           },
           {
             schema: 1,
@@ -291,7 +290,7 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
     );
     const rawBefore = map.get(COLLECTIONS_KEY);
     const read = readCollections(store, known);
-    expect(read.list.map((c) => c.members)).toEqual([[euclid.id], []]);
+    expect(read.list.map((c) => c.members)).toEqual([[orbit.id], []]);
     expect(
       read.dropped,
       "a shorter list without a count is the coy state D-05 forbids",
@@ -299,7 +298,7 @@ describe("collections at the user's four answers (src/lib/store/collections.ts)"
     expect(map.get(COLLECTIONS_KEY), "reading never writes").toBe(rawBefore);
     // The next write stores the pruned list the caller was handed... only if
     // the caller hands it; a write through setMember keeps what it loaded.
-    expect(setMember(store, "c-studio", euclid.id, true)).toBe("written");
+    expect(setMember(store, "c-studio", orbit.id, true)).toBe("written");
     expect(readCollections(store, known).dropped).toBe(3);
   });
 

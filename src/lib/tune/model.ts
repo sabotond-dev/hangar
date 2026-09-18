@@ -551,6 +551,15 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       timer: meterView("timer", numbers.timer, feed),
       brightness,
       rollable: entry.rollable !== false,
+      // The knobs the preview cannot honour (change 8): held at `previewIndex` by createLuaPadSim,
+      // named here so the inspector says so; empty everywhere the preview shows the chosen position.
+      previewHeld: entry.knobs
+        .filter(
+          (knob) =>
+            knob.previewIndex !== undefined &&
+            indices[knob.id] !== knob.previewIndex,
+        )
+        .map((knob) => knob.id),
     });
   }
 

@@ -18,12 +18,18 @@
     FIELD_CHANGED,
     FIELD_RESET,
     LUA_CHANNEL_CUE,
+    NOTE_OFFERED,
     TYPE_A_NUMBER,
     fieldResetName,
     midiFieldLabel,
     offeredLine,
   } from "$lib/tune/inspector-copy";
-  import { integerRun, typedIndex, type KnobView } from "$lib/tune/view";
+  import {
+    integerRun,
+    noteNumber,
+    typedIndex,
+    type KnobView,
+  } from "$lib/tune/view";
 
   let {
     knob,
@@ -52,6 +58,8 @@
   const zeroBasedChannel = $derived(
     knob.id === "channel" && integerRun(literals)?.min === 0,
   );
+  /** A NOTE field (change 8: ORBIT's ring notes) takes a name or a number; its readout is the name, its keyboard the full one. */
+  const noteField = $derived(knob.kind === "note");
 
   /** The refused text, or undefined while the field shows the model's literal. */
   let refused = $state<string | undefined>(undefined);
@@ -81,6 +89,23 @@
 
   function typed(event: Event): void {
     const text = (event.currentTarget as HTMLInputElement).value;
+    // A note field reads `C#3` and `49` alike (view.ts's noteNumber); a name it cannot read and a
+    // number outside 0..127 are refused by the same line - both are "not a note here".
+    if (noteField) {
+      const midi = noteNumber(text);
+      const at =
+        midi === undefined ? undefined : typedIndex(literals, String(midi));
+      if (at === undefined) {
+        refused = text;
+        problem = NOTE_OFFERED;
+        return;
+      }
+      refused = undefined;
+      problem = undefined;
+      seenIndex = at;
+      onchange(knob.id, at);
+      return;
+    }
     if (!/^-?[0-9]+$/.test(text.trim())) {
       refused = text;
       problem = TYPE_A_NUMBER;
@@ -125,7 +150,7 @@
     class="input"
     id={inputId}
     type="text"
-    inputmode="numeric"
+    inputmode={noteField ? "text" : "numeric"}
     autocomplete="off"
     data-testid="midi-field-{knob.id}-input"
     value={shown}

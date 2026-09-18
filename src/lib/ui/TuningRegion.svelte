@@ -33,6 +33,7 @@
     INSPECTOR_HEADLINE,
     INSPECTOR_LEDE,
     MIDI_HELPER,
+    PREVIEW_INTERNAL_CLOCK,
     RANDOMIZE,
     RANDOMIZE_GLYPH,
     RESET_SETTINGS,
@@ -191,6 +192,10 @@
   const rollableOf = (current: TuneView | undefined): boolean =>
     current?.rollable ?? true;
   const rollable = $derived(rollableOf(view));
+  /** The knobs the preview is holding at another position (change 8: ORBIT's Sync at External); the line under Behavior says so. Through a parameter, as the readers above. */
+  const previewHeldOf = (current: TuneView | undefined): readonly string[] =>
+    current?.previewHeld ?? [];
+  const previewHeld = $derived(previewHeldOf(view));
   /**
    * Section 7's three sections. The MIDI partition is surprise.ts's `isMidiDestination` -
    * ONE predicate over id and label, which also bounds the roll - so the section shows
@@ -574,6 +579,12 @@
     {#if allHeld && rollable}
       <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
         {SURPRISE_ALL_HELD}
+      </p>
+    {/if}
+    <!-- Change 8: the preview is holding a knob at its previewIndex (ORBIT's Sync at External - no MIDI clock reaches a browser); the wire carries the choice, and this line says so. -->
+    {#if previewHeld.length > 0}
+      <p class="helper type-helper" data-testid="preview-held">
+        {PREVIEW_INTERNAL_CLOCK}
       </p>
     {/if}
   {/if}

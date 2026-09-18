@@ -12,14 +12,19 @@ import type { CatalogEntry } from "../catalog/types";
 import type { KnobDescriptor } from "./knobs.preset";
 
 /**
- * The most options any knob on any route may carry.
+ * The most options a knob may carry in ONE base-32 stamp character.
  *
- * D-13 encodes a knob position as ONE base-32 character, so a 33rd option
+ * D-13 encodes a knob position as one base-32 character, so a 33rd option
  * would not overflow loudly - it would truncate silently and land a shared
- * link on the wrong position. Today's widest knob is 16 (a MIDI channel, on
- * both routes), so this is headroom rather than a limit anyone is near.
+ * link on the wrong position. Since change 8 (2026-09-18) a knob past this
+ * ceiling is WIDE and rides two characters (`stamp.ts`'s `fieldChars`), up to
+ * `STAMP_WIDE_CEILING`; ORBIT's four ring notes (128 options each) are the
+ * first. Every other knob on either route is at most 16 (a MIDI channel).
  */
 export const STAMP_OPTION_CEILING = 32;
+
+/** The most options a two-character (wide) knob may carry: 32 * 32. */
+export const STAMP_WIDE_CEILING = STAMP_OPTION_CEILING * STAMP_OPTION_CEILING;
 
 /**
  * A Lua entry's knobs as shared descriptors, in catalog order.

@@ -14,7 +14,7 @@
 import { describe, expect, it } from "vitest";
 import { STAMP_ALPHABET } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "../catalog";
-import { STAMP_OPTION_CEILING } from "../tune/knobs.lua";
+import { STAMP_OPTION_CEILING, STAMP_WIDE_CEILING } from "../tune/knobs.lua";
 import { COLOUR_LATTICE_SIZE } from "../tune/knobs.preset";
 import type { KnobDescriptor } from "../tune/knobs.preset";
 import {
@@ -24,7 +24,9 @@ import {
   decodeFor,
   emitsLuaColourFormat,
   encodeFor,
+  fieldChars,
   luaColourPayloadLength,
+  luaPayloadLength,
   readLuaColourPayload,
   stampKnobs,
   writeLuaColourPayload,
@@ -87,11 +89,49 @@ function tunable(preview: CatalogEntry["preview"]): CatalogEntry[] {
   );
 }
 
-/** Pass A: every non-colour knob, colour knobs held at their defaults. */
+/** A WIDE knob (change 8, 2026-09-18): past one base-32 character, it rides two (stamp.ts's `fieldChars`). */
+const isWide = (knob: KnobDescriptor): boolean =>
+  !isColour(knob) && knob.options.length > STAMP_OPTION_CEILING;
+
+/** The knobs Pass A cross-products: every non-colour knob that is not wide. */
+const narrow = (knobs: readonly KnobDescriptor[]): readonly KnobDescriptor[] =>
+  knobs.filter((knob) => !isColour(knob) && !isWide(knob));
+
+const wideKnobs = (
+  knobs: readonly KnobDescriptor[],
+): readonly KnobDescriptor[] => knobs.filter(isWide);
+
+/**
+ * Pass A: every narrow non-colour knob cross-producted, colour knobs AND wide
+ * knobs held at their defaults. A wide knob is held because four of them at
+ * 128 positions each (ORBIT's ring notes) would multiply the product by
+ * 2.7 x 10^8; Pass C walks every one of their positions instead, and a field's
+ * encoding is per knob (the separability the stamp's fixed layout gives), so
+ * nothing a wide knob does is hidden by the split.
+ */
 function* passA(knobs: readonly KnobDescriptor[]): Generator<Indices> {
-  const pinned = defaultsOf(colourKnobs(knobs));
-  for (const vector of vectors(nonColour(knobs))) {
+  const pinned = {
+    ...defaultsOf(colourKnobs(knobs)),
+    ...defaultsOf(wideKnobs(knobs)),
+  };
+  for (const vector of vectors(narrow(knobs))) {
     yield { ...vector, ...pinned };
+  }
+}
+
+/** Pass C: every position of every wide knob, every other knob at its default; then the all-wide-last corner. */
+function* passC(knobs: readonly KnobDescriptor[]): Generator<Indices> {
+  const defaults = defaultsOf(knobs);
+  const wide = wideKnobs(knobs);
+  for (const knob of wide) {
+    for (let at = 0; at < knob.options.length; at += 1) {
+      yield { ...defaults, [knob.id]: at };
+    }
+  }
+  if (wide.length > 1) {
+    const corner: Indices = { ...defaults };
+    for (const knob of wide) corner[knob.id] = knob.options.length - 1;
+    yield corner;
   }
 }
 
@@ -254,10 +294,22 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     expect(STAMP_OPTION_CEILING, "the ceiling is not raised").toBe(32);
     let guarded = 0;
     let exempted = 0;
+    // THE WIDE KNOBS (change 8, 2026-09-18): a knob past the one-character
+    // ceiling rides TWO characters and is guarded by the wide ceiling instead;
+    // ORBIT's four ring notes are the only ones, and the count says so.
+    let wide = 0;
     for (const entry of entries) {
       for (const knob of stampKnobs(entry)) {
         if (isColour(knob)) {
           exempted += 1;
+          continue;
+        }
+        if (isWide(knob)) {
+          expect(
+            knob.options.length,
+            `${entry.id}/${knob.id} has ${knob.options.length} options, past the two-character ceiling`,
+          ).toBeLessThanOrEqual(STAMP_WIDE_CEILING);
+          wide += 1;
           continue;
         }
         expect(
@@ -267,6 +319,7 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
         guarded += 1;
       }
     }
+    expect(wide, "the wide knobs: ORBIT's four ring notes").toBe(4);
     // RE-CHOSEN BY PLAN 11-01, which removed nine hand-authored entries on the
     // user's bench report. The catalog's hand-authored knob total went 133 to
     // 91 and its colour knobs 45 to 29, so `guarded` went 88 to 62 - which is
@@ -321,13 +374,20 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // colour (the trail's and the head's), so the hand-authored knob total
     // goes 89 to 93, `exempted` 28 to 30 and `guarded` 61 to 63. It still
     // reconciles: 63 + 30 is 93. The member list is still "4 19".
+    //
+    // RE-COUNTED 2026-09-18 (change 8, BENCH-2026-09-16.txt section 8): EUCLID
+    // (six knobs, one colour) became ORBIT (fourteen: six narrow, FOUR wide -
+    // the ring notes, 128 each - and FOUR colour), so the hand-authored knob
+    // total goes 93 to 101, `exempted` 30 to 33, `guarded` 63 to 64 and the
+    // new `wide` is 4. It still reconciles: 64 + 4 + 33 is 101. The member list
+    // is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(30);
+    expect(exempted, "the colour knobs, exempt by format").toBe(33);
 
-    // PASS A. Every non-colour knob cross-producted, colour knobs at their
-    // defaults, through the real encoder and the real decoder.
+    // PASS A. Every narrow non-colour knob cross-producted, colour and wide
+    // knobs at their defaults, through the real encoder and the real decoder.
     const expectedA = entries.reduce(
-      (n, entry) => n + sizeOf(nonColour(stampKnobs(entry))),
+      (n, entry) => n + sizeOf(narrow(stampKnobs(entry))),
       0,
     );
     const started = performance.now();
@@ -345,7 +405,7 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       if (payload[0] === HANGAR_FORMAT_LUA_COLOUR) formatW += 1;
       else formatX += 1;
       const wanted =
-        colours > 0 ? luaColourPayloadLength(knobs) : 2 + knobs.length;
+        colours > 0 ? luaColourPayloadLength(knobs) : luaPayloadLength(knobs);
       if (payload.length !== wanted) {
         throw new Error(
           `${entry.id}: ${payload} is ${payload.length} characters, not ${wanted}`,
@@ -370,7 +430,7 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       let at = 2;
       for (const knob of knobs) {
         if (!isColour(knob)) {
-          at += 1;
+          at += fieldChars(knob);
           continue;
         }
         for (let step = 0; step < COLOUR_LATTICE_SIZE; step += 1) {
@@ -408,28 +468,43 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       0,
     );
 
-    const examined = examinedA + examinedB;
+    // PASS C (change 8). Every position of every wide knob, everything else
+    // at its default, then the corner with every wide knob at its last
+    // position - through the real encoder and decoder, as Pass A.
+    const expectedC = entries.reduce((n, entry) => {
+      const wideOnes = wideKnobs(stampKnobs(entry));
+      return (
+        n +
+        wideOnes.reduce((m, knob) => m + knob.options.length, 0) +
+        (wideOnes.length > 1 ? 1 : 0)
+      );
+    }, 0);
+    const examinedC = roundTrip(entries, passC, () => undefined);
+
+    const examined = examinedA + examinedB + examinedC;
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
 
     say("");
-    say("stamp round-trip sweep - the Lua route, two passes");
+    say("stamp round-trip sweep - the Lua route, three passes");
     for (const entry of entries) {
       const knobs = stampKnobs(entry);
       const colours = colourKnobs(knobs).length;
       say(
-        `  ${entry.id.padEnd(10)} passA ${String(sizeOf(nonColour(knobs))).padStart(6)}` +
+        `  ${entry.id.padEnd(10)} passA ${String(sizeOf(narrow(knobs))).padStart(6)}` +
           `  passB ${String(colours * COLOUR_LATTICE_SIZE).padStart(6)}` +
+          `  passC ${String(wideKnobs(knobs).reduce((m, k) => m + k.options.length, 0) + (wideKnobs(knobs).length > 1 ? 1 : 0)).padStart(4)}` +
           `  format ${colours > 0 ? "w" : "x"}` +
-          `  payload ${colours > 0 ? luaColourPayloadLength(knobs) : 2 + knobs.length} characters`,
+          `  payload ${colours > 0 ? luaColourPayloadLength(knobs) : luaPayloadLength(knobs)} characters`,
       );
     }
     say(
       `  Pass A ${examinedA} vectors (format w ${formatW}, format x ${formatX}), ` +
-        `Pass B ${examinedB} colours, total ${examined}, ${seconds}s`,
+        `Pass B ${examinedB} colours, Pass C ${examinedC} wide positions, total ${examined}, ${seconds}s`,
     );
 
     expect(examinedA, "Pass A's enumeration silently shrank").toBe(expectedA);
     expect(examinedB, "Pass B's enumeration silently shrank").toBe(expectedB);
+    expect(examinedC, "Pass C's enumeration silently shrank").toBe(expectedC);
     // THE FLOOR, RE-DERIVED as the two passes' own sum, the same way the
     // compiler half's is. The old 100,000 was a fraction of one 276,160-vector
     // cross-product. 200,000 was above EITHER PASS ALONE at thirty-six entries

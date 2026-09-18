@@ -1,14 +1,18 @@
-# EUCLID - the history behind src/lib/catalog/entries/euclid.ts
+# ORBIT (EUCLID until change 8) - the history behind src/lib/catalog/entries/orbit.ts
 
-EUCLID is the three concentric Euclidean rings beating against each other on a 48-tick cycle,
-the first configuration authored for HANGAR rather than ported. Its source is
-`src/lib/catalog/entries/euclid.ts`. 08-06 authored it; 11-02 moved the trail's decay pair to
+ORBIT is the four concentric Euclidean rings beating against each other on a 96-step cycle, on
+their own Timer or on the DAW's MIDI clock - EUCLID until change 8 (2026-09-18, BENCH-2026-09-16.txt
+section 8; the change is the last section of this file), the first configuration authored for
+HANGAR rather than ported. Its source is `src/lib/catalog/entries/orbit.ts` (`euclid.ts` until
+change 8, moved with `git mv`). 08-06 authored it; 11-02 moved the trail's decay pair to
 the house idiom and the trail values to divisors of 252; 11-08 reversed the onset-only guard so
 a swipe toggles every ring cell it crosses; 12-08 handed the inlined guard to the library's `Q`
 and added `X(s,20)` (700 / 237 at the picker corner); 12.1-03 added the white finger and, through
-the calibrated cell, fixed the outer ring (726). The entry's own header now carries the
+the calibrated cell, fixed the outer ring (726); change 8 renamed it, added the fourth ring, a colour
+and a note per ring and the clock sync (846 / 404). The entry's own header now carries the
 mechanism, the wire and the traps; everything the header said before 13.2-02 - the measurements,
-the probe readings, the MIDI sync gates and the frames.json residue - is below, verbatim.
+the probe readings, the MIDI sync gates and the frames.json residue - is below, verbatim, under
+the name it had; change 8's section closes the file.
 
 ## Moved from src/lib/catalog/entries/euclid.ts on 2026-09-13 (13.2-02)
 
@@ -238,3 +242,181 @@ compressScript does not strip them: a trailing comment was measured surviving
 verbatim into the budget. Everything worth saying about this configuration is
 said here, in TypeScript, where it costs nothing.
 ```
+
+## Change 8, 2026-09-18 - EUCLID becomes ORBIT (BENCH-2026-09-16.txt section 8)
+
+The user's word, verbatim in section 8: "Euclid: rename it to smth crfeative. Add one more ring
+the farest one from the center. Tempo slider is in the wrong direction the bigger tempo should
+be on right side. each ring should have their own color. It should be able to get sync from a
+software or daw, its in the Editor, implement that for the sequencer profiles. its under function
+called MIDI rtm callback handler. Remove base not and you should be able to select a note for
+each ring from C -2 to G 8 so full range." - with the six answers of the same day (Orbit; the
+six-knob rule lifted for this card; Sync plus a Division knob; 36 38 42 46; names and numbers
+both; the sync built on ORBIT alone and saved as a sequencer piece). The file moved with the
+entry (`git mv`): `euclid.ts` is `orbit.ts`, `euclid.md` is this file, and `/playground/euclid/`
+is the fourteenth dead address (`local.spec.ts`'s `REMOVED`, beside the nine of 11-01, the three
+of 12-04 and `tpad` of 12-10).
+
+### The header and the two strings the entry carried until change 8, verbatim
+
+```text
+// EUCLID - three Euclidean rings, one polyrhythm. The first configuration authored for HANGAR
+// rather than ported from BOTOR's shelf.
+//
+// Concentric square rings on a 9x9 hold exactly 8, 16 and 24 cells, so three tracks of 8, 16
+// and 24 steps sit on the pad with no rounding. Each ring's pattern is the Bresenham Euclidean
+// test at three, five and seven pulses; layer 1 holds the static pulse markers (15 lit from
+// Setup), layer 2 a bright head running each ring at its own speed with a short decay; the three
+// lengths beat on a 48-tick cycle. Tap or swipe a ring cell to toggle that step. Knobs: @TEMPO
+// (both events), @PULSES, @RINGC, @TRAIL (a divisor of 252), @NOTE, @CH. Setup 726 of 908 at the
+// picker corner (722 at the defaults), Timer 237 (233); restsBlack false. MIDI sync: not built.
+// History: docs/entries/euclid.md (08-06, 11-02, 11-08, 12-08, 12.1-03 measurements, readings).
+```
+
+```lua
+--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glc(a,2,@RINGC,1)glp(a,2,0)end self.c={}self.p={}self.i={}local h={@PULSES}for d=1,3 do local n=d*8 local u={}local v={}for t=0,n-1 do local q=t//(d*2)local w=t%(d*2)local a,b if q==0 then a,b=d,w-d elseif q==1 then a,b=d-w,d elseif q==2 then a,b=-d,d-w else a,b=w-d,-d end local m=a+4+(b+4)*9 u[t]=m self.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end self.c[d]=u self.p[d]=v end self.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,s.c[d][t]),1,s.p[d][t]and 255 or 0)end gtt(0,@TEMPO)
+```
+
+```lua
+--[[@cb]]gtt(0,@TEMPO)local s=self X(s,20)local k=(s.k or 0)%24 s.k=k+1 for d=1,3 do local t=k%(d*8)local a=glag(0,s.c[d][t])glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,@NOTE+d*2,0,0)if s.p[d][t]then s:gms(@CH,144,@NOTE+d*2,100,0)end end
+```
+
+Knobs then: `@TEMPO` `240 180 140 110 90 70` (default 110), `@PULSES` `3,5,7 2,3,5 5,9,13 3,8,11
+4,8,16 7,11,17`, `@RINGC` the five-colour palette, `@TRAIL` `21 42 63 84 126`, `@NOTE` `24 30 34
+36 40 48 60` (default 34: the three voices 36 38 40), `@CH` 0..15.
+
+### What ORBIT is
+
+The fourth ring is the outermost square - Chebyshev distance 4, 32 cells - so the four rings hold
+8, 16, 24 and 32 steps and beat on a 96-step cycle (`s.k=(k+1)%96`); only the centre cell carries
+no step. The ring walk is one rotation instead of four cases: step t starts at `(d, t%(d*2)-d)`
+and is turned a quarter `t//(d*2)` times (`a,b=-b,a`), the same cell order as before for every
+ring, 50 characters cheaper. Every ring has its own colour (`@R1C`..`@R4C`, one palette) and its
+own note (`@N1`..`@N4`, 0..127 typed); `@RINGC` and `@NOTE` are retired. The Tempo list is
+reversed so the bigger number sits on the right, 110 ms still the default. And the rings can
+follow the DAW: `Sync` Internal / External and `Division` 8th / 16th / 32nd.
+
+### The clock idiom - the reusable sequencer piece (answer 6)
+
+Saved here as an idiom, not a library function: `library.ts` is untouched by this change and,
+measured, a library function would save nothing that pays for itself - the shape is one
+callback and one field read, both entry-specific in their step routine, and the library's 255/0
+has 66 free and 255/6 has 35, neither of which holds a callback this size. STEPS, RADAR POINTS
+and SONAR can take it later on the user's word; none of the three is touched here.
+
+The firmware facts, read in the sources on this machine:
+
+- `grid-fw/common/src/lua/decode.lua:42-44` is the dispatcher: `pass_rtm = function(el, x) if
+el.rtmrx_cb then el:rtmrx_cb({ x[1], x[2], x[3] }, x[4]) end end` - a header triple and ONE
+  byte. So the Lua spelling is `self.rtmrx_cb=function(s,h,b)`, and the Editor's face (grid-editor
+  `FunctionStartFace.svelte:27`) offers exactly `self.rtmrx_cb(self, header, rtm)` as "MIDI
+  Real-Time RX callback handler (clock, start, stop, etc.)".
+- `grid_usb_midi.c:200-210` puts the raw realtime byte on the wire as `CLASS_MIDIRTM_BYTE`;
+  `grid_decode.c:388` lets the class through only when `grid_rx_should_handle(GRID_RX_TYPE_MIDIRTM)`
+  says so, and `:420` pushes `{INSTR, SX, SY, byte}` into `_decoded_rtm`. The bytes are 248 clock
+  (24 to the quarter), 250 Start, 251 Continue, 252 Stop; 254 is active sensing and must do nothing.
+- `init.lua:10-15`: `rx_type.MIDIRTM` is 2 and the default is `grxm(rx_type.MIDIRTM, 0)` - off;
+  `rx_feat.FORWARD | rx_feat.HANDLE_EXTERNAL` is 3. `l_grid_rx_mode` (`grid_lua_api.c:832-855`)
+  needs a NUMBER as its second argument (a nil is `#GTV.invalidParams`), which is why the Sync
+  literal is a Lua boolean folded to a number: `grxm(2,@SYNC and 3 or 0)`.
+- The protocol package agrees: `GRID_LUA_FNC_G_RX_MODE_short` is `grxm`, its usage line reads
+  "type: 0=MIDIVOICE 1=MIDISYSEX 2=MIDIRTM 3=EVENTVIEW. mode: bitmask 0x01=forward_from_usb
+  0x02=handle_external 0x04=handle_internal"; `midi_rx_register` (`gmrr`) is the OTHER registration,
+  for voice messages by channel and command, and is not the clock's road.
+
+The idiom, in the entry's own words:
+
+```lua
+-- Setup: state and the callback. The step routine is not here (it is the Timer's, below), so the
+-- callback reaches it through a FIELD READ - a field CALL (`s.f(s)`) is refused by host-surface.
+s.k=0 s.q=0
+s.rtmrx_cb=function(s,h,b)
+  if b==250 then s.k=0 s.q=0 end
+  if b==250 or b==251 then s.r=1
+  elseif b==252 then s.r=nil
+  elseif b==248 and s.r then
+    local f=s.f
+    if s.q%@DIV==0 and f then f(s)end
+    s.q=s.q+1
+  end
+end
+grxm(2,@SYNC and 3 or 0)
+
+-- Timer: the step routine, published on every call; Internal steps here, External steps nowhere here.
+local function f(s) ... end
+s.f=f
+if @SYNC then return end
+f(s)
+```
+
+`s.k` is the step, `s.q` the clock count, `s.r` the run flag. Start resets both counters and runs,
+so the first clock after Start lands step 0 (`q%DIV==0` at q 0); Continue runs from where the
+count stood; Stop clears the flag and every clock after it does nothing. `@DIV` is 12, 6 or 3
+(an 8th, a 16th, a 32nd at 24 clocks per quarter). The one caveat: the routine is published by
+the Timer's FIRST call, at most one `@TEMPO` period after the Setup, so a clock inside that period
+is counted and not stepped - the pattern stays in phase (the count went on), the first step's
+notes are lost. The alternative - the routine in the Setup - was costed and does not fit (below).
+Under External the Timer still runs at `@TEMPO` for the finger sweep `X(s,20)` and steps nothing,
+which is what "the tempo knob is ignored" means.
+
+### The forms costed, under the pinned `compressScript` after `initLuaFormatter()`
+
+Every figure at the RGB444 picker corner (four colour knobs at 255,255,255, every other knob at
+its longest literal: `7,11,17,23`, `240`, `126`, `127` x 4, `15`, `false`, `12`), each a fixed point
+passing `checkSyntax`:
+
+- (i) EVERYTHING IN THE SETUP - the geometry, the colours as a twelve-channel table, the notes,
+  the callback, the touch handler; the step routine `local function f` in the Setup and the Timer
+  calling it through `s.f`: **Setup 976 (68 over)**, Timer 295.
+- (ii) chosen - THE STEP ROUTINE IN THE TIMER, the colour table and the note table with it (the
+  head colours its own cell as it lights it - a dark cell shows no colour, so nothing is lost),
+  the callback in the Setup reading `s.f`, and the callback's `glag(0,s.c[d][t])` folded to
+  `glag(0,m)` (the same cell): **Setup 846 (62 free), Timer 404 (504 free)**; 843 / 383 at the
+  defaults. No system slot needed (the user's order, section 7: Setup, then Timer, then 255 only
+  if nothing else fits).
+
+The Sync literal costed two ways: numeric `0` / `3` with `if @SYNC>0 then return end` is four
+characters cheaper than the boolean but `0` and `2` are CHORUS's inversion literals in `view.ts`'s
+mode table (worded Off / Smart), so the boolean is the one whose words cannot collide. The
+reversed Tempo list was written as the brief spelled it ("today's values reversed in order"); a
+BPM readout (`gtt(0,15000//@BPM)`, +7 on each event, the same six periods to within a
+millisecond) would put the bigger number AND the faster tempo on the right, and is a question
+for the user.
+
+### What moved beside the strings
+
+- `types.ts`: `LuaKnob.previewIndex?` - the index the browser preview renders a knob at when it
+  cannot honour the chosen one; `lua-pad-sim.ts`'s `previewIndices` applies it in
+  `createLuaPadSim` alone (the wire, the meters and the stamp carry the choice); `model.ts` names
+  the held knobs in `TuneView.previewHeld` and `TuningRegion.svelte` shows
+  `PREVIEW_INTERNAL_CLOCK` under Behavior while it is not empty. ORBIT's `sync` declares 0.
+- `view.ts`: `SYNC_WORDS` (`false` Internal, `true` External), `DIVISION_WORDS` (`12` 8th, `6` 16th,
+  `3` 32nd), the `mode` fall-through over `MODE_TABLES`, and `noteNumber` - the other direction
+  of `noteName`, in its spelling (C4 = 60: 0 is C-1, 127 is G9; Live's C-2..G8 is the same
+  0..127); `C#3`, `Db3` and `49` all read 49, `H3`, `128`, `G#9` and `-1` are refused.
+- `MidiField.svelte`: a `note` knob's field parses through `noteNumber` and refuses with
+  `NOTE_OFFERED` ("A note here is C-1 to G9, or 0 to 127."); its keyboard is the full one
+  (`inputmode="text"`); the readout stays the name. The four ring notes reach it because their
+  label carries the wire word (`Ring 1 MIDI note`), which also keeps them out of Randomize.
+- `stamp.ts`: a WIDE knob - more options than one base-32 character - rides two characters, high
+  first (`fieldChars`, `WIDE_FIELD_CHARS`, `luaPayloadLength`), on both `w` and `x`; every rack
+  without one is encoded byte for byte as before. `knobs.lua.ts` keeps `STAMP_OPTION_CEILING` 32
+  and adds `STAMP_WIDE_CEILING` 1,024. ORBIT's `w` payload is 28 characters.
+- `brightness.ts`: `orbit: { palettes: ["c"] }` - the Timer's twelve-channel table.
+- `lua-host.ts`: `rtm(byte)`, test-facing and synchronous: calls `self.rtmrx_cb(self, {13,0,0},
+byte)` as `decode.lua` does, returns false when the entry defines none; the routing gate is the
+  spec's to read off `rxMode`.
+- `hash-wire.mjs`: a product past one million states is sampled at every knob's first, default
+  and last position (ORBIT's full product is 10^17); every entry under the ceiling is hashed over
+  its whole product as before. `stamp-roundtrip.sweep.spec.ts`: Pass A holds wide knobs at their
+  default, Pass C walks every wide position and the all-wide-last corner.
+- Specs: `lua-smoke` +1 (the VM proof, above) and the swipe's eligible set reads four rings;
+  `stamp.spec` reads EUCLID's captured records under ORBIT (`RENAMED`) - the default vector
+  encodes to a stamp now (`tempo: 3` is 140 ms on the reversed list), the wild `x` stamp lands
+  `unreadable` (fourteen knobs, two wide fields); `knobs.lua.spec` names the four wide knobs;
+  `surprise.spec` thirty-three excluded knobs; `local.spec` thirteen removed ids; `audition.spec`
+  thirty-four rows; `catalog.spec` and `knobs.lua.spec` admit fourteen knobs on ORBIT by name.
+- `e2e/fixtures/library/orbit-copy.hangar.json`: a real export written by `transfer.ts` against
+  the fourteen-knob rack (`euclid-copy` renamed and regenerated); `library.e2e.ts` walks it.
+- The card sentence (D-05's register): "Four Euclidean rings, a colour and a note each, on their
+  tempo or your DAW’s clock; tap a step to change it."

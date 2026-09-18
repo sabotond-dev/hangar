@@ -48,6 +48,13 @@ export type LuaKnob = {
   values: readonly string[];
   /** An INDEX into `values`, never a value (D-13: integer knob indices). */
   default: number;
+  /**
+   * The INDEX the browser preview renders this knob at when it cannot honour the chosen one (change
+   * 8, 2026-09-18: ORBIT's Sync - the browser has no MIDI clock, so the preview runs Internal). The
+   * wire, the meters and the stamp carry the chosen index; only `createLuaPadSim` reads this, and
+   * the inspector says so whenever the two differ. Absent: the preview renders the chosen index.
+   */
+  previewIndex?: number;
 };
 
 /** One configuration in the catalog, ported or hand-authored. */

@@ -41,8 +41,8 @@ describe("the share URL", () => {
     expect(url).not.toContain("?");
     expect(url.slice(url.indexOf("#") + 1)).toBe("z.at7ghh1pv8j00");
     // A Lua entry's format-x payload rides the same envelope.
-    expect(shareUrl("euclid", "x5a1b2c3d")).toBe(
-      "https://hangar.sabotond.workers.dev/playground/euclid/#z.x5a1b2c3d",
+    expect(shareUrl("orbit", "x5a1b2c3d")).toBe(
+      "https://hangar.sabotond.workers.dev/playground/orbit/#z.x5a1b2c3d",
     );
   });
 

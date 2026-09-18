@@ -20,7 +20,11 @@ import { PRESETS } from "../catalog/presets";
 import { CATALOG } from "../catalog";
 import type { CatalogEntry } from "../catalog/types";
 import { COLOUR_LATTICE_SIZE, presetKnobs } from "./knobs.preset";
-import { luaKnobs, STAMP_OPTION_CEILING } from "./knobs.lua";
+import {
+  luaKnobs,
+  STAMP_OPTION_CEILING,
+  STAMP_WIDE_CEILING,
+} from "./knobs.lua";
 import { swatchOf, widgetFor, type KnobWidget } from "./view";
 
 const LUA_ENTRIES: readonly CatalogEntry[] = CATALOG.filter(
@@ -40,8 +44,9 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
         descriptors.length,
         `${entry.id} knob count`,
       ).toBeGreaterThanOrEqual(3);
+      // ORBIT carries fourteen by the user's word (change 8, 2026-09-18); the cap holds elsewhere.
       expect(descriptors.length, `${entry.id} knob count`).toBeLessThanOrEqual(
-        6,
+        entry.id === "orbit" ? 14 : 6,
       );
 
       for (let i = 0; i < descriptors.length; i++) {
@@ -62,10 +67,21 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
     expect(checked).toBeGreaterThan(30);
   });
 
-  it("keeps every knob on both routes inside the stamp's one base-32 character", () => {
+  it("keeps every knob on both routes inside the stamp's one base-32 character, or names the wide ones that ride two", () => {
     let widest = 0;
     let examined = 0;
     const over: string[] = [];
+    // THE WIDE KNOBS (change 8, 2026-09-18): a knob past the one-character
+    // ceiling rides TWO base-32 characters (stamp.ts's `fieldChars`), and the
+    // guard it keeps is `STAMP_WIDE_CEILING`, 1,024. Named here by entry and
+    // knob so a knob cannot go wide unannounced: ORBIT's four ring notes, 128
+    // options each (C-2 to G8), are the only ones.
+    const WIDE = [
+      "orbit.note1 (128)",
+      "orbit.note2 (128)",
+      "orbit.note3 (128)",
+      "orbit.note4 (128)",
+    ];
 
     // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).
     // A lattice colour knob carries 4,096 positions and does not ride the
@@ -107,16 +123,20 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
     }
 
     expect(STAMP_OPTION_CEILING).toBe(32);
+    expect(STAMP_WIDE_CEILING).toBe(1024);
     // The exemption is real work rather than a blanket: six preset colour
     // knobs, and every one of them the full lattice.
     expect(colourKnobs, "the exempted colour knobs").toBe(6);
-    expect(over, "a knob has more options than one stamp character").toEqual(
-      [],
-    );
+    expect(
+      over,
+      "a knob has more options than one stamp character and is not a named wide knob",
+    ).toEqual(WIDE);
     // Non-vacuity, and it covers BOTH routes: neither list may quietly empty.
     expect(examined, "knobs examined across both routes").toBeGreaterThan(40);
     expect(widest).toBeGreaterThan(1);
-    expect(widest).toBeLessThanOrEqual(STAMP_OPTION_CEILING);
+    expect(widest, "a wide knob still fits two characters").toBeLessThanOrEqual(
+      STAMP_WIDE_CEILING,
+    );
   });
 
   it("resolves the default from the entry's own table and never disagrees with the knob", () => {

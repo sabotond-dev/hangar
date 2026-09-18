@@ -11,10 +11,10 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
 import { CULL } from "./entries/cull";
-import { EUCLID } from "./entries/euclid";
 import { GHOST } from "./entries/ghost";
 import { LUMEN } from "./entries/lumen";
 import { MORPH } from "./entries/morph";
+import { ORBIT } from "./entries/orbit";
 import { POMODORO } from "./entries/pomodoro";
 import { PORTED } from "./entries/ported";
 import { QUADRANT } from "./entries/quadrant";
@@ -45,7 +45,7 @@ export type {
 } from "./types";
 
 // Hand-authored Lua entries are appended here as they are authored: Phase 8's
-// seven first, then Phase 9's twenty in the order their waves land, then
+// seven first (EUCLID, the first of them, is ORBIT since change 8, 2026-09-18), then Phase 9's twenty in the order their waves land, then
 // TRACKPAD COMET (2026-09-17, BENCH-2026-09-16.txt section 4) after TRACKPAD,
 // whose recipe it carries.
 //
@@ -56,7 +56,7 @@ export type {
 // ./presets.ts as the compiler's over-budget fixture; see entries/ported.ts.
 export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ...PORTED,
-  EUCLID,
+  ORBIT,
   CHORUS,
   ARC,
   GHOST,
@@ -77,7 +77,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   TRACKPAD_COMET,
 ]);
 
-export { EUCLID } from "./entries/euclid";
+export { ORBIT } from "./entries/orbit";
 export { CHORUS } from "./entries/chorus";
 export { ARC } from "./entries/arc";
 export { GHOST } from "./entries/ghost";

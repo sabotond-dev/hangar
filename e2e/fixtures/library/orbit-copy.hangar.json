@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "playground",
+  "exportedAt": "2026-09-18T09:31:00.000Z",
+  "app": "hangar",
+  "record": {
+    "schema": 1,
+    "kind": "playground",
+    "id": "copy:orbit:fixture",
+    "name": "Orbit copy",
+    "source": "orbit",
+    "knobIndices": [4, 1, 1, 2, 3, 1, 2, 1, 2, 60, 62, 64, 67, 1],
+    "createdAt": "2026-09-18T09:30:00.000Z",
+    "editedAt": "2026-09-18T09:30:00.000Z"
+  },
+  "rack": [
+    {
+      "id": "tempo",
+      "options": 6
+    },
+    {
+      "id": "pulses",
+      "options": 6
+    },
+    {
+      "id": "ring1Colour",
+      "options": 5
+    },
+    {
+      "id": "ring2Colour",
+      "options": 5
+    },
+    {
+      "id": "ring3Colour",
+      "options": 5
+    },
+    {
+      "id": "ring4Colour",
+      "options": 5
+    },
+    {
+      "id": "trail",
+      "options": 5
+    },
+    {
+      "id": "sync",
+      "options": 2
+    },
+    {
+      "id": "division",
+      "options": 3
+    },
+    {
+      "id": "note1",
+      "options": 128
+    },
+    {
+      "id": "note2",
+      "options": 128
+    },
+    {
+      "id": "note3",
+      "options": 128
+    },
+    {
+      "id": "note4",
+      "options": 128
+    },
+    {
+      "id": "channel",
+      "options": 16
+    }
+  ]
+}

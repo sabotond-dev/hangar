@@ -171,7 +171,7 @@ describe("the tuning state seam (src/lib/tune/state.ts)", () => {
 
     // A Lua entry has no PadState at all; asking for one is a programming
     // error, and a named throw says so instead of returning a default card.
-    expect(() => baseStateFor(mustFind("euclid"))).toThrow(/euclid/);
+    expect(() => baseStateFor(mustFind("orbit"))).toThrow(/orbit/);
   });
 });
 

@@ -576,19 +576,19 @@ test.describe("every configuration's page", () => {
       "two configurations must not share one description",
     ).toBe(descriptions.size);
 
-    // AN OFF-ROW PAGE IS A WORKSPACE OF ITS OWN. euclid is in the catalog and
-    // not in the front-door membership, so its page must be about euclid: one
+    // AN OFF-ROW PAGE IS A WORKSPACE OF ITS OWN. orbit (EUCLID until change 8) is in the catalog and
+    // not in the front-door membership, so its page must be about orbit: one
     // pad, its own name, and the rail carrying it as the current row - first,
     // prepended to the membership it is not part of - so the raised row is
     // never missing (13-09).
-    await page.goto("/playground/euclid/");
+    await page.goto("/playground/orbit/");
     await waitForWorkspace(page);
     const soloPads = page.locator('[data-testid^="pad-canvas-"]');
     await expect(soloPads, "a workspace shows one pad").toHaveCount(1);
-    await expect(page.getByTestId("pad-canvas-euclid")).toBeVisible();
-    await expect(page.getByTestId("workspace-name")).toHaveText("Euclid");
+    await expect(page.getByTestId("pad-canvas-orbit")).toBeVisible();
+    await expect(page.getByTestId("workspace-name")).toHaveText("Orbit");
     const rail = page.getByTestId("shell-rail");
-    await expect(rail.locator('[data-row="euclid"]')).toHaveAttribute(
+    await expect(rail.locator('[data-row="orbit"]')).toHaveAttribute(
       "aria-current",
       "page",
     );

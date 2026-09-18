@@ -174,7 +174,7 @@ const RETIRED_NOUN = new RegExp(["kno", "bs?"].join("") + "\\b", "i");
 const LADDER_LABEL = "Stop drawing the ZONA control on the pad";
 
 /** The catalog's sentence-case name (D-14 Q11b), as the samples read. */
-const NAME = "Euclid";
+const NAME = "Orbit";
 
 /**
  * One sample input per builder, so test 2 can put every builder's OUTPUT
@@ -713,10 +713,10 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
       "These settings came with the link. Reset settings returns the configuration to its defaults.",
     );
     expect(stampOlder(NAME)).toBe(
-      "This link was made with an older version of HANGAR. Its settings couldn’t be read, so this is Euclid at its defaults.",
+      "This link was made with an older version of HANGAR. Its settings couldn’t be read, so this is Orbit at its defaults.",
     );
     expect(stampUnreadable(NAME)).toBe(
-      "That link’s settings couldn’t be read, so this is Euclid at its defaults.",
+      "That link’s settings couldn’t be read, so this is Orbit at its defaults.",
     );
     // SHARE-03's FACT, as a fact: the older landing says it was an older
     // version and names the configuration it landed on; the unreadable one
@@ -771,7 +771,7 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     );
     expect(LINK_COPIED_ANNOUNCEMENT).toBe("Link copied to the clipboard.");
     expect(ogAlt(NAME)).toBe(
-      "The Euclid configuration running on a ZONA’s 9 by 9 pad.",
+      "The Orbit configuration running on a ZONA’s 9 by 9 pad.",
     );
 
     // The contract's last row: this panel writes nothing to any module and

@@ -9,8 +9,8 @@
 // is there on return as `Saved`; `Export` really downloads the file and the
 // bytes are the envelope; `Delete` is undoable for the session. The two
 // fixtures are committed beside this test under e2e/fixtures/library/:
-// euclid-copy.hangar.json is a real export written by transfer.ts against the
-// catalog as it stood on 2026-09-11 (its `rack` is euclid's six knobs; a
+// orbit-copy.hangar.json is a real export written by transfer.ts against the
+// catalog as it stood on 2026-09-18 (its `rack` is orbit's fourteen knobs; a
 // resized knob turns this import `older` and this title red, which is the
 // point), and somebody-elses.json carries `app: "grid-editor"`.
 //
@@ -156,18 +156,18 @@ test.describe("My configs, with no hardware attached", () => {
     // A GOOD IMPORT opens: the workspace at the record's stamp.
     await page
       .getByTestId("import-file")
-      .setInputFiles(fixture("euclid-copy.hangar.json"));
-    await page.waitForURL(/\/playground\/euclid\/#z\./, { timeout: 30_000 });
+      .setInputFiles(fixture("orbit-copy.hangar.json"));
+    await page.waitForURL(/\/playground\/orbit\/#z\./, { timeout: 30_000 });
     await expect(page.getByTestId("workspace")).toBeVisible();
     const stored = await page.evaluate(() =>
       JSON.parse(localStorage.getItem("hangar.library.v1") ?? "null"),
     );
-    expect(stored?.copies?.["copy:euclid:fixture"]).toMatchObject({
+    expect(stored?.copies?.["copy:orbit:fixture"]).toMatchObject({
       schema: 1,
       kind: "playground",
-      name: "Euclid copy",
-      source: "euclid",
-      knobIndices: [4, 1, 1, 2, 3, 1],
+      name: "Orbit copy",
+      source: "orbit",
+      knobIndices: [4, 1, 1, 2, 3, 1, 2, 1, 2, 60, 62, 64, 67, 1],
     });
 
     // BACK: the copy is a `Saved` row beside the `Draft` row - two words for
@@ -179,11 +179,11 @@ test.describe("My configs, with no hardware attached", () => {
     );
     const saved = rows.filter({ has: page.locator('[data-status="saved"]') });
     await expect(saved).toHaveCount(1);
-    await expect(saved.getByTestId("library-name")).toHaveText("Euclid copy");
+    await expect(saved.getByTestId("library-name")).toHaveText("Orbit copy");
     await expect(saved.getByTestId("library-status")).toHaveText("Saved");
     await expect(saved.getByTestId("library-open")).toHaveAttribute(
       "href",
-      /^\/playground\/euclid\/#z\./,
+      /^\/playground\/orbit\/#z\./,
     );
     await expect(rail.locator('[data-row="all"]')).toContainText("02");
     await expect(rail.locator('[data-row="drafts"]')).toContainText("01");
@@ -200,21 +200,21 @@ test.describe("My configs, with no hardware attached", () => {
     const download = page.waitForEvent("download");
     await saved.getByTestId("library-export").click();
     const file = await download;
-    expect(file.suggestedFilename()).toBe("euclid-copy.hangar.json");
+    expect(file.suggestedFilename()).toBe("orbit-copy.hangar.json");
     const path = await file.path();
     const exported = JSON.parse(readFileSync(path, "utf8"));
     expect(exported.app).toBe("hangar");
     expect(exported.schema).toBe(1);
     expect(exported.kind).toBe("playground");
-    expect(exported.record.name).toBe("Euclid copy");
-    expect(exported.rack.length).toBe(6);
+    expect(exported.record.name).toBe("Orbit copy");
+    expect(exported.rack.length).toBe(14);
 
     // DELETE, then UNDO, for the session.
     await saved.getByTestId("library-delete").click();
-    await expect(notice).toContainText("Deleted Euclid copy.");
+    await expect(notice).toContainText("Deleted Orbit copy.");
     await expect(rows).toHaveCount(1);
     await page.getByTestId("library-undo").click();
-    await expect(notice).toContainText("Euclid copy is back.");
+    await expect(notice).toContainText("Orbit copy is back.");
     await expect(rows).toHaveCount(2);
 
     // The search narrows by name; the miss is section 16's own sentence.
@@ -222,7 +222,7 @@ test.describe("My configs, with no hardware attached", () => {
     await expect(page.getByTestId("library-empty")).toContainText(
       "No configurations found.",
     );
-    await page.getByTestId("library-search").fill("euclid");
+    await page.getByTestId("library-search").fill("orbit");
     await expect(rows).toHaveCount(1);
     await page.getByTestId("library-search").fill("");
     await expect(rows).toHaveCount(2);
@@ -256,7 +256,7 @@ test.describe("My configs, with no hardware attached", () => {
     await saved.getByTestId("library-file").selectOption(liveId);
     await rail.locator(`[data-row="collection:${liveId}"]`).click();
     await expect(rows).toHaveCount(1);
-    await expect(rows.getByTestId("library-name")).toHaveText("Euclid copy");
+    await expect(rows.getByTestId("library-name")).toHaveText("Orbit copy");
     // Many: the same record can also be filed elsewhere - the select still
     // offers nothing here because there is only one collection, and that is
     // the one it is in.

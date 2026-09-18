@@ -136,15 +136,26 @@ for (const entry of luaEntries) {
       at({ [k.id]: i }, `knob ${k.id}=${i}`);
   if (FULL) {
     const h = createHash("sha256");
-    const n = product(
-      entry.knobs.map((k) => k.values),
-      (idx) => {
-        const knobs = {};
-        entry.knobs.forEach((k, j) => (knobs[k.id] = idx[j]));
-        const r = luaSim.renderLua(entry, knobs);
-        h.update(r.setup).update("\u0000").update(r.timer).update("\u0001");
-      },
+    // THE PRODUCT IS SAMPLED PAST ONE MILLION STATES (change 8, 2026-09-18). ORBIT carries
+    // fourteen knobs, four of them 128-note fields, so its full product is 10^17 states and
+    // never finishes; past the ceiling every knob enters at three positions - its first, its
+    // default and its last - and the key says how many states were hashed. Every entry under
+    // the ceiling (76,800 at most before this change) is hashed over its whole product exactly
+    // as it was, so no other record moves; every single-knob position is still hashed alone
+    // above, and the substitution is pure literal arithmetic (lua-entries.sweep.spec.ts's
+    // separability identity), so nothing a sampled knob does is hidden by the sample.
+    const full = entry.knobs.reduce((n, k) => n * k.values.length, 1);
+    const sampled = entry.knobs.map((k) =>
+      full > 1000000
+        ? [...new Set([0, k.default, k.values.length - 1])]
+        : k.values.map((_, i) => i),
     );
+    const n = product(sampled, (idx) => {
+      const knobs = {};
+      entry.knobs.forEach((k, j) => (knobs[k.id] = sampled[j][idx[j]]));
+      const r = luaSim.renderLua(entry, knobs);
+      h.update(r.setup).update("\u0000").update(r.timer).update("\u0001");
+    });
     luaStates += n;
     record[`E/${entry.id}/cross-product (${n} states)`] = {
       sha256: h.digest("hex"),

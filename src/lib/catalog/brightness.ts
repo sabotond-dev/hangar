@@ -97,6 +97,8 @@ export const ENTRY_SITES: Readonly<Record<string, Partial<ColourSites>>> = {
   snake: { painters: { P: [1, 2, 3] }, bare: ["r", "g", "b"] },
   // `local function I(p,q,w)` washes the field; `I(@RINGC)` is its one caller.
   pomodoro: { painters: { I: [0, 1, 2] }, bare: ["p", "q", "w"] },
+  // `local c={@R1C,@R2C,@R3C,@R4C}` in the Timer, twelve channels read as `c[d*3-2],c[d*3-1],c[d*3]`.
+  orbit: { palettes: ["c"] },
 };
 
 /** The sites for one entry (or none: a preset, whose compiled output calls the library painters alone). */

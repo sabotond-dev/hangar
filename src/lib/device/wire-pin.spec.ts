@@ -590,7 +590,7 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     // the rendered pair. Test 2 pins the published strings to the exports;
     // this pins the frames to the published strings, so the exports ARE the
     // bytes - which is what the runbook's four-strings row reads off a module.
-    const lua = await landing("euclid");
+    const lua = await landing("orbit");
     try {
       const { config } = lua;
       const { transport, queue } = rig();

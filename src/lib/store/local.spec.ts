@@ -508,7 +508,7 @@ const PAGE3_DRAFT: Draft = {
   surface: PAGE3,
 };
 
-/** The twelve ids Phases 11 and 12 removed (11-01, 12-04). */
+/** The thirteen ids Phases 11 and 12 removed (11-01, 12-04) and change 8 renamed (2026-09-18: EUCLID is ORBIT). */
 const REMOVED = [
   "hold",
   "keys",
@@ -522,8 +522,9 @@ const REMOVED = [
   "lattice",
   "forge",
   "shuttle",
+  "euclid",
 ];
-const KNOWN = new Set(["arc", "euclid", "chorus", "ghost", "morph", "sonar"]);
+const KNOWN = new Set(["arc", "orbit", "chorus", "ghost", "morph", "sonar"]);
 const isKnown = (id: string): boolean => KNOWN.has(id);
 
 describe("the five stores (src/lib/store/*.ts)", () => {
@@ -728,12 +729,12 @@ describe("the five stores (src/lib/store/*.ts)", () => {
 
     expect(setFavorite(store, "arc", true, isKnown)).toBe(true);
     expect(setFavorite(store, "ghost", true, isKnown)).toBe(true);
-    expect(setFavorite(store, "euclid", true, isKnown)).toBe(true);
+    expect(setFavorite(store, "orbit", true, isKnown)).toBe(true);
     expect(
       readFavorites(store, isKnown),
       "order-stable, in the order made",
     ).toEqual({
-      ids: ["arc", "ghost", "euclid"],
+      ids: ["arc", "ghost", "orbit"],
       dropped: 0,
     });
     expect(isFavorite(store, "ghost")).toBe(true);
@@ -750,26 +751,26 @@ describe("the five stores (src/lib/store/*.ts)", () => {
       FAVORITES_KEY,
       JSON.stringify({
         schema: 1,
-        ids: ["arc", "forge", "ghost", "keys", "euclid"],
+        ids: ["arc", "forge", "ghost", "keys", "orbit"],
       }),
     );
     const raw = map.get(FAVORITES_KEY);
     const read = readFavorites(store, isKnown);
-    expect(read.ids).toEqual(["arc", "ghost", "euclid"]);
+    expect(read.ids).toEqual(["arc", "ghost", "orbit"]);
     expect(
       read.dropped,
       "a shorter list without a count is the coy state D-05 forbids",
     ).toBe(2);
     expect(map.get(FAVORITES_KEY), "reading never writes").toBe(raw);
 
-    // Against every one of the twelve removed ids: all dropped, all counted.
+    // Against every one of the thirteen removed ids: all dropped, all counted.
     map.set(
       FAVORITES_KEY,
       JSON.stringify({ schema: 1, ids: [...REMOVED, "arc"] }),
     );
     const swept = readFavorites(store, isKnown);
     expect(swept).toEqual({ ids: ["arc"], dropped: REMOVED.length });
-    expect(swept.dropped).toBe(12);
+    expect(swept.dropped).toBe(13);
 
     // The next change persists the pruned list; unstar removes in place.
     expect(setFavorite(store, "sonar", true, isKnown)).toBe(true);

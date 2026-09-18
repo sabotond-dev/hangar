@@ -1561,7 +1561,7 @@ test.describe("browse, open a configuration, and come back", () => {
     // shared store would make the assertion below pass for the wrong reason.
     const fresh = await context.newPage();
     try {
-      await fresh.goto("/playground/euclid/");
+      await fresh.goto("/playground/orbit/");
       await expect(fresh.getByTestId("workspace")).toBeVisible();
       expect(
         await fresh.evaluate(() => window.sessionStorage.length),
@@ -1597,7 +1597,7 @@ test.describe("the engine hazard this phase created, in a browser", () => {
     // handover itself: the pad runs before the tuner publishes, and the
     // published engine replaces the shipped one under the same id without
     // blanking or stopping the surface (SimHost.replaceEngine).
-    const ID = "euclid";
+    const ID = "orbit";
 
     await coldGoto(page, `/playground/${ID}/`);
     await expect(page.getByTestId("workspace")).toBeVisible();

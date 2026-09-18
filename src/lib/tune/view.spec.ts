@@ -389,8 +389,8 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
 
   it("names hues, and shows an integer readout only when every value is one integer", () => {
     // The five shipped swatch values, read off the catalog so the pairs below
-    // cannot drift from what EUCLID actually offers.
-    const ring = byId("euclid")?.knobs.find((k) => k.id === "ringColour");
+    // cannot drift from what ORBIT actually offers (its four ring knobs share one palette).
+    const ring = byId("orbit")?.knobs.find((k) => k.id === "ring1Colour");
     const shipped: readonly (readonly [string, string])[] = [
       ["0,200,255", "Cyan"],
       ["255,90,0", "Orange"],

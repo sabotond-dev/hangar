@@ -194,10 +194,13 @@ export const LISTING: readonly ListingEntry[] = [
   // trackpad card (the last row below, in CATALOG order); the preset stays on
   // the shelf as the compiler's over-budget fixture and is listed nowhere.
   {
-    id: "euclid",
-    name: "Euclid",
+    // EUCLID until change 8 (2026-09-18, BENCH-2026-09-16.txt section 8):
+    // ORBIT, with a fourth ring, a colour and a note per ring and MIDI clock
+    // sync. The old id is the fourteenth dead address (local.spec.ts's REMOVED).
+    id: "orbit",
+    name: "Orbit",
     description:
-      "Three Euclidean rings turn at their own speeds and beat against each other; tap a step to change the pattern.",
+      "Four Euclidean rings, a colour and a note each, on their tempo or your DAW’s clock; tap a step to change it.",
     motion: "animated",
     tags: ["sequencing", "generative", "playable"],
     featured: true,

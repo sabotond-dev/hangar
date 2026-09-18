@@ -22,7 +22,7 @@ import {
   type RGB,
 } from "../../vendor/botor/_pad";
 import type { CatalogEntry } from "../catalog/types";
-import { luaKnobs } from "../tune/knobs.lua";
+import { STAMP_OPTION_CEILING, luaKnobs } from "../tune/knobs.lua";
 import {
   presetKnobs,
   type KnobDescriptor,
@@ -97,13 +97,53 @@ function readColourField(chars: string): RGB | undefined {
   return { r: steps[0] * 17, g: steps[1] * 17, b: steps[2] * 17 };
 }
 
-/** Format `w`'s payload length for a rack. Two, plus one or three per knob. */
+/**
+ * How many characters a knob's field takes, on both Lua formats: three for a colour (above), TWO for
+ * a WIDE knob - one with more options than one base-32 character can index (change 8, 2026-09-18:
+ * ORBIT's four ring notes, 128 each) - and one for everything else. A wide field is the position in
+ * base 32, high character first, so a rack with no wide knob is encoded exactly as it was before.
+ */
+export function fieldChars(knob: KnobDescriptor): number {
+  if (isColour(knob)) return COLOUR_FIELD_CHARS;
+  return knob.options.length > STAMP_OPTION_CEILING ? WIDE_FIELD_CHARS : 1;
+}
+
+/** A wide knob's field: two base-32 characters, 1,024 positions. */
+export const WIDE_FIELD_CHARS = 2;
+
+/** A position as its field: one character, or two for a wide knob (high first). */
+function writeIndexField(knob: KnobDescriptor, at: number): string {
+  if (fieldChars(knob) === WIDE_FIELD_CHARS) {
+    return (
+      STAMP_ALPHABET[Math.floor(at / STAMP_ALPHABET.length)] +
+      STAMP_ALPHABET[at % STAMP_ALPHABET.length]
+    );
+  }
+  return STAMP_ALPHABET[at];
+}
+
+/** The inverse: the position a field names, or -1 for a character outside the alphabet. */
+function readIndexField(knob: KnobDescriptor, chars: string): number {
+  if (fieldChars(knob) === WIDE_FIELD_CHARS) {
+    const high = STAMP_ALPHABET.indexOf(chars[0]);
+    const low = STAMP_ALPHABET.indexOf(chars[1]);
+    return high < 0 || low < 0 ? -1 : high * STAMP_ALPHABET.length + low;
+  }
+  return STAMP_ALPHABET.indexOf(chars[0]);
+}
+
+/** Format `w`'s payload length for a rack. Two, plus one, two or three per knob (`fieldChars`). */
 export function luaColourPayloadLength(
   knobs: readonly KnobDescriptor[],
 ): number {
+  return 2 + knobs.reduce((n, knob) => n + fieldChars(knob), 0);
+}
+
+/** Format `x`'s payload length for a rack: two, plus one or two per knob (no colour field on `x`). */
+export function luaPayloadLength(knobs: readonly KnobDescriptor[]): number {
   return (
     2 +
-    knobs.reduce((n, knob) => n + (isColour(knob) ? COLOUR_FIELD_CHARS : 1), 0)
+    knobs.reduce((n, knob) => n + (isColour(knob) ? 1 : fieldChars(knob)), 0)
   );
 }
 
@@ -167,10 +207,11 @@ export function readLuaColourPayload(
       at += COLOUR_FIELD_CHARS;
       continue;
     }
-    const position = STAMP_ALPHABET.indexOf(payload[at]);
+    const width = fieldChars(knob);
+    const position = readIndexField(knob, payload.slice(at, at + width));
     if (position < 0 || position >= knob.options.length) return undefined;
     indices[knob.id] = position;
-    at += 1;
+    at += width;
   }
   return { indices, colours };
 }
@@ -188,7 +229,7 @@ export function writeLuaColourPayload(
       body += writeColourField(colour);
       continue;
     }
-    body += STAMP_ALPHABET[at];
+    body += writeIndexField(knob, at);
   }
   return `${HANGAR_FORMAT_LUA_COLOUR}${shapeOf(knobs)}${body}`;
 }
@@ -319,7 +360,11 @@ export function encodeFor(
       );
     }
     const positions = knobs
-      .map((knob) => STAMP_ALPHABET[positionOf(indices[knob.id], knob)])
+      .map((knob) => {
+        const at = positionOf(indices[knob.id], knob);
+        // A colour knob is one palette index on `x`; a wide knob two characters.
+        return isColour(knob) ? STAMP_ALPHABET[at] : writeIndexField(knob, at);
+      })
       .join("");
     return `${HANGAR_FORMAT_LUA}${shapeOf(knobs)}${positions}`;
   }
@@ -364,12 +409,16 @@ function decodeLua(knobs: readonly KnobDescriptor[], payload: string): Landing {
     return decodeLuaColour(knobs, payload);
   }
   if (payload[0] !== HANGAR_FORMAT_LUA) return UNREADABLE;
-  if (payload.length !== 2 + knobs.length) return UNREADABLE;
+  if (payload.length !== luaPayloadLength(knobs)) return UNREADABLE;
   const indices: Record<string, number> = {};
-  for (let at = 0; at < knobs.length; at += 1) {
-    const position = STAMP_ALPHABET.indexOf(payload[2 + at]);
-    if (position < 0 || position >= knobs[at].options.length) return UNREADABLE;
-    indices[knobs[at].id] = position;
+  let at = 2;
+  for (const knob of knobs) {
+    // A colour knob is one palette index on `x` (the format predates `w`); a wide knob is two.
+    const width = isColour(knob) ? 1 : fieldChars(knob);
+    const position = readIndexField(knob, payload.slice(at, at + width));
+    if (position < 0 || position >= knob.options.length) return UNREADABLE;
+    indices[knob.id] = position;
+    at += width;
   }
   // Last, and only once the payload is known to be well formed: an unreadable
   // stamp must not be reported as merely old.

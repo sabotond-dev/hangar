@@ -643,6 +643,26 @@ export class LuaHost {
     this.enqueue(id, EVT_DOWN, x, y);
   }
 
+  /**
+   * One MIDI realtime byte to the configuration, exactly as the firmware hands it (change 8,
+   * 2026-09-18): `decode.lua:42-44` calls `el:rtmrx_cb({instr, sx, sy}, byte)` when the element
+   * defines `rtmrx_cb` and `grid_decode.c:388` has let the class through `rx_mode`. Test-facing and
+   * SYNCHRONOUS - the host has no MIDI input, so nothing schedules this; a spec drives the callback
+   * the way a DAW would and reads what the rings did. The routing gate is the spec's to assert
+   * through `rxMode`; this call does not consult it, so an Internal card can be shown ignoring nothing
+   * because nothing reaches it. Returns false when the configuration defines no handler.
+   */
+  rtm(byte: number): boolean {
+    let called = false;
+    this.guarded(() => {
+      called = this.engine.doStringSync(
+        `local f = self.rtmrx_cb if type(f) ~= "function" then return false end ` +
+          `f(self, {13, 0, 0}, ${f2i(num(byte))}) return true`,
+      ) as boolean;
+    });
+    return called;
+  }
+
   touchMove(id: number, x: number, y: number): void {
     this.enqueue(id, EVT_MOVE, x, y);
   }

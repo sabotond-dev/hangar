@@ -448,13 +448,13 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // Real timers: this test builds two real Lua 5.4 VMs, and the debounce is
     // not the thing under measurement here.
     const rec = recorder();
-    const tuner = await buildTuner({ entryId: "euclid", ...rec });
+    const tuner = await buildTuner({ entryId: "orbit", ...rec });
     await pause(80);
     const before = rec.previews.length;
     expect(before, "no engine arrived with the tuner").toBe(1);
 
     const tempo = tuner.knobs.find((knob) => knob.id === "tempo");
-    expect(tempo, "euclid has a tempo knob").toBeDefined();
+    expect(tempo, "orbit has a tempo knob").toBeDefined();
     tuner.set("tempo", (tempo!.default + 1) % tempo!.options.length);
 
     // D-06: the previous engine keeps painting for the whole await.
@@ -487,10 +487,10 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // its Setup calls `Q` by name and a module whose page init did not carry
     // the library would raise on the first finger.
     //
-    // Real timers: EUCLID's route builds a real Lua VM, and the debounce is not
+    // Real timers: ORBIT's route builds a real Lua VM, and the debounce is not
     // what is being measured.
     const lua = recorder();
-    const luaTuner = await buildTuner({ entryId: "euclid", ...lua });
+    const luaTuner = await buildTuner({ entryId: "orbit", ...lua });
     await pause(80);
     const landedLua = lua.configs.at(-1);
     expect(landedLua, "the Lua entry never landed a pair").toBeDefined();
@@ -537,7 +537,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     const pasted = "--[[@cb]]-- pasted";
     const override = recorder();
     const overrideTuner = await buildTuner({
-      entryId: "euclid",
+      entryId: "orbit",
       systemSetup: pasted,
       ...override,
     });
@@ -555,9 +555,9 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // call arms - so a landing that carries one half without the other would
     // put a module in the state 12.1-06's SLOTS comment (reason three) exists
     // to prevent: a page init arming a timer whose body is still firmware's
-    // debug print. Real timers, as the test above: EUCLID builds a Lua VM.
+    // debug print. Real timers, as the test above: ORBIT builds a Lua VM.
     const lua = recorder();
-    const luaTuner = await buildTuner({ entryId: "euclid", ...lua });
+    const luaTuner = await buildTuner({ entryId: "orbit", ...lua });
     await pause(80);
     const landedLua = lua.configs.at(-1);
     expect(landedLua, "the Lua entry never landed").toBeDefined();
@@ -629,7 +629,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     const pasted = "--[[@cb]]-- pasted timer";
     const override = recorder();
     const overrideTuner = await buildTuner({
-      entryId: "euclid",
+      entryId: "orbit",
       systemTimer: pasted,
       ...override,
     });
@@ -681,7 +681,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // OWNERSHIP TRANSFERS AT onpreview (05.1-CONTEXT D-18). The consumer swaps
     // the engine into SimHost synchronously inside that callback and paints it
     // from there on, so an engine the tuner has published is not the tuner's to
-    // close. On /playground/euclid/ the row is EUCLID ALONE, so before this rule the
+    // close. On /playground/orbit/ the row is ORBIT ALONE, so before this rule the
     // panel's own close button closed the Lua VM behind the only pad on the
     // page and blanked it. This is the node half of the proof; plan 05.1-11's
     // e2e is the browser half.
@@ -692,7 +692,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     const rec = recorder();
     const closed: SimEngine[] = [];
     const tuner = await buildTuner({
-      entryId: "euclid",
+      entryId: "orbit",
       ...rec,
       onpreview: (engine: SimEngine) => {
         rec.onpreview(engine);
@@ -704,7 +704,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     const first = rec.previews[0];
 
     const tempo = tuner.knobs.find((knob) => knob.id === "tempo");
-    expect(tempo, "euclid has a tempo knob").toBeDefined();
+    expect(tempo, "orbit has a tempo knob").toBeDefined();
     tuner.set("tempo", (tempo!.default + 1) % tempo!.options.length);
     await pause(COMPILE_DEBOUNCE_MS + 400);
 
@@ -969,17 +969,17 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
   it("brightness: 128 lands the scaled strings on both routes and the meters measure them, the preview dims to about half, the view carries it, Randomize never moves it, Reset settings puts it back, and 255 is the strings as shipped", async () => {
     // Real timers: the Lua route builds a VM per brightness, as it does per knob.
     const rec = recorder();
-    const tuner = await buildTuner({ entryId: "euclid", ...rec });
+    const tuner = await buildTuner({ entryId: "orbit", ...rec });
     await pause(COMPILE_DEBOUNCE_MS + 400);
     expect(tuner.brightness, "opens at full").toBe(255);
     expect(rec.views.at(-1)?.brightness, "the view carries it").toBe(255);
     const shipped = rec.configs.findLast((c) => c !== undefined);
     expect(shipped, "the first landing").toBeDefined();
-    const rendered = renderLua(mustEntry("euclid"), tuner.indices);
+    const rendered = renderLua(mustEntry("orbit"), tuner.indices);
     expect(shipped!.setup, "255 is the string as shipped").toBe(rendered.setup);
     const fullFrame = frameAfter(rec.previews.at(-1)!, 200);
     const fullMax = Math.max(...fullFrame);
-    expect(fullMax, "euclid lights something at rest").toBeGreaterThan(100);
+    expect(fullMax, "orbit lights something at rest").toBeGreaterThan(100);
     const settledBefore = settledViews(rec.views).length;
 
     const configMark = rec.configs.length;
@@ -996,9 +996,9 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     const dim = rec.configs.findLast((c) => c !== undefined);
     expect(dim, "the landing at 128").toBeDefined();
     expect(dim!.setup, "the Lua route lands the scaled Setup").toBe(
-      scaleLua(rendered.setup, 128, sitesFor("euclid")),
+      scaleLua(rendered.setup, 128, sitesFor("orbit")),
     );
-    expect(dim!.timer).toBe(scaleLua(rendered.timer, 128, sitesFor("euclid")));
+    expect(dim!.timer).toBe(scaleLua(rendered.timer, 128, sitesFor("orbit")));
     expect(dim!.setup, "128 moved a byte").not.toBe(rendered.setup);
     expect(dim!.system, "the library is not scaled").toBe(TOUCH_LIBRARY);
     expect(dim!.systemTimer).toBe(TOUCH_LIBRARY_TIMER);
@@ -1037,7 +1037,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     await pause(COMPILE_DEBOUNCE_MS + 400);
     const back = rec.configs.findLast((c) => c !== undefined);
     expect(back!.setup, "255 again is the shipped string").toBe(
-      renderLua(mustEntry("euclid"), tuner.indices).setup,
+      renderLua(mustEntry("orbit"), tuner.indices).setup,
     );
     tuner.destroy();
 

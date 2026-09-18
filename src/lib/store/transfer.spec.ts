@@ -8,7 +8,7 @@
 //      return value;
 //   3. an older readable shape is `older` and lands on the base configuration,
 //      matched by name against stamp.spec.ts's "lands older on a resized knob
-//      and never restored on a changed rack" - the same entry (euclid), the
+//      and never restored on a changed rack" - the same entry (orbit, EUCLID until change 8), the
 //      same resize (the first knob loses its last option), so the two cannot
 //      drift;
 //   4. a sandbox record with an off-surface or overlapping region is refused
@@ -135,7 +135,7 @@ function sandboxCopy(id: string, regions: readonly Region[]): StoredRecord {
 
 describe("export as a file and import refused before it opens (src/lib/store/transfer.ts)", () => {
   it("1. an exported record round-trips byte-for-byte, schema and kind included, and the download revokes its URL", () => {
-    const copy = playgroundCopy("copy:euclid:1", "euclid");
+    const copy = playgroundCopy("copy:orbit:1", "orbit");
     const file = exportFile(copy, T1, catalogKnobs);
     expect(file).toEqual({
       schema: 1,
@@ -143,7 +143,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
       exportedAt: T1,
       app: EXPORT_APP,
       record: copy,
-      rack: stampKnobs(entry("euclid")).map((knob) => ({
+      rack: stampKnobs(entry("orbit")).map((knob) => ({
         id: knob.id,
         options: knob.options.length,
       })),
@@ -164,15 +164,15 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
       JSON.stringify(result.record),
       "every field survives byte-for-byte",
     ).toBe(JSON.stringify(copy));
-    expect(readLibrary(store)["copy:euclid:1"]).toEqual(copy);
+    expect(readLibrary(store)["copy:orbit:1"]).toEqual(copy);
     expect(written).toEqual([LIBRARY_KEY]);
 
     // The restored indices are the codec's own vocabulary: knob id -> index.
     if (result.landing.kind === "restored") {
       expect(
         decodeFor(
-          entry("euclid"),
-          encodeFor(entry("euclid"), result.landing.indices),
+          entry("orbit"),
+          encodeFor(entry("orbit"), result.landing.indices),
         ),
         "the imported vector is the vector the stamp would restore",
       ).toEqual(result.landing);
@@ -184,7 +184,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
     expect(again.stored).toBe(true);
     expect(again.record?.id).not.toBe(copy.id);
     expect(Object.keys(readLibrary(store)).length).toBe(2);
-    expect(map.get(LIBRARY_KEY)).toContain('"copy:euclid:1"');
+    expect(map.get(LIBRARY_KEY)).toContain('"copy:orbit:1"');
 
     // The sandbox kind rides the same envelope with no other code path.
     const surface = sandboxCopy("copy:surface:1", [
@@ -243,12 +243,12 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
       },
       defer: (run) => run(),
     });
-    expect(name).toBe("euclid-copy.hangar.json");
+    expect(name).toBe("orbit-copy.hangar.json");
     expect(exportFileName(surface)).toBe("my-performance.hangar.json");
     expect(created.length).toBe(1);
     expect(created[0].type).toBe("application/json");
     expect(clicks).toEqual([
-      { href: "blob:hangar/1", download: "euclid-copy.hangar.json" },
+      { href: "blob:hangar/1", download: "orbit-copy.hangar.json" },
     ]);
     expect(revoked, "the object URL is revoked after the click").toEqual([
       "blob:hangar/1",
@@ -364,14 +364,14 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
   });
 
   it("3. an older shape lands older, on the base configuration - matched against stamp.spec.ts's 'lands older on a resized knob and never restored on a changed rack'", () => {
-    // THE SAME RESIZE AS THE STAMP TEST, BY NAME: euclid, whose first knob
+    // THE SAME RESIZE AS THE STAMP TEST, BY NAME: orbit, whose first knob
     // loses its last option, under the SAME tuned vector (every knob one past
     // its default, stamp.spec.ts's tunedOf). Every index still fits the
     // resized list, so nothing but a shape can catch it - there the payload's
     // shape character, here the file's rack.
-    const each = entry("euclid");
+    const each = entry("orbit");
     const knobs = stampKnobs(each);
-    expect(knobs.length, "euclid has knobs").toBeGreaterThan(1);
+    expect(knobs.length, "orbit has knobs").toBeGreaterThan(1);
     const resized: CatalogEntry = {
       ...each,
       knobs: each.knobs.map((knob, at) =>
@@ -390,7 +390,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
       "the tuned index still fits the resized list - only a shape can catch this",
     ).toBe(true);
     const copy: PlaygroundRecord = {
-      ...playgroundCopy("copy:euclid:1", "euclid"),
+      ...playgroundCopy("copy:orbit:1", "orbit"),
       knobIndices: tuned,
     };
     const indices: Record<string, number> = {};
@@ -415,7 +415,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
     expect(result.landing).toEqual({ kind: "older" });
     expect(result.step).toBe(4);
     expect(result.reason).toBe(
-      IMPORT_REASONS.rackChanged("euclid", resizedKnobs[0].label),
+      IMPORT_REASONS.rackChanged("orbit", resizedKnobs[0].label),
     );
     expect(result.reason).toContain(resizedKnobs[0].label);
     expect(result.stored).toBe(true);
@@ -423,7 +423,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
 
     // THE BASE CONFIGURATION, NEVER A SUBTLY WRONG ONE (SHARE-03): every index
     // is the knob's default, and the stamp for that vector is the empty one.
-    const landed = readLibrary(store)["copy:euclid:1"];
+    const landed = readLibrary(store)["copy:orbit:1"];
     expect(landed?.kind).toBe("playground");
     if (landed?.kind === "playground") {
       expect(landed.knobIndices).toEqual(
@@ -461,7 +461,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
     );
     expect(short.landing).toEqual({ kind: "older" });
     expect(short.reason).toBe(
-      IMPORT_REASONS.knobCount("euclid", tuned.length - 1, knobs.length),
+      IMPORT_REASONS.knobCount("orbit", tuned.length - 1, knobs.length),
     );
     expect(
       decodeFor(each, encodeFor(removed, indices) as string),
@@ -610,7 +610,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
 
   it("5. brightness (change 5) travels with a record: a Playground copy and a Sandbox surface round-trip it through the file, an older file without the field lands at 255, the schema's range is catalog/brightness.ts's, and 0 or 256 is unreadable", () => {
     const dim: PlaygroundRecord = {
-      ...playgroundCopy("copy:euclid:dim", "euclid"),
+      ...playgroundCopy("copy:orbit:dim", "orbit"),
       brightness: 128,
     };
     const { store } = fakeStore();
@@ -642,7 +642,7 @@ describe("export as a file and import refused before it opens (src/lib/store/tra
     ).toBe(40);
 
     // An older file: the record as every copy was written before the field existed.
-    const older = playgroundCopy("copy:euclid:older", "euclid");
+    const older = playgroundCopy("copy:orbit:older", "orbit");
     const olderBack = importText(
       store,
       serialiseExport(exportFile(older, T1, catalogKnobs)),

@@ -60,6 +60,21 @@ export function midiFieldLabel(knob: { id: string; label: string }): string {
 export const TYPE_A_NUMBER = "Type a whole number.";
 
 /**
+ * The refusal under a typed NOTE field (change 8, 2026-09-18: ORBIT's four ring notes), for a name
+ * the field cannot read and for a number outside the range alike - both are "not a note here".
+ * Sharps as the readout spells them (C4 = 60: 0 is C-1, 127 is G9); the numbers because a drum map
+ * is often written in them, and because Live spells the same range C-2..G8.
+ */
+export const NOTE_OFFERED = "A note here is C-1 to G9, or 0 to 127.";
+
+/**
+ * The line under Behavior while the preview holds a knob at its `previewIndex` (change 8: ORBIT's
+ * Sync at External). The browser has no MIDI clock to follow; the module gets the visitor's choice.
+ */
+export const PREVIEW_INTERNAL_CLOCK =
+  "The browser preview has no MIDI clock, so it runs the internal tempo here. Your ZONA follows your DAW.";
+
+/**
  * The refusal when a typed whole number is one the knob does not offer, naming
  * what it does offer (13.1-CONTEXT D-09). Two forms from ONE builder: a list
  * with gaps names its values (`one of 1, 16, 20, 74 or 102`), a contiguous run

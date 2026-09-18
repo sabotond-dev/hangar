@@ -557,10 +557,10 @@ describe("build configuration shape", () => {
     //
     // AMENDMENT (D-07, plan 05.1-05), in two parts.
     //
-    // FIRST: build/playground/euclid/index.html joins the list. It is a page that did not
+    // FIRST: build/playground/orbit/index.html joins the list. It is a page that did not
     // exist before D-07 and it is the one that proves the widening did not make
     // the deep-link route heavy: aurora is a ROW entry, so its page is the one
-    // Phase 4 already shipped, while euclid is an OFF-ROW entry whose page reads
+    // Phase 4 already shipped, while orbit (EUCLID until change 8) is an OFF-ROW entry whose page reads
     // the listing and renders a row of one.
     //
     // SECOND, and it is a correction rather than a widening. This test used to
@@ -623,7 +623,7 @@ describe("build configuration shape", () => {
       "build/index.html",
       "build/playground/index.html",
       "build/playground/aurora/index.html",
-      "build/playground/euclid/index.html",
+      "build/playground/orbit/index.html",
     ]) {
       const html = text(page);
       const queue = [
