@@ -10134,6 +10134,188 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length).toBe(2);
   }, 120000);
+
+  it("runs GHOST on the DAW's clock: recording stays real-time on the Timer, External replays nothing from the Timer, Start restarts the loop and each clock replays one recorded point on the wire and the LED, Division stretches it, Stop freezes it, Continue resumes, and the preview holds Internal", async () => {
+    const entry = entryById("ghost");
+    const cc = knobValueOf(entry, "cc");
+    const channel = knobValueOf(entry, "channel");
+    const syncKnob = entry.knobs.find((knob) => knob.id === "sync");
+    const divisionKnob = entry.knobs.find((knob) => knob.id === "division");
+    if (!syncKnob || !divisionKnob)
+      throw new Error("ghost: sync and division knobs expected");
+    const PATH_COLUMNS = [1, 4, 7] as const;
+    const PATH_ROW = 3;
+    const pathX = PATH_COLUMNS.map((column) => ledCentre(column, "x"));
+    const pathY = ledCentre(PATH_ROW, "y");
+    const pathCells = PATH_COLUMNS.map((column) => column + PATH_ROW * 9);
+    const xsOf = (midi: readonly HostMidi[], from: number): number[] =>
+      midi
+        .slice(from)
+        .filter((m) => m.p1 === cc)
+        .map((m) => m.p2);
+    const report: string[] = [];
+
+    /** Draw the three-cell path with the finger held six ticks a cell; returns the recording's length. */
+    const draw = (
+      host: Awaited<ReturnType<typeof openSynced>>["host"],
+    ): number => {
+      host.touchDown(0, pathX[0], pathY);
+      host.run(6);
+      host.touchMove(0, pathX[1], pathY);
+      host.run(6);
+      host.touchMove(0, pathX[2], pathY);
+      host.run(6);
+      host.touchUp(0, pathX[2], pathY);
+      host.run(2);
+      return host.selfNumber("n") ?? 0;
+    };
+
+    // 1. EXTERNAL, one point a clock.
+    {
+      const { host, sim } = await openSynced(entry, { sync: 1 });
+      try {
+        expect(host.rxMode, "External asks grxm(2,3)").toBe(3);
+        const n = draw(host);
+        // The Timer is 20 ms - every second tick - so eighteen held ticks are
+        // nine or ten points, three a cell.
+        expect(
+          n,
+          "the drag was recorded in real time on the Timer",
+        ).toBeGreaterThanOrEqual(6);
+        const recorded = xsOf(host.midi, 0);
+        expect(
+          [...new Set(recorded)].sort((a, b) => a - b),
+          "recording sends the pair live under External too",
+        ).toEqual([...pathX].sort((a, b) => a - b));
+        expect(
+          host.midi.filter((m) => m.ch === channel && m.p1 === cc + 1).length,
+          "the Y half went with every X",
+        ).toBe(recorded.length);
+        // The lift: the Timer replays nothing under External.
+        const after = host.midi.length;
+        host.run(200);
+        expect(
+          host.midi.length,
+          "the Timer replays nothing under External",
+        ).toBe(after);
+        expect(host.selfNumber("j"), "the replay index waits at 0").toBe(0);
+        for (const cell of pathCells)
+          expect(
+            sim.layer(hwOfCell(cell), 2).pha,
+            `cell ${cell}: no ghost yet`,
+          ).toBe(0);
+        for (let k = 0; k < 12; k += 1)
+          expect(host.rtm(CLOCK), "the handler exists").toBe(true);
+        expect(host.midi.length, "clocks before Start replay nothing").toBe(
+          after,
+        );
+        // Start: the loop restarts at the first point; a clock a point.
+        host.rtm(START);
+        expect(host.selfNumber("j")).toBe(0);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "the first clock replays point 1").toBe(1);
+        expect(
+          wire(host.midi, after),
+          "point 1 is the down's raw pair",
+        ).toEqual([
+          `${channel}:176:${cc}:${pathX[0]}`,
+          `${channel}:176:${cc + 1}:${127 - pathY}`,
+        ]);
+        expect(
+          sim.layer(hwOfCell(pathCells[0]), 2).pha,
+          "the ghost lights the point's LED on layer 2 at the decay's start",
+        ).toBe(252);
+        for (let k = 1; k < n; k += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "n clocks replay the whole loop").toBe(n);
+        expect(
+          [...new Set(xsOf(host.midi, after))].sort((a, b) => a - b),
+          "one lap replays exactly the recorded x coordinates",
+        ).toEqual([...pathX].sort((a, b) => a - b));
+        expect(xsOf(host.midi, after).length, "one point per clock").toBe(n);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "the loop wraps").toBe(1);
+        // The Timer still replays nothing while the clock runs the ghost.
+        const mid = host.midi.length;
+        host.run(200);
+        expect(host.midi.length, "200 Timer ticks send nothing").toBe(mid);
+        expect(host.selfNumber("j")).toBe(1);
+        // Stop freezes; sensing and clocks do nothing; the key still pulses.
+        host.rtm(STOP);
+        for (let k = 0; k < 12; k += 1) host.rtm(CLOCK);
+        host.rtm(SENSING);
+        expect(host.selfNumber("j"), "Stop freezes the ghost").toBe(1);
+        expect(host.midi.length, "a stopped ghost sends nothing").toBe(mid);
+        host.run(28);
+        expect(
+          sim.layer(hwOfCell(80), 1).pha,
+          "the key still pulses while stopped",
+        ).toBeGreaterThan(0);
+        // Continue resumes from the frozen point; Start restarts the loop.
+        host.rtm(CONTINUE);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "Continue resumes at the next point").toBe(
+          2,
+        );
+        expect(
+          xsOf(host.midi, mid),
+          "point 2 is still the first cell (six ticks a cell)",
+        ).toEqual([pathX[0]]);
+        host.rtm(START);
+        expect(host.selfNumber("j"), "Start restarts the loop").toBe(0);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j")).toBe(1);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          `  External, one point a clock: ${n} points recorded live on the Timer, none replayed by it; Start then ${n} clocks replayed the loop once on CC ${cc}; Stop froze it; Continue resumed; Start restarted it`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 2. DIVISION: three clocks a point stretches the loop threefold.
+    {
+      const { host } = await openSynced(entry, { sync: 1, division: 2 });
+      try {
+        const n = draw(host);
+        const after = host.midi.length;
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "the first clock is point 1").toBe(1);
+        host.rtm(CLOCK);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "two more clocks: still point 1").toBe(1);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("j"), "the fourth clock is point 2").toBe(2);
+        for (let k = 0; k < 3 * n - 4; k += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("j"), `3n clocks replay all ${n} points`).toBe(
+          n,
+        );
+        expect(xsOf(host.midi, after).length, "one pair per point").toBe(n);
+        report.push(
+          `  Division 3 clocks a point: ${n} points over ${3 * n} clocks`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // 3. THE WORDS AND THE PREVIEW: Sync is worded, the division is a bare
+    //    count on a rail (1 / 2 / 3 collide with the other mode tables' keys).
+    expect(
+      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+    ).toEqual(["Internal", "External"]);
+    expect(widgetFor(syncKnob.kind, syncKnob.values)).toBe("words");
+    expect(divisionKnob.values).toEqual(["1", "2", "3"]);
+    expect(widgetFor(divisionKnob.kind, divisionKnob.values)).toBe("rail");
+    expect(previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync).toBe(0);
+    process.stdout.write(
+      "\nGHOST on the DAW's clock (change 12, 2026-09-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length).toBe(2);
+  }, 120000);
 });
 
 // ---------------------------------------------------------------------------

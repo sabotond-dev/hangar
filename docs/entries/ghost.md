@@ -294,3 +294,85 @@ both across the whole five-knob cross-product.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 12, 2026-09-18 - the ghost on the DAW's clock (BENCH-2026-09-16.txt section 12)
+
+The user's word: "MIDI sync works perfectly. implement it to Ghost, Radar points, Radar and
+Steps." - ORBIT's clock idiom (change 8, bench-verified on hardware this day; the idiom, the
+firmware evidence and the spelling are in `docs/entries/orbit.md`, "The clock idiom") on GHOST.
+TUNE-01's six is lifted for a sync card by change 8's answer 2; GHOST carries seven knobs.
+
+### The two strings the entry carried until change 12, verbatim
+
+```lua
+--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end gtt(0,20)
+```
+
+```lua
+--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end
+```
+
+The rack then: `@RECC @GHOSTC @LEN @CCX @CH` - 5, 5, 5, 4, 16 values, shape character `6`,
+byte-identical to the rack of the card 11-11 replaced.
+
+### What moved
+
+- **Recording stays real-time on the 20 ms Timer under both modes.** The Timer, after `gtt` and
+  the key pulse, defines `p(x,y,l)` - the pair on the wire and the house decay pair on `N(x,y)`
+  on layer l - and the replay step `local function f(s)`: return while a finger is held or
+  nothing is recorded, else `s.j=s.j%s.n+1`, decode, `p` on layer 2. `s.f=f` publishes it. While
+  `s.h`: append up to @LEN, hold j at 0, `p` on layer 1, return. Else `if @SYNC then return end
+f(s)`. **Under External the REPLAY index advances on the clock** and the Timer replays nothing.
+- **Clocks a point** (`@DIV`) is `1 / 2 / 3`, default 1, and NOT ORBIT's 8th / 16th / 32nd: at
+  120 BPM a clock is 20.8 ms against the 20 ms recording, so one point a clock replays a drawing
+  at very nearly the speed it was drawn and the loop stretches with the DAW's tempo (half speed
+  at 60, double at 240); twelve clocks a point would play a five-second drawing over a minute.
+  Its kind is `count`, a three-dot rail with the bare number as its readout, because `1`, `2`
+  and `3` as `mode` literals would collide with the other mode tables' keys (`view.ts`'s
+  `MODE_TABLES` are unique across tables: `2` is CHORUS's Smart, `3` ORBIT's 32nd). Its label
+  reads "Clocks a point".
+- **The callback**, ORBIT's spelling with no release (a ghost holds no note): `if b==250 then
+s.j=0 s.q=0 end` - Start restarts the loop at the first point, on the bar; Stop clears the run
+  flag and the ghost freezes mid-path with no sends, the key still pulsing from the Timer;
+  Continue resumes from the frozen point. `grxm(2,@SYNC and 3 or 0)` before `gtt(0,20)`;
+  `self.q=0` beside `self.p=0`.
+- **Sync** `false / true` (Internal / External, `previewIndex: 0`) between Loop length and
+  Clocks a point; the pair and the channel stay last.
+- The key pulse moved to the head of the Timer so the `return` after the recording branch skips
+  nothing: cell 80 layer 1 is written before the point's cell instead of after, and the one cell
+  both can name (a comet drawn on the key itself) receives the same `252 / 250 / 42` from either
+  order.
+
+### The costs, under the pinned `compressScript` after `initLuaFormatter()`
+
+At the RGB444 picker corner: **Setup 491 -> 730** (417 -> 178 free), **Timer 409 -> 484** (499 ->
+424 free); 725 / 480 at the defaults. No system slot.
+
+### What the default record shares with yesterday's
+
+At the defaults the Setup is yesterday's with `self.q=0 ` after `self.p=0 `, the callback and
+`grxm(2,0)` before `gtt(0,20)`; the Timer is a restatement of yesterday's - the key pulse first,
+the send-and-paint as `p`, the replay as `f`, the recording branch, then `if false then return
+end f(s)` - with the same LED writes and the same messages on every tick. `frames.json` (an
+untouched GHOST is black at every sampled tick) and the OG image (the demo path's end) are
+byte-identical; frames.spec.ts and demo.spec.ts held without a regeneration.
+
+### The VM cases (`lua-smoke.spec.ts`)
+
+External, one point a clock: the three-cell drag is recorded live on the Timer (ten points at
+20 ms), the pair sent live with a Y for every X; after the lift the Timer replays nothing over
+200 ticks, j waits at 0, no path cell is lit; twelve clocks before Start replay nothing; Start
+then the first clock replays point 1 - the down's raw pair on CC 16 / 17 and its LED at phase
+252 on layer 2 - n clocks replay the loop once with exactly the recorded x coordinates, the
+next clock wraps; 200 Timer ticks send nothing; Stop freezes it, clocks and 254 do nothing, the
+key still pulses; Continue replays point 2 (still the first cell); Start restarts at point 1.
+Clocks a point 3: point 1 on the first clock, point 2 on the fourth, all ten over thirty. The
+words, the rail, the preview. The existing GHOST cases (record, replay and reset twice; the
+gradient and the calibrated key) are untouched and green.
+
+### The stamp
+
+`stamp.spec.ts`: GHOST joins the grown - its captured five-knob `x` payload is the wrong length
+for seven knobs and lands `unreadable` by design; the captured default vector still carries no
+stamp. The header's "byte-identical rack" trap is now the "rack grew" trap: every GHOST link
+shared before today opens the card at its defaults.

@@ -1,20 +1,21 @@
-// GHOST - draw a curve once, and it loops until you take it back.
+// GHOST - draw a curve once, and it loops until you take it back; the ghost replays on its own
+// 20 ms Timer or one point per DAW MIDI clock (change 12, 2026-09-18, BENCH-2026-09-16.txt s. 12).
 //
 // A gesture looper. Hold a finger and drag: the Timer records the raw path at 50 Hz while the
 // X / Y pair goes out as two CCs. Lift, and a ghost retraces exactly what you drew, forever,
 // still sending. One gesture is one loop (every onset starts a fresh recording); the reset is a
 // lit red key at cell 80 that exists exactly when there is something to erase. Single-contact.
-// Re-authored from a blank page in 11-11 on the user's words; the finger and the calibrated cell
-// came from the library in 12.1-08a. Knobs: @RECC, @GHOSTC, @LEN, @CCX (the pair is @CCX and
-// @CCX+1), @CH. Setup 491 of 908 at the picker corner (486 at the defaults), Timer 409 (405);
-// restsBlack true. No row in either gate's exception table.
-// History: docs/entries/ghost.md (the three reset sketches, 11-11, 12.1-08a costings and findings).
+// Re-authored from a blank page in 11-11; the finger and the calibrated cell came from the library
+// in 12.1-08a. Seven knobs: @RECC, @GHOSTC, @LEN, @SYNC (both events), @DIV, @CCX (the pair is
+// @CCX and @CCX+1), @CH. Setup 730 of 908 at the picker corner (725), Timer 484 (480); dark at rest.
+// History: docs/entries/ghost.md (the three reset sketches, 11-11, 12.1-08a; change 12's sync).
 //
 // MECHANISM
 //   - Setup: layer 1 @RECC and layer 2 @GHOSTC at phase 0 on every cell; cell 80 coloured
 //     255,0,0 on layer 1 (the key - a function, not the palette); `self.k` its address, `self.g`
 //     the recording (raw `x*128+y` per point), `self.n` its length, `self.j` the replay index,
-//     `self.p` the key's pulse counter; `gtt(0,20)`.
+//     `self.p` the key's pulse counter, `self.q` the clock count; `grxm(2,@SYNC and 3 or 0)`
+//     routes MIDIRTM to Lua under External only; `gtt(0,20)`.
 //   - The callback: `if i>0 then return end`, then `G(s,i,e,x,y,0,@RECC)` (the library's
 //     bilinear finger on layer 0 in the recording colour; it clears the contact's previous
 //     block and returns on an end code and on a 9). On an onset (`e==4 or e>8`): clear both
@@ -23,13 +24,22 @@
 //     `s.g={x*128+y}`, `s.n=1`, `s.h=e<9` - a contact is live iff it is not a press-and-lift in
 //     one message, so a tap records one point and goes straight to playback. On an end
 //     (`e==3 or e>=5 and e<9`) `s.h=nil`. Every sample stores `s.x`, `s.y`.
-//   - The Timer, 20 ms, `gtt(0,20)` first: while `s.h`, append the held raw point up to @LEN
-//     (a motionless finger still records - the callback's enqueue is change-gated, the Timer's
-//     is not) and hold j at 0; else if a recording exists, step j modulo n and decode the point.
-//     If a point is in hand: send the pair, and arm the house decay pair on `N(x,y)` - layer 1
-//     while recording, layer 2 while replaying. If a recording exists, pulse the key: every
+//   - The Timer, 20 ms, `gtt(0,20)` first. If a recording exists, pulse the key: every
 //     fourteenth tick re-arm cell 80's decay (42 ticks armed, re-armed after 28: the phase
 //     breathes 252 -> 84 and never reaches black, so the corner is a cell still being DRIVEN).
+//     Then two locals: `p(x,y,l)` sends the pair and arms the house decay pair on `N(x,y)` on
+//     layer l; the replay step `f(s)` returns while a finger is held or nothing is recorded, else
+//     steps j modulo n, decodes the point and calls `p` on layer 2. `s.f=f` publishes it. While
+//     `s.h`: append the held raw point up to @LEN (a motionless finger still records - the
+//     callback's enqueue is change-gated, the Timer's is not), hold j at 0, `p` on layer 1 and
+//     return - RECORDING IS REAL-TIME UNDER BOTH MODES. Else `if @SYNC then return end f(s)`:
+//     Internal replays one point a tick here, External replays nowhere here.
+//   - `self.rtmrx_cb=function(s,h,b)` - ORBIT's clock idiom (docs/entries/orbit.md): 250 Start
+//     resets j and q and runs (the loop restarts on the bar); 251 Continue runs; 252 Stop halts
+//     (no sends, the picture stops, the key still pulses); 248 while running replays one point
+//     through `s.f` every @DIV clocks - 1, 2 or 3 clocks a point (at 120 BPM a clock is 20.8 ms,
+//     so one point a clock is very nearly the speed it was drawn, and the loop stretches with the
+//     DAW's tempo). A field READ (a field call is refused by host-surface.spec.ts).
 //   - No `Q`, `X` or `R`: the library's expiry would end the recording of a STILL finger, which
 //     is a behaviour change (docs/HARDWARE-AUDITION.md row 27(d) asks; the shape is measured in
 //     the doc). A lost lift leaves the comet at the last point, the recording running to @LEN,
@@ -37,9 +47,10 @@
 //
 // WHAT IT SENDS
 //   s:gms(@CH,176,@CCX,x,0) and s:gms(@CH,176,@CCX+1,127-y,0) once per Timer tick while a point
-//   is in hand - recording or replaying - with the RAW sensor pair (D-14); only the picture goes
-//   through the calibrated map. The second CC is "@CCX+1" rather than a literal so the pair
-//   can never drift apart. Erasing sends nothing.
+//   is in hand - recording, or replaying under Internal - and once per @DIV clocks while replaying
+//   under External, with the RAW sensor pair (D-14); only the picture goes through the
+//   calibrated map. The second CC is "@CCX+1" rather than a literal so the pair can never drift
+//   apart. Erasing sends nothing; a stopped ghost sends nothing.
 //
 // TRAPS
 //   - THE CLEAR IS glpfs(a,l,0,0,0), AND glp(a,l,0) WAS THE BUG: `glp` does not touch the RATE or
@@ -59,8 +70,16 @@
 //   - EVERY DECAY LANDS ON PHASE 0: both pairs are the house idiom at T = 42 (252, step 6).
 //   - @LEN MAY NOT EXCEED 250: the replay walks s.g modulo s.n; the loop is the FIRST @LEN
 //     points, and a drag past the cap keeps sending and stops recording.
-//   - THE RACK IS BYTE-IDENTICAL TO THE ONE THIS ENTRY REPLACED: 5, 5, 5, 4, 16 values is shape
-//     character `6`, and every GHOST link ever shared decodes against it.
+//   - @SYNC APPEARS IN BOTH EVENTS and both must move together. THE REPLAY STEP LIVES IN THE
+//     TIMER, published by its FIRST call - at most 20 ms after the Setup. A clock inside that
+//     window is counted, not stepped.
+//   - THE PREVIEW HAS NO CLOCK: `sync` declares `previewIndex: 0`, so the browser renders Internal
+//     whatever the knob says and the inspector says so; the wire carries the visitor's choice.
+//   - `grxm(2,mode)` NEEDS A NUMBER, which is why the Sync literal is a boolean folded to 3 or 0.
+//   - 254 (active sensing) MUST NOT RUN THE GHOST: the run test is `b==250 or b==251`.
+//   - THE RACK GREW AT CHANGE 12: 5, 5, 5, 2, 3, 4, 16 values; a GHOST link shared before it
+//     carries five indices and lands `unreadable` (the card opens at its defaults) - the length
+//     check, by design (stamp.spec.ts). Until then the rack was byte-identical to 11-11's.
 //   - WHILE A GHOST LOOPS, A NEW DRAG CANNOT START ON CELL 80 without erasing first; a comet or
 //     ghost dot passing OVER it is unaffected (the key acts on an onset only).
 //   - LAYER 0 IS THE ALERT LAYER: `G` re-asserts @RECC on every call, so an alert's recolour
@@ -72,12 +91,17 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end gtt(0,20)";
+  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.q=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end self.rtmrx_cb=function(s,h,b)if b==250 then s.j=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self local x,y if s.h then x=s.x y=s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 elseif s.n>0 then s.j=s.j%s.n+1 local v=s.g[s.j]x=v//128 y=v%128 end if x then s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))local l=s.h and 1 or 2 glpfs(a,l,252,250,0)glt(a,l,42)end if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end";
+  "--[[@cb]]gtt(0,20)local s=self if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end local function p(x,y,l)s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))glpfs(a,l,252,250,0)glt(a,l,42)end local function f(s)if s.h or s.n==0 then return end s.j=s.j%s.n+1 local v=s.g[s.j]p(v//128,v%128,2)end s.f=f if s.h then local x,y=s.x,s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 p(x,y,1)return end if @SYNC then return end f(s)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
+
+/** The sixteen zero-based channels, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058). */
+const CHANNELS: readonly string[] = Array.from({ length: 16 }, (_, n) =>
+  String(n),
+);
 
 export const GHOST: CatalogEntry = {
   id: "ghost",
@@ -91,10 +115,10 @@ export const GHOST: CatalogEntry = {
   source: SOURCE,
   preview: previewFor(SOURCE),
 
-  // Five knobs, each one literal token substitution (TUNE-01); every default is the INDEX of
-  // the value that reproduces the canonical text. THE RACK IS BYTE-IDENTICAL TO THE ONE THIS
-  // ENTRY REPLACED: 5, 5, 5, 4, 16 values is shape character `6` and every shared GHOST link
-  // decodes against it.
+  // Seven knobs - past TUNE-01's six by the user's word for a sync card (change 8, answer 2;
+  // change 12) - each one literal token substitution; every default is the INDEX of the value
+  // that reproduces the canonical text. TOKEN PREFIX CHECK: none of @RECC, @GHOSTC, @LEN, @SYNC,
+  // @DIV, @CCX, @CH is a prefix of another.
   knobs: [
     {
       id: "recordColour",
@@ -140,6 +164,32 @@ export const GHOST: CatalogEntry = {
       default: 4,
     },
     {
+      id: "sync",
+      label: "Sync",
+      kind: "mode",
+      token: "@SYNC",
+      // Internal: the ghost replays one point a tick on the 20 ms Timer and MIDIRTM stays
+      // unrouted (`grxm(2,0)`). External: `grxm(2,3)` routes the host's realtime bytes to
+      // `rtmrx_cb`, which replays one point every @DIV clocks from Start; the Timer replays
+      // nothing and still records. Worded by view.ts's SYNC_WORDS. APPEARS IN BOTH EVENTS. The
+      // browser has no clock: the preview renders Internal (`previewIndex`) and says so.
+      values: ["false", "true"],
+      default: 0,
+      previewIndex: 0,
+    },
+    {
+      id: "division",
+      label: "Clocks a point",
+      kind: "count",
+      token: "@DIV",
+      // MIDI clocks per replayed point under External, 24 to the quarter: 1 replays at very
+      // nearly the drawn speed at 120 BPM (a clock is 20.8 ms against the 20 ms recording), 2
+      // and 3 stretch the loop. Not ORBIT's 8th / 16th / 32nd: twelve clocks a point would play a
+      // five-second drawing over a minute. A three-dot rail with the bare number as its readout.
+      values: ["1", "2", "3"],
+      default: 0,
+    },
+    {
       id: "cc",
       label: "CC pair",
       kind: "amount",
@@ -153,36 +203,21 @@ export const GHOST: CatalogEntry = {
       label: "MIDI channel",
       kind: "amount",
       token: "@CH",
-      // ZERO-BASED, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058). Twice in
-      // the Timer, once per half of the pair, so both leave on the same channel.
-      values: [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9",
-        "10",
-        "11",
-        "12",
-        "13",
-        "14",
-        "15",
-      ],
+      // ZERO-BASED, the first argument of gms. Twice in the Timer, once per half of the pair, so
+      // both leave on the same channel.
+      values: CHANNELS,
       default: 0,
     },
   ],
 
-  // The same five indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
+  // The same seven indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
     recordColour: 0,
     ghostColour: 0,
     loopLength: 4,
+    sync: 0,
+    division: 0,
     cc: 0,
     channel: 0,
   },

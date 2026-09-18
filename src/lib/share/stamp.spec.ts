@@ -543,7 +543,8 @@ describe("the stamp: the envelope", () => {
         record.entry === "arc" ||
         record.entry === "morph" ||
         record.entry === "euclid" ||
-        record.entry === "steps";
+        record.entry === "steps" ||
+        record.entry === "ghost";
       const replaced = record.entry === "chorus";
       expect(
         decodeFor(each, record.payload),
