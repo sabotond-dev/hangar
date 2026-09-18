@@ -2,13 +2,15 @@
   SELECTED ELEMENT: PDF page 3's right column in Inspector.svelte's panel - the
   eyebrow and the name, the units chip, Element name, the type as a plain label
   (a kind never changes once placed - change 10A) and Orientation on a fader,
-  Behavior, MIDI output (not on a blank), Appearance through Swatch.svelte
-  unchanged, then the pinned Duplicate / Delete element. Position and size are
-  the plate's (drag, handles, arrows). Props: view, the eight callbacks, notice.
-  Every numeric edit goes through the editor (geometry.ts applyEdit) and the
-  previous valid value survives a refusal: the field shows the refused text with
-  aria-invalid until a keystroke validates; blur and Enter are oncommit, the
-  history's coalescing boundary. The grid reflows at NUMERIC_GRID_REFLOW (D-21). In Play every field is read-only with PLAY_LOCKS_FIELDS.
+  Behavior (change 10B: a fader's Mode / Speed / Spring, an XY pad's Mode /
+  Speed, a button's Toggle / Group, a knob's Mode), MIDI output (the
+  controllers, the channel, Min and Max; a button's Output and its Note; not
+  on a blank), Appearance through Swatch.svelte, then the pinned Duplicate /
+  Delete element. Props: view, the callbacks, notice. Every typed edit goes
+  through the editor and the previous valid value survives a refusal (the field
+  shows the refused text with aria-invalid until a keystroke validates; blur and
+  Enter are oncommit, the history's coalescing boundary); every select and
+  checkbox is one entry. The grid reflows at NUMERIC_GRID_REFLOW (D-21). In Play every field is read-only with PLAY_LOCKS_FIELDS.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -24,6 +26,7 @@
   import {
     APPEARANCE,
     BEHAVIOR,
+    BUTTON_MIN_MAX_HELPER,
     CC_NUMBER,
     CC_NUMBER_Y,
     CHANNEL,
@@ -31,19 +34,44 @@
     DELETE_ELEMENT,
     DUPLICATE,
     ELEMENT_NAME,
+    GROUP,
+    GROUP_HELPER,
+    GROUP_NONE,
     KIND_LABELS,
-    LATCH,
-    LATCH_HELPER,
+    KNOB_MODE_WORDS,
+    KNOB_RELATIVE_HELPER,
+    MAX,
     MIDI_OUTPUT,
+    MIN,
+    MIN_MAX_HELPER,
+    MODE,
+    MODE_ABSOLUTE,
+    MODE_HELPER,
+    MODE_RELATIVE,
+    NOTE_HELPER,
+    NOTE_NUMBER,
     NO_SELECTION_EYEBROW,
     NO_SELECTION_HEADLINE,
     NO_SELECTION_LEDE,
     ORIENTATION,
     ORIENTATION_HORIZONTAL,
     ORIENTATION_VERTICAL,
+    OUTPUT,
+    OUTPUT_CC,
+    OUTPUT_NOTE,
     PLAY_LOCKS_FIELDS,
     SELECTED_ELEMENT,
+    SPEED,
+    SPEED_FULL,
+    SPEED_HALF,
+    SPEED_HELPER,
+    SPRING,
+    SPRING_HELPER,
+    SPRING_VALUE,
+    TOGGLE,
+    TOGGLE_HELPER,
     TYPE,
+    groupWord,
     unitsChip,
   } from "$lib/sandbox/copy";
   import {
@@ -52,9 +80,23 @@
     type NumericField,
   } from "$lib/sandbox/editor";
   import {
+    BUTTON_OUTPUTS,
+    CONTINUOUS_MODES,
+    GROUP_MAX,
+    KNOB_MODES,
     ORIENTATIONS,
+    SPEEDS,
+    groupOf,
+    isRelative,
+    modeOf,
     orientationOf,
+    outputOf,
+    speedOf,
+    springOf,
+    type ButtonOutput,
     type Orientation,
+    type RegionMode,
+    type Speed,
   } from "$lib/sandbox/model";
   import { BRIGHTNESS_SURFACE_HELPER } from "$lib/tune/inspector-copy";
   import BrightnessField from "$lib/ui/BrightnessField.svelte";
@@ -71,6 +113,11 @@
     oncommit,
     onorientation,
     onlatch,
+    onmode,
+    onspeed,
+    onspring,
+    onoutput,
+    ongroup,
     oncolour,
     onbrightness,
     onduplicate,
@@ -79,12 +126,19 @@
   }: {
     view: EditorState;
     onrename: (name: string) => void;
-    /** Every keystroke of a numeric field, validated by the editor. */
+    /** Every keystroke of a typed field, validated by the editor. */
     onnumber: (field: NumericField, text: string) => void;
     /** Blur or Enter: the history's coalescing boundary. */
     oncommit: () => void;
     onorientation: (orientation: Orientation) => void;
+    /** The button's Toggle (the schema's `latch`). */
     onlatch: (latch: boolean) => void;
+    /** The change 10B options, each one entry. */
+    onmode?: (mode: RegionMode) => void;
+    onspeed?: (speed: Speed) => void;
+    onspring?: (spring: boolean) => void;
+    onoutput?: (output: ButtonOutput) => void;
+    ongroup?: (group: number) => void;
     /** Three RGB444 levels from the picker. */
     oncolour: (colour: readonly [number, number, number]) => void;
     /** The whole surface's brightness, 1..255 (change 5); 255 to reset. */
@@ -98,11 +152,27 @@
   const uid = $props.id();
   const nameId = `${uid}-name`;
   const orientationId = `${uid}-orientation`;
-  const latchId = `${uid}-latch`;
+  const toggleId = `${uid}-toggle`;
+  const modeId = `${uid}-mode`;
+  const speedId = `${uid}-speed`;
+  const springId = `${uid}-spring`;
+  const outputId = `${uid}-output`;
+  const groupId = `${uid}-group`;
   const lockId = `${uid}-lock`;
   const orientationProblemId = `${uid}-orientation-problem`;
   const fieldId = (field: NumericField) => `${uid}-${field}`;
   const messageId = (field: NumericField) => `${uid}-${field}-message`;
+
+  /** The test id per typed field: the model's name, kebab where it is two words. */
+  const FIELD_IDS: Readonly<Record<NumericField, string>> = {
+    cc: "cc",
+    cc2: "cc2",
+    channel: "channel",
+    min: "min",
+    max: "max",
+    springValue: "spring-value",
+    note: "note",
+  };
 
   const region = $derived(view.selected);
   const play = $derived(view.mode === "play");
@@ -144,7 +214,8 @@
     if (region === undefined)
       return [{ title: APPEARANCE, content: appearance }];
     const out: InspectorSection[] = [];
-    if (region.kind === "button")
+    // Every sending kind has a Behavior since change 10B; a blank has none.
+    if (region.kind !== "blank")
       out.push({ title: BEHAVIOR, content: behavior });
     // A blank sends nothing: no MIDI output section (change 10A).
     if (region.kind !== "blank")
@@ -178,9 +249,9 @@
       class="input numerals"
       id={fieldId(field)}
       type="text"
-      inputmode="numeric"
+      inputmode={field === "note" ? "text" : "numeric"}
       autocomplete="off"
-      data-testid="field-{field}"
+      data-testid="field-{FIELD_IDS[field]}"
       data-field={field}
       value={view.texts[field]}
       readonly={play}
@@ -195,7 +266,7 @@
       <p
         class="message type-helper"
         id={messageId(field)}
-        data-testid="field-{field}-message"
+        data-testid="field-{FIELD_IDS[field]}-message"
       >
         {problem.message}
       </p>
@@ -203,37 +274,206 @@
   </div>
 {/snippet}
 
+{#snippet check(
+  id: string,
+  testid: string,
+  label: string,
+  checked: boolean,
+  onchange: (checked: boolean) => void,
+)}
+  <div class="check">
+    <input
+      class="checkbox"
+      {id}
+      type="checkbox"
+      data-testid={testid}
+      {checked}
+      disabled={play}
+      aria-describedby={lock}
+      onchange={(event) => onchange(event.currentTarget.checked)}
+    />
+    <label class="label type-helper" for={id}>{label}</label>
+  </div>
+{/snippet}
+
 {#snippet behavior()}
-  {#if region !== undefined && region.kind === "button"}
-    <div class="check">
-      <input
-        class="checkbox"
-        id={latchId}
-        type="checkbox"
-        data-testid="field-latch"
-        checked={region.latch === true}
-        disabled={play}
-        aria-describedby={lock}
-        onchange={(event) => onlatch(event.currentTarget.checked)}
-      />
-      <label class="label type-helper" for={latchId}>{LATCH}</label>
+  {#if region !== undefined && (region.kind === "fader" || region.kind === "xy")}
+    <!-- Mode and, under Relative, Speed (answers 7c); a fader's Spring and its value (answer 8). -->
+    <div class="grid" class:two={twoColumns}>
+      <div class="field">
+        <label class="label type-helper" for={modeId}>{MODE}</label>
+        <select
+          class="input select"
+          id={modeId}
+          data-testid="field-mode"
+          value={modeOf(region)}
+          disabled={play}
+          aria-describedby={lock}
+          onchange={(event) =>
+            onmode?.(event.currentTarget.value as RegionMode)}
+        >
+          {#each CONTINUOUS_MODES as mode (mode)}
+            <option value={mode} selected={mode === modeOf(region)}
+              >{mode === "absolute" ? MODE_ABSOLUTE : MODE_RELATIVE}</option
+            >
+          {/each}
+        </select>
+      </div>
+      {#if isRelative(region)}
+        <div class="field">
+          <label class="label type-helper" for={speedId}>{SPEED}</label>
+          <select
+            class="input select"
+            id={speedId}
+            data-testid="field-speed"
+            value={speedOf(region)}
+            disabled={play}
+            aria-describedby={lock}
+            onchange={(event) => onspeed?.(event.currentTarget.value as Speed)}
+          >
+            {#each SPEEDS as speed (speed)}
+              <option value={speed} selected={speed === speedOf(region)}
+                >{speed === "half" ? SPEED_HALF : SPEED_FULL}</option
+              >
+            {/each}
+          </select>
+        </div>
+      {/if}
     </div>
-    <p class="helper type-helper">{LATCH_HELPER}</p>
+    <p class="helper type-helper">
+      {isRelative(region) ? SPEED_HELPER : MODE_HELPER}
+    </p>
+    {#if region.kind === "fader"}
+      {@render check(springId, "field-spring", SPRING, springOf(region), (on) =>
+        onspring?.(on),
+      )}
+      {#if springOf(region)}
+        <div class="grid" class:two={twoColumns}>
+          {@render numeric("springValue", SPRING_VALUE)}
+        </div>
+      {/if}
+      <p class="helper type-helper">{SPRING_HELPER}</p>
+    {/if}
+  {:else if region !== undefined && region.kind === "button"}
+    <!-- Toggle (the schema's latch) and the radio group (answer 9b). -->
+    {@render check(
+      toggleId,
+      "field-toggle",
+      TOGGLE,
+      region.latch === true,
+      (on) => onlatch(on),
+    )}
+    <p class="helper type-helper">{TOGGLE_HELPER}</p>
+    <div class="grid" class:two={twoColumns}>
+      <div class="field">
+        <label class="label type-helper" for={groupId}>{GROUP}</label>
+        <select
+          class="input select"
+          id={groupId}
+          data-testid="field-group"
+          value={String(groupOf(region))}
+          disabled={play}
+          aria-describedby={lock}
+          onchange={(event) =>
+            ongroup?.(Number.parseInt(event.currentTarget.value, 10))}
+        >
+          <option value="0" selected={groupOf(region) === 0}
+            >{GROUP_NONE}</option
+          >
+          {#each Array.from({ length: GROUP_MAX }, (_, i) => i + 1) as n (n)}
+            <option value={String(n)} selected={groupOf(region) === n}
+              >{groupWord(n)}</option
+            >
+          {/each}
+        </select>
+      </div>
+    </div>
+    <p class="helper type-helper">{GROUP_HELPER}</p>
+  {:else if region !== undefined && region.kind === "knob"}
+    <!-- The knob's four modes (answer 11d). -->
+    <div class="grid" class:two={twoColumns}>
+      <div class="field">
+        <label class="label type-helper" for={modeId}>{MODE}</label>
+        <select
+          class="input select"
+          id={modeId}
+          data-testid="field-mode"
+          value={modeOf(region)}
+          disabled={play}
+          aria-describedby={lock}
+          onchange={(event) =>
+            onmode?.(event.currentTarget.value as RegionMode)}
+        >
+          {#each KNOB_MODES as mode (mode)}
+            <option value={mode} selected={mode === modeOf(region)}
+              >{KNOB_MODE_WORDS[mode as keyof typeof KNOB_MODE_WORDS]}</option
+            >
+          {/each}
+        </select>
+      </div>
+    </div>
+    {#if isRelative(region)}
+      <p class="helper type-helper">{KNOB_RELATIVE_HELPER}</p>
+    {/if}
   {/if}
 {/snippet}
 
 {#snippet midi()}
   {#if region !== undefined}
-    <div class="grid" class:two={twoColumns}>
-      {@render numeric(
-        "cc",
-        region.kind === "xy" ? `${CC_NUMBER} (X)` : CC_NUMBER,
-      )}
-      {#if region.kind === "xy"}
-        {@render numeric("cc2", CC_NUMBER_Y)}
+    {#if region.kind === "button"}
+      <!-- Output first (answer 10): CC or Note; the number field follows the choice. -->
+      <div class="grid" class:two={twoColumns}>
+        <div class="field">
+          <label class="label type-helper" for={outputId}>{OUTPUT}</label>
+          <select
+            class="input select"
+            id={outputId}
+            data-testid="field-output"
+            value={outputOf(region)}
+            disabled={play}
+            aria-describedby={lock}
+            onchange={(event) =>
+              onoutput?.(event.currentTarget.value as ButtonOutput)}
+          >
+            {#each BUTTON_OUTPUTS as output (output)}
+              <option value={output} selected={output === outputOf(region)}
+                >{output === "cc" ? OUTPUT_CC : OUTPUT_NOTE}</option
+              >
+            {/each}
+          </select>
+        </div>
+        {#if outputOf(region) === "note"}
+          {@render numeric("note", NOTE_NUMBER)}
+        {:else}
+          {@render numeric("cc", CC_NUMBER)}
+        {/if}
+        {@render numeric("channel", CHANNEL)}
+        {@render numeric("min", MIN)}
+        {@render numeric("max", MAX)}
+      </div>
+      <p class="helper type-helper">
+        {outputOf(region) === "note" ? NOTE_HELPER : BUTTON_MIN_MAX_HELPER}
+      </p>
+    {:else}
+      <div class="grid" class:two={twoColumns}>
+        {@render numeric(
+          "cc",
+          region.kind === "xy" ? `${CC_NUMBER} (X)` : CC_NUMBER,
+        )}
+        {#if region.kind === "xy"}
+          {@render numeric("cc2", CC_NUMBER_Y)}
+        {/if}
+        {@render numeric("channel", CHANNEL)}
+        <!-- Min and Max (answer 6a) - not under a knob's relative modes, where a detent is a step. -->
+        {#if !(region.kind === "knob" && isRelative(region))}
+          {@render numeric("min", MIN)}
+          {@render numeric("max", MAX)}
+        {/if}
+      </div>
+      {#if !(region.kind === "knob" && isRelative(region))}
+        <p class="helper type-helper">{MIN_MAX_HELPER}</p>
       {/if}
-      {@render numeric("channel", CHANNEL)}
-    </div>
+    {/if}
   {/if}
 {/snippet}
 
@@ -423,6 +663,12 @@
 
   .grid.two {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* A grid under a helper or a check: the section's own rhythm between the rows. */
+  .helper + .grid,
+  .check + .grid {
+    margin-block-start: 12px;
   }
 
   .field {

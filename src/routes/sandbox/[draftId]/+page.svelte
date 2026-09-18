@@ -7,7 +7,7 @@
   route keeps the one EditorState in raw state and owns the store, the landing, the preview, the
   frame and the window's key listener (the hotkeys, V / Escape, Delete - never in a text field).
   The draft is saved as it is edited (drafts.ts, debounced, `sandbox:{id}`); the landing is land.ts's
-  under the pinned minifier with SLOTS 3 (13-17), its five strings going to install.observeConfig
+  under the pinned minifier with SLOTS 5 (change 10B), its five strings going to install.observeConfig
   after every measurement, and DestinationZone is the one component both routes mount (13.1-06).
   No number about the budget is shown (change 10A); an over-budget landing refuses Store in words.
   Play builds a Lua engine on the surface's own strings and routes the finger through touch.ts's mapAxis, tick-locked.
@@ -89,8 +89,8 @@
 
   let { data }: { data: PageData } = $props();
 
-  /** Three slots since 13-17 (13-CONTEXT D-18, D-19): the touch Timer and the system element's utility (255/4). */
-  const SLOTS = 3 as const;
+  /** Five slots since change 10B: the touch Timer, the system element's utility (255/4) and the two trimmed system halves (land.ts's LANDING_SLOTS). */
+  const SLOTS = 5 as const;
   const SAVE_DEBOUNCE_MS = 250;
   const MEASURE_DEBOUNCE_MS = 120;
   const CONFIRM_MS = 4000;
@@ -528,6 +528,11 @@
       oncommit={() => editor?.commitField()}
       onorientation={(o) => void editor?.setOrientation(o)}
       onlatch={(latch) => editor?.setLatch(latch)}
+      onmode={(mode) => void editor?.setRegionMode(mode)}
+      onspeed={(speed) => editor?.setSpeed(speed)}
+      onspring={(spring) => editor?.setSpring(spring)}
+      onoutput={(output) => editor?.setOutput(output)}
+      ongroup={(group) => editor?.setGroup(group)}
       oncolour={(colour) => editor?.setColour(colour)}
       onbrightness={(next) => editor?.setBrightness(next)}
       onduplicate={duplicate}

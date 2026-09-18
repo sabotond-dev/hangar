@@ -15,20 +15,31 @@ import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import {
+  BUTTON_MIN_MAX_HELPER,
   CC_RANGE,
   CHANNEL_RANGE,
   DUPLICATE_AT_CAP,
   EMPTY_INSTRUCTION,
   EMPTY_SECOND_LINE,
+  GROUP_HELPER,
   KIND_LABELS,
+  KNOB_MODE_WORDS,
+  KNOB_RELATIVE_HELPER,
   LIST_EMPTY,
+  MODE_HELPER,
+  NOTE_RANGE,
   PLAY_LOCKS_FIELDS,
   PLAY_LOCKS_PALETTE,
+  SPRING_HELPER,
   STARTER_ACTION,
   TEMPLATE_ACTION,
+  TOGGLE,
+  TOGGLE_HELPER,
   TOO_FULL_TO_STORE,
+  VALUE_RANGE,
   WHOLE_NUMBER,
 } from "../sandbox/copy";
+import { noteName } from "../tune/view";
 import {
   DEFAULT_COLOUR,
   DEFAULT_SIZES,
@@ -565,7 +576,15 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // AN OUT-OF-RANGE CONTROLLER: refused; the model holds 1; the field
     // shows the typed text with the field's own message. (The geometry
     // fields went at change 10A; the three MIDI fields are the typed route.)
-    expect(NUMERIC_FIELDS).toEqual(["cc", "cc2", "channel"]);
+    expect(NUMERIC_FIELDS).toEqual([
+      "cc",
+      "cc2",
+      "channel",
+      "min",
+      "max",
+      "springValue",
+      "note",
+    ]);
     expect(editor.editNumber("cc", "200")).toBe(false);
     expect(byId(editor, id).cc, "the previous valid value survives").toBe(1);
     expect(editor.fields.cc).toEqual({ text: "200", message: CC_RANGE });
@@ -1408,5 +1427,263 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(isStoredRecord(record("blank"))).toBe(true);
     expect(isStoredRecord(record("wash"))).toBe(false);
     expect(ELEMENT_KINDS).toEqual(["fader", "button", "knob", "xy", "blank"]);
+  });
+
+  it("12. the change 10B options: min and max, Mode and Speed, Spring and its value, Toggle, Output with a typed note, Group - each one Undo through the editor, refused off its kind or its range with the model untouched, locked in Play; the panel's fields per kind; a draft with the fields reads and a bad word is refused whole", () => {
+    const { editor, emitted } = fresh();
+    // A FADER: Mode, then Speed, Spring, the spring value, min and max - six
+    // entries, each undone and redone.
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    const fader = editor.surface.regions[0];
+    const placed = editor.state().depth;
+    expect(editor.setRegionMode("relative")).toBe(true);
+    expect(byId(editor, fader.id).mode).toBe("relative");
+    expect(editor.state().depth).toBe(placed + 1);
+    editor.setSpeed("full");
+    editor.setSpring(true);
+    expect(byId(editor, fader.id)).toMatchObject({
+      speed: "full",
+      spring: true,
+    });
+    expect(editor.editNumber("springValue", "200")).toBe(false);
+    expect(editor.fields.springValue?.message).toBe(VALUE_RANGE);
+    expect(byId(editor, fader.id)).not.toHaveProperty("springValue");
+    expect(editor.state().texts.springValue).toBe("200");
+    expect(editor.editNumber("springValue", "100")).toBe(true);
+    editor.commitField();
+    expect(editor.state().texts.springValue).toBe("100");
+    expect(editor.editNumber("min", "127")).toBe(true);
+    editor.commitField();
+    expect(editor.editNumber("max", "0")).toBe(true);
+    editor.commitField();
+    expect(byId(editor, fader.id)).toMatchObject({
+      springValue: 100,
+      min: 127,
+      max: 0,
+    });
+    expect(editor.editNumber("max", "128")).toBe(false);
+    expect(editor.fields.max?.message).toBe(VALUE_RANGE);
+    expect(byId(editor, fader.id).max, "the last valid value").toBe(0);
+    expect(editor.state().depth).toBe(placed + 6);
+    // A knob's mode on a fader: refused, no entry.
+    expect(editor.setRegionMode("relative-twos")).toBe(false);
+    expect(editor.state().depth).toBe(placed + 6);
+    for (let i = 0; i < 6; i += 1) expect(editor.undo()).toBe(true);
+    for (const field of [
+      "mode",
+      "speed",
+      "spring",
+      "springValue",
+      "min",
+      "max",
+    ])
+      expect(byId(editor, fader.id), field).not.toHaveProperty(field);
+    for (let i = 0; i < 6; i += 1) expect(editor.redo()).toBe(true);
+    expect(byId(editor, fader.id)).toMatchObject({
+      mode: "relative",
+      speed: "full",
+      spring: true,
+      springValue: 100,
+      min: 127,
+      max: 0,
+    });
+    // A BUTTON: Toggle, Output, the note typed as a name and as a number, Group.
+    editor.choose("button");
+    editor.clickCell(7, 0);
+    editor.cancel();
+    const button = editor.surface.regions[1];
+    editor.setLatch(true);
+    editor.setOutput("note");
+    expect(byId(editor, button.id)).toMatchObject({
+      latch: true,
+      output: "note",
+    });
+    expect(editor.state().texts.note).toBe(noteName(button.cc));
+    expect(editor.editNumber("note", "H3")).toBe(false);
+    expect(editor.fields.note?.message).toBe(NOTE_RANGE);
+    expect(byId(editor, button.id).cc).toBe(button.cc);
+    expect(editor.editNumber("note", "C#3")).toBe(true);
+    editor.commitField();
+    expect(byId(editor, button.id).cc).toBe(49);
+    expect(editor.state().texts.note).toBe("C#3");
+    expect(editor.editNumber("note", "60")).toBe(true);
+    editor.commitField();
+    expect(byId(editor, button.id).cc).toBe(60);
+    expect(editor.state().texts.note).toBe("C4");
+    editor.setGroup(3);
+    expect(byId(editor, button.id).group).toBe(3);
+    const grouped = editor.state().depth;
+    editor.setGroup(9);
+    editor.setGroup(-1);
+    expect(editor.state().depth).toBe(grouped);
+    expect(editor.setRegionMode("relative"), "a button has no mode").toBe(
+      false,
+    );
+    editor.setSpring(true);
+    expect(byId(editor, button.id)).not.toHaveProperty("spring");
+    // A KNOB: one of its four; a fader's Relative refused. An XY PAD:
+    // Relative and Full. A BLANK: nothing.
+    editor.choose("knob");
+    editor.clickCell(3, 4);
+    editor.cancel();
+    const knob = editor.surface.regions[2];
+    expect(editor.setRegionMode("relative-sign")).toBe(true);
+    expect(byId(editor, knob.id).mode).toBe("relative-sign");
+    expect(editor.setRegionMode("relative")).toBe(false);
+    editor.choose("xy");
+    editor.clickCell(3, 0);
+    editor.cancel();
+    const xy = editor.surface.regions[3];
+    expect(editor.setRegionMode("relative")).toBe(true);
+    editor.setSpeed("full");
+    expect(byId(editor, xy.id)).toMatchObject({
+      mode: "relative",
+      speed: "full",
+    });
+    editor.choose("blank");
+    editor.clickCell(8, 8);
+    editor.cancel();
+    expect(editor.setRegionMode("absolute")).toBe(false);
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+    // PLAY locks every setter and every typed field.
+    editor.select(fader.id);
+    editor.setMode("play");
+    const locked = editor.surface;
+    editor.setRegionMode("absolute");
+    editor.setSpeed("half");
+    editor.setSpring(false);
+    editor.setOutput("cc");
+    editor.setGroup(1);
+    expect(editor.editNumber("min", "0")).toBe(false);
+    expect(editor.surface).toBe(locked);
+    let panel = inspector(editor);
+    expect(panel).toMatch(/data-testid="field-mode"[^>]*disabled/);
+    expect(panel).toMatch(/data-testid="field-min"[^>]*readonly/);
+    editor.setMode("edit");
+
+    // THE SHAPE HALF. The relative spring fader: Mode, Speed, Spring, its
+    // value, Min and Max, the helpers; an absolute fader without Speed or
+    // the spring value.
+    panel = inspector(editor);
+    for (const id of [
+      "field-mode",
+      "field-speed",
+      "field-spring",
+      "field-spring-value",
+      "field-min",
+      "field-max",
+    ])
+      expect(panel, id).toContain(`data-testid="${id}"`);
+    expect(panel).toMatch(/data-testid="field-spring-value"[^>]*value="100"/);
+    expect(panel).toMatch(/data-testid="field-min"[^>]*value="127"/);
+    expect(panel).toMatch(/data-testid="field-max"[^>]*value="0"/);
+    expect(panel).toContain(SPRING_HELPER);
+    expect(panel).toContain("A Min above the Max inverts the direction.");
+    expect(panel).toMatch(/data-testid="field-spring"[^>]*checked/);
+    const plain = fresh().editor;
+    plain.choose("fader");
+    plain.clickCell(0, 0);
+    const plainPanel = inspector(plain);
+    expect(plainPanel).toContain('data-testid="field-mode"');
+    expect(plainPanel).not.toContain('data-testid="field-speed"');
+    expect(plainPanel).not.toContain('data-testid="field-spring-value"');
+    expect(plainPanel).toContain(MODE_HELPER);
+    // The button: Toggle (never Latch), Group with None and eight, Output,
+    // the note field showing the name; under CC the controller field.
+    editor.select(button.id);
+    panel = inspector(editor);
+    expect(panel).toContain('data-testid="field-toggle"');
+    expect(panel).not.toContain("field-latch");
+    expect(panel).toContain(TOGGLE);
+    expect(panel).toContain(TOGGLE_HELPER);
+    expect(panel).not.toContain("Latch");
+    expect(panel).toContain('data-testid="field-group"');
+    expect(count(panel, "Group ")).toBe(8);
+    expect(panel).toContain(GROUP_HELPER);
+    expect(panel).toContain('data-testid="field-output"');
+    expect(panel).toMatch(/data-testid="field-note"[^>]*value="C4"/);
+    expect(panel).not.toContain('data-testid="field-cc"');
+    editor.setOutput("cc");
+    panel = inspector(editor);
+    expect(panel).toContain('data-testid="field-cc"');
+    expect(panel).not.toContain('data-testid="field-note"');
+    expect(panel).toContain(BUTTON_MIN_MAX_HELPER);
+    // The knob: the four words; under a relative mode no Min or Max and the
+    // helper that says so; under Absolute both fields.
+    editor.select(knob.id);
+    panel = inspector(editor);
+    for (const word of Object.values(KNOB_MODE_WORDS))
+      expect(panel).toContain(word);
+    expect(panel).not.toContain('data-testid="field-min"');
+    expect(panel).toContain(KNOB_RELATIVE_HELPER);
+    editor.setRegionMode("absolute");
+    panel = inspector(editor);
+    expect(panel).toContain('data-testid="field-min"');
+    expect(panel).toContain('data-testid="field-max"');
+    expect(panel).not.toContain(KNOB_RELATIVE_HELPER);
+    // The blank: no Behavior at all.
+    editor.select(editor.surface.regions[4].id);
+    expect(inspector(editor)).not.toContain("Behavior");
+    // The copy never says Latch; the route wires the five callbacks.
+    expect(code("src/lib/sandbox/copy.ts")).not.toContain("Latch");
+    const route = code(ROUTE);
+    for (const wire of [
+      "onmode={(mode) => void editor?.setRegionMode(mode)}",
+      "onspeed={(speed) => editor?.setSpeed(speed)}",
+      "onspring={(spring) => editor?.setSpring(spring)}",
+      "onoutput={(output) => editor?.setOutput(output)}",
+      "ongroup={(group) => editor?.setGroup(group)}",
+    ])
+      expect(route, wire).toContain(wire);
+
+    // THE SCHEMA: a record with every field reads; a word off the list is refused whole.
+    const record = (extra: Record<string, unknown>) => ({
+      schema: 1,
+      id: "sandbox:s-2",
+      name: "New",
+      kind: "sandbox",
+      source: "s-2",
+      createdAt: "2026-09-18T00:00:00.000Z",
+      editedAt: "2026-09-18T00:00:00.000Z",
+      surface: {
+        id: "s-2",
+        name: "New",
+        regions: [
+          {
+            id: "fader-1",
+            name: "Filter",
+            kind: "fader",
+            col: 0,
+            row: 0,
+            w: 2,
+            h: 6,
+            cc: 1,
+            channel: 1,
+            colour: [13, 15, 7],
+            ...extra,
+          },
+        ],
+      },
+    });
+    expect(
+      isStoredRecord(
+        record({
+          min: 127,
+          max: 0,
+          mode: "relative",
+          speed: "full",
+          spring: true,
+          springValue: 100,
+          output: "note",
+          group: 8,
+        }),
+      ),
+    ).toBe(true);
+    expect(isStoredRecord(record({ mode: "sideways" }))).toBe(false);
+    expect(isStoredRecord(record({ group: 9 }))).toBe(false);
+    expect(isStoredRecord(record({ min: 128 }))).toBe(false);
+    expect(isStoredRecord(record({ speed: "fast" }))).toBe(false);
   });
 });

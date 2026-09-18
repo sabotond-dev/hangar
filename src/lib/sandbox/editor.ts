@@ -11,12 +11,15 @@
 // Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { noteName, noteNumber } from "../tune/view";
 import {
   KIND_LABELS,
   TEMPLATE_BUTTON_NAME,
   TEMPLATE_FADER_NAME,
   CC_RANGE,
   CHANNEL_RANGE,
+  NOTE_RANGE,
+  VALUE_RANGE,
   WHOLE_NUMBER,
   defaultName,
 } from "./copy";
@@ -38,15 +41,27 @@ import {
   CC_MIN,
   CHANNEL_MAX,
   CHANNEL_MIN,
+  CONTINUOUS_MODES,
+  GROUP_MAX,
+  KNOB_MODES,
   LAST_CELL,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  VALUE_MAX,
+  VALUE_MIN,
   cellIndex,
   isPaintOnly,
+  maxOf,
+  minOf,
   orientationOf,
+  outputOf,
+  springValueOf,
+  type ButtonOutput,
   type ElementKind,
   type Orientation,
   type Region,
+  type RegionMode,
+  type Speed,
   type Surface,
   withBrightness,
 } from "./model";
@@ -68,10 +83,29 @@ export type Placement =
   | { readonly kind: "idle" }
   | { readonly kind: "element"; readonly type: ElementKind };
 
-/** The numeric fields the inspector renders, in the model's names: the three MIDI fields. */
-export type NumericField = "cc" | "cc2" | "channel";
+/**
+ * The typed fields the inspector renders, in the model's names: the three MIDI fields, and
+ * since change 10B the min, the max, a fader's spring value and a button's note - the note
+ * is the `cc` field read and typed as a name or a number (view.ts's noteNumber).
+ */
+export type NumericField =
+  | "cc"
+  | "cc2"
+  | "channel"
+  | "min"
+  | "max"
+  | "springValue"
+  | "note";
 
-export const NUMERIC_FIELDS: readonly NumericField[] = ["cc", "cc2", "channel"];
+export const NUMERIC_FIELDS: readonly NumericField[] = [
+  "cc",
+  "cc2",
+  "channel",
+  "min",
+  "max",
+  "springValue",
+  "note",
+];
 
 /** A field showing typed text the model refused, with the message that stays until corrected. */
 export type FieldProblem = {
@@ -522,19 +556,37 @@ export class SandboxEditor {
       return false;
     };
     const trimmed = text.trim();
-    if (!/^-?[0-9]+$/.test(trimmed)) return refuse(WHOLE_NUMBER);
-    const n = Number.parseInt(trimmed, 10);
     let patch: Partial<Omit<Region, "id">>;
-    switch (field) {
-      case "cc":
-      case "cc2":
-        if (n < CC_MIN || n > CC_MAX) return refuse(CC_RANGE);
-        patch = field === "cc" ? { cc: n } : { cc2: n };
-        break;
-      case "channel":
-        if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
-        patch = { channel: n };
-        break;
+    if (field === "note") {
+      // A name or a number, both through view.ts's one reader; the note is the cc field.
+      const n = noteNumber(trimmed);
+      if (n === undefined) return refuse(NOTE_RANGE);
+      patch = { cc: n };
+    } else {
+      if (!/^-?[0-9]+$/.test(trimmed)) return refuse(WHOLE_NUMBER);
+      const n = Number.parseInt(trimmed, 10);
+      switch (field) {
+        case "cc":
+        case "cc2":
+          if (n < CC_MIN || n > CC_MAX) return refuse(CC_RANGE);
+          patch = field === "cc" ? { cc: n } : { cc2: n };
+          break;
+        case "channel":
+          if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
+          patch = { channel: n };
+          break;
+        case "min":
+        case "max":
+        case "springValue":
+          if (n < VALUE_MIN || n > VALUE_MAX) return refuse(VALUE_RANGE);
+          patch =
+            field === "min"
+              ? { min: n }
+              : field === "max"
+                ? { max: n }
+                : { springValue: n };
+          break;
+      }
     }
     const problem = this.applyPatch(patch, "midi", fieldKey(id, field));
     if (problem !== undefined) return refuse(problem.message);
@@ -644,6 +696,14 @@ export class SandboxEditor {
         return region.cc2 === undefined ? "" : String(region.cc2);
       case "channel":
         return String(region.channel);
+      case "min":
+        return String(minOf(region));
+      case "max":
+        return String(maxOf(region));
+      case "springValue":
+        return String(springValueOf(region));
+      case "note":
+        return noteName(region.cc);
     }
   }
 
@@ -674,10 +734,69 @@ export class SandboxEditor {
     return true;
   }
 
+  /** The button's Toggle (the schema's `latch`). */
   setLatch(latch: boolean): void {
     const region = this.selected;
     if (region === undefined || region.kind !== "button") return;
     this.applyPatch({ latch }, "latch");
+    this.emit();
+  }
+
+  // -------------------------------------------------------------------------
+  // The change 10B options, each one entry under `option`: a select or a checkbox is one Undo.
+
+  /** A fader's or an XY pad's Absolute / Relative, a knob's four; refused on a kind that has none or a mode it does not offer. (`setMode` is Edit / Play.) */
+  setRegionMode(mode: RegionMode): boolean {
+    const region = this.selected;
+    if (region === undefined) return false;
+    const offered =
+      region.kind === "knob"
+        ? KNOB_MODES
+        : region.kind === "fader" || region.kind === "xy"
+          ? CONTINUOUS_MODES
+          : [];
+    if (!offered.includes(mode)) return false;
+    this.applyPatch({ mode }, "option");
+    this.emit();
+    return true;
+  }
+
+  /** A relative fader's or XY pad's Half / Full. */
+  setSpeed(speed: Speed): void {
+    const region = this.selected;
+    if (
+      region === undefined ||
+      (region.kind !== "fader" && region.kind !== "xy")
+    )
+      return;
+    this.applyPatch({ speed }, "option");
+    this.emit();
+  }
+
+  /** A fader's spring. */
+  setSpring(spring: boolean): void {
+    const region = this.selected;
+    if (region === undefined || region.kind !== "fader") return;
+    this.applyPatch({ spring }, "option");
+    this.emit();
+  }
+
+  /** A button's CC / Note output; the `cc` field is the note under Note. */
+  setOutput(output: ButtonOutput): void {
+    const region = this.selected;
+    if (region === undefined || region.kind !== "button") return;
+    if (outputOf(region) === output) return;
+    this.applyPatch({ output }, "option");
+    this._fields = {};
+    this.emit();
+  }
+
+  /** A button's radio group, 0 (none) to 8. */
+  setGroup(group: number): void {
+    const region = this.selected;
+    if (region === undefined || region.kind !== "button") return;
+    if (!Number.isInteger(group) || group < 0 || group > GROUP_MAX) return;
+    this.applyPatch({ group }, "option");
     this.emit();
   }
 

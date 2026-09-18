@@ -36,6 +36,8 @@
     SURFACE_SIZE,
     cellIndex,
     colourByte,
+    springOf,
+    springPosition,
     toDisplay,
     type Region,
   } from "$lib/sandbox/model";
@@ -123,6 +125,10 @@
 
   /** The page's fader at rest: the thumb at 0.62 of the travel (Filter, `74`). */
   const REST_VALUE = 0.62;
+
+  /** Where a fader's thumb rests: at its spring value when it has one (change 10B), else the page's 0.62. */
+  const restOf = (r: Region): number =>
+    springOf(r) ? springPosition(r) / 127 : REST_VALUE;
 
   let plate = $state<HTMLDivElement | null>(null);
   /** The cell under the pointer, for the proposed bounds only. */
@@ -588,7 +594,7 @@
             {#if (r.orientation ?? "vertical") === "vertical"}
               {@const gTop = f.top + PITCH * 0.8}
               {@const gBottom = Math.max(gTop + 10, f.bottom - PITCH * 0.85)}
-              {@const ty = gBottom - REST_VALUE * (gBottom - gTop)}
+              {@const ty = gBottom - restOf(r) * (gBottom - gTop)}
               <rect
                 class="groove"
                 x={f.cx - grooveW / 2}
@@ -623,7 +629,7 @@
             {:else}
               {@const gLeft = f.left + PITCH * 0.3}
               {@const gRight = Math.max(gLeft + 10, f.right - PITCH * 0.3)}
-              {@const tx = gLeft + REST_VALUE * (gRight - gLeft)}
+              {@const tx = gLeft + restOf(r) * (gRight - gLeft)}
               <rect
                 class="groove"
                 x={gLeft}

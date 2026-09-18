@@ -24,6 +24,7 @@ export type EditKind =
   | "midi"
   | "orientation"
   | "latch"
+  | "option"
   | "brightness"
   | "template";
 

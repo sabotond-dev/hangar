@@ -128,11 +128,64 @@ export const ORIENTATION = "Orientation";
 export const ORIENTATION_VERTICAL = "Vertical";
 export const ORIENTATION_HORIZONTAL = "Horizontal";
 export const BEHAVIOR = "Behavior";
-export const LATCH = "Latch";
-export const LATCH_HELPER =
-  "Latched, a press toggles between on and off. Unlatched, it sends on while held.";
+// LATCH (`Latch`) and LATCH_HELPER ARE RETIRED BY NAME, 2026-09-18 (change 10B, the user's
+// "rename latch to toggle mode"): the field is TOGGLE below; the schema keeps `latch`.
+/** The button's toggle (change 10B; the schema's `latch`). */
+export const TOGGLE = "Toggle";
+export const TOGGLE_HELPER =
+  "Toggled, a press turns it on and the next press turns it off. Otherwise it sends on while held.";
 /** The XY pad's second controller. */
 export const CC_NUMBER_Y = "CC number (Y)";
+
+// ---------------------------------------------------------------------------
+// The change 10B options (BENCH-2026-09-16.txt section 10, answers 6 to 11), D-05's register.
+
+/** A fader's, an XY pad's or a knob's mode. */
+export const MODE = "Mode";
+export const MODE_ABSOLUTE = "Absolute";
+export const MODE_RELATIVE = "Relative";
+export const MODE_HELPER =
+  "Relative: a touch changes nothing until the finger moves, then the value follows the movement.";
+/** The knob's four modes, keyed by the schema's words (answer 11d). */
+export const KNOB_MODE_WORDS = {
+  absolute: "Absolute",
+  "relative-twos": "Relative (2's comp.)",
+  "relative-offset": "Relative (binary offset)",
+  "relative-sign": "Relative (sign magnitude)",
+} as const;
+export const KNOB_RELATIVE_HELPER =
+  "A relative mode sends one step per detent, and Min and Max don’t apply.";
+/** A relative fader's or XY pad's speed (answer 7c). */
+export const SPEED = "Speed";
+export const SPEED_HALF = "Half";
+export const SPEED_FULL = "Full";
+export const SPEED_HELPER =
+  "Half moves the value 64 steps over the element’s travel; Full moves it 127.";
+/** A fader's spring (answer 8). */
+export const SPRING = "Spring";
+export const SPRING_HELPER =
+  "On release the fader returns to the spring value and sends it.";
+export const SPRING_VALUE = "Spring value";
+/** A button's output and its note (answer 10). */
+export const OUTPUT = "Output";
+export const OUTPUT_CC = "CC";
+export const OUTPUT_NOTE = "Note";
+export const NOTE_NUMBER = "Note";
+export const NOTE_HELPER =
+  "A name or a number: C#3 or 49. On sends the note at Max as its velocity; off sends note-off.";
+/** A button's radio group (answer 9b). */
+export const GROUP = "Group";
+export const GROUP_NONE = "None";
+export const groupWord = (n: number): string => `Group ${n}`;
+export const GROUP_HELPER =
+  "Buttons in the same group are exclusive: pressing one turns the others off.";
+/** The sent value's span (answer 6a). */
+export const MIN = "Min";
+export const MAX = "Max";
+export const MIN_MAX_HELPER =
+  "The value runs from Min to Max. A Min above the Max inverts the direction.";
+export const BUTTON_MIN_MAX_HELPER =
+  "Max is sent when the button turns on, Min when it turns off.";
 /** The swatch row's label: one colour per element, the region's own. */
 export const COLOUR_LABEL = "Color";
 
@@ -140,6 +193,8 @@ export const COLOUR_LABEL = "Color";
 export const WHOLE_NUMBER = "Type a whole number.";
 export const CC_RANGE = "A controller number is 0 to 127.";
 export const CHANNEL_RANGE = "A channel is 1 to 16.";
+export const VALUE_RANGE = "A value is 0 to 127.";
+export const NOTE_RANGE = "A note is C-1 to G9, or 0 to 127.";
 
 /** Duplicate with no free window (section 8: offer resize, never delete). */
 export const DUPLICATE_NO_SPACE =
