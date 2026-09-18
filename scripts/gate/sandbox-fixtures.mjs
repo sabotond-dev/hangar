@@ -67,6 +67,44 @@ const EMIT_PAGE3_BLANKS = surface("Page 3 and blanks", [
   emRegion("Wash", "blank", 7, 7, 2, 2, { cc: 0, channel: 1 }),
   emRegion("Dot", "blank", 0, 8, 1, 1, { cc: 0, channel: 1 }),
 ]);
+// emit.spec.ts test 8 (change 10B): page 3 with every option on at its widest literal.
+const EMIT_PAGE3_OPTIONS = surface("Page 3 options", [
+  {
+    ...EMIT_PAGE3.regions[0],
+    min: 127,
+    max: 100,
+    mode: "relative",
+    speed: "full",
+    spring: true,
+    springValue: 100,
+  },
+  {
+    ...EMIT_PAGE3.regions[1],
+    min: 127,
+    max: 100,
+    mode: "relative",
+    speed: "full",
+  },
+  { ...EMIT_PAGE3.regions[2], min: 127, max: 100, mode: "relative-sign" },
+  {
+    ...EMIT_PAGE3.regions[3],
+    min: 127,
+    max: 100,
+    latch: true,
+    output: "note",
+    group: 8,
+  },
+]);
+
+// runtime.spec.ts (change 10B): the fixtures per feature - tests 8 to 14.
+const WIDE = rtRegion("Wide", "fader", 0, 7, 4, 2, 25, {
+  orientation: "horizontal",
+});
+const RADIO = [
+  rtRegion("One", "button", 5, 7, 1, 1, 41, { group: 1, latch: true }),
+  rtRegion("Two", "button", 6, 7, 1, 1, 42, { group: 1, latch: true }),
+  rtRegion("Three", "button", 7, 7, 1, 1, 43, { group: 1 }),
+];
 
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
@@ -78,6 +116,39 @@ export const SANDBOX_FIXTURES = {
     { ...FILTER, orientation: "horizontal", w: 6, h: 2 },
   ]),
   "runtime/one": surface("One", [FILTER]),
+  "runtime/scaled": surface("Scaled", [
+    { ...FILTER, min: 20, max: 80 },
+    { ...WIDE, min: 100, max: 50 },
+    { ...SPACE, min: 10, max: 20 },
+    { ...TURN, min: 64, max: 127 },
+    { ...GO, min: 5, max: 100 },
+  ]),
+  "runtime/relative-half": surface("Relative half", [
+    { ...FILTER, mode: "relative" },
+    { ...SPACE, mode: "relative" },
+  ]),
+  "runtime/relative-full": surface("Relative full", [
+    { ...FILTER, mode: "relative", speed: "full" },
+    { ...SPACE, mode: "relative", speed: "full" },
+  ]),
+  "runtime/spring": surface("Spring", [
+    { ...FILTER, spring: true },
+    { ...CUT, spring: true, springValue: 100, mode: "relative" },
+  ]),
+  "runtime/notes": surface("Notes", [
+    { ...GO, output: "note", cc: 60 },
+    {
+      ...rtRegion("Hold", "button", 7, 3, 2, 2, 62),
+      output: "note",
+      latch: true,
+    },
+    ...RADIO,
+  ]),
+  "runtime/knobs": surface("Knobs", [
+    { ...TURN, mode: "relative-twos" },
+    { ...rtRegion("Turn 2", "knob", 0, 0, 3, 3, 26), mode: "relative-offset" },
+    { ...rtRegion("Turn 3", "knob", 6, 0, 3, 3, 27), mode: "relative-sign" },
+  ]),
   // emit.spec.ts
   "emit/page3": EMIT_PAGE3,
   "emit/one": surface("One", [EMIT_PAGE3.regions[0]]),
@@ -95,4 +166,5 @@ export const SANDBOX_FIXTURES = {
   ]),
   "emit/four-faders": surface("Four faders", fadersAt(4, 2, 6)),
   "emit/page3-blanks": EMIT_PAGE3_BLANKS,
+  "emit/page3-options": EMIT_PAGE3_OPTIONS,
 };

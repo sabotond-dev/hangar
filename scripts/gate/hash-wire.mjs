@@ -18,7 +18,8 @@
 //   S   the Sandbox's five strings for the PDF's page-3 surface (runtime.spec.ts's PAGE3), through
 //       landSurface (canonical) and emitSurface (raw), at the picker corner and at the default colour;
 //       with --sandbox every fixture in sandbox-fixtures.mjs (runtime.spec.ts's and emit.spec.ts's
-//       surfaces) the same way plus emitSurface under 2 and 3 slots - recorded and hashed apart as
+//       surfaces) the same way plus emitSurface under 2, 3 and 5 slots (the five-slot system halves
+//       too, change 10B) - recorded and hashed apart as
 //       the SANDBOX SET, so the base SET line reads the same with or without the flag
 //
 // Everything is imported straight from the tree (Node 24 strips types); nothing is written to it.
@@ -289,11 +290,16 @@ for (const [name, fixture] of Object.entries(fixtures)) {
   const landing = await land.landSurface(fixture);
   for (const [k, v] of Object.entries(landing.config))
     putS(`S/${name}/landed/${k}`, v);
-  for (const slots of [2, 3]) {
+  for (const slots of [2, 3, 5]) {
     const own = emit.emitSurface(fixture, { slots });
     putS(`S/${name}/emitted-${slots}-slots/setup`, own.setup);
     putS(`S/${name}/emitted-${slots}-slots/timer`, own.timer);
     putS(`S/${name}/emitted-${slots}-slots/mapmode`, own.mapmode ?? "");
+    // Five slots (change 10B): the trimmed system halves with the runtime parts they carry.
+    if (slots === 5) {
+      putS(`S/${name}/emitted-5-slots/system`, own.system ?? "");
+      putS(`S/${name}/emitted-5-slots/systemTimer`, own.systemTimer ?? "");
+    }
   }
   const ownCorner = emit.emitSurface(cost.atPickerCorner(fixture), {
     slots: land.LANDING_SLOTS,
@@ -347,7 +353,7 @@ if (SANDBOX) {
       `${sandbox[n].sha256.slice(0, 16)}  ${String(sandbox[n].length).padStart(6)}  ${n}`,
     );
   console.log(
-    `\n${sandboxStrings} Sandbox strings from ${Object.keys(fixtures).length} fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2 and 3 slots, and at the picker corner`,
+    `\n${sandboxStrings} Sandbox strings from ${Object.keys(fixtures).length} fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner`,
   );
   console.log(
     `SANDBOX SET sha256 ${sandboxHash}  (HEAD ${head}${dirty ? ", src dirty" : ""})`,

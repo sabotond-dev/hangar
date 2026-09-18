@@ -22,6 +22,10 @@ import {
   vi,
 } from "vitest";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "$lib/catalog/library";
+import {
+  TRIMMED_LIBRARY,
+  TRIMMED_LIBRARY_TIMER,
+} from "$lib/sandbox/library-trim";
 import { TOO_FULL_TO_STORE } from "$lib/sandbox/copy";
 import { canonical } from "$lib/sandbox/cost";
 import { landSurface, type SurfaceLanding } from "$lib/sandbox/land";
@@ -3660,11 +3664,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     it("a surface lands in the tuner's own shape, and the store consumes it by the one path an entry takes", async () => {
       // THE SHAPE. Five keys, the tuner's, in write order - model.spec.ts
       // asserts the same five on a Lua entry and on a preset; a landing
-      // with a sixth key or a "kind" would fail here by name. The library's
-      // two halves land verbatim, as a Lua entry's do (wire-pin.spec.ts
-      // test 2), because the runtime calls E, G, N, U and X by name; the
-      // utility is the runtime's second slot; and every string is canonical
-      // under the pinned minifier (a fixed point on the first round).
+      // with a sixth key or a "kind" would fail here by name. The system
+      // halves are the TRIMMED library (change 10B, library-trim.ts) with
+      // the runtime parts the packer gave them - never the full library a
+      // Lua entry lands (wire-pin.spec.ts test 2); the utility is a runtime
+      // slot; and every string is canonical under the pinned minifier (a
+      // fixed point on the first round).
       expect(Object.keys(three.config)).toEqual(Object.keys(PAIR));
       expect(Object.keys(three.config)).toEqual([
         "systemTimer",
@@ -3678,16 +3683,22 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       expect([...Object.keys(three.config)].sort()).toEqual(
         SLOTS.map((s) => s.key).sort(),
       );
-      expect(three.config.system).toBe(TOUCH_LIBRARY);
-      expect(three.config.systemTimer).toBe(TOUCH_LIBRARY_TIMER);
+      expect(three.config.system.startsWith(TRIMMED_LIBRARY)).toBe(true);
+      expect(three.config.systemTimer.startsWith(TRIMMED_LIBRARY_TIMER)).toBe(
+        true,
+      );
+      expect(three.config.system).not.toBe(TOUCH_LIBRARY);
+      expect(three.config.systemTimer).not.toBe(TOUCH_LIBRARY_TIMER);
       expect(three.config.systemUtility.startsWith("--[[@cb]]")).toBe(true);
       expect(three.config.setup.startsWith("--[[@cb]]")).toBe(true);
       expect(three.config.timer.startsWith("--[[@cb]]")).toBe(true);
-      for (const key of ["systemUtility", "setup", "timer"] as const) {
+      for (const key of Object.keys(
+        three.config,
+      ) as (keyof typeof three.config)[]) {
         expect((await canonical(three.config[key])).rounds, key).toBe(0);
       }
       expect(three.label).toBe("Page 3");
-      expect(three.refusal, "page 3 fits three slots").toBeUndefined();
+      expect(three.refusal, "page 3 fits five slots").toBeUndefined();
       // The label is the ONLY thing about the surface the store sees: the
       // shape carries no field that says what produced it.
       expect(
@@ -3698,7 +3709,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       // corner, with their free characters.
       const m = three.measured;
       console.log(
-        `page 3 at three slots: system timer ${three.config.systemTimer.length}, page init ${three.config.system.length}, utility ${m.mapmode?.used} (${m.mapmode?.free} free), Timer ${m.timer.used} (${m.timer.free} free), Setup ${m.setup.used} (${m.setup.free} free)`,
+        `page 3 at five slots: system timer ${m.systemTimer?.used} (${m.systemTimer?.free} free), page init ${m.system?.used} (${m.system?.free} free), utility ${m.mapmode?.used} (${m.mapmode?.free} free), Timer ${m.timer.used} (${m.timer.free} free), Setup ${m.setup.used} (${m.setup.free} free)`,
       );
 
       // THE PATH. A surface's landing and an entry-shaped one, through the
@@ -3746,8 +3757,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       // own five, the utility included, storing them too after a store.
       const { state } = fromSurface;
       expect(state.system?.[EVENT_UTILITY]).toBe(three.config.systemUtility);
-      expect(state.system?.[EVENT_SETUP]).toBe(TOUCH_LIBRARY);
-      expect(state.system?.[EVENT_TIMER]).toBe(TOUCH_LIBRARY_TIMER);
+      expect(state.system?.[EVENT_SETUP]).toBe(three.config.system);
+      expect(state.system?.[EVENT_TIMER]).toBe(three.config.systemTimer);
       expect(state.configs[EVENT_SETUP]).toBe(three.config.setup);
       expect(state.configs[EVENT_TIMER]).toBe(three.config.timer);
       expect(state.systemFlash?.[EVENT_UTILITY]).toBe(

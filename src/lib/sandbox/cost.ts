@@ -1,6 +1,7 @@
 // The cost of an emitted surface, MEASURED under the pinned minifier at the
 // RGB444 picker corner - never estimated, never divided. `fits` is a statement
-// about every string the surface emits (the Timer and 255/4 carry the runtime).
+// about every string the surface emits (the Timer, 255/4 and, under five slots,
+// the trimmed system halves carry the runtime).
 // A text costs `max(compressed.length, raw.length)` under GridScript.compressScript
 // after padReady(), which is why every stored body is CANONICAL - a fixed point
 // of the minifier - and `canonical()` runs the output back through itself. The
@@ -70,11 +71,22 @@ export type MeasuredSurface = {
   readonly setup: Budget;
   /** The touch Timer: the runtime (or what the packer left in it) beside the sweep (13-15). */
   readonly timer: Budget;
-  /** The system element's fourth event under three slots; undefined under two. */
+  /** The system element's fourth event under three or five slots; undefined under two. */
   readonly mapmode: Budget | undefined;
+  /** 255/6 and 255/0 under five slots (change 10B): the trimmed halves and the parts they carry; undefined otherwise. */
+  readonly systemTimer: Budget | undefined;
+  readonly system: Budget | undefined;
   /** Every emitted string inside 908. A runtime that does not fit its slot(s) is a surface that does not fit. */
   readonly fits: boolean;
 };
+
+const measure = async (
+  text: string | undefined,
+): Promise<Budget | undefined> =>
+  text === undefined ? undefined : budget((await canonical(text)).cost);
+
+const inside = (b: Budget | undefined): boolean =>
+  b === undefined || b.used <= EVENT_BUDGET;
 
 /** The surface as given, measured - every string it emits. */
 export async function measureSurface(
@@ -82,20 +94,26 @@ export async function measureSurface(
   options: EmitOptions = {},
 ): Promise<MeasuredSurface> {
   const emitted = emitSurface(surface, options);
-  const [setup, timer, mapmode] = await Promise.all([
-    canonical(emitted.setup),
-    canonical(emitted.timer),
-    emitted.mapmode === undefined ? undefined : canonical(emitted.mapmode),
+  const [setup, timer, mapmode, systemTimer, system] = await Promise.all([
+    measure(emitted.setup) as Promise<Budget>,
+    measure(emitted.timer) as Promise<Budget>,
+    measure(emitted.mapmode),
+    measure(emitted.systemTimer),
+    measure(emitted.system),
   ]);
   return {
     emitted,
-    setup: budget(setup.cost),
-    timer: budget(timer.cost),
-    mapmode: mapmode === undefined ? undefined : budget(mapmode.cost),
+    setup,
+    timer,
+    mapmode,
+    systemTimer,
+    system,
     fits:
-      setup.cost <= EVENT_BUDGET &&
-      timer.cost <= EVENT_BUDGET &&
-      (mapmode === undefined || mapmode.cost <= EVENT_BUDGET),
+      inside(setup) &&
+      inside(timer) &&
+      inside(mapmode) &&
+      inside(systemTimer) &&
+      inside(system),
   };
 }
 
@@ -128,7 +146,12 @@ export function representativeShape(surface: Surface): {
   return best;
 }
 
-/** The dearest region of that shape: a vertical fader, cc 127, channel 16, at the corner. */
+/**
+ * The dearest region of that shape: a vertical fader, cc 127, channel 16, at the corner, with
+ * every change 10B option on at its widest literal - min 127, max 100 (both three digits, the
+ * direction inverted), relative at full speed with the spring on, the spring at 100 (its
+ * position lands at 123, three digits) - the fourteen-character tail `,127,100,7,123`.
+ */
 export function representativeRegion(
   index: number,
   col: number,
@@ -146,6 +169,12 @@ export function representativeRegion(
     cc: CC_MAX,
     channel: CHANNEL_MAX,
     colour: PICKER_CORNER,
+    min: 127,
+    max: 100,
+    mode: "relative",
+    speed: "full",
+    spring: true,
+    springValue: 100,
   };
 }
 

@@ -2,12 +2,12 @@
 // SAME shape the tuner publishes for a catalog entry (ConfigStrings, keyed as
 // sequence.ts's SLOTS keys them), so the install store cannot tell which
 // producer it is reading - there is no second write path, and the store sees a
-// `name`, never a kind. Write order: 255/6 systemTimer and 255/0 system (the
-// library's two halves - the runtime calls E, G, N, U and X by name), 255/4
-// systemUtility (the runtime's second slot; the empty string under two slots,
-// which the store fills with the firmware's page-next), 0/6 timer, 0/0 setup.
-// Measured at the picker corner (cost.ts), canonicalised to the minifier's
-// fixed point, refused before the wire when any string is over 908 (TUNE-05).
+// `name`, never a kind. Write order: 255/6 systemTimer and 255/0 system (under
+// five slots, change 10B, the TRIMMED library halves carrying runtime parts -
+// library-trim.ts; the full halves under two or three), 255/4 systemUtility
+// (a runtime slot; the empty string under two slots, which the store fills
+// with the firmware's page-next), 0/6 timer, 0/0 setup. Measured at the picker
+// corner (cost.ts), canonicalised, refused before the wire when any string is over 908 (TUNE-05).
 // Decided at 13-17 (D-18 / D-19, three slots); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -17,13 +17,14 @@ import {
   atPickerCorner,
   canonical,
   measureSurface,
+  type Budget,
   type MeasuredSurface,
 } from "./cost";
 import { emitSurface, type EmitOptions } from "./emit";
 import type { Surface } from "./model";
 
-/** The slots a surface lands on since 13-17: the touch Timer and 255/4 (D-18). */
-export const LANDING_SLOTS = 3 as const;
+/** The slots a surface lands on since change 10B: the touch Timer, 255/4 and the two trimmed system halves (answer 12). */
+export const LANDING_SLOTS = 5 as const;
 
 /**
  * The tuner's shape, restated here because this module may not import
@@ -39,9 +40,9 @@ export type SurfaceConfig = {
   readonly timer: string;
 };
 
-/** Which string is over the budget, and by how much: the meter's words and Apply's reason. */
+/** Which string is over the budget, and by how much - the first in write order; the Sandbox's sentence carries no number (change 10A). */
 export type SurfaceRefusal = {
-  readonly word: "Setup" | "Timer" | "Utility";
+  readonly word: "System timer" | "System" | "Utility" | "Timer" | "Setup";
   readonly used: number;
   readonly over: number;
 };
@@ -63,27 +64,17 @@ export type LandingOptions = Pick<EmitOptions, "slots">;
 export function refusalOf(
   measured: MeasuredSurface,
 ): SurfaceRefusal | undefined {
-  const utility = measured.mapmode;
-  if (utility !== undefined && utility.used > EVENT_BUDGET) {
-    return {
-      word: "Utility",
-      used: utility.used,
-      over: utility.used - EVENT_BUDGET,
-    };
-  }
-  if (measured.timer.used > EVENT_BUDGET) {
-    return {
-      word: "Timer",
-      used: measured.timer.used,
-      over: measured.timer.used - EVENT_BUDGET,
-    };
-  }
-  if (measured.setup.used > EVENT_BUDGET) {
-    return {
-      word: "Setup",
-      used: measured.setup.used,
-      over: measured.setup.used - EVENT_BUDGET,
-    };
+  const inOrder: readonly [SurfaceRefusal["word"], Budget | undefined][] = [
+    ["System timer", measured.systemTimer],
+    ["System", measured.system],
+    ["Utility", measured.mapmode],
+    ["Timer", measured.timer],
+    ["Setup", measured.setup],
+  ];
+  for (const [word, b] of inOrder) {
+    if (b !== undefined && b.used > EVENT_BUDGET) {
+      return { word, used: b.used, over: b.used - EVENT_BUDGET };
+    }
   }
   return undefined;
 }
@@ -100,18 +91,24 @@ export async function landSurface(
   const slots = options.slots ?? LANDING_SLOTS;
   const measured = await measureSurface(atPickerCorner(surface), { slots });
   const own = emitSurface(surface, { slots });
-  const [setup, timer, utility] = await Promise.all([
-    canonical(own.setup),
-    canonical(own.timer),
-    own.mapmode === undefined ? undefined : canonical(own.mapmode),
+  const text = async (lua: string | undefined) =>
+    lua === undefined ? undefined : (await canonical(lua)).text;
+  const [setup, timer, utility, systemTimer, system] = await Promise.all([
+    text(own.setup),
+    text(own.timer),
+    text(own.mapmode),
+    text(own.systemTimer),
+    text(own.system),
   ]);
   return {
     config: {
-      systemTimer: TOUCH_LIBRARY_TIMER,
-      system: TOUCH_LIBRARY,
-      systemUtility: utility?.text ?? "",
-      setup: setup.text,
-      timer: timer.text,
+      // Under five slots the halves are the trimmed library with the runtime
+      // parts the packer gave them; under fewer, the full library verbatim.
+      systemTimer: systemTimer ?? TOUCH_LIBRARY_TIMER,
+      system: system ?? TOUCH_LIBRARY,
+      systemUtility: utility ?? "",
+      setup: setup as string,
+      timer: timer as string,
     },
     label: surface.name,
     measured,
