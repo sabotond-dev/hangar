@@ -1732,3 +1732,15 @@ Facts read before asking: today `O`'s onset expires any other contact holding th
 on (one finger per region, 13-15), and the XY pad's state - the held pair, the last sent pair,
 the crosshair cell - is per region (`r[17]`, `r[18]`, `r[19]`, `r[20]`, `r[21]`). Questions put to
 the user; answers recorded below.
+
+Questions asked 2026-09-18: (1) the fingers on the wire - (a) each finger its own CC pair, the
+pad's CC X / CC Y for finger 1 and the next pair up (+2) for each further finger; (b) the same
+pair on successive channels. (2) which finger is which - (a) a new finger takes the lowest free
+slot; (b) slots by order of arrival, reused only after all lift.
+
+> a, a
+
+Recorded: a `Touches` select on the XY pad, 1 to 5, default 1 (an untouched pad byte-identical to
+today); finger n sends X on CC + 2(n-1) and Y on CC Y + 2(n-1); a new finger takes the lowest
+free slot; a crosshair per finger; Min / Max and Relative / Speed per finger; every other kind
+keeps one finger per region.
