@@ -9956,6 +9956,184 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     );
     expect(report.length).toBe(3);
   }, 120000);
+
+  it("runs RADAR POINTS on the DAW's clock: External rolls no ring from the Timer, Start releases the pending list and lands ring 0 on the first clock, a ring every Division clocks with the three quiet steps kept, Stop halts and releases, Continue resumes, and the preview holds Internal", async () => {
+    const entry = entryById("radar-points");
+    const channel = knobValueOf(entry, "channel");
+    const root = knobValueOf(entry, "root");
+    const syncKnob = entry.knobs.find((knob) => knob.id === "sync");
+    const divisionKnob = entry.knobs.find((knob) => knob.id === "division");
+    if (!syncKnob || !divisionKnob)
+      throw new Error("radar-points: sync and division knobs expected");
+    const scaleKnob = entry.knobs.find((knob) => knob.id === "scale");
+    if (!scaleKnob) throw new Error("radar-points: scale knob expected");
+    const scale = scaleKnob.values[entry.defaults.scale].split(",").map(Number);
+    /** The Setup's own pitch map, ported: the compass bucket walks the scale and wraps an octave. */
+    const pitchOf = (cell: number): number => {
+      const y = Math.floor(cell / 9) - 4;
+      const x = (cell % 9) - 4;
+      const a = Math.floor(Math.atan2(y, x) * 41) + 16;
+      const b = Math.floor((((a % 256) + 256) % 256) / 32);
+      return root + scale[b % scale.length] + 12 * Math.floor(b / scale.length);
+    };
+    const PERIOD = knobValueOf(entry, "sweep") / 10;
+    // Two points on two rings in two directions: ring 1 east, ring 2 north-east.
+    const P1 = 41;
+    const P2 = 24;
+    expect([ringOf(P1), ringOf(P2)]).toEqual([1, 2]);
+    const on = (cell: number) => `${channel}:144:${pitchOf(cell)}:100`;
+    const off = (cell: number) => `${channel}:128:${pitchOf(cell)}:0`;
+    const report: string[] = [];
+
+    const { host, sim } = await openSynced(entry, { sync: 1 });
+    try {
+      expect(host.rxMode, "External asks grxm(2,3)").toBe(3);
+      const litOnRing = (ring: number): number => {
+        let n = 0;
+        for (let cell = 0; cell < 81; cell += 1)
+          if (ringOf(cell) === ring && sim.layer(hwOfCell(cell), 2).pha > 0)
+            n += 1;
+        return n;
+      };
+      // Arm the two points; the Timer runs at @PERIOD for the finger sweep
+      // and the touch queue, and publishes the step, but rolls no ring.
+      for (const cell of [P1, P2]) {
+        const x = ledCentre(cell % 9, "x");
+        const y = ledCentre(Math.floor(cell / 9), "y");
+        host.touchDown(0, x, y);
+        host.run(1);
+        host.touchUp(0, x, y);
+        host.run(1);
+        expect(sim.layer(hwOfCell(cell), 1).pha, `cell ${cell} armed`).toBe(
+          255,
+        );
+      }
+      host.run(PERIOD * 16);
+      expect(host.midi, "the Timer sends nothing under External").toHaveLength(
+        0,
+      );
+      expect(host.selfNumber("k"), "the Timer rolls no ring").toBeUndefined();
+      expect(litOnRing(1) + litOnRing(2), "no ring is lit").toBe(0);
+      for (let n = 0; n < 12; n += 1)
+        expect(host.rtm(CLOCK), "the handler exists").toBe(true);
+      expect(host.midi, "clocks before Start send nothing").toHaveLength(0);
+      // Start; the first clock is ring 0 (the centre alone, no point there),
+      // the seventh ring 1, the thirteenth ring 2.
+      host.rtm(START);
+      expect(host.selfNumber("k"), "Start resets the ring").toBe(0);
+      host.rtm(CLOCK);
+      expect(
+        host.selfNumber("k"),
+        "the first clock after Start is ring 0",
+      ).toBe(1);
+      expect(host.midi, "ring 0 carries no point").toHaveLength(0);
+      for (let n = 0; n < 6; n += 1) host.rtm(CLOCK);
+      expect(host.selfNumber("k"), "the seventh clock is ring 1").toBe(2);
+      expect(wire(host.midi, 0), "ring 1 sounds its point").toEqual([on(P1)]);
+      expect(litOnRing(1), "all eight ring-1 cells lit on the wave layer").toBe(
+        8,
+      );
+      expect(litOnRing(4), "no ring-4 cell lit").toBe(0);
+      for (let n = 0; n < 6; n += 1) host.rtm(CLOCK);
+      expect(
+        wire(host.midi, 1),
+        "ring 2 releases ring 1's point and sounds its own",
+      ).toEqual([off(P1), on(P2)]);
+      // The Timer's period is ignored: two hundred ticks roll no ring.
+      const before = host.midi.length;
+      host.run(200);
+      expect(
+        host.selfNumber("k"),
+        "the Timer does not step under External",
+      ).toBe(3);
+      expect(host.midi.length, "nor send").toBe(before);
+      // Stop releases the pending list; clocks and active sensing do nothing.
+      host.rtm(STOP);
+      expect(wire(host.midi, before), "Stop releases ring 2's point").toEqual([
+        off(P2),
+      ]);
+      const stopped = host.midi.length;
+      for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+      host.rtm(SENSING);
+      for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+      expect(host.selfNumber("k"), "Stop halts the ping").toBe(3);
+      expect(host.midi.length, "nothing sent while stopped").toBe(stopped);
+      // Continue goes on from clock 13: the sixth clock finds the count at 18
+      // and lands ring 3 (no point, and the list is already empty so nothing
+      // is released twice).
+      host.rtm(CONTINUE);
+      expect(host.selfNumber("q"), "Continue keeps the clock count").toBe(13);
+      for (let n = 0; n < 5; n += 1) host.rtm(CLOCK);
+      expect(host.selfNumber("k"), "five clocks on: not yet stepped").toBe(3);
+      host.rtm(CLOCK);
+      expect(host.selfNumber("k"), "ring 3").toBe(4);
+      expect(
+        host.midi.length,
+        "ring 3 sends nothing and releases nothing twice",
+      ).toBe(stopped);
+      // The three quiet steps: rings 4, 5, 6, 7 are steps 4..7; only ring 4
+      // can light anything, and the cycle is eight steps before ring 0 again.
+      for (let n = 0; n < 6 * 4; n += 1) host.rtm(CLOCK);
+      expect(host.selfNumber("k"), "eight steps wrap to ring 0 again").toBe(8);
+      expect(host.midi.length, "steps 4..7 sound nothing").toBe(stopped);
+      for (let n = 0; n < 6 * 2; n += 1) host.rtm(CLOCK);
+      expect(
+        wire(host.midi, stopped),
+        "the next pass sounds ring 1 again",
+      ).toEqual([on(P1)]);
+      // Start again: release, reset, ring 0 on the clock.
+      host.rtm(START);
+      expect(
+        wire(host.midi, stopped + 1),
+        "Start releases ring 1's point",
+      ).toEqual([off(P1)]);
+      host.rtm(CLOCK);
+      expect(
+        host.selfNumber("k"),
+        "Start resets to ring 0, and the clock lands it",
+      ).toBe(1);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      report.push(
+        "  External at the 16th: ring 0 on the first clock after Start, ring 1 on the seventh with all eight cells lit, ring 2 on the thirteenth; 200 Timer ticks moved nothing; Stop released the pending point; Continue went on from clock 13; the eight-step cycle held; Start reset it",
+      );
+    } finally {
+      host.close();
+    }
+
+    // The division: an 8th is twelve clocks a ring, and a clock before the
+    // Timer's first call is counted, not stepped.
+    {
+      const { host } = await openSynced(entry, { sync: 1, division: 0 });
+      try {
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "counted, not stepped").toBe(0);
+        host.run(PERIOD + 1);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "clock 13 after Start is ring 1").toBe(1);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k")).toBe(2);
+        report.push(
+          "  Division 12 clocks a ring: rings at clocks 13 and 25 after Start",
+        );
+      } finally {
+        host.close();
+      }
+    }
+    expect(
+      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+    ).toEqual(["Internal", "External"]);
+    expect(
+      divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
+    ).toEqual(["8th", "16th", "32nd"]);
+    expect(previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync).toBe(0);
+    process.stdout.write(
+      "\nRADAR POINTS on the DAW's clock (change 12, 2026-09-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length).toBe(2);
+  }, 120000);
 });
 
 // ---------------------------------------------------------------------------

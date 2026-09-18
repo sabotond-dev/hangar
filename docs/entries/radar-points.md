@@ -328,3 +328,84 @@ arrived.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them.
 ```
+
+## Change 12, 2026-09-18 - the ring on the DAW's clock (BENCH-2026-09-16.txt section 12)
+
+The user's word: "MIDI sync works perfectly. implement it to Ghost, Radar points, Radar and
+Steps." - ORBIT's clock idiom (change 8, bench-verified on hardware this day; the idiom, the
+firmware evidence and the spelling are in `docs/entries/orbit.md`, "The clock idiom") on RADAR
+POINTS. RADAR itself is the ported preset and is not touched here (it is change 12b's).
+TUNE-01's six is lifted for a sync card by change 8's answer 2; RADAR POINTS carries seven knobs.
+
+### The two strings the entry carried until change 12, verbatim
+
+```lua
+--[[@cb]]R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end self.a={}self.o={}self.v={}local t={@SCALE}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=math.max(math.abs(n%9-4),math.abs(n//9-4))local b=(math.atan(n//9-4,n%9-4)*41//1+16)%256//32 self.o[n]=@ROOT+t[b%#t+1]+b//#t*12 end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)
+```
+
+```lua
+--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%8 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end
+```
+
+The rack then: `@SCALE @ROOT @SWEEPC @PERIOD @CH`, five knobs, SONAR's counts.
+
+### What moved
+
+- **The step is the ring step `k`**, now the Timer's `local function f(s)`: k = (s.k or 0)%8,
+  the advance, the release, and for every cell at Chebyshev distance k the decay pair and the
+  armed points' note-ons. The eight-step cycle stays: rings 0..4 on steps 0..4, steps 5..7
+  matching nothing, under the clock as under the Timer - so at Division 16th a ping is eight
+  16ths, half a bar, and at 8th a bar.
+- **The release is its own routine `u(s)`** - note-off for every note in the pending list
+  `s.z`, then `s.z={}` - so Start and Stop can release without stepping: `f` calls it, the
+  callback reads `s.u` on 250 (before the reset) and on 252. Published beside `s.f`. Named `u`
+  and NOT `o`: `s.o` is this entry's pitch table, and the first draft published the release as
+  `s.o` - every Timer call then indexed a function (`attempt to index a function value (field
+'o')`), which the existing RADAR POINTS case, the residue case and the parity case all caught
+  in the first run. One spelling on STEPS too.
+- **The callback**, ORBIT's spelling with the two release lines (the same text as STEPS's) and
+  `grxm(2,@SYNC and 3 or 0)` before `gtt(0,@PERIOD)`; `self.q=0` beside the three tables.
+- **Sync** `false / true` (Internal / External, `previewIndex: 0`) and **Division** `12 / 6 / 3`
+  (8th / 16th / 32nd, 16th the default), between Ping speed and MIDI channel. Under External
+  `@PERIOD` is the finger sweep's period and nothing else.
+
+### The costs, under the pinned `compressScript` after `initLuaFormatter()`
+
+At the RGB444 picker corner: **Setup 592 -> 892** (316 -> 16 free), **Timer 288 -> 380** (620 ->
+528 free); 891 / 378 at the defaults. The tightest Setup in the catalog: the callback (~200) and
+the routing (~24) sit beside a Setup that was already 592. The brief's order - Setup, then Timer,
+then a system slot - holds at the Setup; the alternative costed was the callback in the Timer
+(calling the locals `u` and `f` directly, no field reads: Setup ~625, Timer ~530), which would
+lose a Start inside the first `@PERIOD` after the Setup entirely (no callback yet), where the
+Setup's callback counts it. `BUDGET_ERROR` (890) is the vendored compiler's fit-ladder line and
+has no consumer under `src/lib`; the gate is 908. No system slot.
+
+### What the default record shares with yesterday's
+
+At the defaults the Setup is yesterday's with `self.q=0 ` after `self.v={}`, the callback and
+`grxm(2,0)` before the `gtt`; the Timer is yesterday's body split into `u` and `f`, published,
+and called at the end through `if false then return end f(s)` - the release running after the
+advance as before, then the paint and the sends in the same order. `frames.json` and the OG
+image are byte-identical; frames.spec.ts held without a regeneration.
+
+### The VM cases (`lua-smoke.spec.ts`)
+
+External with two points armed (ring 1 east, ring 2 north-east): the Timer sends nothing and
+rolls no ring over sixteen periods (s.k never set), no ring cell lit; twelve clocks before Start
+do nothing; Start zeroes the ring and the first clock lands ring 0 (the centre, no point), the
+seventh ring 1 - its point on the wire and all eight ring-1 cells lit on layer 2, no ring-4 cell
+
+- the thirteenth ring 2 (ring 1's note-off, ring 2's note-on); 200 Timer ticks move nothing; Stop
+  releases ring 2's point; clocks and 254 do nothing; Continue keeps the count at 13 and the sixth
+  clock lands ring 3, releasing nothing twice; twenty-four more clocks walk steps 4..7 silently
+  and wrap to ring 0; twelve more sound ring 1 again; Start releases it, resets, and the clock
+  lands ring 0. Division 12: counted, not stepped, before the Timer's first call; rings at clocks
+  13 and 25. The words and the preview. The existing RADAR POINTS cases (the ping ring by ring
+  with a point taken away, the boundary finger, the 81 LED centres, the parity tap, the residue)
+  are untouched and green.
+
+### The stamp
+
+RADAR POINTS is not in `wild-stamps.json` (it arrived after the capture), so no captured record
+moves; a link shared before today carries five indices against seven knobs and lands
+`unreadable` by the length check, opening the card at its defaults.
