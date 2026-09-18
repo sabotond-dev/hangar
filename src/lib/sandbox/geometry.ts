@@ -43,9 +43,8 @@ export const GEOMETRY_COPY = {
   /** Rule 6, naming both. */
   adjacency: (a: string, b: string): string =>
     `${a} and ${b} touch with no gap between them. A press on the shared edge could land on either.`,
-  /** The cap, with the count. */
-  cap: (cap: number): string =>
-    `This surface holds ${cap} elements, the most a page holds. Remove one to add another.`,
+  /** The cap, worded without a number (change 10A: no count reaches the Sandbox's words). */
+  cap: "This surface is full. Remove an element to add another.",
   /**
    * Rule 3, per kind (13-15; model.ts). A knob's line carries the
    * reason - its centre cannot read a turn - and the fader's names the one
@@ -63,6 +62,8 @@ export const GEOMETRY_COPY = {
         return `An XY pad needs at least ${minimum.w} × ${minimum.h} cells.`;
       case "button":
         return `A button needs at least ${minimum.w} × ${minimum.h} cells.`;
+      case "blank":
+        return `A blank needs at least ${minimum.w} × ${minimum.h} cells.`;
     }
   },
 } as const;
@@ -186,7 +187,7 @@ export function validate(
       problem: {
         rule: "cap",
         field: "count",
-        message: GEOMETRY_COPY.cap(cap),
+        message: GEOMETRY_COPY.cap,
       },
     };
   }

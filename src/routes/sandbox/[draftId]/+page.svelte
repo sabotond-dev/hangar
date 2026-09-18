@@ -4,10 +4,12 @@
   the inspector (RegionInspector) are snippets handed to the shell; the centre is the name row with
   the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file) and the plate.
   One model: src/lib/sandbox/editor.ts holds the surface, selection, mode, focus and history; this
-  route keeps the one EditorState in raw state and owns the store, the meter, the preview and the frame.
-  The draft is saved as it is edited (drafts.ts, debounced, `sandbox:{id}`); the meter is cost.ts's
-  under the pinned minifier with SLOTS 3 (13-17); after every measurement landSurface's five strings
-  go to install.observeConfig, and DestinationZone is the one component both routes mount (13.1-06).
+  route keeps the one EditorState in raw state and owns the store, the landing, the preview, the
+  frame and the window's key listener (the hotkeys, V / Escape, Delete - never in a text field).
+  The draft is saved as it is edited (drafts.ts, debounced, `sandbox:{id}`); the landing is land.ts's
+  under the pinned minifier with SLOTS 3 (13-17), its five strings going to install.observeConfig
+  after every measurement, and DestinationZone is the one component both routes mount (13.1-06).
+  No number about the budget is shown (change 10A); an over-budget landing refuses Store in words.
   Play builds a Lua engine on the surface's own strings and routes the finger through touch.ts's mapAxis, tick-locked.
   Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
@@ -30,7 +32,6 @@
     EMPTY_INSTRUCTION,
     EMPTY_SECOND_LINE,
     EYEBROW_SANDBOX,
-    MEASURING,
     MODE_EDIT,
     MODE_LINE_EDIT,
     MODE_LINE_PLAY,
@@ -39,7 +40,6 @@
     NEW_SURFACE,
     REDO,
     RENAME_SURFACE,
-    ROOM_NONE,
     SAVE_COPY,
     SAVE_REFUSED,
     STARTER_ACTION,
@@ -47,12 +47,11 @@
     SURFACE_NAME,
     TEMPLATE_ACTION,
     TITLE,
+    TOO_FULL_TO_STORE,
     UNDO,
     copyName,
     exportedLine,
-    overElementLine,
     renameSurfaceName,
-    roomLine,
     savedLine,
   } from "$lib/sandbox/copy";
   import {
@@ -61,13 +60,14 @@
     saveSurfaceDraft,
   } from "$lib/sandbox/draft";
   import {
+    SELECTOR_KEY,
     SandboxEditor,
+    kindForKey,
     type EditorState,
     type Mode,
     type NumericField,
   } from "$lib/sandbox/editor";
   import { emptySurface } from "$lib/sandbox/model";
-  import type { SurfaceCost } from "$lib/sandbox/cost";
   import type { SurfaceLanding } from "$lib/sandbox/land";
   import { SimHost } from "$lib/sim/host";
   import type { SimEngine } from "$lib/sim/engine";
@@ -76,8 +76,6 @@
   import { readCopy, saveCopy } from "$lib/store/library";
   import type { LocalStore } from "$lib/store/local";
   import { downloadExport, exportFile } from "$lib/store/transfer";
-  import { meterView, type MeterView } from "$lib/tune/view";
-  import BudgetMeter from "$lib/ui/BudgetMeter.svelte";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
   import Palette from "$lib/ui/sandbox/Palette.svelte";
@@ -104,10 +102,8 @@
   let editor: SandboxEditor | undefined;
   let view = $state.raw<EditorState | undefined>(undefined);
   let draftLine = $state<string | undefined>(undefined);
-  let cost = $state.raw<SurfaceCost | undefined>(undefined);
   let landing = $state.raw<SurfaceLanding | undefined>(undefined);
   let exported = $state<string | undefined>(undefined);
-  let measuring = $state(true);
   let notice = $state<string | undefined>(undefined);
   let saved = $state<string | undefined>(undefined);
   let unavailable = $state(false);
@@ -124,7 +120,6 @@
   let exportTimer: ReturnType<typeof setTimeout> | undefined;
   let measureGeneration = 0;
   let previewGeneration = 0;
-  let costOfSurface: typeof import("$lib/sandbox/cost").costOf | undefined;
   let landSurface: typeof import("$lib/sandbox/land").landSurface | undefined;
 
   /** The route's edge to the browser store, one per route (13.2-CONTEXT D-15). */
@@ -144,7 +139,7 @@
   const mode = $derived<Mode>(view?.mode ?? "edit");
   const play = $derived(mode === "play");
 
-  /** Every change: the rendered state, the draft, the meter. */
+  /** Every change: the rendered state, the draft, the landing. */
   function onchange(state: EditorState): void {
     const before = view;
     view = state;
@@ -175,7 +170,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // The meter (cost.ts, measured).
+  // The landing (land.ts, measured at the picker corner).
 
   function scheduleMeasure(): void {
     if (measureTimer !== undefined) clearTimeout(measureTimer);
@@ -183,8 +178,8 @@
   }
 
   /**
-   * The meter and the landing, from one measurement; the landing is withdrawn the instant the feed
-   * goes stale (`observeConfig(undefined)`) so a click inside the debounce cannot write stale strings.
+   * The landing, from one measurement; withdrawn the instant the feed goes stale
+   * (`observeConfig(undefined)`) so a click inside the debounce cannot write stale strings.
    */
   async function measure(): Promise<void> {
     measureTimer = undefined;
@@ -194,16 +189,10 @@
     landing = undefined;
     install.observeConfig(undefined);
     try {
-      costOfSurface ??= (await import("$lib/sandbox/cost")).costOf;
       landSurface ??= (await import("$lib/sandbox/land")).landSurface;
-      const [measured, landed] = await Promise.all([
-        costOfSurface(surface, { slots: SLOTS }),
-        landSurface(surface, { slots: SLOTS }),
-      ]);
+      const landed = await landSurface(surface, { slots: SLOTS });
       if (generation !== measureGeneration || !mounted) return;
-      cost = measured;
       landing = landed;
-      measuring = false;
       // An over-budget landing is never observed: Store is disabled on the
       // refusal and the store is not told about strings it must not write.
       install.observeConfig(
@@ -212,58 +201,13 @@
     } catch {
       if (generation !== measureGeneration || !mounted) return;
       unavailable = true;
-      measuring = false;
     }
   }
 
-  const setupMeter = $derived<MeterView>(
-    meterView(
-      "setup",
-      cost?.setup.used ?? 0,
-      measuring ? "measuring" : "settled",
-    ),
+  /** Store's refusal when a string is over the budget (land.ts's, first in write order), worded without a number. */
+  const refusal = $derived(
+    landing?.refusal === undefined ? undefined : TOO_FULL_TO_STORE,
   );
-  const timerMeter = $derived<MeterView>(
-    meterView(
-      "timer",
-      cost?.timer.used ?? 0,
-      measuring ? "measuring" : "settled",
-    ),
-  );
-
-  /** The over sentence when a string is over 908 (land.ts's refusal, first in write order), or undefined. */
-  const refusal = $derived.by((): string | undefined => {
-    const r = landing?.refusal;
-    if (r === undefined) return undefined;
-    return overElementLine(r.word, r.used, r.over);
-  });
-
-  /** "N of 908 · room for about M more", or which string is over and by how much. */
-  const meterLine = $derived.by(() => {
-    if (cost === undefined) return MEASURING;
-    if (!cost.fits) {
-      if (refusal !== undefined) return refusal;
-      const over =
-        cost.setup.used > cost.setup.limit
-          ? (["Setup", cost.setup] as const)
-          : cost.timer.used > cost.timer.limit
-            ? (["Timer", cost.timer] as const)
-            : (["Utility", cost.mapmode ?? cost.timer] as const);
-      return overElementLine(
-        over[0],
-        over[1].used,
-        over[1].used - over[1].limit,
-      );
-    }
-    const used = Math.max(
-      cost.setup.used,
-      cost.timer.used,
-      cost.mapmode?.used ?? 0,
-    );
-    return cost.roomFor === 0
-      ? `${used} ${ROOM_NONE}`
-      : roomLine(used, cost.roomFor);
-  });
 
   // ---------------------------------------------------------------------------
   // The live preview (PREV-04's third reach).
@@ -413,8 +357,14 @@
     void goto(resolve("/sandbox/[draftId]", { draftId: mintSurfaceId() }));
   }
 
+  /**
+   * The window's keys (change 10A): Ctrl/Cmd+Z and +Y as before; a kind's hotkey arms it (HOTKEYS),
+   * V or Escape returns to the selector, Delete or Backspace deletes the selection. Never while a
+   * text field, a text area or a select has focus (a name field typing "f" arms nothing), never
+   * with Alt held, and never for a key the plate or the list already handled (defaultPrevented).
+   */
   function onWindowKeyDown(event: KeyboardEvent): void {
-    if (editor === undefined) return;
+    if (editor === undefined || event.defaultPrevented) return;
     const target = event.target;
     if (
       target instanceof HTMLInputElement ||
@@ -423,15 +373,32 @@
     ) {
       return;
     }
-    const meta = event.ctrlKey || event.metaKey;
-    if (!meta) return;
     const key = event.key.toLowerCase();
-    if (key === "z" && !event.shiftKey) {
+    if (event.ctrlKey || event.metaKey) {
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        editor.undo();
+      } else if ((key === "z" && event.shiftKey) || key === "y") {
+        event.preventDefault();
+        editor.redo();
+      }
+      return;
+    }
+    if (event.altKey) return;
+    if (key === "escape" || key === SELECTOR_KEY) {
       event.preventDefault();
-      editor.undo();
-    } else if ((key === "z" && event.shiftKey) || key === "y") {
+      editor.cancel();
+      return;
+    }
+    if (key === "delete" || key === "backspace") {
       event.preventDefault();
-      editor.redo();
+      editor.remove();
+      return;
+    }
+    const kind = kindForKey(key);
+    if (kind !== undefined) {
+      event.preventDefault();
+      editor.choose(kind);
     }
   }
 
@@ -458,8 +425,6 @@
     editor = new SandboxEditor(surface, { onchange });
     view = editor.state();
     draftLine = stored === undefined ? undefined : DRAFT_SAVED;
-    cost = undefined;
-    measuring = true;
     notice = undefined;
     scheduleMeasure();
   }
@@ -554,20 +519,6 @@
   <DestinationZone {name} config={landing?.config} {refusal} />
 {/snippet}
 
-{#snippet meter()}
-  <div class="meters" data-testid="surface-meters" aria-busy={measuring}>
-    <BudgetMeter view={setupMeter} />
-    <BudgetMeter view={timerMeter} />
-    <p
-      class="meter-line type-helper"
-      class:over={cost !== undefined && !cost.fits}
-      data-testid="meter-line"
-    >
-      {meterLine}
-    </p>
-  </div>
-{/snippet}
-
 {#snippet inspector()}
   {#if view !== undefined}
     <RegionInspector
@@ -575,7 +526,6 @@
       onrename={(next) => editor?.rename(next)}
       {onnumber}
       oncommit={() => editor?.commitField()}
-      onkind={(kind) => void editor?.setKind(kind)}
       onorientation={(o) => void editor?.setOrientation(o)}
       onlatch={(latch) => editor?.setLatch(latch)}
       oncolour={(colour) => editor?.setColour(colour)}
@@ -583,7 +533,6 @@
       onduplicate={duplicate}
       ondelete={remove}
       {notice}
-      {meter}
     />
   {/if}
 {/snippet}
@@ -731,6 +680,10 @@
         oncancel={() => editor?.cancel()}
         ondelete={remove}
         onresize={(box) => editor?.resizeSelectedTo(box)}
+        onmoveto={(cell) => editor?.moveSelectedTo(cell)}
+        onnudge={(dc, dr) => editor?.nudgeSelected(dc, dr)}
+        onresizeby={(dw, dh) => editor?.resizeSelectedBy(dw, dh)}
+        oncommit={() => editor?.commitField()}
         {onfinger}
         preview={play ? preview : undefined}
       />
@@ -1048,21 +1001,5 @@
     margin-inline: 12px;
     border: 0;
     border-block-start: 1px solid var(--color-divider);
-  }
-
-  .meters {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .meter-line {
-    margin: 8px 0 0;
-    color: var(--color-ink-quiet);
-  }
-
-  /* The refusal: the error ink, section 12's validation ink, on the sentence that names the string. */
-  .meter-line.over {
-    color: var(--color-error-ink);
   }
 </style>

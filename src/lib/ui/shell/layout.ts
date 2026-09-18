@@ -152,6 +152,13 @@ export const SANDBOX_HANDLE = 8;
  */
 export const SANDBOX_HANDLE_HIT = 16;
 export const SANDBOX_LABEL_SIZE = 11;
+/**
+ * The plate's delete icon (change 10A): a small square in the action colour
+ * off the selection's top-right corner, its hit the 44px target of section 14
+ * (it sits off the region, so it swallows no handle and no cell of its own).
+ */
+export const SANDBOX_DELETE_ICON = 20;
+export const SANDBOX_DELETE_HIT = 44;
 
 /** Section 7's 24px centre padding; the PDF measures 24-34. */
 export const CENTRE_PAD = 24;

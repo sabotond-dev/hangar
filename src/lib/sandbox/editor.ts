@@ -1,13 +1,13 @@
-// The Sandbox editor's model: one surface, one selection, one mode, one pending placement, one
-// keyboard focus cell, the history, and the field states that let an invalid keystroke stay on
-// screen without reaching the surface. Pure TypeScript with no browser in it: src/lib/ui/sandbox/
-// renders and calls it, sandbox-ui.spec.ts drives it in node, and a surface can be built with NO
-// pointer-move event because no method takes one. Every creation path is two calls - `choose(kind)`
-// then `clickCell` (element first), two clicks on empty cells (area first, the kind compatible by
-// construction), arrows plus `mark()` (the keyboard route), `editNumber` (the numeric route), and
-// the plate's handle drag as one `resizeSelectedTo(box)` on release (13.1-03). The model is never
-// transiently invalid: a refused edit keeps the previous surface and records `{ text, message }` for
-// the field. Play locks every structural method and keeps selection and history; `atCap` is schema.ts's sixteen.
+// The Sandbox editor's model: one surface, one selection, one mode, one armed kind, one keyboard
+// focus cell, the history, and the field states that let an invalid keystroke stay on screen
+// without reaching the surface. Pure TypeScript with no browser in it: src/lib/ui/sandbox/ renders
+// and calls it, sandbox-ui.spec.ts drives it in node, and a surface can be built with NO pointer-
+// move event because no method takes one. The selector is the default tool (change 10A): a click
+// selects, a click on empty clears; `choose(kind)` - a palette row or its hotkey (HOTKEYS) - arms
+// the kind and every `clickCell` places one until `cancel()` (V or Escape); a drag's release is
+// one `moveSelectedTo` or `resizeSelectedTo`, the arrows one `nudgeSelected` / `resizeSelectedBy`
+// per press (coalesced until `commitField`), `editNumber` the three MIDI fields. The model is never
+// transiently invalid; Play locks every structural method and keeps selection and history.
 // Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -21,12 +21,12 @@ import {
   defaultName,
 } from "./copy";
 import {
+  GEOMETRY_COPY,
   addRegion,
   adjacencyWarnings,
   applyEdit,
   buildCellMap,
   duplicate as duplicateRegion,
-  validate,
   type AdjacencyWarning,
   type CellMap,
   type GeometryRules,
@@ -42,9 +42,8 @@ import {
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
   cellIndex,
-  fromDisplay,
+  isPaintOnly,
   orientationOf,
-  toDisplay,
   type ElementKind,
   type Orientation,
   type Region,
@@ -56,24 +55,23 @@ export type Mode = "edit" | "play";
 
 export type Cell = { readonly col: number; readonly row: number };
 
-/** What the next click on the plate will do. */
+/** A region's place and size, zero-based - the plate's own cells. */
+export type Box = {
+  readonly col: number;
+  readonly row: number;
+  readonly w: number;
+  readonly h: number;
+};
+
+/** What the next click on the plate will do: select (the selector), or place the armed kind. */
 export type Placement =
   | { readonly kind: "idle" }
-  | { readonly kind: "element"; readonly type: ElementKind }
-  | { readonly kind: "area"; readonly start: Cell };
+  | { readonly kind: "element"; readonly type: ElementKind };
 
-/** The numeric fields the inspector renders, in the model's names. */
-export type NumericField = "col" | "row" | "w" | "h" | "cc" | "cc2" | "channel";
+/** The numeric fields the inspector renders, in the model's names: the three MIDI fields. */
+export type NumericField = "cc" | "cc2" | "channel";
 
-export const NUMERIC_FIELDS: readonly NumericField[] = [
-  "col",
-  "row",
-  "w",
-  "h",
-  "cc",
-  "cc2",
-  "channel",
-];
+export const NUMERIC_FIELDS: readonly NumericField[] = ["cc", "cc2", "channel"];
 
 /** A field showing typed text the model refused, with the message that stays until corrected. */
 export type FieldProblem = {
@@ -87,11 +85,11 @@ export type FieldProblems = Partial<Record<NumericField, FieldProblem>>;
 export type ClickOutcome =
   | { readonly kind: "placed"; readonly region: Region }
   | { readonly kind: "selected"; readonly region: Region }
-  | { readonly kind: "started"; readonly start: Cell }
+  | { readonly kind: "cleared" }
   | { readonly kind: "refused"; readonly message: string }
   | { readonly kind: "play" };
 
-/** The default region each kind places on the element-first path. */
+/** The default region each kind places. */
 export const DEFAULT_SIZES: Readonly<
   Record<ElementKind, { readonly w: number; readonly h: number }>
 > = {
@@ -99,7 +97,32 @@ export const DEFAULT_SIZES: Readonly<
   button: { w: 2, h: 2 },
   knob: { w: 3, h: 3 },
   xy: { w: 3, h: 3 },
+  blank: { w: 1, h: 1 },
 };
+
+/**
+ * The hotkeys (change 10A, answer 2): one lower-case letter per kind arms it, exactly as the
+ * palette row does; SELECTOR_KEY (or Escape) returns to the selector. The route's window listener
+ * reads them and never while a text field has focus.
+ */
+export const HOTKEYS: Readonly<Record<ElementKind, string>> = {
+  fader: "f",
+  button: "b",
+  xy: "x",
+  knob: "k",
+  blank: "l",
+};
+
+export const SELECTOR_KEY = "v";
+
+/** The kind a key arms, or undefined: `kindForKey("F")` is a fader. */
+export function kindForKey(key: string): ElementKind | undefined {
+  const lower = key.toLowerCase();
+  for (const kind of Object.keys(HOTKEYS) as ElementKind[]) {
+    if (HOTKEYS[kind] === lower) return kind;
+  }
+  return undefined;
+}
 
 /**
  * The four colours new regions cycle through, RGB444 levels (13.1-03, D-03).
@@ -133,15 +156,14 @@ export type EditorState = {
   readonly focus: Cell;
   readonly fields: FieldProblems;
   /**
-   * What every numeric field shows: the model's number (one-based where the
-   * interface counts so), or the refused text while a keystroke stands
-   * refused. In the state rather than read through a method, so a component
-   * re-renders a field when the selection moves - a plain method call on a
-   * non-reactive object is invisible to a template.
+   * What every numeric field shows: the model's number, or the refused text
+   * while a keystroke stands refused. In the state rather than read through
+   * a method, so a component re-renders a field when the selection moves -
+   * a plain method call on a non-reactive object is invisible to a template.
    */
   readonly texts: Readonly<Record<NumericField, string>>;
-  /** A retype the geometry refused, with its message; cleared by the next accepted edit. */
-  readonly kindProblem: string | undefined;
+  /** An orientation the geometry refused, with its message; cleared by the next accepted edit. */
+  readonly orientationProblem: string | undefined;
   readonly warnings: readonly AdjacencyWarning[];
   readonly cellMap: CellMap;
   readonly atCap: boolean;
@@ -156,40 +178,18 @@ export type EditorOptions = {
   readonly onchange?: (state: EditorState) => void;
 };
 
-/** The box between two cells, inclusive, as a region's geometry. */
-export function boxBetween(
-  a: Cell,
-  b: Cell,
-): { col: number; row: number; w: number; h: number } {
-  const col = Math.min(a.col, b.col);
-  const row = Math.min(a.row, b.row);
-  return {
-    col,
-    row,
-    w: Math.abs(a.col - b.col) + 1,
-    h: Math.abs(a.row - b.row) + 1,
-  };
-}
-
-/** Section 1: the compatible kind for a box drawn area-first. */
-export function kindForBox(
-  w: number,
-  h: number,
-): {
-  kind: ElementKind;
-  orientation?: Orientation;
-} {
-  if (w === 1 && h === 1) return { kind: "button" };
-  return h >= w
-    ? { kind: "fader", orientation: "vertical" }
-    : { kind: "fader", orientation: "horizontal" };
-}
-
 const clampCell = (n: number): number =>
   Math.min(LAST_CELL, Math.max(0, Math.trunc(n)));
 
-/** The coalesce key of a handle drag - sealed on release, so one drag is one entry. */
+/** The coalesce key of a pointer drag - sealed on release, so one drag is one entry. */
 const dragKey = (regionId: string): string => `drag:${regionId}`;
+
+/** The coalesce key of the arrows - a held key is one entry until the plate's key-up commits. */
+const arrowKey = (regionId: string, what: "nudge" | "grow"): string =>
+  `${what}:${regionId}`;
+
+const sameBox = (a: Box, b: Box): boolean =>
+  a.col === b.col && a.row === b.row && a.w === b.w && a.h === b.h;
 
 export class SandboxEditor {
   private _surface: Surface;
@@ -198,7 +198,7 @@ export class SandboxEditor {
   private _placement: Placement = { kind: "idle" };
   private _focus: Cell = { col: 0, row: 0 };
   private _fields: FieldProblems = {};
-  private _kindProblem: string | undefined = undefined;
+  private _orientationProblem: string | undefined = undefined;
   private readonly rules: GeometryRules;
   private readonly onchange: ((state: EditorState) => void) | undefined;
   private minted = 0;
@@ -270,7 +270,7 @@ export class SandboxEditor {
       texts: Object.fromEntries(
         NUMERIC_FIELDS.map((field) => [field, this.fieldText(field)]),
       ) as Record<NumericField, string>,
-      kindProblem: this._kindProblem,
+      orientationProblem: this._orientationProblem,
       warnings: adjacencyWarnings(this._surface.regions),
       cellMap: built.ok ? built.map : [],
       atCap: this.atCap,
@@ -315,6 +315,7 @@ export class SandboxEditor {
   private freeController(): number {
     const used = new Set<number>();
     for (const r of this._surface.regions) {
+      if (isPaintOnly(r)) continue;
       used.add(r.cc);
       if (r.cc2 !== undefined) used.add(r.cc2);
     }
@@ -324,12 +325,13 @@ export class SandboxEditor {
 
   private newRegion(
     kind: ElementKind,
-    box: { col: number; row: number; w: number; h: number },
+    box: Box,
     orientation?: Orientation,
     name?: string,
     colour?: readonly [number, number, number],
   ): Region {
-    const cc = this.freeController();
+    // A blank sends nothing: its controller and channel are inert (schema.ts).
+    const cc = kind === "blank" ? 0 : this.freeController();
     const id = this.mint(kind);
     const region: Region = {
       id,
@@ -350,9 +352,9 @@ export class SandboxEditor {
   }
 
   // -------------------------------------------------------------------------
-  // The two creation paths, neither needing a drag (Bible sections 2, 8, 14).
+  // The creation path: arm a kind, click cells until the selector is back (Bible sections 2, 8, 14).
 
-  /** Element first: arm a kind. False at the cap or in Play - the palette is disabled there. */
+  /** A palette row or its hotkey: arm a kind; it stays armed until `cancel`. False at the cap or in Play. */
   choose(kind: ElementKind): boolean {
     if (this._mode === "play" || this.atCap) return false;
     this._placement = { kind: "element", type: kind };
@@ -360,7 +362,7 @@ export class SandboxEditor {
     return true;
   }
 
-  /** Escape: nothing pending. */
+  /** V or Escape: the selector. */
   cancel(): void {
     if (this._placement.kind === "idle") return;
     this._placement = { kind: "idle" };
@@ -375,6 +377,10 @@ export class SandboxEditor {
     const pending = this._placement;
 
     if (pending.kind === "element") {
+      if (this.atCap) {
+        this.emit();
+        return { kind: "refused", message: GEOMETRY_COPY.cap };
+      }
       const size = DEFAULT_SIZES[pending.type];
       const box = {
         col: Math.min(at.col, SURFACE_SIZE - size.w),
@@ -385,12 +391,6 @@ export class SandboxEditor {
       return this.place(pending.type, box, "place");
     }
 
-    if (pending.kind === "area") {
-      const box = boxBetween(pending.start, at);
-      const { kind, orientation } = kindForBox(box.w, box.h);
-      return this.place(kind, box, "place", orientation);
-    }
-
     const holder = this.regionAt(at.col, at.row);
     if (holder !== undefined) {
       this._selectedId = holder.id;
@@ -398,32 +398,18 @@ export class SandboxEditor {
       this.emit();
       return { kind: "selected", region: holder };
     }
-    if (this.atCap) {
-      return { kind: "refused", message: this.capMessage() };
-    }
-    this._placement = { kind: "area", start: at };
+    // The selector on an empty cell: the selection clears, the focus cell stays.
+    this._selectedId = undefined;
+    this._fields = {};
+    this._orientationProblem = undefined;
+    this.history.seal();
     this.emit();
-    return { kind: "started", start: at };
-  }
-
-  private capMessage(): string {
-    const probe = validate(
-      this.newRegion(
-        "button",
-        { col: 0, row: 0, w: 1, h: 1 },
-        undefined,
-        undefined,
-        DEFAULT_COLOUR,
-      ),
-      this._surface,
-      this.rules,
-    );
-    return probe.ok ? "" : probe.problem.message;
+    return { kind: "cleared" };
   }
 
   private place(
     kind: ElementKind,
-    box: { col: number; row: number; w: number; h: number },
+    box: Box,
     edit: EditKind,
     orientation?: Orientation,
     name?: string,
@@ -432,20 +418,17 @@ export class SandboxEditor {
     const result = addRegion(this._surface, region, this.rules);
     if (!result.ok) {
       // The region was never created: its palette entry goes back, so the
-      // next placement is still the next of the cycle.
+      // next placement is still the next of the cycle. The kind stays armed
+      // so the next click can try elsewhere.
       this.created -= 1;
-      // The placement stays armed so the next click can try elsewhere; an
-      // area start is dropped, because its far corner was the problem.
-      if (this._placement.kind === "area") this._placement = { kind: "idle" };
       this.emit();
       return { kind: "refused", message: result.problem.message };
     }
     this.record(edit, this._surface, result.surface, region.id);
     this._surface = result.surface;
     this._selectedId = region.id;
-    this._placement = { kind: "idle" };
     this._fields = {};
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this.emit();
     return { kind: "placed", region };
   }
@@ -490,9 +473,8 @@ export class SandboxEditor {
       return;
     }
     this._selectedId = id;
-    if (this._placement.kind === "area") this._placement = { kind: "idle" };
     this._fields = {};
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this.history.seal();
     const region = this.selected;
     if (region !== undefined)
@@ -528,10 +510,8 @@ export class SandboxEditor {
   }
 
   /**
-   * A numeric field's text, as typed. Column and Row arrive ONE-BASED (the
-   * interface's numbers) and go through the named door; the rest are what
-   * they are. A refusal leaves the surface as it was and records the text
-   * and the message for the field.
+   * A MIDI field's text, as typed. A refusal leaves the surface as it was
+   * and records the text and the message for the field.
    */
   editNumber(field: NumericField, text: string): boolean {
     const id = this._selectedId;
@@ -545,37 +525,18 @@ export class SandboxEditor {
     if (!/^-?[0-9]+$/.test(trimmed)) return refuse(WHOLE_NUMBER);
     const n = Number.parseInt(trimmed, 10);
     let patch: Partial<Omit<Region, "id">>;
-    let kind: EditKind;
     switch (field) {
-      case "col":
-        patch = { col: fromDisplay(n) };
-        kind = "move";
-        break;
-      case "row":
-        patch = { row: fromDisplay(n) };
-        kind = "move";
-        break;
-      case "w":
-        patch = { w: n };
-        kind = "resize";
-        break;
-      case "h":
-        patch = { h: n };
-        kind = "resize";
-        break;
       case "cc":
       case "cc2":
         if (n < CC_MIN || n > CC_MAX) return refuse(CC_RANGE);
         patch = field === "cc" ? { cc: n } : { cc2: n };
-        kind = "midi";
         break;
       case "channel":
         if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
         patch = { channel: n };
-        kind = "midi";
         break;
     }
-    const problem = this.applyPatch(patch, kind, fieldKey(id, field));
+    const problem = this.applyPatch(patch, "midi", fieldKey(id, field));
     if (problem !== undefined) return refuse(problem.message);
     const rest: FieldProblems = { ...this._fields };
     delete rest[field];
@@ -585,63 +546,98 @@ export class SandboxEditor {
   }
 
   /**
-   * A handle drag's box, on release (header: THE HANDLE DRAG). Column and row
-   * arrive ZERO-BASED - the plate's own cells; the numeric fields' one-based
-   * door is theirs. Refuses silently in Play or with nothing selected;
-   * otherwise the same applyEdit as Width and Height, under `resize`, and
-   * the entry sealed so the drag is one Undo. Returns the problem when the
-   * box is refused - the region is then exactly as it was - or undefined.
+   * A box for the selected region, from a drag's release or an arrow: the
+   * same applyEdit as every edit, under `move` or `resize`, coalesced under
+   * `key` and sealed when `seal` says (a drag is one entry; a held arrow is
+   * one entry until the plate's key-up commits). Refuses silently in Play or
+   * with nothing selected; the same box is no edit and no entry. Returns the
+   * problem when the box is refused - the region is then exactly as it was.
    */
-  resizeSelectedTo(box: {
-    col: number;
-    row: number;
-    w: number;
-    h: number;
-  }): Problem | undefined {
+  private commitBox(
+    box: Box,
+    kind: "move" | "resize",
+    key: string,
+    seal: boolean,
+  ): Problem | undefined {
     const id = this._selectedId;
     if (this._mode === "play" || id === undefined) return undefined;
     const region = this.selected as Region;
-    // The same box is no edit and no entry: applyEdit builds a fresh array
-    // for every accepted patch, so the box is compared here, not there.
-    if (
-      region.col === box.col &&
-      region.row === box.row &&
-      region.w === box.w &&
-      region.h === box.h
-    ) {
-      return undefined;
-    }
+    if (sameBox(region, box)) return undefined;
     const problem = this.applyPatch(
       { col: box.col, row: box.row, w: box.w, h: box.h },
-      "resize",
-      dragKey(id),
+      kind,
+      key,
     );
-    this.history.seal();
+    if (seal) this.history.seal();
     if (problem !== undefined) return problem;
-    // An accepted box: a field still showing a refused width or height is
-    // stale now, and the focus cell follows the region's origin as select() does.
+    // An accepted box: the focus cell follows the region's origin as select() does.
     this._fields = {};
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this._focus = { col: clampCell(box.col), row: clampCell(box.row) };
     this.emit();
     return undefined;
   }
 
-  /** The value a field shows: the typed text while refused, else the model's, one-based where the interface counts so. */
+  /** A handle drag's box, on release: one `resize` entry. Column and row arrive ZERO-BASED. */
+  resizeSelectedTo(box: Box): Problem | undefined {
+    const id = this._selectedId;
+    if (id === undefined) return undefined;
+    return this.commitBox(box, "resize", dragKey(id), true);
+  }
+
+  /** A body drag's origin, on release (change 10A): one `move` entry, the size kept. */
+  moveSelectedTo(cell: Cell): Problem | undefined {
+    const region = this.selected;
+    if (region === undefined) return undefined;
+    return this.commitBox(
+      { col: cell.col, row: cell.row, w: region.w, h: region.h },
+      "move",
+      dragKey(region.id),
+      true,
+    );
+  }
+
+  /** An arrow with a selection (change 10A): the region one cell over, coalesced until `commitField`. */
+  nudgeSelected(dcol: number, drow: number): Problem | undefined {
+    const region = this.selected;
+    if (region === undefined) return undefined;
+    return this.commitBox(
+      {
+        col: region.col + dcol,
+        row: region.row + drow,
+        w: region.w,
+        h: region.h,
+      },
+      "move",
+      arrowKey(region.id, "nudge"),
+      false,
+    );
+  }
+
+  /** Shift and an arrow (change 10A): the region one cell wider or taller (or narrower, shorter), coalesced until `commitField`. */
+  resizeSelectedBy(dw: number, dh: number): Problem | undefined {
+    const region = this.selected;
+    if (region === undefined) return undefined;
+    return this.commitBox(
+      {
+        col: region.col,
+        row: region.row,
+        w: region.w + dw,
+        h: region.h + dh,
+      },
+      "resize",
+      arrowKey(region.id, "grow"),
+      false,
+    );
+  }
+
+  /** The value a field shows: the typed text while refused, else the model's. */
   fieldText(field: NumericField): string {
     const problem = this._fields[field];
     if (problem !== undefined) return problem.text;
     const region = this.selected;
     if (region === undefined) return "";
     switch (field) {
-      case "col":
-        return String(toDisplay(region.col));
-      case "row":
-        return String(toDisplay(region.row));
-      case "w":
-        return String(region.w);
-      case "h":
-        return String(region.h);
       case "cc":
         return String(region.cc);
       case "cc2":
@@ -651,7 +647,7 @@ export class SandboxEditor {
     }
   }
 
-  /** The coalescing boundary (history.ts section 2): focus left the field, or Enter. */
+  /** The coalescing boundary (history.ts section 2): focus left the field, Enter, or an arrow released. */
   commitField(): void {
     this.history.seal();
   }
@@ -663,63 +659,17 @@ export class SandboxEditor {
     this.emit();
   }
 
-  /** Section 8's Identity: the type. Validated like any edit; a Knob on a 2 x 2 is refused with its line. */
-  setKind(kind: ElementKind): boolean {
-    const region = this.selected;
-    if (region === undefined || this._mode === "play") return false;
-    if (region.kind === kind) return true;
-    // The other kinds' fields do not travel: a button's latch, an XY pad's
-    // second controller and a fader's orientation are dropped, and the new
-    // kind's own default is set.
-    const base: Region = {
-      id: region.id,
-      name: region.name,
-      kind,
-      col: region.col,
-      row: region.row,
-      w: region.w,
-      h: region.h,
-      cc: region.cc,
-      channel: region.channel,
-      colour: region.colour,
-    };
-    const retyped: Region =
-      kind === "button"
-        ? { ...base, latch: false }
-        : kind === "xy"
-          ? { ...base, cc2: Math.min(CC_MAX, region.cc + 1) }
-          : kind === "fader"
-            ? { ...base, orientation: "vertical" }
-            : base;
-    const verdict = validate(retyped, this._surface, this.rules);
-    if (!verdict.ok) {
-      this._kindProblem = verdict.problem.message;
-      this.emit();
-      return false;
-    }
-    const regions = this._surface.regions.map((r) =>
-      r.id === region.id ? retyped : r,
-    );
-    const after: Surface = { ...this._surface, regions };
-    this.record("retype", this._surface, after, region.id);
-    this._surface = after;
-    this._kindProblem = undefined;
-    this._fields = {};
-    this.emit();
-    return true;
-  }
-
   setOrientation(orientation: Orientation): boolean {
     const region = this.selected;
     if (region === undefined || region.kind !== "fader") return false;
     if (orientationOf(region) === orientation) return true;
     const problem = this.applyPatch({ orientation }, "orientation");
     if (problem !== undefined) {
-      this._kindProblem = problem.message;
+      this._orientationProblem = problem.message;
       this.emit();
       return false;
     }
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this.emit();
     return true;
   }
@@ -798,7 +748,7 @@ export class SandboxEditor {
     this._surface = after;
     this._selectedId = undefined;
     this._fields = {};
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this.emit();
     return true;
   }
@@ -822,15 +772,15 @@ export class SandboxEditor {
     return true;
   }
 
+  /** The armed kind survives an undo: a run of placements is undone without re-arming. */
   private restore(surface: Surface, select: string | undefined): void {
     this._surface = surface;
     this._selectedId =
       select !== undefined && surface.regions.some((r) => r.id === select)
         ? select
         : undefined;
-    this._placement = { kind: "idle" };
     this._fields = {};
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this.emit();
   }
 
@@ -840,7 +790,7 @@ export class SandboxEditor {
   /** The one visible starter action: a fader, the PDF's own first element, at the top-left. */
   starter(): ClickOutcome {
     if (this._mode === "play") return { kind: "play" };
-    if (this.atCap) return { kind: "refused", message: this.capMessage() };
+    if (this.atCap) return { kind: "refused", message: GEOMETRY_COPY.cap };
     return this.place(
       "fader",
       { col: 0, row: 0, ...DEFAULT_SIZES.fader },
@@ -887,11 +837,7 @@ export class SandboxEditor {
   }
 
   /** newRegion against a surface that is not yet this one (the template's second element). */
-  private newRegionOn(
-    surface: Surface,
-    kind: ElementKind,
-    box: { col: number; row: number; w: number; h: number },
-  ): Region {
+  private newRegionOn(surface: Surface, kind: ElementKind, box: Box): Region {
     const held = this._surface;
     this._surface = surface;
     try {
@@ -908,7 +854,7 @@ export class SandboxEditor {
     this._selectedId = undefined;
     this._placement = { kind: "idle" };
     this._fields = {};
-    this._kindProblem = undefined;
+    this._orientationProblem = undefined;
     this.emit();
   }
 

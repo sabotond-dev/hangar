@@ -30,12 +30,6 @@ export const MODE_PLAY_GLYPH = "▷";
 export const MATRIX_LINE = "ZONA · CONTINUOUS TOUCH SURFACE";
 export const SELECTED_ELEMENT = "SELECTED ELEMENT";
 export const ELEMENT_NAME = "Element name";
-export const POSITION_AND_SIZE = "Position & size";
-export const COLUMN = "Column";
-export const ROW = "Row";
-export const WIDTH = "Width";
-export const HEIGHT = "Height";
-export const SNAP_HELPER = "Snap to light guides. Touch remains continuous.";
 export const MIDI_OUTPUT = "MIDI output";
 export const CC_NUMBER = "CC number";
 export const CHANNEL = "Channel";
@@ -48,20 +42,20 @@ export const unitsChip = (w: number, h: number): string => `${w} × ${h} units`;
 export const elementsLine = (n: number): string =>
   n === 1 ? "1 element" : `${n} elements`;
 
-/** The four type names as the PDF's rail prints them, and as the type-right label. */
+/** The type names as the PDF's rail prints them (Blank is HANGAR's, change 10A), and as the type-right label. */
 export const KIND_LABELS = {
   fader: "Fader",
   button: "Button",
   knob: "Knob",
   xy: "XY pad",
+  blank: "Blank",
 } as const;
 
 // ---------------------------------------------------------------------------
-// The Bible's section 8, verbatim.
+// The Bible's section 8, re-worded at change 10A (area placement went; answer 1a).
 
 /** The empty state's instruction - "Use direct instructions". */
-export const EMPTY_INSTRUCTION =
-  "Add an element, or select an area on the surface.";
+export const EMPTY_INSTRUCTION = "Add an element to the surface.";
 
 // ---------------------------------------------------------------------------
 // HANGAR's own, ledgered.
@@ -72,9 +66,9 @@ export const TITLE = "Sandbox — HANGAR";
 export const OPENING_LINE = "Opening your surface…";
 /** The context bar's sentence on /sandbox/ and the editor (pages 2 and 4 carry one; page 3 carries the draft line once one exists). */
 export const STATUS_LINE = "Build a surface. Every element is yours to shape.";
-/** The empty state's second line: the starter action and the template, named. */
+/** The empty state's second line: the starter action and the hotkey route, named. */
 export const EMPTY_SECOND_LINE =
-  "Start with a fader, or click any cell to begin an area.";
+  "Start with a fader, or press F, B, X, K or L and click a cell.";
 /** The one visible starter action on an empty surface. */
 export const STARTER_ACTION = "Add a fader";
 /** The template alternative, named as a template so an empty surface stays possible. */
@@ -83,8 +77,7 @@ export const TEMPLATE_ACTION = "Use the fader and button template";
 export const TEMPLATE_FADER_NAME = "Filter";
 export const TEMPLATE_BUTTON_NAME = "Hold";
 
-/** The palette's `+` at the cap: the reason beside the disabled control (geometry.ts carries the sentence). */
-export const PALETTE_ADD = "+";
+/** The palette's rows: the accessible name, and the key each row shows (editor.ts's HOTKEYS). */
 export const paletteAddName = (kind: string): string => `Add a ${kind}`;
 
 /** Play locks structure: the reason beside the disabled palette and the read-only fields. */
@@ -112,7 +105,6 @@ export const renameSurfaceName = (name: string): string => `Rename ${name}`;
 export const PLATE_NAME = "Surface";
 export const placeInstruction = (kind: string): string =>
   `Click a cell to place the ${kind}.`;
-export const AREA_START = "Click the far corner of the area.";
 export const selectedLine = (name: string, kind: string): string =>
   `${name}, ${kind}, selected.`;
 export const NOTHING_SELECTED = "Nothing selected.";
@@ -153,20 +145,7 @@ export const CHANNEL_RANGE = "A channel is 1 to 16.";
 export const DUPLICATE_NO_SPACE =
   "There’s no free area this size. Make it smaller, or clear some room, and duplicate again.";
 export const DUPLICATE_AT_CAP =
-  "This surface holds 16 elements, the most a page holds. Remove one to duplicate another.";
-
-/** The meter's sentence: "N of 908 · room for about M more". */
-export const roomLine = (used: number, roomFor: number): string =>
-  `${used} of 908 · room for about ${roomFor} more`;
-export const ROOM_NONE = "of 908 · no room for another";
-/** The meter when a string is over: which one, by how much, and why (13-15's two-slot ceiling). */
-export const overLine = (
-  word: "Setup" | "Timer",
-  used: number,
-  over: number,
-): string =>
-  `${word} is ${used} of 908, ${over} over. Two events can’t hold this mix of element kinds; remove one kind to fit.`;
-export const MEASURING = "measuring…";
+  "This surface is full. Remove an element to duplicate another.";
 
 /** Default names, per kind and count: Fader 1, Button 2. */
 export const defaultName = (kind: string, n: number): string => `${kind} ${n}`;
@@ -186,17 +165,12 @@ export const SAVE_REFUSED = "Your browser refused to store the copy.";
 // NAME, 2026-09-12 (13.1-06, 13.1-CONTEXT D-06, D-11 a): its one reader moved
 // into DestinationZone.svelte, which reads install-copy.ts's KEEP_LABEL.
 /**
- * The meter when a string is over 908 under three slots: which one, by how
- * much, and the way. What pushed a surface over is an ELEMENT - names are
- * never emitted and colours are measured at their dearest already (land.ts)
- * - so the way offered is the last element's removal.
+ * Store's refusal when a string is over the budget (land.ts's refusal), worded without a number
+ * since change 10A. What pushed a surface over is an ELEMENT - names are never emitted and colours
+ * are measured at their dearest already - so the way offered is the last element's removal.
  */
-export const overElementLine = (
-  word: "Setup" | "Timer" | "Utility",
-  used: number,
-  over: number,
-): string =>
-  `${word} is ${used} of 908, ${over} over. Remove the last element to fit.`;
+export const TOO_FULL_TO_STORE =
+  "This surface is too full for a ZONA page. Remove the last element to fit.";
 /** The share control: a surface exports as a file (D-14 Q7), through the same door My configs opens. */
 export const EXPORT_SURFACE = "Export as a file";
 /** Why there is no link: one clause, the reason, the way. */

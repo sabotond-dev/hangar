@@ -1,14 +1,14 @@
 <!--
   SELECTED ELEMENT: PDF page 3's right column in Inspector.svelte's panel - the
-  eyebrow and the name, the units chip, Element name, Type (and Orientation on a
-  fader), the 2 x 2 Position & size grid with the PDF's helper, Behavior, MIDI
-  output, Appearance through Swatch.svelte unchanged, the meters, then the pinned
-  Duplicate / Delete element. Props: view, the nine callbacks, notice, meter.
+  eyebrow and the name, the units chip, Element name, the type as a plain label
+  (a kind never changes once placed - change 10A) and Orientation on a fader,
+  Behavior, MIDI output (not on a blank), Appearance through Swatch.svelte
+  unchanged, then the pinned Duplicate / Delete element. Position and size are
+  the plate's (drag, handles, arrows). Props: view, the eight callbacks, notice.
   Every numeric edit goes through the editor (geometry.ts applyEdit) and the
   previous valid value survives a refusal: the field shows the refused text with
   aria-invalid until a keystroke validates; blur and Enter are oncommit, the
-  history's coalescing boundary. The grid reflows at NUMERIC_GRID_REFLOW (D-21),
-  measured against layout.ts's number. In Play every field is read-only with PLAY_LOCKS_FIELDS.
+  history's coalescing boundary. The grid reflows at NUMERIC_GRID_REFLOW (D-21). In Play every field is read-only with PLAY_LOCKS_FIELDS.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -28,11 +28,9 @@
     CC_NUMBER_Y,
     CHANNEL,
     COLOUR_LABEL,
-    COLUMN,
     DELETE_ELEMENT,
     DUPLICATE,
     ELEMENT_NAME,
-    HEIGHT,
     KIND_LABELS,
     LATCH,
     LATCH_HELPER,
@@ -44,12 +42,8 @@
     ORIENTATION_HORIZONTAL,
     ORIENTATION_VERTICAL,
     PLAY_LOCKS_FIELDS,
-    POSITION_AND_SIZE,
-    ROW,
     SELECTED_ELEMENT,
-    SNAP_HELPER,
     TYPE,
-    WIDTH,
     unitsChip,
   } from "$lib/sandbox/copy";
   import {
@@ -58,10 +52,8 @@
     type NumericField,
   } from "$lib/sandbox/editor";
   import {
-    ELEMENT_KINDS,
     ORIENTATIONS,
     orientationOf,
-    type ElementKind,
     type Orientation,
   } from "$lib/sandbox/model";
   import { BRIGHTNESS_SURFACE_HELPER } from "$lib/tune/inspector-copy";
@@ -71,14 +63,12 @@
   } from "$lib/ui/shell/Inspector.svelte";
   import { NUMERIC_GRID_REFLOW } from "$lib/ui/shell/layout";
   import Swatch from "$lib/ui/Swatch.svelte";
-  import type { Snippet } from "svelte";
 
   let {
     view,
     onrename,
     onnumber,
     oncommit,
-    onkind,
     onorientation,
     onlatch,
     oncolour,
@@ -86,7 +76,6 @@
     onduplicate,
     ondelete,
     notice,
-    meter,
   }: {
     view: EditorState;
     onrename: (name: string) => void;
@@ -94,7 +83,6 @@
     onnumber: (field: NumericField, text: string) => void;
     /** Blur or Enter: the history's coalescing boundary. */
     oncommit: () => void;
-    onkind: (kind: ElementKind) => void;
     onorientation: (orientation: Orientation) => void;
     onlatch: (latch: boolean) => void;
     /** Three RGB444 levels from the picker. */
@@ -105,17 +93,14 @@
     ondelete: () => void;
     /** A duplicate refused, or a store that declined - the panel's one notice. */
     notice?: string;
-    /** The route's meters (cost.ts), rendered after the last section. */
-    meter?: Snippet;
   } = $props();
 
   const uid = $props.id();
   const nameId = `${uid}-name`;
-  const typeId = `${uid}-type`;
   const orientationId = `${uid}-orientation`;
   const latchId = `${uid}-latch`;
   const lockId = `${uid}-lock`;
-  const kindProblemId = `${uid}-kind-problem`;
+  const orientationProblemId = `${uid}-orientation-problem`;
   const fieldId = (field: NumericField) => `${uid}-${field}`;
   const messageId = (field: NumericField) => `${uid}-${field}-message`;
 
@@ -147,13 +132,6 @@
     return () => observer.disconnect();
   });
 
-  const GEOMETRY: readonly { field: NumericField; label: string }[] = [
-    { field: "col", label: COLUMN },
-    { field: "row", label: ROW },
-    { field: "w", label: WIDTH },
-    { field: "h", label: HEIGHT },
-  ];
-
   function onkeydown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -165,12 +143,12 @@
     // No selection: the surface's own Appearance (the brightness) and nothing else.
     if (region === undefined)
       return [{ title: APPEARANCE, content: appearance }];
-    const out: InspectorSection[] = [
-      { title: POSITION_AND_SIZE, content: geometry },
-    ];
+    const out: InspectorSection[] = [];
     if (region.kind === "button")
       out.push({ title: BEHAVIOR, content: behavior });
-    out.push({ title: MIDI_OUTPUT, content: midi });
+    // A blank sends nothing: no MIDI output section (change 10A).
+    if (region.kind !== "blank")
+      out.push({ title: MIDI_OUTPUT, content: midi });
     out.push({ title: APPEARANCE, content: appearance });
     return out;
   });
@@ -223,22 +201,6 @@
       </p>
     {/if}
   </div>
-{/snippet}
-
-{#snippet geometry()}
-  {#if region !== undefined}
-    <div class="grid" class:two={twoColumns} data-testid="geometry-grid">
-      {#each GEOMETRY as { field, label } (field)}
-        {@render numeric(field, label)}
-      {/each}
-    </div>
-    <p class="helper type-helper">{SNAP_HELPER}</p>
-    {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
-      <p class="warning type-helper" data-testid="adjacency-warning">
-        {warning.message}
-      </p>
-    {/each}
-  {/if}
 {/snippet}
 
 {#snippet behavior()}
@@ -348,9 +310,6 @@
           {notice}
         </p>
       {/if}
-      {#if meter}
-        <div class="meter">{@render meter()}</div>
-      {/if}
     {/if}
   </Inspector>
 </div>
@@ -377,26 +336,12 @@
         />
       </div>
       <div class="grid" class:two={twoColumns}>
+        <!-- The type is a fact, not a field: a kind never changes once placed (change 10A). -->
         <div class="field">
-          <label class="label type-helper" for={typeId}>{TYPE}</label>
-          <select
-            class="input select"
-            id={typeId}
-            data-testid="field-kind"
-            value={region.kind}
-            disabled={play}
-            aria-describedby={view.kindProblem !== undefined
-              ? kindProblemId
-              : lock}
-            onchange={(event) =>
-              onkind(event.currentTarget.value as ElementKind)}
+          <span class="label type-helper">{TYPE}</span>
+          <span class="value" data-testid="field-kind" data-kind={region.kind}
+            >{KIND_LABELS[region.kind]}</span
           >
-            {#each ELEMENT_KINDS as kind (kind)}
-              <option value={kind} selected={kind === region.kind}
-                >{KIND_LABELS[kind]}</option
-              >
-            {/each}
-          </select>
         </div>
         {#if region.kind === "fader"}
           <div class="field">
@@ -409,7 +354,9 @@
               data-testid="field-orientation"
               value={orientationOf(region)}
               disabled={play}
-              aria-describedby={lock}
+              aria-describedby={view.orientationProblem !== undefined
+                ? orientationProblemId
+                : lock}
               onchange={(event) =>
                 onorientation(event.currentTarget.value as Orientation)}
             >
@@ -426,15 +373,21 @@
           </div>
         {/if}
       </div>
-      {#if view.kindProblem !== undefined}
+      {#if view.orientationProblem !== undefined}
         <p
           class="message type-helper"
-          id={kindProblemId}
-          data-testid="kind-problem"
+          id={orientationProblemId}
+          data-testid="orientation-problem"
         >
-          {view.kindProblem}
+          {view.orientationProblem}
         </p>
       {/if}
+      <!-- Rule 6's warnings (geometry.ts), under the identity now that the geometry block is the plate's. -->
+      {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
+        <p class="warning type-helper" data-testid="adjacency-warning">
+          {warning.message}
+        </p>
+      {/each}
     </div>
   {/if}
 {/snippet}
@@ -507,6 +460,16 @@
     color: var(--color-ink-quiet);
   }
 
+  /* The type, read only: a line at the field's height, the ink, no box. */
+  .value {
+    display: flex;
+    align-items: center;
+    min-block-size: 44px;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--color-ink);
+  }
+
   /* The field that refused a keystroke: the error ink on its boundary only. */
   .invalid .input {
     border-color: var(--color-error-ink);
@@ -543,10 +506,6 @@
   .swatch.locked {
     pointer-events: none;
     opacity: 0.6;
-  }
-
-  .meter {
-    margin-block-start: 20px;
   }
 
   /* The pinned pair: outlined, the boundary token, square, 44px. */

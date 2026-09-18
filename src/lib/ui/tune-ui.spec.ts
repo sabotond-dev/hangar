@@ -123,9 +123,9 @@ const UI_DIR = "src/lib/ui";
  * the ninth from 10-11 to 13-10, when D-12 cut it and its row left with the
  * file. The tenth is 13.1-07's MidiField.svelte, the typed field over a
  * MIDI knob's closed list (13.1-CONTEXT D-09). BudgetMeter.svelte STAYS on
- * the list although the workspace no longer mounts it (D-10 hid the fourth
- * group): the Sandbox route mounts it twice under its own room line, which
- * D-10 keeps and the gate's bench row asks about. Adding each here is not
+ * the list although nothing mounts it any more (D-10 hid the workspace's
+ * fourth group; change 10A, 2026-09-18, hid the Sandbox's two under its
+ * room line): it is in the tree until its by-name deletion is decided. Adding each here is not
  * bookkeeping: a component omitted from a hand-declared list passes every
  * walk in this file silently, which would have left them outside the
  * compiler guard, the scroll prohibition, the 44px floor and the accent
@@ -897,8 +897,8 @@ describe("the tuning UI's structural rules", () => {
     // AND THE METERS LEFT THE INSPECTOR AT 13.1-07 (13.1-CONTEXT D-10, the
     // user's word: "TUNING, so code limit visualiztation should be removed,
     // lets not show that"). BudgetMeter.svelte still carries the ink - the
-    // Sandbox route mounts it twice under its own room line, which D-10
-    // keeps - but the workspace's inspector renders no meter, no TUNING
+    // Sandbox route mounted it twice under its own room line until change
+    // 10A (below) - but the workspace's inspector renders no meter, no TUNING
     // caption and no forecast ghost; TUNE-05's line, BudgetMessage.svelte,
     // is what renders after the last section, alone.
     const TOKEN = "--color-error-ink";
@@ -996,14 +996,22 @@ describe("the tuning UI's structural rules", () => {
     }
     expect(region).toContain("onbudget?.(next?.reason)");
     expect(region).toContain("<BudgetMessage {ladder} {over} />");
-    // The meter's one remaining mount is the Sandbox's, under its room line
-    // (D-10 keeps it; the bench row asks). If that goes too, BudgetMeter.svelte
-    // goes with it by name.
+    // AND THE SANDBOX'S TWO MOUNTS WENT ON 2026-09-18 (change 10A, the
+    // user's word: "hide the character count and limit from the user
+    // entirely for now"): the Sandbox route mounts no meter and paints no
+    // number about the budget - the cap's refusal and Store's are worded
+    // without one. BudgetMeter.svelte stays in the tree UNMOUNTED for the
+    // "for now" - its by-name deletion (D-12) is the bench's question, not
+    // this change's - so it still carries the ink and its numerals below.
     const sandboxRoute = code("src/routes/sandbox/[draftId]/+page.svelte");
     expect(
       occurrences(sandboxRoute, "<BudgetMeter"),
-      "the Sandbox no longer mounts the two meters under its room line - if that is by decision, delete BudgetMeter.svelte by name (D-12) and take it off TUNING_COMPONENTS",
-    ).toBe(2);
+      "the Sandbox mounts a meter again - hidden by the user's word (change 10A)",
+    ).toBe(0);
+    expect(
+      sandboxRoute,
+      "a number about the budget is painted on the Sandbox (change 10A)",
+    ).not.toContain("908");
     // And the numbers are TUNE-03's own words where they are still painted:
     // `{used} / 908`, a percentage, tabular numerals so the column never
     // jitters while a knob turns.

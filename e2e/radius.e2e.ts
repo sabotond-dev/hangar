@@ -409,8 +409,8 @@ test("no element on any route computes a corner radius above zero, and every 50%
       await expect(page).toHaveURL(/[/]sandbox[/]s-[a-z0-9-]+[/]$/);
       await expect(page.getByTestId("sandbox")).toBeVisible();
       // A knob placed by the palette and one click, so the inspector's
-      // fields, selects and swatch are on the page; the colour block opened
-      // inline so the picker's three are measured here too.
+      // fields, the delete icon and the swatch are on the page; the colour
+      // block opened inline so the picker's three are measured here too.
       await page.getByTestId("palette-knob").click();
       const plate = page.getByTestId("surface-plate");
       const box = await plate.boundingBox();
@@ -419,8 +419,9 @@ test("no element on any route computes a corner radius above zero, and every 50%
         position: { x: (box.width / 9) * 1.5, y: (box.height / 9) * 1.5 },
       });
       await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+      await expect(page.getByTestId("surface-delete")).toBeVisible();
       const inspector = page.getByTestId("shell-inspector");
-      await expect(inspector.getByTestId("field-w")).toBeVisible();
+      await expect(inspector.getByTestId("field-cc")).toBeVisible();
       await inspector.getByTestId("edit-color").first().click();
       await expect(page.getByTestId("colour-editor")).toBeVisible();
       await expect(page.locator(".thumb").first()).toBeVisible();

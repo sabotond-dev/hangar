@@ -75,6 +75,7 @@ export function orientationOf(region: Region): Orientation | undefined {
  * 3 button, 4 XY pad, 5 knob. A row's SEVENTH column is the XY pad's second
  * controller and the button's latch flag (0 or 1) - the research's "a second
  * flag, not a second branch" - so every row has the same eleven columns.
+ * A blank has no code: it is paint, never a contact's region (emit.ts).
  */
 export type TypeCode = 1 | 2 | 3 | 4 | 5;
 
@@ -88,10 +89,15 @@ export function typeCodeOf(region: Region): TypeCode {
       return 4;
     case "knob":
       return 5;
+    case "blank":
+      throw new Error("a blank has no type code: it is paint only");
   }
 }
 
-/** The runtime branch a region needs: its kind, with a fader split by axis. */
+/** True for the kind the runtime never sees: a blank is colour on layer 1 and nothing else. */
+export const isPaintOnly = (region: Region): boolean => region.kind === "blank";
+
+/** The runtime branch a region needs, or undefined for a blank (no branch runs for it). */
 export type Branch = "fader-v" | "fader-h" | "button" | "xy" | "knob";
 
 export const BRANCHES: readonly Branch[] = [
@@ -102,10 +108,11 @@ export const BRANCHES: readonly Branch[] = [
   "knob",
 ];
 
-export function branchOf(region: Region): Branch {
+export function branchOf(region: Region): Branch | undefined {
   if (region.kind === "fader") {
     return orientationOf(region) === "horizontal" ? "fader-h" : "fader-v";
   }
+  if (region.kind === "blank") return undefined;
   return region.kind;
 }
 
@@ -178,7 +185,8 @@ export const KNOB_MINIMUM_CELLS = Math.ceil(
  * The derived defaults: a Knob at the dead-zone minimum, an XY pad at two
  * cells on each axis it reads (a one-row fader divides by zero on the module). A fader's minimum depends on its
  * orientation and is `minimumSizeFor`'s to answer; by kind alone a fader has
- * a one-cell minimum here and the orientation rule is applied on top.
+ * a one-cell minimum here and the orientation rule is applied on top. A
+ * button and a blank are one cell.
  */
 const DEFAULT_MINIMUM_SIZES: MinimumSizes = {
   knob: { w: KNOB_MINIMUM_CELLS, h: KNOB_MINIMUM_CELLS },

@@ -1,4 +1,5 @@
-// The Sandbox's interface, nine tests (7 and 8 by 13.1-03, 9 by change 5), two halves each:
+// The Sandbox's interface, eleven tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by change
+// 10A - the selector, the hotkeys, the move, the delete icon, the blank kind), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -15,6 +16,8 @@ import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import {
   CC_RANGE,
+  CHANNEL_RANGE,
+  DUPLICATE_AT_CAP,
   EMPTY_INSTRUCTION,
   EMPTY_SECOND_LINE,
   KIND_LABELS,
@@ -23,17 +26,23 @@ import {
   PLAY_LOCKS_PALETTE,
   STARTER_ACTION,
   TEMPLATE_ACTION,
+  TOO_FULL_TO_STORE,
   WHOLE_NUMBER,
 } from "../sandbox/copy";
 import {
   DEFAULT_COLOUR,
   DEFAULT_SIZES,
+  HOTKEYS,
+  NUMERIC_FIELDS,
   PALETTE,
+  SELECTOR_KEY,
   SandboxEditor,
+  kindForKey,
   type EditorState,
 } from "../sandbox/editor";
+import { ELEMENT_KINDS, isStoredRecord } from "../store/schema";
 import { GEOMETRY_COPY, buildCellMap, validate } from "../sandbox/geometry";
-import { History, fieldKey } from "../sandbox/history";
+import { History } from "../sandbox/history";
 import { withBrightness } from "../sandbox/model";
 import {
   BRIGHTNESS_RANGE,
@@ -82,7 +91,6 @@ const inspector = (editor: SandboxEditor) =>
       onrename: noop,
       onnumber: noop,
       oncommit: noop,
-      onkind: noop,
       onorientation: noop,
       onlatch: noop,
       oncolour: noop,
@@ -131,11 +139,13 @@ const byId = (editor: SandboxEditor, id: string): Region =>
   editor.surface.regions.find((r) => r.id === id) as Region;
 
 describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
-  it("1. the empty state: the real plate with its lattice, section 8's instruction verbatim, one starter action and one template, and no question-mark placeholder anywhere", () => {
-    // THE INSTRUCTION IS THE BIBLE'S, VERBATIM, and the route renders the
-    // constant rather than a copy.
-    expect(EMPTY_INSTRUCTION).toBe(
-      "Add an element, or select an area on the surface.",
+  it("1. the empty state: the real plate with its lattice, section 8's instruction re-worded for the selector, one starter action and one template, and no question-mark placeholder anywhere", () => {
+    // THE INSTRUCTION IS SECTION 8'S SHAPE (a direct instruction), re-worded
+    // at change 10A because area selection went; the route renders the
+    // constant rather than a copy, and the second line names the hotkeys.
+    expect(EMPTY_INSTRUCTION).toBe("Add an element to the surface.");
+    expect(EMPTY_SECOND_LINE).toBe(
+      "Start with a fader, or press F, B, X, K or L and click a cell.",
     );
     const route = code(ROUTE);
     expect(route, "the route renders section 8's instruction").toContain(
@@ -203,21 +213,27 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(source).not.toMatch(/(^|\s)r[xy]=/m);
     expect(source).toContain("<circle");
 
-    // The rail's two sections on an empty surface: four palette rows
-    // enabled, and the list saying so in one line.
+    // The rail's two sections on an empty surface: five palette rows
+    // enabled, each showing its hotkey (change 10A), and the list saying so
+    // in one line.
     const rail = palette(editor.state());
-    expect(count(rail, "<button")).toBe(4);
+    expect(count(rail, "<button")).toBe(5);
     expect(rail).not.toContain("disabled");
-    for (const label of Object.values(KIND_LABELS))
-      expect(rail).toContain(label);
+    for (const kind of ELEMENT_KINDS) {
+      expect(rail).toContain(KIND_LABELS[kind]);
+      expect(rail).toContain(`aria-keyshortcuts="${HOTKEYS[kind]}"`);
+      expect(rail).toContain(`>${HOTKEYS[kind].toUpperCase()}</kbd>`);
+    }
     expect(list(editor.state())).toContain(LIST_EMPTY);
   });
 
-  it("2. element first and area first, both by clicks alone with no pointer-move, and the keyboard route across the plate", () => {
+  it("2. the selector is the default tool (change 10A): a click on an element selects, a click on empty clears, an armed kind places at every click until V or Escape, the hotkeys map one letter to one kind, and the keyboard route across the plate", () => {
     const { editor } = fresh();
 
-    // ELEMENT FIRST: choose a type, click a cell, a region exists at its
-    // default size with its top-left at the cell.
+    // ARM A KIND, CLICK: a region exists at its default size with its
+    // top-left at the cell, selected - and the kind STAYS ARMED (answer 3b),
+    // so the next click places another; `cancel` (V or Escape) is the way
+    // back to the selector.
     expect(editor.choose("knob")).toBe(true);
     expect(editor.placement).toEqual({ kind: "element", type: "knob" });
     const placed = editor.clickCell(2, 3);
@@ -231,67 +247,93 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       h: DEFAULT_SIZES.knob.h,
     });
     expect(editor.selectedId, "the placed region is selected").toBe(knob.id);
-    expect(editor.placement).toEqual({ kind: "idle" });
-
-    // AREA FIRST: click a start cell, click an end cell, a region exists at
-    // exactly those bounds. Nothing was armed; the click on an empty cell
-    // is the start.
-    const started = editor.clickCell(7, 0);
-    expect(started.kind).toBe("started");
-    expect(editor.placement).toEqual({
-      kind: "area",
-      start: { col: 7, row: 0 },
+    expect(editor.placement, "still armed").toEqual({
+      kind: "element",
+      type: "knob",
     });
-    const ended = editor.clickCell(8, 5);
-    expect(ended.kind).toBe("placed");
-    const fader = editor.surface.regions[1];
-    expect(fader).toMatchObject({
-      kind: "fader",
-      orientation: "vertical",
+    expect(editor.clickCell(6, 6).kind, "a second click places again").toBe(
+      "placed",
+    );
+    expect(editor.surface.regions).toHaveLength(2);
+    // A refused placement (on top of the first knob) keeps the kind armed.
+    expect(editor.clickCell(2, 3).kind).toBe("refused");
+    expect(editor.placement.kind).toBe("element");
+    editor.cancel();
+    expect(editor.placement).toEqual({ kind: "idle" });
+    // A click near the edge lands the default box inside the plate.
+    editor.choose("fader");
+    expect(editor.clickCell(8, 0).kind).toBe("placed");
+    expect(editor.surface.regions[2]).toMatchObject({
       col: 7,
       row: 0,
       w: 2,
       h: 6,
     });
-    // The far corner may be named first: the box is the same.
-    editor.clickCell(0, 8);
-    editor.clickCell(3, 7);
-    expect(editor.surface.regions[2]).toMatchObject({
-      kind: "fader",
-      orientation: "horizontal",
-      col: 0,
-      row: 7,
-      w: 4,
-      h: 2,
-    });
-    // A one-cell area is a Button, the kind every area can hold.
-    editor.clickCell(5, 8);
-    editor.clickCell(5, 8);
-    expect(editor.surface.regions[3]).toMatchObject({
-      kind: "button",
-      col: 5,
-      row: 8,
-      w: 1,
-      h: 1,
-    });
+    editor.cancel();
 
-    // A click on a held cell SELECTS, and never creates.
+    // THE SELECTOR: a click on a held cell SELECTS and never creates; a
+    // click on an empty cell CLEARS the selection and keeps the focus cell
+    // (section 8's keyboard focus) where the click landed.
     const before = editor.surface.regions.length;
     const picked = editor.clickCell(3, 4);
     expect(picked.kind).toBe("selected");
     expect(editor.selectedId).toBe(knob.id);
     expect(editor.surface.regions.length).toBe(before);
+    const cleared = editor.clickCell(0, 0);
+    expect(cleared.kind).toBe("cleared");
+    expect(editor.selectedId).toBeUndefined();
+    expect(editor.focus).toEqual({ col: 0, row: 0 });
+    expect(editor.surface.regions.length, "nothing created").toBe(before);
+    expect(editor.history.depth, "selection is no entry").toBe(3);
 
-    // NO POINTER-MOVE IS REQUIRED, PROVED TWO WAYS - the clause 13-16 wrote
-    // as "no method a move could reach", inverted honestly by 13.1-03 (D-03):
-    // the model has exactly ONE method whose name starts `resize`, the box a
-    // handle drag hands over on RELEASE, and none a pointer or a hover could
-    // reach; and the plate's pointermove handler records the hover cell and
-    // the proposed box of a drag in progress - it never calls onclick and
-    // never commits. Test 7 drives the resize without a pointer at all.
+    // THE HOTKEYS (answer 2): one lower-case letter per kind, all distinct,
+    // read case-insensitively; V is the selector and arms nothing.
+    expect(HOTKEYS).toEqual({
+      fader: "f",
+      button: "b",
+      xy: "x",
+      knob: "k",
+      blank: "l",
+    });
+    expect(SELECTOR_KEY).toBe("v");
+    expect(new Set(Object.values(HOTKEYS)).size).toBe(ELEMENT_KINDS.length);
+    for (const kind of ELEMENT_KINDS) {
+      expect(kindForKey(HOTKEYS[kind])).toBe(kind);
+      expect(kindForKey(HOTKEYS[kind].toUpperCase())).toBe(kind);
+    }
+    expect(kindForKey(SELECTOR_KEY)).toBeUndefined();
+    expect(kindForKey("Escape")).toBeUndefined();
+    // The route's window listener reads them, never inside a text field or
+    // a select, never with a modifier, never for a key the plate handled.
+    const route = code(ROUTE);
+    const listener = route.slice(
+      route.indexOf("function onWindowKeyDown"),
+      route.indexOf("function fromCopy"),
+    );
+    expect(listener).toContain("kindForKey(key)");
+    expect(listener).toContain("key === SELECTOR_KEY");
+    expect(listener).toContain("HTMLInputElement");
+    expect(listener).toContain("HTMLTextAreaElement");
+    expect(listener).toContain("HTMLSelectElement");
+    expect(listener).toContain("event.defaultPrevented");
+    expect(listener).toContain("event.altKey");
+    expect(listener).toContain('key === "delete" || key === "backspace"');
+
+    // NO POINTER-MOVE IS REQUIRED, PROVED TWO WAYS (13.1-03, D-03): the
+    // model's methods that take a box are the two a drag hands over on
+    // RELEASE and the two an arrow press makes, none a pointer or a hover
+    // could reach; and the plate's pointermove handler records the hover
+    // cell and the proposed box of a drag in progress - it never calls
+    // onclick and never commits. Tests 7 and 10 drive both without a pointer.
     const methods = Object.getOwnPropertyNames(SandboxEditor.prototype);
     expect(methods.filter((m) => /pointer|hover/i.test(m))).toEqual([]);
-    expect(methods.filter((m) => m.startsWith("resize"))).toEqual([
+    expect(
+      methods.filter((m) => /^(resize|move|nudge)/.test(m)).sort(),
+    ).toEqual([
+      "moveFocus",
+      "moveSelectedTo",
+      "nudgeSelected",
+      "resizeSelectedBy",
       "resizeSelectedTo",
     ]);
     const source = code(`${UI}/SurfaceEditor.svelte`);
@@ -303,54 +345,49 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       40,
     );
     expect(move, "pointermove places or selects").not.toContain("onclick(");
-    expect(move, "pointermove commits a drag").not.toContain("onresize(");
+    expect(move, "pointermove commits a drag").not.toContain("onresize");
+    expect(move, "pointermove commits a move").not.toContain("onmoveto");
     expect(move).toContain("hover = cellOf(event)");
     expect(
       source,
       "the click path fires from pointerdown, so a plain click is a whole step",
     ).toMatch(/function onpointerdown[^]*?onclick\(at\.col, at\.row\)/);
+    expect(
+      source,
+      "a release is never a second click (the area accelerator went)",
+    ).not.toContain("downCell");
 
-    // THE KEYBOARD ROUTE: arrows move the focus cell, Enter marks it - the
-    // same click - so a kind can be placed and an area drawn without a
-    // pointer at all.
+    // THE KEYBOARD ROUTE: with a kind armed the arrows move the focus cell
+    // and Enter marks it - the same click - so a kind can be placed without
+    // a pointer at all; the plate's own handler sends the arrows to the
+    // element only with the selector and a selection (test 10).
     editor.setFocus({ col: 0, row: 0 });
     editor.choose("button");
     editor.moveFocus(3, 0);
     editor.moveFocus(1, 0);
     expect(editor.focus).toEqual({ col: 4, row: 0 });
     expect(editor.mark().kind).toBe("placed");
-    expect(editor.surface.regions[4]).toMatchObject({
+    expect(editor.surface.regions[3]).toMatchObject({
       kind: "button",
       col: 4,
       row: 0,
       w: 2,
       h: 2,
     });
-    editor.setFocus({ col: 5, row: 5 });
-    expect(editor.mark().kind).toBe("started");
-    editor.moveFocus(1, 1);
-    expect(editor.mark().kind).toBe("placed");
-    expect(editor.surface.regions[5]).toMatchObject({
-      col: 5,
-      row: 5,
-      w: 2,
-      h: 2,
-    });
     // The focus never leaves the plate: clamped at the edges.
     editor.moveFocus(-20, 30);
     expect(editor.focus).toEqual({ col: 0, row: 8 });
-    // The plate's key handler wires the four arrows, Enter and Escape.
-    for (const key of [
-      "ArrowLeft",
-      "ArrowRight",
-      "ArrowUp",
-      "ArrowDown",
-      "Enter",
-      "Escape",
-      "Delete",
-    ]) {
+    editor.cancel();
+    // The plate's key handler wires the four arrows, Enter, Escape and Delete.
+    for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
+      expect(source, `the plate handles ${key}`).toContain(`${key}:`);
+    }
+    for (const key of ["Enter", "Escape", "Delete"]) {
       expect(source, `the plate handles ${key}`).toContain(`case "${key}":`);
     }
+    expect(source).toContain(
+      'view.selected !== undefined && view.placement.kind === "idle"',
+    );
 
     // The proposed bounds are drawn from the focus cell too, so the keyboard
     // route sees what the next Enter will commit.
@@ -398,6 +435,10 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
 
       const html = plate(editor.state());
       expect(count(html, 'data-testid="surface-selection"')).toBe(1);
+      expect(
+        count(html, 'data-testid="surface-delete"'),
+        "one delete icon",
+      ).toBe(1);
       expect(count(html, 'data-testid="surface-handle"'), "eight handles").toBe(
         8,
       );
@@ -446,9 +487,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     const inPlay = editor.state();
 
     const rail = palette(inPlay);
-    expect(count(rail, "disabled"), "every palette row is disabled").toBe(4);
+    expect(count(rail, "disabled"), "every palette row is disabled").toBe(5);
     expect(count(rail, "aria-describedby="), "each with the reason wired").toBe(
-      4,
+      5,
     );
     expect(rail).toContain(PLAY_LOCKS_PALETTE);
     expect(editor.choose("knob"), "the model refuses too").toBe(false);
@@ -463,7 +504,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(html).toContain('data-mode="play"');
 
     const panel = inspector(editor);
-    for (const field of ["col", "row", "w", "h", "cc", "channel"]) {
+    for (const field of ["cc", "channel"]) {
       expect(panel).toMatch(
         new RegExp(`data-testid="field-${field}"[^>]*readonly`),
       );
@@ -471,10 +512,12 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(panel).toContain(PLAY_LOCKS_FIELDS);
     expect(panel).toMatch(/data-testid="duplicate-element"[^>]*disabled/);
     expect(panel).toMatch(/data-testid="delete-element"[^>]*disabled/);
-    expect(editor.editNumber("w", "3"), "a numeric edit in Play").toBe(false);
+    expect(editor.editNumber("cc", "3"), "a numeric edit in Play").toBe(false);
+    expect(editor.nudgeSelected(1, 0), "a nudge in Play").toBeUndefined();
     expect(editor.remove(), "a delete in Play").toBe(false);
     expect(editor.undo(), "an undo in Play").toBe(false);
-    expect(byId(editor, fader.id).w).toBe(2);
+    expect(byId(editor, fader.id)).toMatchObject({ col: 1, cc: 1 });
+    expect(html, "no delete icon in Play").not.toContain("surface-delete");
 
     // Selection and history survived the way in.
     expect(editor.selectedId).toBe(fader.id);
@@ -501,7 +544,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(editor.history.depth).toBe(depth);
 
     // And an edit after the round trip lands on top of the same history.
-    editor.editNumber("w", "3");
+    editor.editNumber("cc", "3");
     expect(editor.history.depth).toBe(depth + 1);
 
     // The mode label is persistent and visible, and the switch is the way back.
@@ -511,77 +554,78 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toContain('data-testid="mode-play"');
   });
 
-  it("5. validation preserves: an out-of-range width keeps the last valid value in the model, the message stays until corrected, and no intermediate invalid surface ever reached the model", () => {
+  it("5. validation preserves: an out-of-range controller keeps the last valid value in the model, the message stays until corrected, the plate's routes refuse geometry with their own lines, and no intermediate invalid surface ever reached the model", () => {
     const { editor, emitted } = fresh();
     editor.choose("fader");
     editor.clickCell(0, 0);
+    editor.cancel();
     const id = editor.selectedId as string;
-    expect(byId(editor, id)).toMatchObject({ w: 2, h: 6 });
+    expect(byId(editor, id)).toMatchObject({ w: 2, h: 6, cc: 1 });
 
-    // AN OUT-OF-RANGE WIDTH: refused; the model holds 2; the field shows
-    // the typed text with the field's own message.
-    expect(editor.editNumber("w", "12")).toBe(false);
-    expect(byId(editor, id).w, "the previous valid value survives").toBe(2);
-    expect(editor.fields.w).toEqual({
-      text: "12",
-      message: GEOMETRY_COPY.offSurface("w"),
-    });
-    expect(editor.fieldText("w")).toBe("12");
-    expect(editor.state().texts.w, "the state carries the same text").toBe(
-      "12",
+    // AN OUT-OF-RANGE CONTROLLER: refused; the model holds 1; the field
+    // shows the typed text with the field's own message. (The geometry
+    // fields went at change 10A; the three MIDI fields are the typed route.)
+    expect(NUMERIC_FIELDS).toEqual(["cc", "cc2", "channel"]);
+    expect(editor.editNumber("cc", "200")).toBe(false);
+    expect(byId(editor, id).cc, "the previous valid value survives").toBe(1);
+    expect(editor.fields.cc).toEqual({ text: "200", message: CC_RANGE });
+    expect(editor.fieldText("cc")).toBe("200");
+    expect(editor.state().texts.cc, "the state carries the same text").toBe(
+      "200",
     );
-    expect(editor.fieldText("h"), "the other fields show the model").toBe("6");
+    expect(editor.fieldText("channel"), "the other fields show the model").toBe(
+      "1",
+    );
 
     // The inspector renders the typed text, aria-invalid and the message.
     const panel = inspector(editor);
     expect(panel).toMatch(
-      /data-testid="field-w"[^>]*value="12"[^>]*aria-invalid="true"/,
+      /data-testid="field-cc"[^>]*value="200"[^>]*aria-invalid="true"/,
     );
-    expect(panel).toContain(GEOMETRY_COPY.offSurface("w"));
+    expect(panel).toContain(CC_RANGE);
 
     // THE MESSAGE STAYS UNTIL CORRECTED: a second refused keystroke keeps a
     // message; a blur (commit) does not clear it; a valid keystroke does.
-    expect(editor.editNumber("w", "")).toBe(false);
-    expect(editor.fields.w?.message).toBe(WHOLE_NUMBER);
+    expect(editor.editNumber("cc", "")).toBe(false);
+    expect(editor.fields.cc?.message).toBe(WHOLE_NUMBER);
     editor.commitField();
     expect(
-      editor.fields.w,
+      editor.fields.cc,
       "a commit does not silence the message",
     ).toBeDefined();
-    expect(byId(editor, id).w).toBe(2);
-    expect(editor.editNumber("w", "3")).toBe(true);
-    expect(byId(editor, id).w).toBe(3);
-    expect(editor.fields.w).toBeUndefined();
-    expect(editor.fieldText("w")).toBe("3");
-
-    // Every rule refuses with its own sentence and the same preservation:
-    // a height below a vertical fader's two rows, a controller past 127, a
-    // word where a number goes, a channel of 0.
-    expect(editor.editNumber("h", "1")).toBe(false);
-    expect(byId(editor, id).h).toBe(6);
-    expect(editor.fields.h?.message).toContain("at least 2 rows");
-    expect(editor.editNumber("cc", "200")).toBe(false);
-    expect(editor.fields.cc?.message).toBe(CC_RANGE);
+    expect(byId(editor, id).cc).toBe(1);
+    expect(editor.editNumber("cc", "74")).toBe(true);
+    expect(byId(editor, id).cc).toBe(74);
+    expect(editor.fields.cc).toBeUndefined();
+    expect(editor.fieldText("cc")).toBe("74");
     expect(editor.editNumber("cc", "x")).toBe(false);
     expect(editor.fields.cc?.message).toBe(WHOLE_NUMBER);
     expect(editor.editNumber("channel", "0")).toBe(false);
+    expect(editor.fields.channel?.message).toBe(CHANNEL_RANGE);
+    expect(editor.editNumber("channel", "16")).toBe(true);
     expect(editor.editNumber("cc", "74")).toBe(true);
-    expect(byId(editor, id).cc).toBe(74);
 
-    // Column and Row arrive one-based and go through the door: Column 1 is
-    // col 0; Column 0 is off the surface and refused naming the column.
-    expect(editor.editNumber("col", "0")).toBe(false);
-    expect(editor.fields.col?.message).toBe(GEOMETRY_COPY.offSurface("col"));
-    expect(editor.editNumber("col", "4")).toBe(true);
-    expect(byId(editor, id).col).toBe(3);
-    expect(editor.fieldText("col")).toBe("4");
-
-    // An overlap is section 16's line, verbatim, naming the other region.
+    // THE PLATE'S ROUTES refuse geometry with their own sentences and the
+    // same preservation: a Shift-arrow below a vertical fader's two rows, an
+    // arrow off the left edge naming the column, a drag onto another region
+    // with section 16's line verbatim naming it.
+    expect(editor.resizeSelectedBy(0, -5)?.message).toContain(
+      "at least 2 rows",
+    );
+    expect(byId(editor, id).h).toBe(6);
+    expect(editor.nudgeSelected(-1, 0)?.message).toBe(
+      GEOMETRY_COPY.offSurface("col"),
+    );
+    expect(byId(editor, id).col).toBe(0);
+    expect(editor.nudgeSelected(0, 4)?.message).toBe(
+      GEOMETRY_COPY.offSurface("h"),
+    );
+    expect(byId(editor, id).row).toBe(0);
     editor.choose("button");
     editor.clickCell(7, 0);
+    editor.cancel();
     const buttonId = editor.selectedId as string;
-    expect(editor.editNumber("col", "4")).toBe(false);
-    expect(editor.fields.col?.message).toBe(
+    expect(editor.moveSelectedTo({ col: 1, row: 0 })?.message).toBe(
       "This region overlaps Fader 1. Choose another area or resize it.",
     );
     expect(byId(editor, buttonId).col).toBe(7);
@@ -616,19 +660,23 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       );
     };
 
-    // PLACE (element first), MOVE, RESIZE, RENAME, RECOLOUR, DUPLICATE, DELETE.
+    // PLACE, MOVE (three arrow presses, one entry), RESIZE (two Shift-arrow
+    // presses, one entry), RENAME, RECOLOUR, DUPLICATE, DELETE.
     step("place", () => {
       editor.choose("button");
       editor.clickCell(0, 0);
+      editor.cancel();
     });
     const id = editor.selectedId as string;
     step("move", () => {
-      expect(editor.editNumber("col", "3")).toBe(true);
+      for (let i = 0; i < 3; i += 1)
+        expect(editor.nudgeSelected(1, 0)).toBeUndefined();
       editor.commitField();
     });
-    step("resize (two keystrokes, one entry)", () => {
-      expect(editor.editNumber("h", "1")).toBe(true);
-      expect(editor.editNumber("h", "7")).toBe(true);
+    expect(byId(editor, id).col).toBe(3);
+    step("resize (two presses, one entry)", () => {
+      expect(editor.resizeSelectedBy(0, -1)).toBeUndefined();
+      expect(editor.resizeSelectedBy(0, 6)).toBeUndefined();
       editor.commitField();
     });
     expect(byId(editor, id).h).toBe(7);
@@ -656,10 +704,11 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     ]);
 
     // THE COALESCING: the resize entry's before is h 2 and its after is h 7;
-    // h 1 exists in no entry. And the boundary is real: a keystroke after
-    // commitField is a NEW entry.
+    // h 1 exists in no entry. And the boundary is real: a press after
+    // commitField (the plate's key-up) is a NEW entry.
     const resize = editor.history.entries[2];
-    expect(resize.key).toBe(fieldKey(id, "h"));
+    expect(resize.key).toBe(`grow:${id}`);
+    expect(editor.history.entries[1].key).toBe(`nudge:${id}`);
     expect(byId({ surface: resize.before } as SandboxEditor, id).h).toBe(2);
     expect(byId({ surface: resize.after } as SandboxEditor, id).h).toBe(7);
     for (const entry of editor.history.entries) {
@@ -701,10 +750,10 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     editor.setMode("edit");
     expect(editor.history.depth).toBe(depth);
     expect(editor.selectedId).toBe(id);
-    editor.editNumber("w", "4");
+    editor.editNumber("cc", "4");
     editor.setMode("play");
     editor.setMode("edit");
-    editor.editNumber("w", "5");
+    editor.editNumber("cc", "5");
     expect(editor.history.depth, "a field sealed by the switch").toBe(
       depth + 2,
     );
@@ -768,20 +817,27 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     ).toBe(3);
     expect(h.canRedo).toBe(false);
 
-    // THE CAP IS THE CEILING: sixteen one-cell buttons place; the
-    // seventeenth is refused with the cap's sentence, and the palette's `+`
-    // is disabled with the same reason beside it.
+    // THE CAP IS THE CEILING: sixteen one-cell blanks place from one arming;
+    // the seventeenth click is refused with the cap's sentence - worded
+    // without a number (change 10A) - and the palette's rows are disabled
+    // with the same reason beside them.
     const capped = fresh().editor;
+    expect(capped.choose("blank")).toBe(true);
     for (let i = 0; i < SURFACE_ELEMENT_CAP; i += 1) {
-      capped.clickCell(i % 9, Math.floor(i / 9));
-      capped.clickCell(i % 9, Math.floor(i / 9));
+      expect(capped.clickCell(i % 9, Math.floor(i / 9)).kind).toBe("placed");
     }
     expect(capped.surface.regions).toHaveLength(SURFACE_ELEMENT_CAP);
     expect(capped.atCap).toBe(true);
+    expect(capped.clickCell(8, 8)).toEqual({
+      kind: "refused",
+      message: GEOMETRY_COPY.cap,
+    });
+    expect(GEOMETRY_COPY.cap).not.toMatch(/[0-9]/);
+    expect(DUPLICATE_AT_CAP).not.toMatch(/[0-9]/);
     expect(capped.choose("button")).toBe(false);
     const rail = palette(capped.state());
-    expect(count(rail, "disabled")).toBe(4);
-    expect(rail).toContain(GEOMETRY_COPY.cap(SURFACE_ELEMENT_CAP));
+    expect(count(rail, "disabled")).toBe(5);
+    expect(rail).toContain(GEOMETRY_COPY.cap);
     expect(capped.duplicate()).toEqual({ ok: false, reason: "cap" });
   });
 
@@ -792,6 +848,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     const { editor, emitted } = fresh();
     editor.choose("fader");
     editor.clickCell(0, 0);
+    editor.cancel();
     const faderId = editor.selectedId as string;
     expect(byId(editor, faderId)).toMatchObject({ col: 0, row: 0, w: 2, h: 6 });
     const before = editor.surface;
@@ -804,9 +861,6 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(byId(editor, faderId)).toMatchObject({ col: 0, row: 0, w: 3, h: 6 });
     expect(editor.history.depth, "one drag is one entry").toBe(depth + 1);
     expect(editor.history.entries[depth].kind).toBe("resize");
-    expect(editor.fieldText("w"), "the width field follows the plate").toBe(
-      "3",
-    );
     // A second drag is a SECOND entry - the first was sealed on release -
     // and Undo walks each back on its own; Redo re-applies.
     expect(editor.resizeSelectedTo({ col: 1, row: 0, w: 3, h: 6 })).toBe(
@@ -829,6 +883,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // the surface is the SAME OBJECT - not a copy, not a partial edit.
     editor.choose("button");
     editor.clickCell(5, 0);
+    editor.cancel();
     editor.select(faderId);
     const held = editor.surface;
     const heldDepth = editor.history.depth;
@@ -846,6 +901,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // Too small: a knob dragged to 2 x 2 is refused with the knob's line.
     editor.choose("knob");
     editor.clickCell(5, 5);
+    editor.cancel();
     const knobId = editor.selectedId as string;
     const knobHeld = editor.surface;
     const small = editor.resizeSelectedTo({ col: 5, row: 5, w: 2, h: 2 });
@@ -920,14 +976,13 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       PALETTE[2],
       PALETTE[3],
     ]);
-    editor.clickCell(8, 0);
+    editor.choose("blank");
     editor.clickCell(8, 0);
     expect(editor.surface.regions[4].colour).toEqual(PALETTE[0]);
 
     // A DELETION IS NOT A STEP BACK: delete the fifth, place a sixth - it is
     // the next of the cycle, not the fifth's colour again.
     expect(editor.remove()).toBe(true);
-    editor.clickCell(8, 2);
     editor.clickCell(8, 2);
     expect(editor.surface.regions[4].colour).toEqual(PALETTE[1]);
     // The colours are the region's own value: the picker still recolours,
@@ -938,8 +993,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // element placed after a refusal is still the next of the cycle.
     editor.choose("knob");
     expect(editor.clickCell(0, 0).kind, "a knob on the fader").toBe("refused");
-    editor.cancel();
-    editor.clickCell(4, 4);
+    editor.choose("blank");
     editor.clickCell(4, 4);
     expect(editor.surface.regions[5].colour).toEqual(PALETTE[2]);
 
@@ -1060,5 +1114,299 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toContain(
       "onbrightness={(next) => editor?.setBrightness(next)}",
     );
+  });
+
+  it("10. the selector's edits (change 10A): a body drag is one move entry refused where the box would overlap or leave the plate, the arrows nudge and Shift-arrows resize with a held key one entry, the delete icon sits on the selection, the panel carries no position block, no kind select and no meter, and no number about the budget reaches the words", () => {
+    // THE BEHAVIOUR HALF, on the model alone: the drag's release.
+    const { editor, emitted } = fresh();
+    editor.choose("fader");
+    editor.clickCell(1, 1);
+    editor.cancel();
+    const faderId = editor.selectedId as string;
+    const depth = editor.history.depth;
+    expect(editor.moveSelectedTo({ col: 4, row: 2 })).toBeUndefined();
+    expect(byId(editor, faderId)).toMatchObject({ col: 4, row: 2, w: 2, h: 6 });
+    expect(editor.history.depth, "one drag is one entry").toBe(depth + 1);
+    expect(editor.history.entries[depth].kind).toBe("move");
+    expect(editor.focus, "the focus follows the origin").toEqual({
+      col: 4,
+      row: 2,
+    });
+    expect(editor.moveSelectedTo({ col: 5, row: 2 })).toBeUndefined();
+    expect(editor.history.depth, "a second drag is a second entry").toBe(
+      depth + 2,
+    );
+    expect(editor.undo()).toBe(true);
+    expect(byId(editor, faderId).col).toBe(4);
+    expect(editor.undo()).toBe(true);
+    expect(byId(editor, faderId)).toMatchObject({ col: 1, row: 1 });
+    expect(editor.redo()).toBe(true);
+    expect(byId(editor, faderId).col).toBe(4);
+    // The same cell commits nothing; a refused box leaves the region as it
+    // was and the surface the same object.
+    const same = editor.surface;
+    expect(editor.moveSelectedTo({ col: 4, row: 2 })).toBeUndefined();
+    expect(editor.surface).toBe(same);
+    editor.choose("button");
+    editor.clickCell(7, 0);
+    editor.cancel();
+    editor.select(faderId);
+    const held = editor.surface;
+    const heldDepth = editor.history.depth;
+    expect(editor.moveSelectedTo({ col: 6, row: 0 })?.message).toBe(
+      "This region overlaps Button 1. Choose another area or resize it.",
+    );
+    expect(editor.moveSelectedTo({ col: 8, row: 0 })?.message).toBe(
+      GEOMETRY_COPY.offSurface("w"),
+    );
+    expect(editor.surface).toBe(held);
+    expect(editor.history.depth).toBe(heldDepth);
+    // Play and an empty selection change nothing.
+    editor.setMode("play");
+    expect(editor.moveSelectedTo({ col: 0, row: 0 })).toBeUndefined();
+    expect(editor.surface).toBe(held);
+    editor.setMode("edit");
+    editor.select(undefined);
+    expect(editor.moveSelectedTo({ col: 0, row: 0 })).toBeUndefined();
+    expect(editor.nudgeSelected(1, 0)).toBeUndefined();
+    expect(editor.resizeSelectedBy(1, 0)).toBeUndefined();
+    expect(editor.surface).toBe(held);
+
+    // THE ARROWS: a run of presses is one entry until the release commits;
+    // Shift and an arrow resize the same way; each refused at the edge with
+    // the geometry's own line and nothing moved.
+    editor.select(faderId);
+    const arrowDepth = editor.history.depth;
+    expect(editor.nudgeSelected(0, 1)).toBeUndefined();
+    expect(editor.nudgeSelected(-1, 0)).toBeUndefined();
+    expect(editor.nudgeSelected(-1, 0)).toBeUndefined();
+    expect(byId(editor, faderId)).toMatchObject({ col: 2, row: 3, w: 2, h: 6 });
+    expect(editor.history.depth, "three presses, one entry").toBe(
+      arrowDepth + 1,
+    );
+    editor.commitField();
+    expect(editor.nudgeSelected(0, -1)).toBeUndefined();
+    expect(editor.history.depth, "a press after the release is new").toBe(
+      arrowDepth + 2,
+    );
+    editor.commitField();
+    expect(editor.resizeSelectedBy(1, 0)).toBeUndefined();
+    expect(editor.resizeSelectedBy(0, 1)).toBeUndefined();
+    expect(byId(editor, faderId)).toMatchObject({ w: 3, h: 7 });
+    expect(editor.history.depth).toBe(arrowDepth + 3);
+    expect(editor.history.entries.at(-1)?.kind).toBe("resize");
+    editor.commitField();
+    expect(editor.nudgeSelected(0, 5)?.message).toBe(
+      GEOMETRY_COPY.offSurface("h"),
+    );
+    expect(editor.resizeSelectedBy(0, 5)?.message).toBe(
+      GEOMETRY_COPY.offSurface("h"),
+    );
+    expect(byId(editor, faderId)).toMatchObject({ col: 2, row: 2, w: 3, h: 7 });
+    expect(editor.undo()).toBe(true);
+    expect(byId(editor, faderId)).toMatchObject({ w: 2, h: 6 });
+    for (const surface of emitted)
+      expect(wholeSurfaceValid(surface)).toBe(true);
+
+    // THE SHAPE HALF. The plate: the delete icon on the selection - a
+    // 20 square with a 44 hit under it, gone in Play - and the plate
+    // wires the body drag, the arrows, the Shift resize and the release.
+    editor.select(faderId);
+    const html = plate(editor.state());
+    expect(count(html, 'data-testid="surface-delete"')).toBe(1);
+    expect(html).toMatch(/class="delete-hit[^"]*"[^>]*width="44" height="44"/);
+    expect(html).toMatch(/class="delete-box[^"]*"[^>]*width="20" height="20"/);
+    expect(count(html, "delete-glyph"), "the cross, two strokes").toBe(2);
+    const source = code(`${UI}/SurfaceEditor.svelte`);
+    expect(source).toContain("onclick={() => ondelete()}");
+    expect(source).toContain("onpointerdown={holdForDelete}");
+    expect(source).toContain("onmoveto?.({ col: box.col, row: box.row })");
+    expect(source).toMatch(/event\.shiftKey\s*\?\s*onresizeby\?\.\(/);
+    expect(source).toMatch(/function onkeyup[^]*?oncommit\?\.\(\)/);
+    expect(source, "no rounded corner (D-01)").not.toContain("border-radius");
+    expect(source).not.toMatch(/(^|\s)r[xy]=/m);
+
+    // The panel: no Position & size block, the type a plain label, no
+    // meter; the units chip stays beside the headline; the MIDI fields and
+    // the orientation select are still fields.
+    const panel = inspector(editor);
+    expect(panel).not.toContain("geometry-grid");
+    expect(panel).not.toContain("Position &amp; size");
+    expect(panel).not.toContain("Position & size");
+    for (const id of ["field-col", "field-row", "field-w", "field-h"])
+      expect(panel, `${id} is gone`).not.toContain(`data-testid="${id}"`);
+    expect(panel).toMatch(
+      /<span[^>]*data-testid="field-kind"[^>]*data-kind="fader"[^>]*>Fader</,
+    );
+    expect(panel).not.toMatch(/<select[^>]*field-kind/);
+    expect(panel).toMatch(/<select[^>]*data-testid="field-orientation"/);
+    expect(panel).toContain('data-testid="field-cc"');
+    expect(panel).toContain('data-testid="inspector-units"');
+    expect(panel).toContain('data-testid="delete-element"');
+    expect(panel).not.toContain("surface-meters");
+    expect("setKind" in SandboxEditor.prototype).toBe(false);
+    expect("editNumber" in SandboxEditor.prototype).toBe(true);
+    const route = code(ROUTE);
+    for (const gone of [
+      "surface-meters",
+      "meter-line",
+      "BudgetMeter",
+      "costOf",
+    ])
+      expect(route, `${gone} is gone from the route`).not.toContain(gone);
+    expect(route).toContain(
+      "onmoveto={(cell) => editor?.moveSelectedTo(cell)}",
+    );
+    expect(route).toContain(
+      "onnudge={(dc, dr) => editor?.nudgeSelected(dc, dr)}",
+    );
+    expect(route).toContain(
+      "onresizeby={(dw, dh) => editor?.resizeSelectedBy(dw, dh)}",
+    );
+
+    // NO NUMBER ABOUT THE BUDGET reaches the Sandbox's words (answer 12):
+    // the cap, the duplicate refusal and Store's refusal are worded without
+    // one, and copy.ts spells neither the budget nor the cap.
+    for (const line of [GEOMETRY_COPY.cap, DUPLICATE_AT_CAP, TOO_FULL_TO_STORE])
+      expect(line, "a number in a refusal").not.toMatch(/[0-9]/);
+    const copy = code("src/lib/sandbox/copy.ts");
+    expect(copy).not.toContain("908");
+    expect(copy).not.toContain("16 elements");
+    expect(copy).not.toContain("measuring");
+  });
+
+  it("11. the blank kind (change 10A): L arms it, it places 1 x 1 with an inert controller, counts against the cap, moves and resizes like the others, its panel has no MIDI output, its palette row reads Blank / L, and a draft written with four kinds still reads as it did", () => {
+    expect(kindForKey("l")).toBe("blank");
+    expect(DEFAULT_SIZES.blank).toEqual({ w: 1, h: 1 });
+    expect(KIND_LABELS.blank).toBe("Blank");
+    const { editor, emitted } = fresh();
+    expect(editor.choose("blank")).toBe(true);
+    expect(editor.clickCell(4, 4).kind).toBe("placed");
+    const blank = editor.surface.regions[0];
+    expect(blank).toMatchObject({
+      kind: "blank",
+      name: "Blank 1",
+      col: 4,
+      row: 4,
+      w: 1,
+      h: 1,
+      cc: 0,
+      channel: 1,
+    });
+    expect(blank).not.toHaveProperty("cc2");
+    expect(blank).not.toHaveProperty("latch");
+    expect(blank).not.toHaveProperty("orientation");
+    // A blank sends nothing, so it holds no controller: the next fader
+    // still takes controller 1.
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    expect(editor.surface.regions[1].cc).toBe(1);
+    // Selectable, movable, resizable; its minimum is one cell.
+    editor.select(blank.id);
+    expect(editor.nudgeSelected(1, 0)).toBeUndefined();
+    editor.commitField();
+    expect(editor.resizeSelectedBy(1, 1)).toBeUndefined();
+    editor.commitField();
+    expect(byId(editor, blank.id)).toMatchObject({
+      col: 5,
+      row: 4,
+      w: 2,
+      h: 2,
+    });
+    expect(editor.moveSelectedTo({ col: 7, row: 7 })).toBeUndefined();
+    expect(editor.resizeSelectedTo({ col: 7, row: 7, w: 1, h: 1 })).toBe(
+      undefined,
+    );
+    expect(editor.resizeSelectedBy(-1, 0)?.message).toBe(
+      GEOMETRY_COPY.offSurface("w"),
+    );
+    expect(byId(editor, blank.id)).toMatchObject({
+      col: 7,
+      row: 7,
+      w: 1,
+      h: 1,
+    });
+    for (const surface of emitted)
+      expect(wholeSurfaceValid(surface)).toBe(true);
+
+    // THE SHAPE HALF: the panel with the blank selected has no MIDI output
+    // section and no controller field, but its swatch; the list names it;
+    // the palette row reads Blank with its key; the plate draws its name
+    // and no control.
+    const panel = inspector(editor);
+    expect(panel).toContain("SELECTED ELEMENT / BLANK");
+    expect(panel).not.toContain("MIDI output");
+    expect(panel).not.toContain('data-testid="field-cc"');
+    expect(panel).not.toContain('data-testid="field-channel"');
+    expect(panel).toContain('data-testid="region-swatch"');
+    expect(list(editor.state())).toContain("Blank 1, Blank");
+    const rail = palette(editor.state());
+    expect(rail).toMatch(
+      /data-testid="palette-blank"[^>]*aria-keyshortcuts="l"/,
+    );
+    const html = plate(editor.state());
+    expect(html).toMatch(/data-kind="blank"[^>]*data-testid="surface-region"/);
+    const blankMark = html.slice(
+      html.indexOf('data-kind="blank"'),
+      html.indexOf("</g>", html.indexOf('data-kind="blank"')),
+    );
+    expect(blankMark).toContain("Blank 1");
+    expect(blankMark, "no button chip on a blank").not.toContain("OFF");
+    expect(blankMark).not.toContain("<circle");
+
+    // THE CAP counts a blank as a region (test 6 fills sixteen of them).
+    const capped = fresh().editor;
+    capped.choose("blank");
+    for (let i = 0; i < SURFACE_ELEMENT_CAP; i += 1)
+      capped.clickCell(i % 9, Math.floor(i / 9));
+    expect(capped.atCap).toBe(true);
+
+    // THE SCHEMA: a record written with the four kinds reads as it did; a
+    // record with a blank reads too; an unknown kind is refused whole.
+    const record = (kind: string) => ({
+      schema: 1,
+      id: "sandbox:s-1",
+      name: "Old",
+      kind: "sandbox",
+      source: "s-1",
+      createdAt: "2026-09-01T00:00:00.000Z",
+      editedAt: "2026-09-01T00:00:00.000Z",
+      surface: {
+        id: "s-1",
+        name: "Old",
+        regions: [
+          {
+            id: "fader-1",
+            name: "Filter",
+            kind: "fader",
+            col: 0,
+            row: 0,
+            w: 2,
+            h: 6,
+            cc: 1,
+            channel: 1,
+            colour: [13, 15, 7],
+            orientation: "vertical",
+          },
+          {
+            id: "x-2",
+            name: "Wash",
+            kind,
+            col: 4,
+            row: 4,
+            w: 1,
+            h: 1,
+            cc: 0,
+            channel: 1,
+            colour: [7, 11, 10],
+          },
+        ],
+      },
+    });
+    expect(isStoredRecord(record("button"))).toBe(true);
+    expect(isStoredRecord(record("blank"))).toBe(true);
+    expect(isStoredRecord(record("wash"))).toBe(false);
+    expect(ELEMENT_KINDS).toEqual(["fader", "button", "knob", "xy", "blank"]);
   });
 });

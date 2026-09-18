@@ -29,7 +29,8 @@
 //
 // METERS_UNAVAILABLE IS RETIRED BY NAME, 2026-09-12 (13.1-07; 13.1-CONTEXT
 // D-10): the workspace's meters are hidden and the line lost its one reader;
-// the meter family stays exported for the Sandbox's BudgetMeter.svelte room line.
+// the meter family stays exported for BudgetMeter.svelte, unmounted since
+// change 10A (2026-09-18) hid the Sandbox's meters and room line too.
 
 // ---------------------------------------------------------------------------
 // The two events, in the case the sentences print them.

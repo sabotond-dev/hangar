@@ -1,5 +1,5 @@
 // The Sandbox's undo and redo: a history over STRUCTURAL edits of one surface
-// (place, delete, move, resize, rename, retype, duplicate, recolour, MIDI,
+// (place, delete, move, resize, rename, duplicate, recolour, MIDI,
 // orientation, latch, brightness). Selection and mode are not entries. An entry holds the
 // surface before and after, both immutable values, and the region to re-select.
 // THE COALESCING BOUNDARY: a numeric field's keystrokes are ONE entry - an edit
@@ -19,7 +19,6 @@ export type EditKind =
   | "move"
   | "resize"
   | "rename"
-  | "retype"
   | "duplicate"
   | "recolour"
   | "midi"

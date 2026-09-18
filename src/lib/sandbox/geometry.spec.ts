@@ -284,9 +284,8 @@ describe("the Sandbox's geometry rules (BUILD-01, BUILD-02)", () => {
     expect(seventeenth.ok).toBe(false);
     if (!seventeenth.ok) {
       expect(seventeenth.problem.rule).toBe("cap");
-      expect(seventeenth.problem.message).toBe(
-        GEOMETRY_COPY.cap(SURFACE_ELEMENT_CAP),
-      );
+      expect(seventeenth.problem.message).toBe(GEOMETRY_COPY.cap);
+      expect(GEOMETRY_COPY.cap, "worded without a number").not.toMatch(/[0-9]/);
       expect(seventeenth.surface).toBe(s);
     }
     // Duplicate at the cap is refused for the same reason and deletes nothing.

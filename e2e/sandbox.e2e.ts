@@ -1,15 +1,20 @@
 // The Sandbox's interface, the browser half (plan 13-16): PDF page 3 at
 // /sandbox/ on the deployed bytes under wrangler dev, chromium only.
 //
-// FOUR TITLES. The first builds a surface end to end with clicks and typed
-// numbers - element first from the palette, area first with two clicks on
-// the plate, selection from the list, a refused width that keeps the last
-// valid value, a delete undone, the draft recovered after a reload and the
-// meter saying how much room is left. The second (13.1-03, D-03) is the one
-// drag the plate has: a handle pulled to another cell resizes the element
+// SIX TITLES. The first builds a surface end to end with clicks and typed
+// numbers - a kind armed from the palette, another by its hotkey, the
+// selector's click on empty clearing the selection, selection from the list,
+// a refused controller that keeps the last valid value, a delete undone, the
+// draft recovered after a reload and NO meter anywhere (change 10A). The
+// second is the surface's brightness (change 5). The third (13.1-03, D-03)
+// is the handle drag: a handle pulled to another cell resizes the element
 // through the editor, a handle pulled onto another element is refused with
 // section 16's line and changes nothing, a handle put back where it was
-// commits nothing, and one Undo takes the whole drag back. The third is the
+// commits nothing, and one Undo takes the whole drag back. The fourth
+// (change 10A) is the selector's walk: F arms a fader, a click places it, V
+// returns to the selector, the body dragged moves it, the arrows nudge it,
+// Shift-arrows resize it, L places a blank, and the plate's delete icon
+// deletes the selection with one Undo bringing it back. The fifth is the
 // mode round trip:
 // Edit -> Play -> Edit with the same region selected and the same undo
 // depth, the palette disabled with its reason and the handles gone in Play,
@@ -21,7 +26,7 @@
 // fake's one click (the confirmation left on 2026-09-16, BENCH-2026-09-16.txt
 // section 2; until then the title opened and closed it first); the codec is asserted
 // untouched on the way (D-14 Q7). Nothing here claims a module would answer
-// the same: runbook row M is where that is asked. THE PUT-BACK HALF LEFT AT
+// the same: runbook row M is where that is asked. (The sixth is that loop.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -31,8 +36,9 @@
 // install.spec.ts and on the /dev/install/ probe.
 //
 // Every click here is Playwright's `click`, a pointer press and release at
-// one point; only the drag title drags, and it drags a HANDLE - placement
-// never needs one (13-16's rule, kept by 13.1-03). The static host's answer
+// one point; only the two drag titles drag - a HANDLE, and since change 10A
+// a selected element's BODY - and placement never needs one (13-16's rule,
+// kept by 13.1-03). The static host's answer
 // for the dynamic segment is asserted too: /sandbox/<id>/ is not a file, the
 // host says 404, and the page comes up (src/routes/sandbox/[draftId]/+page.ts).
 //
@@ -118,7 +124,7 @@ async function openFresh(page: Page): Promise<Locator> {
 }
 
 test.describe("the Sandbox, with no hardware attached", () => {
-  test("place, select and edit an element end to end - by clicks and typed numbers, never a drag - with the draft recovered and the meter honest", async ({
+  test("place, select and edit an element end to end - by clicks, a hotkey and typed numbers, never a drag - with the draft recovered and no meter anywhere", async ({
     page,
     request,
   }) => {
@@ -130,20 +136,23 @@ test.describe("the Sandbox, with no hardware attached", () => {
     // says 404, and the page is real all the same (the fallback booted it).
     expect((await request.get(url)).status()).toBe(404);
 
-    // THE EMPTY STATE: the real plate, section 8's instruction verbatim, one
-    // starter, one template; four palette rows; the list empty.
+    // THE EMPTY STATE: the real plate, the instruction, one starter, one
+    // template; five palette rows, each with its key; the list empty.
     await expect(page.getByTestId("sandbox-empty")).toContainText(
-      "Add an element, or select an area on the surface.",
+      "Add an element to the surface.",
     );
     await expect(page.getByTestId("starter-action")).toBeVisible();
     await expect(page.getByTestId("template-action")).toBeVisible();
     await expect(page.getByTestId("surface-count")).toHaveText("0 elements");
     await expect(page.getByTestId("element-list-empty")).toBeVisible();
     await expect(page.getByTestId("palette-fader")).toBeEnabled();
+    await expect(page.getByTestId("palette-blank")).toContainText("L");
     // Nothing is saved until something is edited.
     expect(await page.getByTestId("status-draft").count()).toBe(0);
 
-    // ELEMENT FIRST: the palette's Fader, then one click on the plate.
+    // THE PALETTE ARMS A KIND: the palette's Fader, then one click on the
+    // plate; the kind stays armed (change 10A) until the row is clicked
+    // again, and the panel shows no position block and a plain type.
     await page.getByTestId("palette-fader").click();
     await expect(page.getByTestId("palette-fader")).toHaveAttribute(
       "aria-pressed",
@@ -156,10 +165,21 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await expect(page.getByTestId("surface-count")).toHaveText("1 element");
     await expect(page.getByTestId("surface-region")).toHaveCount(1);
     await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+    await expect(page.getByTestId("surface-delete")).toBeVisible();
     await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
     await expect(page.getByTestId("inspector-units")).toHaveText("2 × 6 units");
-    await expect(page.getByTestId("field-col")).toHaveValue("2");
-    await expect(page.getByTestId("field-row")).toHaveValue("2");
+    await expect(page.getByTestId("field-kind")).toHaveText("Fader");
+    expect(await page.getByTestId("field-col").count()).toBe(0);
+    expect(await page.getByTestId("field-w").count()).toBe(0);
+    await expect(page.getByTestId("palette-fader")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByTestId("palette-fader").click();
+    await expect(page.getByTestId("palette-fader")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     await expect(page.getByTestId("element-row")).toHaveCount(1);
     await expect(page.getByTestId("element-row").first()).toHaveAttribute(
       "aria-current",
@@ -171,38 +191,60 @@ test.describe("the Sandbox, with no hardware attached", () => {
       "Draft saved locally",
     );
 
-    // THE NUMERIC PATH: a width typed in moves the region; an out-of-range
-    // width keeps the last valid value with its message until corrected.
-    const width = page.getByTestId("field-w");
-    await width.fill("3");
-    await expect(page.getByTestId("inspector-units")).toHaveText("3 × 6 units");
-    await width.fill("12");
-    await expect(page.getByTestId("field-w-message")).toContainText(
-      "A smaller width keeps it inside the 9 × 9.",
+    // THE NUMERIC PATH: a controller typed in lands; an out-of-range one
+    // keeps the last valid value with its message until corrected.
+    const cc = page.getByTestId("field-cc");
+    await expect(cc).toHaveValue("1");
+    await cc.fill("74");
+    await expect(page.getByTestId("surface-region").first()).toContainText(
+      "74",
     );
-    await expect(width).toHaveAttribute("aria-invalid", "true");
-    await expect(width).toHaveValue("12");
+    await cc.fill("200");
+    await expect(page.getByTestId("field-cc-message")).toContainText(
+      "A controller number is 0 to 127.",
+    );
+    await expect(cc).toHaveAttribute("aria-invalid", "true");
+    await expect(cc).toHaveValue("200");
     await expect(
-      page.getByTestId("inspector-units"),
+      page.getByTestId("surface-region").first(),
       "the model kept the previous valid value",
-    ).toHaveText("3 × 6 units");
-    await width.fill("2");
-    await expect(page.getByTestId("field-w-message")).toHaveCount(0);
-    await expect(page.getByTestId("inspector-units")).toHaveText("2 × 6 units");
+    ).toContainText("74");
+    await cc.fill("7");
+    await expect(page.getByTestId("field-cc-message")).toHaveCount(0);
 
-    // AREA FIRST: two clicks on empty cells, no drag - a start corner and a
-    // far corner - and the region is the box between them.
-    await clickCell(plate, 5, 1);
-    await expect(page.getByTestId("surface-status")).toContainText(
-      "Click the far corner of the area.",
+    // A HOTKEY ARMS A KIND (change 10A): B on the plate, then a click, and
+    // the second element exists at the button's default size; a click on
+    // an empty cell with the selector clears the selection.
+    await plate.focus();
+    await page.keyboard.press("b");
+    await expect(page.getByTestId("palette-button")).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
-    await expect(page.getByTestId("surface-proposed")).toBeVisible();
-    await clickCell(plate, 7, 4);
+    await clickCell(plate, 5, 1);
     await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
-    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 2");
-    await expect(page.getByTestId("inspector-units")).toHaveText("3 × 4 units");
-    await expect(page.getByTestId("field-col")).toHaveValue("6");
-    await expect(page.getByTestId("field-row")).toHaveValue("2");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    await expect(page.getByTestId("inspector-units")).toHaveText("2 × 2 units");
+    await page.keyboard.press("v");
+    await expect(page.getByTestId("palette-button")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await clickCell(plate, 8, 8);
+    await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
+    await expect(page.getByTestId("surface-handle")).toHaveCount(0);
+    await expect(page.getByTestId("surface-status")).toContainText(
+      "Nothing selected.",
+    );
+    // A hotkey typed into a text field arms nothing.
+    await page.getByTestId("element-row").first().click();
+    await page.getByTestId("field-name").focus();
+    await page.keyboard.press("f");
+    await expect(page.getByTestId("palette-fader")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await page.getByTestId("field-name").fill("Fader 1");
 
     // THE LIST IS THE OTHER WAY TO SELECT: the first row, by keyboard.
     await page.getByTestId("element-row").first().focus();
@@ -221,11 +263,12 @@ test.describe("the Sandbox, with no hardware attached", () => {
       "Filter",
     );
 
-    // THE METER: measured, and honest about room.
-    await expect(page.getByTestId("meter-line")).toContainText(
-      /of 908 · room for about [0-9]+ more/,
-      { timeout: 30_000 },
-    );
+    // NO METER (change 10A, answer 12): no bar, no count, no "of 908"
+    // anywhere on the page, while Store still measures underneath.
+    expect(await page.getByTestId("surface-meters").count()).toBe(0);
+    expect(await page.getByTestId("meter-line").count()).toBe(0);
+    await expect(page.getByTestId("sandbox")).not.toContainText("908");
+    await expect(page.getByTestId("shell-inspector")).not.toContainText("908");
 
     // DELETE, UNDONE: the region comes back and is selected again.
     await page.getByTestId("delete-element").click();
@@ -373,22 +416,26 @@ test.describe("the Sandbox, with no hardware attached", () => {
     const consoleErrors = collectErrors(page);
     const plate = await openFresh(page);
     const sandbox = page.getByTestId("sandbox");
-    const width = page.getByTestId("field-w");
-    const height = page.getByTestId("field-h");
+    const units = page.getByTestId("inspector-units");
     const status = page.getByTestId("surface-status");
 
     // A fader at cell (1, 1), the default 2 x 6 - cols 1-2, rows 1-6 - and a
     // button at (5, 1), 2 x 2 - cols 5-6, rows 1-2 - placed FIRST so the
-    // drag's entry is the last one and one Undo is the drag alone.
+    // drag's entry is the last one and one Undo is the drag alone; then V,
+    // so the selector is back and no proposed box follows the hover.
     await page.getByTestId("palette-fader").click();
     await clickCell(plate, 1, 1);
     await page.getByTestId("palette-button").click();
     await clickCell(plate, 5, 1);
+    await page.keyboard.press("v");
+    await expect(page.getByTestId("palette-button")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     await expect(sandbox).toHaveAttribute("data-depth", "2");
     await page.getByTestId("element-row").first().click();
     await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
-    await expect(width).toHaveValue("2");
-    await expect(height).toHaveValue("6");
+    await expect(units).toHaveText("2 × 6 units");
     await expect(page.getByTestId("surface-handle")).toHaveCount(8);
 
     // The whole plate in the viewport, and every box read after the scroll.
@@ -431,9 +478,7 @@ test.describe("the Sandbox, with no hardware attached", () => {
     }
     await expect(page.getByTestId("surface-proposed")).toBeVisible();
     await page.mouse.up();
-    await expect(width).toHaveValue("3");
-    await expect(height).toHaveValue("8");
-    await expect(page.getByTestId("inspector-units")).toHaveText("3 × 8 units");
+    await expect(units).toHaveText("3 × 8 units");
     expect(Number(await body.getAttribute("width"))).toBeGreaterThan(
       widthBefore,
     );
@@ -456,8 +501,7 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await expect(status).toHaveText(
       "This region overlaps Button 1. Choose another area or resize it.",
     );
-    await expect(width).toHaveValue("3");
-    await expect(height).toHaveValue("8");
+    await expect(units).toHaveText("3 × 8 units");
     await expect(sandbox).toHaveAttribute("data-depth", "3");
     await expect(page.getByTestId("surface-handle")).toHaveCount(8);
 
@@ -469,21 +513,158 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await page.mouse.move(n.x + 3, n.y + 3);
     await page.mouse.up();
     await expect(sandbox).toHaveAttribute("data-depth", "3");
-    await expect(width).toHaveValue("3");
+    await expect(units).toHaveText("3 × 8 units");
     // And the refusal has cleared with the next press on the plate.
     await expect(status).not.toContainText("overlaps");
 
     // ONE UNDO takes the whole drag back: 2 x 6 again, the button still
     // there, the depth two.
     await page.getByTestId("undo").click();
-    await expect(width).toHaveValue("2");
-    await expect(height).toHaveValue("6");
+    await expect(units).toHaveText("2 × 6 units");
     await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
     await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
     await expect(sandbox).toHaveAttribute("data-depth", "2");
 
     expect(consoleErrors, "no console error across the drags").toEqual([]);
     await page.setViewportSize({ width: 1280, height: 720 });
+  });
+
+  test("the selector's walk (change 10A): F arms a fader and a click places it, V is the selector, the body dragged moves it and a drag onto another element is refused, the arrows nudge and Shift-arrows resize it, L places a blank with no MIDI fields, and the plate's delete icon deletes with one Undo back", async ({
+    page,
+  }) => {
+    // Chromium only, at the harness's 1280 x 720 like the handle drag: the
+    // body drag is a mouse drag captured by the plate.
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+    const units = page.getByTestId("inspector-units");
+    const status = page.getByTestId("surface-status");
+    const body = page
+      .getByTestId("surface-region")
+      .first()
+      .locator("rect.body");
+    const pitchUnits = 571 / 9;
+
+    // F ARMS A FADER on the plate; one click places it; V is the selector.
+    await plate.focus();
+    await page.keyboard.press("f");
+    await expect(page.getByTestId("palette-fader")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(plate).toHaveClass(/armed/);
+    await expect(status).toContainText("Click a cell to place the Fader.");
+    await clickCell(plate, 1, 1);
+    await expect(page.getByTestId("surface-count")).toHaveText("1 element");
+    await expect(units).toHaveText("2 × 6 units");
+    await expect(
+      page.getByTestId("palette-fader"),
+      "the kind stays armed after a placement",
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("v");
+    await expect(page.getByTestId("palette-fader")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(plate).not.toHaveClass(/armed/);
+    await expect(sandbox).toHaveAttribute("data-depth", "1");
+
+    // THE BODY DRAG: pressed inside the fader at cell (1, 3) - two rows
+    // below its origin - and released at cell (4, 5), the fader's origin is
+    // (4, 3); the proposed box follows the pointer; one entry.
+    await plate.scrollIntoViewIfNeeded();
+    const box = await plate.boundingBox();
+    if (box === null) throw new Error("the plate has no box");
+    const pitch = box.width / 9;
+    const at = (col: number, row: number) => ({
+      x: box.x + (col + 0.5) * pitch,
+      y: box.y + (row + 0.5) * pitch,
+    });
+    const from = at(1, 3);
+    const to = at(4, 5);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 3 });
+    await expect(page.getByTestId("surface-proposed")).toBeVisible();
+    await page.mouse.up();
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    await expect(units).toHaveText("2 × 6 units");
+    expect(Number(await body.getAttribute("x"))).toBeCloseTo(4 * pitchUnits, 3);
+    expect(Number(await body.getAttribute("y"))).toBeCloseTo(3 * pitchUnits, 3);
+    expect(await page.getByTestId("surface-proposed").count()).toBe(0);
+
+    // L PLACES A BLANK at (8, 0): one cell, no MIDI fields in its panel,
+    // its row in the list; Escape returns to the selector.
+    await page.keyboard.press("l");
+    await expect(page.getByTestId("palette-blank")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await clickCell(plate, 8, 0);
+    await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Blank 1");
+    await expect(units).toHaveText("1 × 1 units");
+    await expect(page.getByTestId("field-kind")).toHaveText("Blank");
+    expect(await page.getByTestId("field-cc").count()).toBe(0);
+    expect(await page.getByTestId("field-channel").count()).toBe(0);
+    await expect(page.getByTestId("region-swatch")).toBeVisible();
+    await expect(page.getByTestId("element-row").nth(1)).toContainText("Blank");
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("palette-blank")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+
+    // A REFUSED MOVE: the fader dragged from (4, 3) to (7, 0) would cover the
+    // blank's cell; section 16's line names it and the fader is where it was.
+    const grab = at(4, 3);
+    const onto = at(7, 0);
+    await page.mouse.move(grab.x, grab.y);
+    await page.mouse.down();
+    await page.mouse.move(onto.x, onto.y, { steps: 3 });
+    await page.mouse.up();
+    await expect(status).toHaveText(
+      "This region overlaps Blank 1. Choose another area or resize it.",
+    );
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    expect(Number(await body.getAttribute("x"))).toBeCloseTo(4 * pitchUnits, 3);
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+
+    // THE ARROWS on the plate: Left nudges the fader one column; Shift+Right
+    // widens it; Shift+Up shortens it; each press one entry.
+    await page.keyboard.press("ArrowLeft");
+    expect(Number(await body.getAttribute("x"))).toBeCloseTo(3 * pitchUnits, 3);
+    await expect(sandbox).toHaveAttribute("data-depth", "4");
+    await page.keyboard.press("Shift+ArrowRight");
+    await expect(units).toHaveText("3 × 6 units");
+    await expect(sandbox).toHaveAttribute("data-depth", "5");
+    await page.keyboard.press("Shift+ArrowUp");
+    await expect(units).toHaveText("3 × 5 units");
+    await expect(sandbox).toHaveAttribute("data-depth", "6");
+
+    // THE DELETE ICON on the selection: one click deletes the fader; one
+    // Undo brings it back, selected, at its size; the Delete key on the
+    // plate deletes it again.
+    await expect(page.getByTestId("surface-delete")).toBeVisible();
+    await page.getByTestId("surface-delete").click();
+    await expect(page.getByTestId("surface-count")).toHaveText("1 element");
+    await expect(page.getByTestId("surface-handle")).toHaveCount(0);
+    await expect(sandbox).toHaveAttribute("data-depth", "7");
+    await page.getByTestId("undo").click();
+    await expect(page.getByTestId("surface-count")).toHaveText("2 elements");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    await expect(units).toHaveText("3 × 5 units");
+    await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+    await plate.focus();
+    await page.keyboard.press("Delete");
+    await expect(page.getByTestId("surface-count")).toHaveText("1 element");
+    await expect(page.getByTestId("element-row")).toHaveCount(1);
+
+    expect(consoleErrors, "no console error on the selector's walk").toEqual(
+      [],
+    );
   });
 
   test("Edit -> Play -> Edit with the selection and the undo depth intact, the palette disabled with its reason in Play and a finger reaching the preview", async ({
@@ -513,7 +694,7 @@ test.describe("the Sandbox, with no hardware attached", () => {
       "In Play, touches go to the surface. Switch to Edit to add elements.",
     );
     await expect(page.getByTestId("surface-handle")).toHaveCount(0);
-    await expect(page.getByTestId("field-w")).toHaveAttribute("readonly", "");
+    await expect(page.getByTestId("field-cc")).toHaveAttribute("readonly", "");
     await expect(page.getByTestId("fields-locked")).toContainText(
       "Switch to Edit to change this element.",
     );

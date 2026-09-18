@@ -76,17 +76,19 @@ export type RecordKind = "playground" | "sandbox";
 export const RECORD_KINDS: readonly RecordKind[] = ["playground", "sandbox"];
 
 /**
- * The four element kinds the Sandbox places (13-RESEARCH 3.1, D-03, D-08).
- * 13-14 owns the region model and may widen this; the shape lives here
- * because a Surface is what a sandbox record carries.
+ * The five element kinds the Sandbox places (13-RESEARCH 3.1, D-03, D-08; `blank` since change
+ * 10A, 2026-09-18 - a coloured region that sends nothing). 13-14 owns the region model and may
+ * widen this; the shape lives here because a Surface is what a sandbox record carries. Widening
+ * is additive: a record written with four kinds reads exactly as it did.
  */
-export type ElementKind = "fader" | "button" | "knob" | "xy";
+export type ElementKind = "fader" | "button" | "knob" | "xy" | "blank";
 
 export const ELEMENT_KINDS: readonly ElementKind[] = [
   "fader",
   "button",
   "knob",
   "xy",
+  "blank",
 ];
 
 /**
@@ -112,7 +114,8 @@ const isBrightnessField = (value: unknown): boolean =>
  * one-based through 13-14's named door. `channel` is 1..16 as the user sees
  * it; the wire's 0..15 is the compiler's business. `colour` is RGB444, the
  * picker's own resolution. `cc2` exists for the XY pad's second axis;
- * `latch` for a button only; `orientation` for a fader only (13-14).
+ * `latch` for a button only; `orientation` for a fader only (13-14). A blank
+ * carries `cc` 0 and `channel` 1 as inert fields, so every region is one shape.
  */
 export type Region = {
   readonly id: string;

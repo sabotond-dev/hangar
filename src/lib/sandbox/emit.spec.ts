@@ -12,7 +12,16 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { GridScript } from "@intechstudio/grid-protocol";
 import { beforeAll, describe, expect, it } from "vitest";
-import { LIBRARY_CONVENTIONS, LIBRARY_GLOBALS } from "../catalog/library";
+import { PadSim } from "../../vendor/botor/pad-sim";
+import { KX, KY } from "../catalog/calibration";
+import {
+  LIBRARY_CONVENTIONS,
+  LIBRARY_GLOBALS,
+  TOUCH_LIBRARY,
+  TOUCH_LIBRARY_TIMER,
+} from "../catalog/library";
+import { createLuaHost } from "../sim/lua-host";
+import { blankPadState } from "../sim/lua-pad-sim";
 import {
   AND,
   EQ,
@@ -45,6 +54,8 @@ import {
   PULL_IN_MAPMODE,
   PULL_IN_TIMER,
   RUNTIME_ENTRY,
+  blankIndices,
+  blankRow,
   capitalCalls,
   capitalDefinitions,
   emitSurface,
@@ -699,5 +710,139 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       "the corner drops the field",
     ).not.toHaveProperty("brightness");
     expect(GridScript.checkSyntax(half.setup)).toBe(true);
+  });
+
+  it("7. the blank kind (change 10A): paint only - its row is the colour alone, its cells negated in M, the paint's fallback added once; a finger on it sends nothing and draws nothing while a fader beside it still does; measured, canonical, and a surface without one byte-identical", async () => {
+    // The same page 3 with a 2 x 2 blank in a free corner (cols 7-8, rows
+    // 7-8) and a 1 x 1 in another (col 0, row 8).
+    const blank = region("Wash", "blank", 7, 7, 2, 2, { cc: 0, channel: 1 });
+    const dot = region("Dot", "blank", 0, 8, 1, 1, { cc: 0, channel: 1 });
+    const withBlanks = surface("Page 3 and blanks", [
+      ...PAGE3.regions,
+      blank,
+      dot,
+    ]);
+    const plain = emitSurface(PAGE3, { slots: 3 });
+    const painted = emitSurface(withBlanks, { slots: 3 });
+
+    // THE FORM. A blank's row carries the colour at columns nine to eleven
+    // and nothing else; the other rows are exactly what they were; M carries
+    // the blanks' indices negated (5 and 6 here) on their cells and nothing
+    // else moved; the paint gained the one fallback; the runtime is untouched.
+    expect(blankRow(blank)).toBe("{[9]=255,[10]=255,[11]=255}");
+    expect(blankRow({ ...blank, colour: [1, 0, 15] }, 128)).toBe(
+      `{[9]=${scaleChannel(17, 128)},[10]=${scaleChannel(0, 128)},[11]=${scaleChannel(255, 128)}}`,
+    );
+    expect(() => regionRow(blank)).toThrow(/paint/);
+    expect(painted.parts.regionTable).toBe(
+      `${plain.parts.regionTable.slice(0, -1)},${blankRow(blank)},${blankRow(dot)}}`,
+    );
+    expect([...blankIndices(withBlanks.regions)]).toEqual([5, 6]);
+    const numbers = painted.parts.cellMap
+      .replace(/^M=\{\[0\]=/, "")
+      .replace(/\}$/, "")
+      .split(",")
+      .map((n) => Number.parseInt(n, 10));
+    expect(numbers.length).toBe(SURFACE_CELLS);
+    const blankCells = new Set([
+      cellIndex(7, 7),
+      cellIndex(8, 7),
+      cellIndex(7, 8),
+      cellIndex(8, 8),
+    ]);
+    numbers.forEach((n, cell) => {
+      if (blankCells.has(cell)) expect(n, `cell ${cell}`).toBe(-5);
+      else if (cell === cellIndex(0, 8)) expect(n).toBe(-6);
+      else expect(n, `cell ${cell}`).toBe(painted.map[cell]);
+    });
+    expect(
+      [...painted.map].every((n) => n >= 0),
+      "the emitted map is still geometry.ts's, unsigned",
+    ).toBe(true);
+    expect(painted.parts.paint).toBe(
+      plain.parts.paint.replace("J[M[n]]if", "J[M[n]]or J[-M[n]]if"),
+    );
+    expect(painted.parts.paint.length - plain.parts.paint.length).toBe(11);
+    expect(painted.timer, "the runtime is untouched").toBe(plain.timer);
+    expect(painted.mapmode).toBe(plain.mapmode);
+    expect(painted.branches).toEqual(plain.branches);
+    // A surface WITHOUT a blank emits byte for byte what it did: the
+    // fallback is only rendered when a blank exists.
+    expect(plain.parts.paint).not.toContain("J[-M[n]]");
+    expect(renderCellMap(painted.map), "no blanks named: nothing negated").toBe(
+      painted.parts.cellMap.replaceAll("-", ""),
+    );
+
+    // MEASURED, under the pinned minifier at the picker corner: canonical
+    // on the first round, and the price of the two blanks is the two rows,
+    // their two separators, the fallback, and one character - the minus
+    // sign - for every cell the blanks cover (five here).
+    const before = await costOf(PAGE3, { slots: 3 });
+    const after = await costOf(withBlanks, { slots: 3 });
+    expect((await canonical(painted.setup)).rounds).toBe(0);
+    expect(GridScript.checkSyntax(painted.setup)).toBe(true);
+    const price =
+      blankRow(blank).length +
+      1 +
+      blankRow(dot).length +
+      1 +
+      "or J[-M[n]]".length +
+      (blank.w * blank.h + dot.w * dot.h);
+    expect(after.setup.used - before.setup.used).toBe(price);
+    expect(after.timer.used).toBe(before.timer.used);
+    expect(after.fits).toBe(true);
+    console.log(
+      `page 3 ${before.setup.used} -> with a 2 x 2 blank and a 1 x 1 blank ${after.setup.used} at three slots (+${price}: two rows of ${blankRow(blank).length}, two commas, the fallback 11, five minus signs in M); the Timer ${after.timer.used}`,
+    );
+
+    // IN THE VM: the rest frame paints the blank's cells in its colour on
+    // layer 1; a finger on the blank sends nothing and the frame does not
+    // move (nothing on layer 2); the same finger on Filter beside it sends
+    // and moves the frame - the runtime is alive, it is the blank it ignores.
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: `self.tim=__hangar_timer ele={{map=function(s)${painted.mapmode} end}}${painted.setup}`,
+      timer: painted.timer,
+    });
+    try {
+      host.tick();
+      const rest = Uint8Array.from(sim.frame);
+      const px = (col: number, row: number) => {
+        const i = cellIndex(col, row) * 3;
+        return [rest[i], rest[i + 1], rest[i + 2]];
+      };
+      // The blank's four cells and the dot are lit alike (the same corner
+      // colour at the rest phase); an empty cell is dark.
+      expect(px(7, 7)).toEqual(px(8, 8));
+      expect(px(0, 8)).toEqual(px(7, 7));
+      expect(Math.max(...px(7, 7))).toBeGreaterThan(0);
+      expect(px(6, 8)).toEqual([0, 0, 0]);
+      // A finger on the blank: a press, a move inside it, a lift.
+      host.touchDown(0, KX[7], KY[7]);
+      host.tick();
+      host.touchMove(0, KX[8], KY[8]);
+      host.tick();
+      expect(host.midi, "a blank sends nothing").toEqual([]);
+      expect(
+        Uint8Array.from(sim.frame),
+        "a finger on a blank draws nothing",
+      ).toEqual(rest);
+      host.touchUp(0, KX[8], KY[8]);
+      host.tick();
+      expect(Uint8Array.from(sim.frame)).toEqual(rest);
+      // The same finger on Filter: a value, and the frame moves.
+      host.touchDown(1, KX[1], KY[1]);
+      host.tick();
+      expect(host.midi.length, "the fader beside it still sends").toBe(1);
+      expect(Uint8Array.from(sim.frame)).not.toEqual(rest);
+      host.touchUp(1, KX[1], KY[1]);
+      host.run(25);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
   });
 });

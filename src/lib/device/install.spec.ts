@@ -22,7 +22,7 @@ import {
   vi,
 } from "vitest";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "$lib/catalog/library";
-import { overElementLine } from "$lib/sandbox/copy";
+import { TOO_FULL_TO_STORE } from "$lib/sandbox/copy";
 import { canonical } from "$lib/sandbox/cost";
 import { landSurface, type SurfaceLanding } from "$lib/sandbox/land";
 import type { Region, Surface } from "$lib/sandbox/model";
@@ -3873,10 +3873,10 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     it("over budget refuses before the wire: a surface over 908 disables Store, names the cause, and sends zero frames", async () => {
       // THE SAME SURFACE ON TWO SLOTS does not fit (13-15's ceiling: page 3
       // at two slots is over by hundreds), and the landing says which string
-      // and by how much, first in write order; the meter's sentence names
-      // the way - the last element's removal - because an element is the
-      // only thing that can push a surface over (names are never emitted,
-      // colours are measured at their dearest already).
+      // and by how much, first in write order; the Sandbox's sentence names
+      // the way without a number (change 10A) - the last element's removal -
+      // because an element is the only thing that can push a surface over
+      // (names are never emitted, colours are measured at their dearest already).
       expect(two.refusal).toBeDefined();
       expect(two.refusal?.word).toBe("Timer");
       expect(two.refusal?.used).toBeGreaterThan(908);
@@ -3884,15 +3884,16 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       expect(two.config.systemUtility, "two slots: no 255/4 of its own").toBe(
         "",
       );
-      const sentence = overElementLine(
-        two.refusal!.word,
-        two.refusal!.used,
-        two.refusal!.over,
-      );
+      const sentence = TOO_FULL_TO_STORE;
       expect(sentence).toBe(
-        `Timer is ${two.refusal!.used} of 908, ${two.refusal!.over} over. Remove the last element to fit.`,
+        "This surface is too full for a ZONA page. Remove the last element to fit.",
       );
-      console.log(`page 3 at two slots: ${sentence}`);
+      expect(sentence, "no number reaches the Sandbox's words").not.toMatch(
+        /[0-9]/,
+      );
+      console.log(
+        `page 3 at two slots: ${two.refusal!.word} ${two.refusal!.used} of 908, ${two.refusal!.over} over; the sentence shown: ${sentence}`,
+      );
       // STORE IS DISABLED BEFORE THE CLICK, described by the sentence: the
       // destination zone (DestinationZone.svelte since 13.1-06 - the one
       // component the Sandbox and the workspace both mount; Store its one

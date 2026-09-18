@@ -1,9 +1,9 @@
 <!--
-  ADD AN ELEMENT: PDF page 3's first rail section, four rows at the rail's numbers
-  (the type's name left, a + right), and each row IS the control: one click arms
-  the kind, the next click on the plate places its default region (editor.ts
-  section 1); the armed row carries D-03's three signals keyed to aria-pressed,
-  and a second click disarms. Props: mode, placement, atCap, onchoose. Disabled
+  ADD AN ELEMENT: PDF page 3's first rail section, five rows at the rail's numbers
+  (the type's name left, its hotkey right - change 10A), and each row IS the
+  control: one click arms the kind, and every click on the plate places its
+  default region until V, Escape or a second click on the row disarms it; the
+  armed row carries D-03's three signals keyed to aria-pressed. Props: mode, placement, atCap, onchoose. Disabled
   with a reason, never without one: at the cap every row is disabled and described
   by GEOMETRY_COPY.cap's sentence under the section; in Play by PLAY_LOCKS_PALETTE.
   No number is its own (layout.ts, Rail.svelte); the names are KIND_LABELS. Square (D-01).
@@ -15,17 +15,12 @@
   import {
     ADD_AN_ELEMENT,
     KIND_LABELS,
-    PALETTE_ADD,
     PLAY_LOCKS_PALETTE,
     paletteAddName,
   } from "$lib/sandbox/copy";
   import { GEOMETRY_COPY } from "$lib/sandbox/geometry";
-  import {
-    ELEMENT_KINDS,
-    SURFACE_ELEMENT_CAP,
-    type ElementKind,
-  } from "$lib/sandbox/model";
-  import type { Mode, Placement } from "$lib/sandbox/editor";
+  import { ELEMENT_KINDS, type ElementKind } from "$lib/sandbox/model";
+  import { HOTKEYS, type Mode, type Placement } from "$lib/sandbox/editor";
   import { RAIL_ROW_H } from "$lib/ui/shell/layout";
 
   let {
@@ -36,7 +31,7 @@
   }: {
     mode: Mode;
     placement: Placement;
-    /** Sixteen on the surface: every `+` disabled with the cap's sentence. */
+    /** At the cap: every row disabled with the cap's sentence. */
     atCap: boolean;
     /** A row clicked: arm the kind, or disarm it when it is the armed one. */
     onchoose: (kind: ElementKind | undefined) => void;
@@ -51,7 +46,7 @@
     mode === "play"
       ? PLAY_LOCKS_PALETTE
       : atCap
-        ? GEOMETRY_COPY.cap(SURFACE_ELEMENT_CAP)
+        ? GEOMETRY_COPY.cap
         : undefined,
   );
 
@@ -81,12 +76,14 @@
           data-kind={kind}
           aria-label={paletteAddName(KIND_LABELS[kind])}
           aria-pressed={armed === kind}
+          aria-keyshortcuts={HOTKEYS[kind]}
           disabled={reason !== undefined}
           aria-describedby={reason === undefined ? undefined : reasonId}
           onclick={() => choose(kind)}
         >
           <span class="label">{KIND_LABELS[kind]}</span>
-          <span class="side" aria-hidden="true">{PALETTE_ADD}</span>
+          <kbd class="key" aria-hidden="true">{HOTKEYS[kind].toUpperCase()}</kbd
+          >
         </button>
       </li>
     {/each}
@@ -154,10 +151,23 @@
     cursor: default;
   }
 
-  .side {
+  /* The row's hotkey: a square mono chip in the quiet ink, the action colour while armed. */
+  .key {
     flex: 0 0 auto;
-    font-size: 17px;
+    box-sizing: border-box;
+    min-inline-size: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--color-boundary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
     color: var(--color-ink-quiet);
+  }
+
+  .row[aria-pressed="true"] .key {
+    border-color: var(--color-action);
+    color: var(--color-action);
   }
 
   .reason {

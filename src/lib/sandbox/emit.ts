@@ -3,7 +3,10 @@
 // (one row per region, its geometry precomputed in the frame its kind reads), the `[0]`-indexed
 // 81-entry cell map `M` (the same array geometry.ts validated), the paint on layer 1, the pull-in
 // call(s) `self:tim()` / `ele[#ele]:map()` that run the runtime's slot(s), and `self.touch_cb=O`
-// AFTER the pull-in so `O` exists when it is named. The Timer and 255/4 are runtime.ts's, packed
+// AFTER the pull-in so `O` exists when it is named. A blank (change 10A) is paint only: its row in
+// `J` carries the colour alone, its cells in `M` are its index NEGATED so the runtime's `J[M[n]]`
+// finds nothing (no finger drawn, nothing sent) and the paint's `or J[-M[n]]` finds the colour;
+// a surface without a blank emits byte for byte what it did. The Timer and 255/4 are runtime.ts's, packed
 // per surface with only the branches the surface's kinds need. On the wire the Sandbox is a Lua
 // entry: land.ts's `measureLuaRoute` and `land` put these strings beside `TOUCH_LIBRARY` (255/0)
 // and `TOUCH_LIBRARY_TIMER` (255/6). This file's names are `J M` (inline: `J M S F R`), free of
@@ -18,6 +21,7 @@ import {
   SURFACE_CELLS,
   branchesUsed,
   colourByte,
+  isPaintOnly,
   orientationOf,
   typeCodeOf,
   wireChannel,
@@ -111,12 +115,20 @@ export function geometryOf(region: Region): [number, number, number, number] {
         0,
       ];
     case "button":
+    case "blank":
       return [0, 0, 0, 0];
   }
 }
 
-/** A region's row: `{g1,g2,g3,g4,t,cc,cc2,ch,r,g,b}`, plus `0,0` on a knob - the seventh column is the XY pad's second controller or the button's latch flag, the eighth the wire channel 0..15, nine to eleven the colour 0..255 scaled to the surface's brightness (change 5; 255 is the identity); every number at its exact width. */
+/** The colour columns, nine to eleven: 0..255 scaled to the surface's brightness (change 5; 255 is the identity). */
+const colourColumns = (region: Region, brightness: number): number[] =>
+  region.colour.map((level) => scaleChannel(colourByte(level), brightness));
+
+/** A region's row: `{g1,g2,g3,g4,t,cc,cc2,ch,r,g,b}`, plus `0,0` on a knob - the seventh column is the XY pad's second controller or the button's latch flag, the eighth the wire channel 0..15, nine to eleven the colour; every number at its exact width. A blank has no row of numbers (`blankRow`). */
 export function regionRow(region: Region, brightness: number = 255): number[] {
+  if (isPaintOnly(region)) {
+    throw new Error("a blank has no numeric row: renderRegionTable paints it");
+  }
   const [x0, x1, y0, y1] = geometryOf(region);
   const seventh =
     region.kind === "xy"
@@ -133,30 +145,51 @@ export function regionRow(region: Region, brightness: number = 255): number[] {
     region.cc,
     seventh,
     wireChannel(region.channel),
-    ...region.colour.map((level) =>
-      scaleChannel(colourByte(level), brightness),
-    ),
+    ...colourColumns(region, brightness),
     // A knob's value and its accumulator remainder (runtime.ts, the rotary branch).
     ...(region.kind === "knob" ? [0, 0] : []),
   ];
 }
 
+/** A blank's row: the colour at columns nine to eleven and nothing else - `{[9]=r,[10]=g,[11]=b}`, the paint's three reads. */
+export function blankRow(region: Region, brightness: number = 255): string {
+  const [r, g, b] = colourColumns(region, brightness);
+  return `{[9]=${r},[10]=${g},[11]=${b}}`;
+}
+
 // ---------------------------------------------------------------------------
 // The parts.
 
-/** `J={{...},{...}}` - one row per region, in the surface's order, the colours at the brightness. */
+/** `J={{...},{...}}` - one row per region, in the surface's order, the colours at the brightness; a blank's row is `blankRow`'s. */
 export function renderRegionTable(
   regions: readonly Region[],
   brightness: number = 255,
 ): string {
-  return `J={${regions.map((r) => `{${regionRow(r, brightness).join(",")}}`).join(",")}}`;
+  const rows = regions.map((r) =>
+    isPaintOnly(r)
+      ? blankRow(r, brightness)
+      : `{${regionRow(r, brightness).join(",")}}`,
+  );
+  return `J={${rows.join(",")}}`;
 }
 
-/** `M={[0]=...}` - the 81 entries from geometry.ts's own array, `[0]`-indexed so the lookup is `M[N(x,y)]`. */
-export function renderCellMap(map: CellMap): string {
+/** The 1-based indices of the blanks among the regions - the entries `renderCellMap` negates. */
+export function blankIndices(regions: readonly Region[]): ReadonlySet<number> {
+  const out = new Set<number>();
+  regions.forEach((r, i) => {
+    if (isPaintOnly(r)) out.add(i + 1);
+  });
+  return out;
+}
+
+/** `M={[0]=...}` - the 81 entries from geometry.ts's own array, `[0]`-indexed so the lookup is `M[N(x,y)]`; a blank's cells carry its index negated. */
+export function renderCellMap(
+  map: CellMap,
+  blanks: ReadonlySet<number> = new Set(),
+): string {
   if (map.length !== SURFACE_CELLS)
     throw new Error("the cell map is not 81 entries");
-  return `M={[0]=${map.join(",")}}`;
+  return `M={[0]=${map.map((n) => (blanks.has(n) ? -n : n)).join(",")}}`;
 }
 
 /**
@@ -164,11 +197,12 @@ export function renderCellMap(map: CellMap): string {
  * A bare loop, not a function: nothing ever clears layer 1 (the library's
  * `V` clears the layer `G` last drew on, and a Sandbox finger is drawn
  * above the regions, on layer 2 - 13-RESEARCH 3.1), so no caller would
- * ever re-paint, and the wrapper's sixteen characters buy nothing.
+ * ever re-paint, and the wrapper's sixteen characters buy nothing. With a
+ * blank on the surface the lookup falls through to the negated index.
  */
-function renderPaint(restPhase: number): string {
+function renderPaint(restPhase: number, withBlanks: boolean): string {
   return (
-    "for n=0,80 do local r=J[M[n]]if r then local a=glag(0,n)" +
+    `for n=0,80 do local r=J[M[n]]${withBlanks ? "or J[-M[n]]" : ""}if r then local a=glag(0,n)` +
     `glc(a,1,r[9],r[10],r[11],1)glp(a,1,${restPhase})end end`
   );
 }
@@ -282,8 +316,9 @@ export function emitSurface(
     surface.regions,
     brightnessOf(surface.brightness),
   );
-  const cellMap = renderCellMap(built.map);
-  const paint = renderPaint(restPhase);
+  const blanks = blankIndices(surface.regions);
+  const cellMap = renderCellMap(built.map, blanks);
+  const paint = renderPaint(restPhase, blanks.size > 0);
   const pullIn = runtime === "split" ? renderPullIn(slots) : "";
   const callback =
     runtime === "split" ? SPLIT_CALLBACK : renderInlineCallback(branches);

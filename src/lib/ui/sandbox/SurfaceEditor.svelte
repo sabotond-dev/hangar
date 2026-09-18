@@ -1,14 +1,14 @@
 <!--
   The plate: PDF page 3's 571px square, the 9 x 9 lattice (a static SVG overlay,
   drawn once), the regions with their kind's marks, the selection with its eight
-  drag handles, the proposed bounds, the focus cell and the status line. Props:
-  view, onclick (the ONE creation and selection call, fired from pointerdown; a
-  release on another cell is the second click - no drag is ever required), onmove,
-  onmark, oncancel, ondelete (the keyboard route: one tab stop, arrows, Enter,
-  Escape, Delete), onresize (a handle drag's box on release, one Undo), onfinger
-  and preview (Play: the route's canvas under the SVG). The marks are page 3's,
-  measured at its 1500 render (13.1-03); the knob's circle is an SVG circle, not a
-  radius (D-15). Every number is layout.ts's; the region fill is the stored RGB444 value.
+  drag handles and its delete icon, the proposed bounds, the focus cell and the
+  status line. Props: view, onclick (the ONE placement and selection call, fired
+  from pointerdown - no drag is ever required), onmove, onmark, oncancel, ondelete
+  (the keyboard route: one tab stop, arrows, Enter, Escape, Delete), onresize and
+  onmoveto (a handle or body drag's box on release, one Undo each), onnudge and
+  onresizeby (an arrow with a selection; Shift resizes), oncommit (the arrow's
+  release), onfinger and preview (Play: the route's canvas under the SVG). The
+  marks are page 3's (13.1-03); the knob's circle is an SVG circle, not a radius (D-15). Every number is layout.ts's.
   Decided at 13-16 / 13.1-03 (13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -16,7 +16,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import {
-    AREA_START,
     KIND_LABELS,
     MATRIX_LINE,
     NOTHING_SELECTED,
@@ -28,18 +27,21 @@
   } from "$lib/sandbox/copy";
   import {
     DEFAULT_SIZES,
-    boxBetween,
+    type Box,
     type Cell,
     type EditorState,
   } from "$lib/sandbox/editor";
   import type { Problem } from "$lib/sandbox/geometry";
   import {
     SURFACE_SIZE,
+    cellIndex,
     colourByte,
     toDisplay,
     type Region,
   } from "$lib/sandbox/model";
   import {
+    SANDBOX_DELETE_HIT,
+    SANDBOX_DELETE_ICON,
     SANDBOX_HANDLE,
     SANDBOX_HANDLE_HIT,
     SANDBOX_LABEL_SIZE,
@@ -47,8 +49,9 @@
     SANDBOX_PLATE,
   } from "$lib/ui/shell/layout";
 
-  type Box = { col: number; row: number; w: number; h: number };
   type HandleName = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
+  /** A body drag in progress (change 10A): the region's box, and where inside it the pointer went down. */
+  type MoveDrag = { from: Box; grab: Cell };
 
   let {
     view,
@@ -58,11 +61,15 @@
     oncancel,
     ondelete,
     onresize,
+    onmoveto,
+    onnudge,
+    onresizeby,
+    oncommit,
     onfinger,
     preview,
   }: {
     view: EditorState;
-    /** The one creation and selection call (editor.ts section 1). */
+    /** The one placement and selection call (editor.ts). */
     onclick: (col: number, row: number) => void;
     /** Arrows: the focus cell moves by a delta. */
     onmove: (dcol: number, drow: number) => void;
@@ -74,6 +81,14 @@
     ondelete: () => void;
     /** A handle drag's box on release; the route wires editor.resizeSelectedTo and the problem shows in the status line. Optional so the spec's render needs no drag. */
     onresize?: (box: Box) => Problem | undefined;
+    /** A body drag's origin on release (change 10A); the route wires editor.moveSelectedTo. */
+    onmoveto?: (cell: Cell) => Problem | undefined;
+    /** An arrow with a selection and the selector: the element one cell over (editor.nudgeSelected). */
+    onnudge?: (dcol: number, drow: number) => Problem | undefined;
+    /** Shift and an arrow with a selection: one cell wider or taller (editor.resizeSelectedBy). */
+    onresizeby?: (dw: number, dh: number) => Problem | undefined;
+    /** An arrow released: the coalescing boundary, so a held key is one Undo. */
+    oncommit?: () => void;
     /** Play: a finger on the plate, as an offset inside the plate's box and its extent; the route maps it with touch.ts's mapAxis (PREV-04). */
     onfinger?: (
       phase: "down" | "move" | "up",
@@ -93,6 +108,18 @@
   const HANDLE = SANDBOX_HANDLE;
   const HIT = SANDBOX_HANDLE_HIT;
   const LABEL = SANDBOX_LABEL_SIZE;
+  const ICON = SANDBOX_DELETE_ICON;
+  const ICON_HIT = SANDBOX_DELETE_HIT;
+  /** The gap between the selection's corner and its delete icon. */
+  const ICON_GAP = 4;
+
+  /** The arrows, as deltas. */
+  const ARROWS: Readonly<Record<string, Cell>> = {
+    ArrowLeft: { col: -1, row: 0 },
+    ArrowRight: { col: 1, row: 0 },
+    ArrowUp: { col: 0, row: -1 },
+    ArrowDown: { col: 0, row: 1 },
+  };
 
   /** The page's fader at rest: the thumb at 0.62 of the travel (Filter, `74`). */
   const REST_VALUE = 0.62;
@@ -101,11 +128,11 @@
   /** The cell under the pointer, for the proposed bounds only. */
   let hover = $state<Cell | undefined>(undefined);
   let focused = $state(false);
-  /** The cell the pointer went down on, so a release elsewhere is the second click. */
-  let downCell: Cell | undefined;
   /** A handle drag in progress: which handle, and the box it started from. */
   let drag = $state<{ handle: HandleName; from: Box } | undefined>(undefined);
-  /** The box the drag would commit, drawn as the proposed bounds. */
+  /** A body drag in progress: the selected region, pressed with the selector. */
+  let moveDrag = $state<MoveDrag | undefined>(undefined);
+  /** The box either drag would commit, drawn as the proposed bounds. */
   let dragBox = $state<Box | undefined>(undefined);
   /** The last drag's refusal, shown until the next pointer or key or until the surface moves under it. Raw, so the identity check in `status` is against the editor's own reference. */
   let refused = $state.raw<
@@ -155,9 +182,22 @@
         h: size.h,
       };
     }
-    if (pending.kind === "area") return boxBetween(pending.start, at);
     return undefined;
   });
+
+  /** The delete icon's box: off the selection's top-right corner, inside the plate - right of and above the corner where there is room, else inside it. */
+  function deleteIconAt(f: { right: number; top: number }): {
+    x: number;
+    y: number;
+  } {
+    const x =
+      f.right + ICON_GAP + ICON <= PLATE
+        ? f.right + ICON_GAP
+        : f.right - ICON_GAP - ICON;
+    const y =
+      f.top - ICON_GAP - ICON >= 0 ? f.top - ICON_GAP - ICON : f.top + ICON_GAP;
+    return { x, y };
+  }
 
   /** The eight handles of the selected region: corners and edge midpoints, named. */
   const handles = $derived.by(() => {
@@ -187,7 +227,6 @@
     if (pending.kind === "element") {
       return placeInstruction(KIND_LABELS[pending.type]);
     }
-    if (pending.kind === "area") return AREA_START;
     const r = view.selected;
     const where = cellLine(
       toDisplay(view.focus.col),
@@ -226,6 +265,30 @@
   const sameBox = (a: Box, b: Box): boolean =>
     a.col === b.col && a.row === b.row && a.w === b.w && a.h === b.h;
 
+  /** The region holding a cell, from the state's own map. */
+  function holderAt(at: Cell): Region | undefined {
+    const index = view.cellMap[cellIndex(at.col, at.row)];
+    return index === undefined || index === 0 ? undefined : regions[index - 1];
+  }
+
+  /** The box a body drag makes: the origin follows the cell under the pointer less the grab offset, kept on the plate. */
+  function movedBox(m: MoveDrag, at: Cell): Box {
+    return {
+      col: Math.min(SURFACE_SIZE - m.from.w, Math.max(0, at.col - m.grab.col)),
+      row: Math.min(SURFACE_SIZE - m.from.h, Math.max(0, at.row - m.grab.row)),
+      w: m.from.w,
+      h: m.from.h,
+    };
+  }
+
+  function capture(event: PointerEvent): void {
+    try {
+      plate?.setPointerCapture(event.pointerId);
+    } catch {
+      // The element can detach between the event and the capture.
+    }
+  }
+
   function startDrag(event: PointerEvent, handle: HandleName): void {
     const r = view.selected;
     if (play || r === undefined || event.button !== 0) return;
@@ -233,23 +296,35 @@
     event.stopPropagation();
     refused = undefined;
     plate?.focus({ preventScroll: true });
-    try {
-      plate?.setPointerCapture(event.pointerId);
-    } catch {
-      // The element can detach between the event and the capture.
-    }
+    capture(event);
     drag = { handle, from: { col: r.col, row: r.row, w: r.w, h: r.h } };
     dragBox = drag.from;
   }
 
+  /** The delete icon's press: the plate's own pointerdown must not run (it would read the cell under the icon). */
+  function holdForDelete(event: PointerEvent): void {
+    event.stopPropagation();
+    refused = undefined;
+    plate?.focus({ preventScroll: true });
+  }
+
+  /** Either drag's release: a handle's box to onresize, a body's origin to onmoveto; the same box commits nothing. */
   function endDrag(): void {
     const d = drag;
+    const m = moveDrag;
     const box = dragBox;
     drag = undefined;
+    moveDrag = undefined;
     dragBox = undefined;
-    if (d === undefined || box === undefined) return;
-    if (sameBox(box, d.from)) return;
-    const problem = onresize?.(box);
+    if (box === undefined) return;
+    let problem: Problem | undefined;
+    if (d !== undefined) {
+      if (sameBox(box, d.from)) return;
+      problem = onresize?.(box);
+    } else if (m !== undefined) {
+      if (sameBox(box, m.from)) return;
+      problem = onmoveto?.({ col: box.col, row: box.row });
+    } else return;
     refused =
       problem === undefined
         ? undefined
@@ -283,10 +358,18 @@
     const at = cellOf(event);
     if (at === undefined) return;
     // WITHOUT SCROLLING (13-17): a programmatic focus that scrolled the plate would move the
-    // page under a pressed pointer, and the release would land on another cell as a second click.
+    // page under a pressed pointer, and the release would land on another cell.
     plate?.focus({ preventScroll: true });
-    downCell = at;
+    // The selector on a held cell (change 10A): the click selects it, and a drag from here moves
+    // it - the box follows the pointer and commits on release. With a kind armed, the click places.
+    const holder = view.placement.kind === "idle" ? holderAt(at) : undefined;
     onclick(at.col, at.row);
+    if (holder === undefined) return;
+    capture(event);
+    moveDrag = {
+      from: { col: holder.col, row: holder.row, w: holder.w, h: holder.h },
+      grab: { col: at.col - holder.col, row: at.row - holder.row },
+    };
   }
 
   function onpointermove(event: PointerEvent): void {
@@ -295,9 +378,13 @@
       return;
     }
     hover = cellOf(event);
+    if (hover === undefined) return;
     // A drag in progress: the proposed bounds follow the cell, nothing commits.
-    if (drag !== undefined && hover !== undefined) {
+    if (drag !== undefined) {
       dragBox = boxFor(drag.handle, drag.from, hover);
+    } else if (moveDrag !== undefined) {
+      const box = movedBox(moveDrag, hover);
+      dragBox = sameBox(box, moveDrag.from) ? undefined : box;
     }
   }
 
@@ -306,22 +393,13 @@
       fingerAt("up", event);
       return;
     }
-    if (drag !== undefined) {
-      try {
-        plate?.releasePointerCapture(event.pointerId);
-      } catch {
-        // Already released.
-      }
-      endDrag();
-      downCell = undefined;
-      return;
+    if (drag === undefined && moveDrag === undefined) return;
+    try {
+      plate?.releasePointerCapture(event.pointerId);
+    } catch {
+      // Already released.
     }
-    const at = cellOf(event);
-    const from = downCell;
-    downCell = undefined;
-    if (at === undefined || from === undefined) return;
-    // The accelerator: a release on another cell is the second click.
-    if (at.col !== from.col || at.row !== from.row) onclick(at.col, at.row);
+    endDrag();
   }
 
   function onpointerleave(): void {
@@ -331,19 +409,23 @@
   function onkeydown(event: KeyboardEvent): void {
     if (play) return;
     refused = undefined;
+    const arrow = ARROWS[event.key];
+    if (arrow !== undefined) {
+      // With the selector and a selection the arrows move the element, and with Shift resize it
+      // (change 10A, answer 4); with a kind armed or nothing selected they move the focus cell.
+      if (view.selected !== undefined && view.placement.kind === "idle") {
+        const problem = event.shiftKey
+          ? onresizeby?.(arrow.col, arrow.row)
+          : onnudge?.(arrow.col, arrow.row);
+        if (problem !== undefined)
+          refused = { message: problem.message, surface: view.surface };
+      } else {
+        onmove(arrow.col, arrow.row);
+      }
+      event.preventDefault();
+      return;
+    }
     switch (event.key) {
-      case "ArrowLeft":
-        onmove(-1, 0);
-        break;
-      case "ArrowRight":
-        onmove(1, 0);
-        break;
-      case "ArrowUp":
-        onmove(0, -1);
-        break;
-      case "ArrowDown":
-        onmove(0, 1);
-        break;
       case "Enter":
       case " ":
         onmark();
@@ -360,6 +442,12 @@
     }
     event.preventDefault();
   }
+
+  /** An arrow released: the boundary, so a held arrow is one Undo. */
+  function onkeyup(event: KeyboardEvent): void {
+    if (play || ARROWS[event.key] === undefined) return;
+    oncommit?.();
+  }
 </script>
 
 <div class="editor" data-testid="surface-editor" data-mode={view.mode}>
@@ -375,7 +463,8 @@
     class="plate"
     class:play
     class:focused
-    class:dragging={drag !== undefined}
+    class:armed={view.placement.kind === "element"}
+    class:dragging={drag !== undefined || moveDrag !== undefined}
     role="application"
     tabindex="0"
     aria-label={PLATE_NAME}
@@ -388,6 +477,7 @@
     onpointercancel={onpointerup}
     {onpointerleave}
     {onkeydown}
+    {onkeyup}
     onfocus={() => (focused = true)}
     onblur={() => (focused = false)}
   >
@@ -574,6 +664,16 @@
               y={f.top + 23}
               font-size={LABEL}>{r.name}</text
             >
+          {:else if r.kind === "blank"}
+            <!-- A blank (change 10A): colour and its name, no control drawn. -->
+            <text
+              class="name"
+              class:action={selected && !play}
+              text-anchor="middle"
+              x={f.cx}
+              y={f.cy + 4}
+              font-size={LABEL}>{r.name}</text
+            >
           {:else}
             {@const chipW = PITCH * 0.93}
             {@const chipH = PITCH * 0.41}
@@ -606,13 +706,14 @@
         </g>
       {/each}
 
-      <!-- The selection: an action-colour 1px outline plus eight square handles with their hit squares beneath (Edit only). -->
+      <!-- The selection: an action-colour 1px outline plus eight square handles with their hit squares beneath, and the delete icon (Edit only). -->
       {#if view.selected !== undefined && !play}
         {@const r = view.selected}
         {@const f = frame(r)}
+        {@const icon = deleteIconAt(f)}
         <g class="selection" data-testid="surface-selection">
           <rect class="outline" x={f.left} y={f.top} width={f.w} height={f.h} />
-          <!-- The handles and their hit squares take a pointerdown and have no role: a pointer accelerator inside the aria-hidden SVG; the numeric fields are the keyboard route. -->
+          <!-- The handles and their hit squares take a pointerdown and have no role: a pointer accelerator inside the aria-hidden SVG; the arrows are the keyboard route. -->
           {#each handles as h (h.name)}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <rect
@@ -637,6 +738,43 @@
               onpointerdown={(event) => startDrag(event, h.name)}
             />
           {/each}
+          <!-- The delete icon (change 10A): a square off the top-right corner, its 44px hit beneath; the click is the panel's Delete element, one Undo. -->
+          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+          <g
+            class="delete"
+            data-testid="surface-delete"
+            onpointerdown={holdForDelete}
+            onclick={() => ondelete()}
+          >
+            <rect
+              class="delete-hit"
+              x={icon.x + ICON / 2 - ICON_HIT / 2}
+              y={icon.y + ICON / 2 - ICON_HIT / 2}
+              width={ICON_HIT}
+              height={ICON_HIT}
+            />
+            <rect
+              class="delete-box"
+              x={icon.x}
+              y={icon.y}
+              width={ICON}
+              height={ICON}
+            />
+            <line
+              class="delete-glyph"
+              x1={icon.x + 6}
+              y1={icon.y + 6}
+              x2={icon.x + ICON - 6}
+              y2={icon.y + ICON - 6}
+            />
+            <line
+              class="delete-glyph"
+              x1={icon.x + ICON - 6}
+              y1={icon.y + 6}
+              x2={icon.x + 6}
+              y2={icon.y + ICON - 6}
+            />
+          </g>
         </g>
       {/if}
 
@@ -701,8 +839,13 @@
     border: 1px solid var(--color-boundary);
     background: var(--color-workspace);
     touch-action: none;
-    cursor: crosshair;
+    cursor: default;
     user-select: none;
+  }
+
+  /* The selector's cursor is the arrow; an armed kind makes it the crosshair (change 10A). */
+  .plate.armed {
+    cursor: crosshair;
   }
 
   .plate.play {
@@ -817,6 +960,11 @@
     fill: var(--color-action);
   }
 
+  /* The selected body drags: the move cursor over it. */
+  .region.selected .body {
+    cursor: move;
+  }
+
   /* The selection: the action colour, 1px, and eight filled squares. */
   .selection .outline {
     fill: none;
@@ -860,9 +1008,29 @@
     cursor: ew-resize;
   }
 
-  /* While a handle is held the whole plate keeps the drag's meaning. */
+  /* While a handle or a body is held the whole plate keeps the drag's meaning. */
   .plate.dragging {
     cursor: move;
+  }
+
+  /* The delete icon: a filled action-colour square with the workspace's cross, its hit square invisible and a pointer's target. */
+  .delete-hit {
+    fill: none;
+    stroke: none;
+    pointer-events: all;
+    cursor: pointer;
+  }
+
+  .delete-box {
+    fill: var(--color-action);
+    pointer-events: none;
+  }
+
+  .delete-glyph {
+    stroke: var(--color-workspace);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
   }
 
   /* The proposed bounds: the action colour, dashed, before anything commits. */
