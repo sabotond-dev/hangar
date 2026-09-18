@@ -1869,3 +1869,12 @@ multitouch surface is over and refused; the gate's quick constant is 95 / 999 (t
 1014 counted the sweep); the route's header was already twelve lines at `e8c22ec` and is not
 touched beyond one wire line; the worktree was removed after the records were copied. Not
 deployed - on the user's word.
+
+12. MIDI clock sync on GHOST, RADAR POINTS, RADAR and STEPS (2026-09-18, queued for Fable)
+--------------------------------------------------------------------------------
+
+> MIDI sync works perfectly. implement it to Ghost, Radar points, Radar and Steps.
+
+The bench's word on ORBIT's sync (change 8: `s.rtmrx_cb` fed by `grxm(2,3)`, Start / Continue /
+Stop, a Division knob) - the first hardware pass on that shape. Change 8's answer 6 saved the
+idiom for the sequencer cards; the user now names four: GHOST, RADAR POINTS, RADAR, STEPS.
