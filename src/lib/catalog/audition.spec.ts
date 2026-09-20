@@ -110,8 +110,15 @@ const flat = doc.replace(/\s+/g, " ");
  * 37 -> 38 on 2026-09-18 (section 12, change 12b): RADAR rebuilt by hand under its
  * own id with Sync and Division - row 38 Radar; a new cost row 758 / 50 / 5 and a
  * dated paragraph after the table; row 28's "eight preset cards" left as written.
+ *
+ * 38 -> 39 on 2026-09-21 (BENCH-2026-09-16.txt section 14): SNAKE remade - row 39
+ * Snake, six clauses (a)-(f): the shelf's games differing after a death, the
+ * calibrated steer on the next step and the direction kept after the lift, the
+ * reversal refused, the note-off a step after every note-on, the two Step times,
+ * the board cleared on Apply; the cost row moves 581 / 870 -> 871 / 732 and a
+ * dated paragraph follows row 38's.
  */
-const ROW_COUNT = 38;
+const ROW_COUNT = 39;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
