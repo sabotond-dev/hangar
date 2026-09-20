@@ -23,7 +23,8 @@ export type StoreName =
   | "recent"
   | "intro"
   | "motion"
-  | "collections";
+  | "collections"
+  | "sandbox-defaults";
 
 /**
  * The one place the key suffix is spelled. `storeKey("drafts", 1)` is
@@ -49,6 +50,12 @@ export const MOTION_KEY = storeKey("motion", SCHEMA_VERSION);
 /** Spent by 13-13: collections.ts owns it (D-13, D-22). */
 export const COLLECTIONS_KEY = storeKey("collections", SCHEMA_VERSION);
 
+/** The Sandbox's sticky defaults per kind (change 13B): sandbox-defaults.ts owns it. */
+export const SANDBOX_DEFAULTS_KEY = storeKey(
+  "sandbox-defaults",
+  SCHEMA_VERSION,
+);
+
 /** The ZONA's matrix is nine by nine; a region's cells are 0..8 on both axes. */
 export const SURFACE_SIZE = 9;
 
@@ -64,6 +71,7 @@ export const OWNED_KEYS: readonly string[] = [
   INTRO_KEY,
   MOTION_KEY,
   COLLECTIONS_KEY,
+  SANDBOX_DEFAULTS_KEY,
 ];
 
 // ---------------------------------------------------------------------------
@@ -246,6 +254,39 @@ export type SavedCopy = StoredRecord;
 /** One opened thing in the recently-used list. */
 export type RecentItem = { readonly id: string; readonly at: string };
 
+/**
+ * The settings a new element of a kind starts from (change 13B, suggestion 8): the fields the
+ * user last gave that kind, every one optional - a kind with none starts from the model's
+ * defaults. `note` is a button's note number while its output is a note (the region's `cc`
+ * then); the controller itself, the colour, the orientation and the geometry are never here.
+ */
+export type KindDefaults = {
+  readonly channel?: number;
+  readonly min?: number;
+  readonly max?: number;
+  readonly mode?: RegionMode;
+  readonly speed?: Speed;
+  readonly spring?: boolean;
+  readonly springValue?: number;
+  readonly latch?: boolean;
+  readonly output?: ButtonOutput;
+  readonly group?: number;
+  readonly touches?: number;
+  readonly note?: number;
+};
+
+/** The envelope under hangar.sandbox-defaults.v1: one record per kind that has any. */
+export type SandboxDefaults = {
+  readonly schema: typeof SCHEMA_VERSION;
+  readonly kinds: Partial<Record<ElementKind, KindDefaults>>;
+};
+
+/** The empty envelope, one value: every kind starts from the model's own. The editor and the store read the same object. */
+export const NO_DEFAULTS: SandboxDefaults = {
+  schema: SCHEMA_VERSION,
+  kinds: {},
+};
+
 /** The returning-visitor flag (13-CONTEXT D-14 Q2). */
 export type IntroFlag = {
   readonly schema: typeof SCHEMA_VERSION;
@@ -375,4 +416,40 @@ export function isRecentItem(value: unknown): value is RecentItem {
 export function isIntroFlag(value: unknown): value is IntroFlag {
   if (!isObject(value) || value.schema !== SCHEMA_VERSION) return false;
   return value.seen === true && isString(value.at);
+}
+
+/** A kind's defaults only if every field present is its own shape (the region's rules, field by field). */
+export function isKindDefaults(value: unknown): value is KindDefaults {
+  if (!isObject(value)) return false;
+  const inRange = (v: unknown, lo: number, hi: number): boolean =>
+    v === undefined || (isInt(v) && v >= lo && v <= hi);
+  const oneOf = (v: unknown, words: readonly string[]): boolean =>
+    v === undefined || words.includes(v as string);
+  const bool = (v: unknown): boolean =>
+    v === undefined || typeof v === "boolean";
+  return (
+    inRange(value.channel, 1, 16) &&
+    inRange(value.min, 0, 127) &&
+    inRange(value.max, 0, 127) &&
+    inRange(value.springValue, 0, 127) &&
+    inRange(value.note, 0, 127) &&
+    inRange(value.group, 0, GROUP_MAX) &&
+    inRange(value.touches, 1, TOUCHES_MAX) &&
+    oneOf(value.mode, REGION_MODES) &&
+    oneOf(value.speed, SPEEDS) &&
+    oneOf(value.output, BUTTON_OUTPUTS) &&
+    bool(value.spring) &&
+    bool(value.latch)
+  );
+}
+
+/** The defaults envelope only if it is one: this version, and every kind named a known kind with its own valid record. */
+export function isSandboxDefaults(value: unknown): value is SandboxDefaults {
+  if (!isObject(value) || value.schema !== SCHEMA_VERSION) return false;
+  const kinds = value.kinds;
+  if (!isObject(kinds)) return false;
+  return Object.entries(kinds).every(
+    ([kind, record]) =>
+      ELEMENT_KINDS.includes(kind as ElementKind) && isKindDefaults(record),
+  );
 }

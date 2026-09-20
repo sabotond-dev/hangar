@@ -4,10 +4,10 @@
 // to a free window or return the surface UNCHANGED with `no-space`; 5 the
 // previous valid value survives an invalid edit (applyEdit returns the surface
 // it was given beside the problem); 6 edge adjacency is a WARNING, never an
-// error. THE CELL MAP IS THE RULE: buildCellMap writes each region's cells into
-// 81 entries, a cell written twice is a conflict and the map is not returned,
-// and emit.ts renders that same array as `M` - an overlapping surface cannot be
-// emitted. The overlap line is the Bible's section 16 row verbatim; the rest are HANGAR's.
+// error. THE CELL MAP IS THE RULE: buildCellMap writes each region's cells into 81 entries, a
+// cell written twice is a conflict and the map is not returned, and emit.ts renders that same
+// array as `M` - an overlapping surface cannot be emitted. The overlap line is the Bible's
+// section 16 row; the rest are HANGAR's. Change 13B's pure geometry sits after rule 4.
 // Decided at 13-14 (13-RESEARCH 3.1, unrepresentable overlaps); see .planning/phases/13-gui-overhaul/13-14-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -454,6 +454,163 @@ export function placementFor(
       candidates.push({ col, row });
   }
   return candidates.find(fits);
+}
+
+// ---------------------------------------------------------------------------
+// Change 13B: the fill-to-fit rectangle, the alignments, the spacing and the whole-surface transforms.
+
+/**
+ * The largest free rectangle holding a cell (Alt+click's placement): every rectangle of free cells
+ * that contains the cell is enumerated - the plate is 9 x 9, so at most 2,025 - and the one with
+ * the most cells wins; on a tie the squarer one (the smaller difference between its sides), then
+ * the higher, then the further left. With `square` only squares are considered (a knob). Undefined
+ * when the cell itself is held.
+ */
+export function largestFreeBox(
+  at: { readonly col: number; readonly row: number },
+  map: CellMap,
+  square = false,
+): Box | undefined {
+  if (map[cellIndex(at.col, at.row)] !== 0) return undefined;
+  const free = (col: number, row: number, w: number, h: number): boolean => {
+    for (let r = row; r < row + h; r += 1) {
+      for (let c = col; c < col + w; c += 1) {
+        if (map[cellIndex(c, r)] !== 0) return false;
+      }
+    }
+    return true;
+  };
+  let best: Box | undefined;
+  const better = (box: Box): boolean => {
+    if (best === undefined) return true;
+    const area = box.w * box.h - best.w * best.h;
+    if (area !== 0) return area > 0;
+    const shape = Math.abs(best.w - best.h) - Math.abs(box.w - box.h);
+    if (shape !== 0) return shape > 0;
+    if (box.row !== best.row) return box.row < best.row;
+    return box.col < best.col;
+  };
+  for (let row = 0; row <= at.row; row += 1) {
+    for (let bottom = at.row; bottom < SURFACE_SIZE; bottom += 1) {
+      const h = bottom - row + 1;
+      for (let col = 0; col <= at.col; col += 1) {
+        for (let right = at.col; right < SURFACE_SIZE; right += 1) {
+          const w = right - col + 1;
+          if (square && w !== h) continue;
+          const box = { col, row, w, h };
+          if (better(box) && free(col, row, w, h)) best = box;
+        }
+      }
+    }
+  }
+  return best;
+}
+
+/** The six alignments: an edge of the set's bounding box, or its centre line on one axis. */
+export type Alignment =
+  | "left"
+  | "right"
+  | "top"
+  | "bottom"
+  | "centre-x"
+  | "centre-y";
+
+export const ALIGNMENTS: readonly Alignment[] = [
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "centre-x",
+  "centre-y",
+];
+
+/**
+ * Every box moved to the alignment, its size kept: left / top to the set's bounding box's edge,
+ * right / bottom so its far edge is the box's, a centre so its middle is the box's - a half-cell
+ * centre rounds toward the left or the top. Sizes never change; the caller validates the result.
+ */
+export function alignBoxes(boxes: readonly Box[], to: Alignment): Box[] {
+  const bounds = boundingBox(boxes);
+  if (bounds === undefined) return [];
+  return boxes.map((b) => {
+    switch (to) {
+      case "left":
+        return { ...b, col: bounds.col };
+      case "right":
+        return { ...b, col: bounds.col + bounds.w - b.w };
+      case "top":
+        return { ...b, row: bounds.row };
+      case "bottom":
+        return { ...b, row: bounds.row + bounds.h - b.h };
+      case "centre-x":
+        return { ...b, col: bounds.col + Math.floor((bounds.w - b.w) / 2) };
+      case "centre-y":
+        return { ...b, row: bounds.row + Math.floor((bounds.h - b.h) / 2) };
+    }
+  });
+}
+
+export type Axis = "horizontal" | "vertical";
+
+/**
+ * Equal gaps between the boxes along one axis, the outermost two kept where they are: the boxes
+ * are taken in the order of their near edge (ties by the other axis), the free cells between
+ * the first's near edge and the last's far edge are shared out as gaps - the remainder of the
+ * division going to the first gaps, one cell each - and every box between moves to its slot.
+ * Undefined when the boxes are wider than the span (no room), and the input order is kept.
+ */
+export function distributeBoxes(
+  boxes: readonly Box[],
+  axis: Axis,
+): Box[] | undefined {
+  if (boxes.length < 3) return boxes.slice();
+  const near = (b: Box): number => (axis === "horizontal" ? b.col : b.row);
+  const other = (b: Box): number => (axis === "horizontal" ? b.row : b.col);
+  const size = (b: Box): number => (axis === "horizontal" ? b.w : b.h);
+  const order = boxes
+    .map((b, index) => ({ b, index }))
+    .sort((p, q) => near(p.b) - near(q.b) || other(p.b) - other(q.b));
+  const first = order[0].b;
+  const last = order[order.length - 1].b;
+  const span = near(last) + size(last) - near(first);
+  const free = span - order.reduce((sum, { b }) => sum + size(b), 0);
+  if (free < 0) return undefined;
+  const gaps = order.length - 1;
+  const each = Math.floor(free / gaps);
+  const extra = free - each * gaps;
+  const out = boxes.slice();
+  let cursor = near(first);
+  order.forEach(({ b, index }, i) => {
+    out[index] =
+      axis === "horizontal" ? { ...b, col: cursor } : { ...b, row: cursor };
+    cursor += size(b) + each + (i < extra ? 1 : 0);
+  });
+  return out;
+}
+
+/** The whole-surface transforms: a mirror on either axis, or a quarter turn clockwise. */
+export type SurfaceTransform = "flip-horizontal" | "flip-vertical" | "rotate";
+
+/**
+ * One box under a transform of the 9 x 9: mirrored left to right (`col' = 9 - col - w`), top to
+ * bottom (`row' = 9 - row - h`), or turned a quarter clockwise - the cell (c, r) goes to
+ * (8 - r, c), so the box's origin is (9 - row - h, col) and its sides swap. Four turns, or two
+ * of either mirror, are the identity.
+ */
+export function transformBox(box: Box, transform: SurfaceTransform): Box {
+  switch (transform) {
+    case "flip-horizontal":
+      return { ...box, col: SURFACE_SIZE - box.col - box.w };
+    case "flip-vertical":
+      return { ...box, row: SURFACE_SIZE - box.row - box.h };
+    case "rotate":
+      return {
+        col: SURFACE_SIZE - box.row - box.h,
+        row: box.col,
+        w: box.h,
+        h: box.w,
+      };
+  }
 }
 
 // ---------------------------------------------------------------------------

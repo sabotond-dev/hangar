@@ -1,6 +1,6 @@
-// The Sandbox's interface, thirteen tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by change
+// The Sandbox's interface, twenty tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by change
 // 10A - the selector, the hotkeys, the move, the delete icon, the blank kind; 12 by 10B, 13 by change
-// 11 - an XY pad's Touches), two halves each:
+// 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -19,6 +19,7 @@ import {
   BUTTON_MIN_MAX_HELPER,
   CC_RANGE,
   CHANNEL_RANGE,
+  DISTRIBUTE_NO_ROOM,
   DUPLICATE_AT_CAP,
   EMPTY_INSTRUCTION,
   EMPTY_SECOND_LINE,
@@ -46,6 +47,7 @@ import {
   TOUCHES_HELPER,
   VALUE_RANGE,
   WHOLE_NUMBER,
+  lockedMoveLine,
   touchesCcRange,
 } from "../sandbox/copy";
 import { noteName } from "../tune/view";
@@ -53,15 +55,32 @@ import {
   DEFAULT_COLOUR,
   DEFAULT_SIZES,
   HOTKEYS,
+  NO_DEFAULTS,
   NUMERIC_FIELDS,
   PALETTE,
   SELECTOR_KEY,
+  STICKY_FIELDS,
   SandboxEditor,
   autoName,
   kindForKey,
+  rememberKind,
+  withKindDefaults,
   type EditorState,
 } from "../sandbox/editor";
-import { ELEMENT_KINDS, isStoredRecord } from "../store/schema";
+import {
+  ELEMENT_KINDS,
+  OWNED_KEYS,
+  SANDBOX_DEFAULTS_KEY,
+  isSandboxDefaults,
+  isStoredRecord,
+  type SandboxDefaults,
+} from "../store/schema";
+import {
+  readSandboxDefaults,
+  resetSandboxDefaults,
+  writeSandboxDefaults,
+} from "../store/sandbox-defaults";
+import type { LocalStore } from "../store/local";
 import {
   CLIPBOARD_KEY,
   clearClipboard,
@@ -73,9 +92,14 @@ import {
 import { regionRow, regionTail } from "../sandbox/emit";
 import {
   GEOMETRY_COPY,
+  alignBoxes,
   buildCellMap,
+  distributeBoxes,
+  largestFreeBox,
+  overlapLine,
   placementFor,
   touching,
+  transformBox,
   validate,
 } from "../sandbox/geometry";
 import { History } from "../sandbox/history";
@@ -84,6 +108,7 @@ import {
   ccCeiling,
   flagsOf,
   lockedOf,
+  orientationOf,
   seventhOf,
   withBrightness,
 } from "../sandbox/model";
@@ -181,6 +206,22 @@ function fresh(): { editor: SandboxEditor; emitted: Surface[] } {
 
 const byId = (editor: SandboxEditor, id: string): Region =>
   editor.surface.regions.find((r) => r.id === id) as Region;
+
+/** A region's box, for a geometry assertion. */
+const boxOf = (r: Region) => ({ col: r.col, row: r.row, w: r.w, h: r.h });
+
+/** A store over a Map, for the defaults' round trip (change 13B). */
+function mapStore(): { store: LocalStore; map: Map<string, string> } {
+  const map = new Map<string, string>();
+  return {
+    map,
+    store: {
+      getItem: (key) => map.get(key) ?? null,
+      setItem: (key, value) => void map.set(key, value),
+      removeItem: (key) => void map.delete(key),
+    },
+  };
+}
 
 describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
   it("1. the empty state: the real plate with its lattice, section 8's instruction re-worded for the selector, one starter action and one template, and no question-mark placeholder anywhere", () => {
@@ -2658,5 +2699,606 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       code(`${UI}/RegionInspector.svelte`),
       "no rounded corner",
     ).not.toMatch(/border-radius:\s*[1-9]/);
+  });
+
+  it("17. align and distribute (change 13B): the six alignments move every member to the set's edge or centre line with sizes kept, spacing out shares the free cells as equal gaps with the remainder to the first gaps and the outer two fixed, each one entry re-selecting the set on Undo; refused whole with the first line where a member would overlap or is locked, with its own line when there is no room; nothing under two, or three for spacing, or in Play", () => {
+    const { editor, emitted } = fresh();
+    editor.choose("button");
+    editor.clickCell(0, 0);
+    editor.clickCell(2, 3);
+    editor.cancel();
+    // A 1 x 1 blank as the third: a smaller member shows the far-edge and the centre arithmetic.
+    editor.choose("blank");
+    editor.clickCell(7, 6);
+    editor.cancel();
+    const [b1, b2, blank] = editor.surface.regions;
+    const boxes = () => editor.surface.regions.map(boxOf);
+    const start = boxes();
+    editor.select(b1.id);
+    editor.toggleSelect(b2.id);
+    editor.toggleSelect(blank.id);
+    const set = [b1.id, b2.id, blank.id];
+
+    // THE PURE FUNCTION: the bounding box is (0, 0) 8 x 7. Left puts every
+    // column at 0, right every far edge at 8 (a 2-wide at 6, the blank at 7),
+    // top every row at 0, bottom every far edge at 7; the centres floor a
+    // half cell toward the left or the top: (8 - 2) / 2 = 3, (8 - 1) / 2 = 3;
+    // (7 - 2) / 2 = 2, (7 - 1) / 2 = 3. Sizes never move.
+    expect(alignBoxes(start, "left").map((b) => b.col)).toEqual([0, 0, 0]);
+    expect(alignBoxes(start, "right").map((b) => b.col)).toEqual([6, 6, 7]);
+    expect(alignBoxes(start, "top").map((b) => b.row)).toEqual([0, 0, 0]);
+    expect(alignBoxes(start, "bottom").map((b) => b.row)).toEqual([5, 5, 6]);
+    expect(alignBoxes(start, "centre-x").map((b) => b.col)).toEqual([3, 3, 3]);
+    expect(alignBoxes(start, "centre-y").map((b) => b.row)).toEqual([2, 2, 3]);
+    expect(alignBoxes(start, "right").map((b) => [b.w, b.h])).toEqual(
+      start.map((b) => [b.w, b.h]),
+    );
+    expect(alignBoxes([], "left")).toEqual([]);
+    // SPACING OUT horizontally: the span from the first's near edge (0) to
+    // the last's far edge (8) is 8, the widths sum to 5, three free cells
+    // over two gaps - 2 then 1 - so the middle lands at column 4 and the
+    // outer two stay. Vertically: rows 0..7, heights 5, free 2, gaps 1 and
+    // 1: the middle at row 3. Fewer than three come back as they are; wider
+    // than the span is undefined.
+    expect(distributeBoxes(start, "horizontal")?.map((b) => b.col)).toEqual([
+      0, 4, 7,
+    ]);
+    expect(distributeBoxes(start, "vertical")?.map((b) => b.row)).toEqual([
+      0, 3, 6,
+    ]);
+    expect(distributeBoxes(start.slice(0, 2), "horizontal")).toEqual(
+      start.slice(0, 2),
+    );
+    expect(
+      distributeBoxes(
+        [
+          { col: 0, row: 0, w: 3, h: 1 },
+          { col: 1, row: 2, w: 3, h: 1 },
+          { col: 2, row: 4, w: 3, h: 1 },
+        ],
+        "horizontal",
+      ),
+    ).toBeUndefined();
+
+    // THROUGH THE EDITOR: align left is one entry under `align`, every
+    // member at column 0, sizes kept, the set still selected; Undo takes
+    // all three back and re-selects the set.
+    const depth = editor.history.depth;
+    expect(editor.alignSelected("left")).toEqual({ kind: "done", count: 3 });
+    expect(boxes().map((b) => b.col)).toEqual([0, 0, 0]);
+    expect(boxes().map((b) => [b.w, b.h])).toEqual([
+      [2, 2],
+      [2, 2],
+      [1, 1],
+    ]);
+    expect(editor.history.depth).toBe(depth + 1);
+    expect(editor.history.entries.at(-1)?.kind).toBe("align");
+    expect(editor.selection).toEqual(set);
+    expect(editor.alignSelected("left"), "already aligned: nothing").toEqual({
+      kind: "nothing",
+    });
+    expect(editor.history.depth).toBe(depth + 1);
+    editor.select(undefined);
+    expect(editor.undo()).toBe(true);
+    expect(boxes()).toEqual(start);
+    expect(editor.selection).toEqual(set);
+    // Space out horizontally: one entry under `distribute`, the middle at 4.
+    expect(editor.distributeSelected("horizontal")).toEqual({
+      kind: "done",
+      count: 3,
+    });
+    expect(boxes().map((b) => b.col)).toEqual([0, 4, 7]);
+    expect(editor.history.entries.at(-1)?.kind).toBe("distribute");
+    expect(editor.undo()).toBe(true);
+    expect(boxes()).toEqual(start);
+    // REFUSED WHOLE: with a bystander at (2, 0), align top would put the
+    // second button on it - the first line is the overlap's, naming the
+    // bystander, and the surface is the same object.
+    editor.choose("button");
+    editor.clickCell(2, 0);
+    editor.cancel();
+    editor.select(b1.id);
+    editor.toggleSelect(b2.id);
+    const held = editor.surface;
+    expect(editor.alignSelected("top")).toEqual({
+      kind: "refused",
+      message: overlapLine("Button 3"),
+    });
+    expect(editor.surface).toBe(held);
+    // A LOCKED MEMBER refuses the command with 13A's line, before anything
+    // else is read - even an alignment that would move nothing.
+    editor.select(blank.id);
+    editor.toggleLock();
+    editor.select(b1.id);
+    editor.toggleSelect(blank.id);
+    expect(editor.alignSelected("left")).toEqual({
+      kind: "refused",
+      message: lockedMoveLine("Blank 1"),
+    });
+    expect(editor.distributeSelected("vertical"), "under three").toEqual({
+      kind: "nothing",
+    });
+    editor.select(blank.id);
+    editor.toggleLock();
+    // NO ROOM: three 3-wide blanks stacked closer than their widths.
+    const { editor: tight } = fresh();
+    tight.choose("blank");
+    tight.clickCell(0, 0);
+    tight.clickCell(1, 2);
+    tight.clickCell(2, 4);
+    tight.cancel();
+    for (const r of tight.surface.regions) {
+      tight.select(r.id);
+      tight.resizeSelectedTo({ col: r.col, row: r.row, w: 3, h: 1 });
+    }
+    tight.selectAll();
+    const tightHeld = tight.surface;
+    expect(tight.distributeSelected("horizontal")).toEqual({
+      kind: "refused",
+      message: DISTRIBUTE_NO_ROOM,
+    });
+    expect(tight.surface).toBe(tightHeld);
+    expect(DISTRIBUTE_NO_ROOM, "no number, no exclamation").not.toMatch(
+      /[0-9!]/,
+    );
+    // Nothing: a single, none, Play.
+    editor.select(b1.id);
+    expect(editor.alignSelected("right")).toEqual({ kind: "nothing" });
+    editor.select(undefined);
+    expect(editor.alignSelected("right")).toEqual({ kind: "nothing" });
+    editor.selectAll();
+    editor.setMode("play");
+    expect(editor.alignSelected("right")).toEqual({ kind: "nothing" });
+    expect(editor.distributeSelected("vertical")).toEqual({ kind: "nothing" });
+    editor.setMode("edit");
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+  });
+
+  it("18. flip and rotate the surface (change 13B): every box mirrored or turned on the 9 x 9, a fader's orientation following a turn, the kinds unchanged, locked elements moving with it; two flips and four turns are the identity; one entry each keeping the selection, Undo taking it back; nothing on an empty surface or in Play", () => {
+    // THE PURE FUNCTION on a 2 x 6 at the top-left: mirrored left to right it
+    // sits at column 7, top to bottom at row 3; a quarter turn clockwise puts
+    // its origin at (3, 0) as a 6 x 2 - the cell (0, 0) goes to (8, 0).
+    const fader = { col: 0, row: 0, w: 2, h: 6 };
+    expect(transformBox(fader, "flip-horizontal")).toEqual({
+      ...fader,
+      col: 7,
+    });
+    expect(transformBox(fader, "flip-vertical")).toEqual({ ...fader, row: 3 });
+    expect(transformBox(fader, "rotate")).toEqual({
+      col: 3,
+      row: 0,
+      w: 6,
+      h: 2,
+    });
+    const corner = { col: 8, row: 8, w: 1, h: 1 };
+    expect(transformBox(corner, "rotate")).toEqual({ ...corner, col: 0 });
+    let turned = fader;
+    for (let i = 0; i < 4; i += 1) turned = transformBox(turned, "rotate");
+    expect(turned).toEqual(fader);
+
+    // THROUGH THE EDITOR: a fader, a button, a knob and an XY pad, the pad
+    // locked; every one moves, including the locked one - a surface
+    // transform is not an element edit.
+    const { editor, emitted } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.choose("button");
+    editor.clickCell(7, 0);
+    editor.choose("knob");
+    editor.clickCell(3, 5);
+    editor.choose("xy");
+    editor.clickCell(0, 6);
+    editor.cancel();
+    const [f, b, , xy] = editor.surface.regions;
+    editor.select(xy.id);
+    editor.toggleLock();
+    editor.select(f.id);
+    editor.toggleSelect(b.id);
+    const start = editor.surface.regions;
+    const boxes = () => editor.surface.regions.map(boxOf);
+    const depth = editor.history.depth;
+    expect(editor.transformSurface("flip-horizontal")).toEqual({
+      kind: "done",
+      count: 4,
+    });
+    expect(boxes().map((r) => r.col)).toEqual([7, 0, 3, 6]);
+    expect(editor.history.depth).toBe(depth + 1);
+    expect(editor.history.entries.at(-1)?.kind).toBe("transform");
+    expect(editor.selection, "the selection kept").toEqual([f.id, b.id]);
+    expect(lockedOf(byId(editor, xy.id))).toBe(true);
+    expect(editor.transformSurface("flip-horizontal").kind).toBe("done");
+    expect(editor.surface.regions, "two flips are the identity").toEqual(start);
+    expect(editor.transformSurface("flip-vertical").kind).toBe("done");
+    expect(boxes().map((r) => r.row)).toEqual([3, 7, 1, 0]);
+    expect(editor.transformSurface("flip-vertical").kind).toBe("done");
+    expect(editor.surface.regions).toEqual(start);
+    // A quarter turn: the fader is a 6 x 2 at (3, 0) and HORIZONTAL now, the
+    // knob a 3 x 3 at (1, 3), the pad at (0, 0), the button at (7, 7); the
+    // kinds are what they were. Four turns are the identity, orientation too.
+    expect(editor.transformSurface("rotate")).toEqual({
+      kind: "done",
+      count: 4,
+    });
+    expect(boxes()).toEqual([
+      { col: 3, row: 0, w: 6, h: 2 },
+      { col: 7, row: 7, w: 2, h: 2 },
+      { col: 1, row: 3, w: 3, h: 3 },
+      { col: 0, row: 0, w: 3, h: 3 },
+    ]);
+    expect(orientationOf(byId(editor, f.id))).toBe("horizontal");
+    expect(editor.surface.regions.map((r) => r.kind)).toEqual(
+      start.map((r) => r.kind),
+    );
+    for (let i = 0; i < 3; i += 1)
+      expect(editor.transformSurface("rotate").kind).toBe("done");
+    expect(editor.surface.regions, "four turns are the identity").toEqual(
+      start,
+    );
+    expect(orientationOf(byId(editor, f.id))).toBe("vertical");
+    expect(editor.history.depth).toBe(depth + 8);
+    // Undo takes one turn back at a time, the selection kept.
+    expect(editor.transformSurface("rotate").kind).toBe("done");
+    expect(editor.undo()).toBe(true);
+    expect(editor.surface.regions).toEqual(start);
+    expect(editor.selection).toEqual([f.id, b.id]);
+    expect(editor.redo()).toBe(true);
+    expect(orientationOf(byId(editor, f.id))).toBe("horizontal");
+    editor.undo();
+    // Nothing on an empty surface, and in Play.
+    editor.setMode("play");
+    expect(editor.transformSurface("rotate")).toEqual({ kind: "nothing" });
+    editor.setMode("edit");
+    expect(fresh().editor.transformSurface("flip-vertical")).toEqual({
+      kind: "nothing",
+    });
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+  });
+
+  it("19. fill-to-fit and names (change 13B): Alt+click places the armed kind grown to the largest free rectangle holding the cell - the most cells, then the squarer, then the higher, then the further left - a knob to the largest free square, a fader turned along the longer side, the kind's minimum refusing a hole too small, a held cell falling back to the default size; Alt+Enter is the same at the focus cell; every creation path takes an auto-numbered name; renameElement is one entry by id", () => {
+    // THE PURE FUNCTION on a fixture with obstacles: a 2 x 6 fader at the
+    // top-left, a 2 x 2 button at (4, 0), a 1 x 1 blank at (3, 4).
+    const { editor, emitted } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.choose("button");
+    editor.clickCell(4, 0);
+    editor.choose("blank");
+    editor.clickCell(3, 4);
+    editor.cancel();
+    const built = buildCellMap(editor.surface.regions);
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    // Around (5, 4): columns 4..8 by rows 2..8 - 35 cells - beats the 7-wide
+    // strip below the blank (rows 5..8 by columns 2..8, 28).
+    expect(largestFreeBox({ col: 5, row: 4 }, built.map)).toEqual({
+      col: 4,
+      row: 2,
+      w: 5,
+      h: 7,
+    });
+    // A square around (7, 7): 5 x 5 - a 6 x 6 would hold the blank - and of
+    // the two 5 x 5 that hold the cell the HIGHER wins, at row 3.
+    expect(largestFreeBox({ col: 7, row: 7 }, built.map, true)).toEqual({
+      col: 4,
+      row: 3,
+      w: 5,
+      h: 5,
+    });
+    // Around (2, 2), between the fader and the button: the 7 x 2 band under
+    // the button and above the blank (columns 2..8 by rows 2..3, 14 cells)
+    // beats column 2 alone (9) and the 2 x 4 block above the blank (8).
+    expect(largestFreeBox({ col: 2, row: 2 }, built.map)).toEqual({
+      col: 2,
+      row: 2,
+      w: 7,
+      h: 2,
+    });
+    // An empty plate's corner cell belongs to the whole plate; a held cell
+    // is undefined.
+    const empty = buildCellMap([]);
+    if (empty.ok)
+      expect(largestFreeBox({ col: 8, row: 8 }, empty.map)).toEqual({
+        col: 0,
+        row: 0,
+        w: 9,
+        h: 9,
+      });
+    expect(largestFreeBox({ col: 0, row: 0 }, built.map)).toBeUndefined();
+
+    // THROUGH THE EDITOR: F armed, Alt+click at (5, 4) places a 5 x 7 fader
+    // at (4, 2), VERTICAL (taller than wide); a plain click at the same cell
+    // would have been the default 2 x 6. Named Fader 2.
+    editor.choose("fader");
+    const filled = editor.clickCell(5, 4, false, true);
+    expect(filled.kind).toBe("placed");
+    if (filled.kind !== "placed") return;
+    expect(boxOf(filled.region)).toEqual({ col: 4, row: 2, w: 5, h: 7 });
+    expect(orientationOf(filled.region)).toBe("vertical");
+    expect(filled.region.name).toBe("Fader 2");
+    expect(editor.history.entries.at(-1)?.kind).toBe("place");
+    editor.undo();
+    // Alt+click at (2, 2): the 7 x 2 band, wider than tall, lands a
+    // HORIZONTAL fader. A knob there is refused by rule 3: the largest free
+    // square holding (2, 2) is 2 x 2, under the knob's 3.
+    const band = editor.clickCell(2, 2, false, true);
+    expect(band.kind).toBe("placed");
+    if (band.kind === "placed") {
+      expect(boxOf(band.region)).toEqual({ col: 2, row: 2, w: 7, h: 2 });
+      expect(orientationOf(band.region)).toBe("horizontal");
+    }
+    editor.undo();
+    editor.choose("knob");
+    const small = editor.clickCell(2, 2, false, true);
+    expect(small.kind).toBe("refused");
+    if (small.kind === "refused")
+      expect(small.message).toBe(
+        GEOMETRY_COPY.tooSmall(
+          { ...editor.surface.regions[0], kind: "knob" },
+          { w: 3, h: 3 },
+        ),
+      );
+    // The strip under everything: from (0, 7) the largest free rectangle is
+    // columns 0..8 by rows 6..8 (27), wider than tall, so horizontal too.
+    editor.choose("fader");
+    const wide = editor.clickCell(0, 7, false, true);
+    expect(wide.kind).toBe("placed");
+    if (wide.kind === "placed") {
+      expect(boxOf(wide.region)).toEqual({ col: 0, row: 6, w: 9, h: 3 });
+      expect(orientationOf(wide.region)).toBe("horizontal");
+    }
+    // A HELD CELL falls back to the default size, which the overlap refuses.
+    expect(editor.clickCell(0, 0, false, true).kind).toBe("refused");
+    // Alt+Enter: the same at the focus cell; a plain Enter the default.
+    editor.setFocus({ col: 7, row: 3 });
+    editor.choose("button");
+    const marked = editor.mark(true);
+    expect(marked.kind).toBe("placed");
+    if (marked.kind === "placed")
+      expect(boxOf(marked.region)).toEqual({ col: 4, row: 2, w: 5, h: 4 });
+    editor.undo();
+    const plain = editor.mark();
+    expect(plain.kind).toBe("placed");
+    if (plain.kind === "placed")
+      expect(boxOf(plain.region)).toEqual({ col: 7, row: 3, w: 2, h: 2 });
+    editor.cancel();
+
+    // AUTO-NUMBERED NAMES on every path: the starter, a hotkey placement, a
+    // fill placement, a duplicate and a paste all take the kind's lowest
+    // free number; the template's two keep the PDF's names (Filter, Hold).
+    const { editor: named } = fresh();
+    expect(named.starter().kind).toBe("placed");
+    expect(named.surface.regions[0].name).toBe("Fader 1");
+    named.choose("fader");
+    named.clickCell(3, 0);
+    expect(named.surface.regions[1].name).toBe("Fader 2");
+    named.cancel();
+    named.select(named.surface.regions[0].id);
+    expect(named.duplicate().ok).toBe(true);
+    expect(named.surface.regions[2].name).toBe("Fader 3");
+    const content = named.copySelection();
+    named.setFocus({ col: 8, row: 0 });
+    expect(named.paste(content).kind).toBe("done");
+    expect(named.surface.regions[3].name).toBe("Fader 4");
+    named.choose("fader");
+    named.clickCell(6, 6, false, true);
+    expect(named.surface.regions[4].name).toBe("Fader 5");
+    named.select(named.surface.regions[1].id);
+    named.remove();
+    named.choose("fader");
+    named.clickCell(3, 0);
+    expect(named.surface.regions.at(-1)?.name, "the gap refilled").toBe(
+      "Fader 2",
+    );
+    named.cancel();
+    const { editor: templated } = fresh();
+    expect(templated.template()).toBe(true);
+    expect(templated.surface.regions.map((r) => r.name)).toEqual([
+      "Filter",
+      "Hold",
+    ]);
+
+    // RENAME BY ID (the plate's inline rename): one entry under `rename`,
+    // sealed - a second rename is a second entry - Undo takes it back and
+    // leaves the selection as it was; refused for an empty name, the same
+    // name, an unknown id, and in Play.
+    const [first] = named.surface.regions;
+    named.select(undefined);
+    const depth = named.history.depth;
+    expect(named.renameElement(first.id, "  Cutoff ")).toBe(true);
+    expect(byId(named, first.id).name).toBe("Cutoff");
+    expect(named.history.depth).toBe(depth + 1);
+    expect(named.history.entries.at(-1)?.kind).toBe("rename");
+    expect(named.renameElement(first.id, "Resonance")).toBe(true);
+    expect(named.history.depth).toBe(depth + 2);
+    expect(named.selection).toEqual([]);
+    expect(named.undo()).toBe(true);
+    expect(byId(named, first.id).name).toBe("Cutoff");
+    expect(named.renameElement(first.id, "   ")).toBe(false);
+    expect(named.renameElement(first.id, "Cutoff")).toBe(false);
+    expect(named.renameElement("nobody", "X")).toBe(false);
+    named.setMode("play");
+    expect(named.renameElement(first.id, "Play")).toBe(false);
+    named.setMode("edit");
+    expect(named.history.depth).toBe(depth + 1);
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+  });
+
+  it("20. sticky defaults per kind (change 13B): a field edited on ONE element is remembered for its kind and the next new element of that kind starts from it - channel, min, max, mode, speed, spring and its value, toggle, output and note, group, touches - while the controller, the colour and the orientation are not; a multi-edit, a rename, a recolour and a move remember nothing; the reset forgets every kind and is not an entry; the store round-trips, a corrupt envelope reads as empty, and the key is owned", () => {
+    const told: SandboxDefaults[] = [];
+    const editor = new SandboxEditor(emptySurface("t", "Test"), {
+      ondefaults: (d) => void told.push(d),
+    });
+    expect(editor.defaults).toBe(NO_DEFAULTS);
+    // A fader shaped: channel 5, min 10, relative at full speed, a spring
+    // at 40. Every one is told; the record is the kind's sticky fields as
+    // they stand - max is absent on the region, so absent here.
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    editor.editNumber("channel", "5");
+    editor.commitField();
+    editor.editNumber("min", "10");
+    editor.commitField();
+    editor.setRegionMode("relative");
+    editor.setSpeed("full");
+    editor.setSpring(true);
+    editor.editNumber("springValue", "40");
+    editor.commitField();
+    expect(editor.defaults.kinds.fader).toEqual({
+      channel: 5,
+      min: 10,
+      mode: "relative",
+      speed: "full",
+      spring: true,
+      springValue: 40,
+    });
+    expect(told.at(-1)).toBe(editor.defaults);
+    // The next fader takes them; its controller is the next free one, its
+    // colour the palette's next, its orientation the default.
+    editor.choose("fader");
+    editor.clickCell(3, 0);
+    editor.cancel();
+    const [f1, f2] = editor.surface.regions;
+    expect(f2).toMatchObject({
+      channel: 5,
+      min: 10,
+      mode: "relative",
+      speed: "full",
+      spring: true,
+      springValue: 40,
+      cc: f1.cc + 1,
+      colour: [...PALETTE[1]],
+      orientation: "vertical",
+    });
+    expect(f2).not.toHaveProperty("max");
+    // A MULTI-EDIT remembers nothing: channel 9 over both, the record at 5.
+    const toldBefore = told.length;
+    editor.select(f1.id);
+    editor.toggleSelect(f2.id);
+    editor.editNumber("channel", "9");
+    editor.commitField();
+    expect(byId(editor, f2.id).channel).toBe(9);
+    expect(editor.defaults.kinds.fader?.channel).toBe(5);
+    // Nor a rename, a recolour, a move, a lock, or the orientation.
+    editor.select(f1.id);
+    editor.rename("Cutoff");
+    editor.setColour([0, 15, 15]);
+    editor.nudgeSelected(0, 1);
+    editor.commitField();
+    editor.toggleLock();
+    editor.toggleLock();
+    editor.setOrientation("horizontal");
+    expect(told.length).toBe(toldBefore);
+    // A button: Note C4, toggled, group 2 - the next button sends the same
+    // note; back on CC the note is not stored and the controller is free.
+    editor.choose("button");
+    editor.clickCell(6, 0);
+    editor.cancel();
+    editor.setOutput("note");
+    editor.editNumber("note", "C4");
+    editor.commitField();
+    editor.setLatch(true);
+    editor.setGroup(2);
+    expect(editor.defaults.kinds.button).toEqual({
+      channel: 1,
+      latch: true,
+      output: "note",
+      group: 2,
+      note: 60,
+    });
+    editor.choose("button");
+    editor.clickCell(6, 3);
+    editor.cancel();
+    expect(editor.surface.regions.at(-1)).toMatchObject({
+      cc: 60,
+      output: "note",
+      latch: true,
+      group: 2,
+    });
+    editor.setOutput("cc");
+    expect(editor.defaults.kinds.button).not.toHaveProperty("note");
+    // An XY pad's touches stick and keep the controllers under the ceiling.
+    editor.choose("xy");
+    editor.clickCell(6, 6);
+    editor.cancel();
+    editor.setTouches(4);
+    expect(editor.defaults.kinds.xy).toEqual({ channel: 1, touches: 4 });
+    const pad = editor.surface.regions.at(-1) as Region;
+    expect(
+      withKindDefaults({ ...pad, cc: 126, cc2: 127 }, { touches: 5 }),
+    ).toMatchObject({ touches: 5, cc: 118, cc2: 119 });
+    // Only the kind's own fields apply, and only a mode the kind offers.
+    expect(STICKY_FIELDS.blank).toEqual([]);
+    expect(
+      withKindDefaults(byId(editor, f1.id), {
+        touches: 3,
+        group: 4,
+        mode: "relative-twos",
+        channel: 7,
+      }),
+    ).toEqual({ ...byId(editor, f1.id), channel: 7 });
+    expect(rememberKind({ ...byId(editor, f1.id), kind: "blank" })).toEqual({});
+    // THE RESET forgets every kind, is told, and is not an entry.
+    const depth = editor.history.depth;
+    editor.resetDefaults();
+    expect(editor.defaults).toBe(NO_DEFAULTS);
+    expect(told.at(-1)).toBe(NO_DEFAULTS);
+    expect(editor.history.depth).toBe(depth);
+    editor.choose("button");
+    editor.clickCell(3, 6);
+    editor.cancel();
+    expect(editor.surface.regions.at(-1)).toMatchObject({
+      channel: 1,
+      latch: false,
+    });
+    expect(editor.surface.regions.at(-1)).not.toHaveProperty("group");
+    // A paste keeps the original's settings, not the defaults (13A's rule).
+    editor.select(editor.surface.regions[3].id);
+    editor.setFocus({ col: 0, row: 7 });
+    expect(editor.paste(editor.copySelection()).kind).toBe("done");
+    expect(editor.surface.regions.at(-1)).toMatchObject({
+      cc: 60,
+      latch: true,
+      group: 2,
+      col: 0,
+      row: 7,
+    });
+
+    // THE STORE: written whole, read back equal; an absent, a corrupt (bad
+    // JSON, another version, a channel out of range, an unknown kind, a
+    // wrong word) and a refusing store all read as empty; the reset removes
+    // the key; the key is owned and versioned like the others.
+    const { store, map } = mapStore();
+    const defaults: SandboxDefaults = {
+      schema: 1,
+      kinds: { fader: { channel: 5, spring: true }, button: { note: 60 } },
+    };
+    expect(readSandboxDefaults(store)).toBe(NO_DEFAULTS);
+    expect(writeSandboxDefaults(store, defaults)).toBe(true);
+    expect(map.get(SANDBOX_DEFAULTS_KEY)).toBe(JSON.stringify(defaults));
+    expect(readSandboxDefaults(store)).toEqual(defaults);
+    for (const bad of [
+      "{",
+      JSON.stringify({ schema: 2, kinds: {} }),
+      JSON.stringify({ schema: 1, kinds: { fader: { channel: 99 } } }),
+      JSON.stringify({ schema: 1, kinds: { pad: {} } }),
+      JSON.stringify({ schema: 1, kinds: { knob: { mode: "spin" } } }),
+      JSON.stringify({ schema: 1, kinds: [] }),
+    ]) {
+      map.set(SANDBOX_DEFAULTS_KEY, bad);
+      expect(readSandboxDefaults(store), bad).toBe(NO_DEFAULTS);
+    }
+    expect(isSandboxDefaults(defaults)).toBe(true);
+    expect(
+      isSandboxDefaults({ schema: 1, kinds: { xy: { touches: 6 } } }),
+    ).toBe(false);
+    expect(writeSandboxDefaults(store, defaults)).toBe(true);
+    expect(resetSandboxDefaults(store)).toBe(true);
+    expect(map.has(SANDBOX_DEFAULTS_KEY)).toBe(false);
+    expect(readSandboxDefaults(undefined)).toBe(NO_DEFAULTS);
+    expect(writeSandboxDefaults(undefined, defaults)).toBe(false);
+    expect(resetSandboxDefaults(undefined)).toBe(false);
+    expect(SANDBOX_DEFAULTS_KEY).toBe("hangar.sandbox-defaults.v1");
+    expect(OWNED_KEYS).toContain(SANDBOX_DEFAULTS_KEY);
   });
 });

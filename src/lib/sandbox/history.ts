@@ -1,6 +1,6 @@
 // The Sandbox's undo and redo: a history over STRUCTURAL edits of one surface
 // (place, delete, move, resize, rename, duplicate, recolour, MIDI, orientation, latch,
-// brightness; paste, cut and lock since change 13A). Selection and mode are not entries. An
+// brightness; paste, cut and lock since 13A; align, distribute and transform since 13B). Selection and mode are not entries. An
 // entry holds the surface before and after, both immutable values, and the region (or the set) to re-select.
 // THE COALESCING BOUNDARY: a numeric field's keystrokes are ONE entry - an edit
 // under a coalesce key replaces the open entry's `after` until seal() (blur,
@@ -29,7 +29,10 @@ export type EditKind =
   | "template"
   | "paste"
   | "cut"
-  | "lock";
+  | "lock"
+  | "align"
+  | "distribute"
+  | "transform";
 
 export type HistoryEntry = {
   readonly kind: EditKind;

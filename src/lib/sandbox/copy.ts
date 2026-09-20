@@ -253,6 +253,53 @@ export const PASTE_NO_SPACE =
 export const PASTE_AT_CAP =
   "This surface is full. Remove an element to paste another.";
 
+// ---------------------------------------------------------------------------
+// Change 13B (BENCH-2026-09-16.txt section 13): align and distribute, flip and rotate, the
+// fill-to-fit placement, and the sticky defaults. D-05's register; every line here is HANGAR's.
+
+/** The inspector's Arrange row over a set: its title, its helper, and the eight commands' accessible names. */
+export const ARRANGE = "Arrange";
+export const ARRANGE_HELPER =
+  "Align the selected elements on an edge or a center line, or space them out with equal gaps. When spacing out, the outer two stay where they are.";
+export const ALIGN_LEFT = "Align left edges";
+export const ALIGN_RIGHT = "Align right edges";
+export const ALIGN_TOP = "Align top edges";
+export const ALIGN_BOTTOM = "Align bottom edges";
+export const ALIGN_CENTRE_X = "Center horizontally";
+export const ALIGN_CENTRE_Y = "Center vertically";
+export const DISTRIBUTE_X = "Space out horizontally";
+export const DISTRIBUTE_Y = "Space out vertically";
+/** The outcomes on the plate's status line, and the one refusal spacing makes of its own. */
+export const alignedLine = (n: number): string => `Aligned ${elementsLine(n)}.`;
+export const spacedLine = (n: number): string =>
+  `Spaced out ${elementsLine(n)}.`;
+export const DISTRIBUTE_NO_ROOM =
+  "There’s no room to space these out. Move the outer elements further apart first.";
+
+/** The surface's three transforms (suggestion 4): the row's helper, the three names, the three outcomes. */
+export const TRANSFORM_HELPER =
+  "Flip or rotate the whole surface. Every element moves with it, locked ones too: a transform is not an element edit.";
+export const FLIP_HORIZONTAL = "Flip left to right";
+export const FLIP_VERTICAL = "Flip top to bottom";
+export const ROTATE = "Rotate a quarter turn clockwise";
+export const FLIPPED_HORIZONTAL = "Flipped the surface left to right.";
+export const FLIPPED_VERTICAL = "Flipped the surface top to bottom.";
+export const ROTATED = "Rotated the surface a quarter turn clockwise.";
+
+/** The palette's helper while a kind is armed (suggestion 5): a plain click and the fill-to-fit click. */
+export const PALETTE_FILL_HELPER =
+  "A click places the element at its default size. Alt+click (Option+click on a Mac) fills the free area around the cell.";
+
+/** The inspector's New elements section with nothing selected (suggestion 8): the sticky defaults and their reset. */
+export const NEW_ELEMENTS = "New elements";
+export const DEFAULTS_HELPER =
+  "A new element takes the settings you last gave its kind: channel, range, mode and the rest. Its color still follows the palette.";
+export const RESET_DEFAULTS = "Reset defaults";
+export const RESET_DEFAULTS_HELPER =
+  "Reset returns every kind to its built-in settings. It changes the stored defaults, not the surface, so Undo doesn’t take it back.";
+export const DEFAULTS_RESET_LINE =
+  "Defaults reset. The next new element starts from the built-in settings.";
+
 /** Save copy's outcome. */
 export const savedLine = (name: string): string =>
   `${name} saved to My configs.`;

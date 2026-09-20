@@ -1,24 +1,31 @@
 // The Sandbox editor's model: one surface, one SELECTION SET (change 13A: an ordered list of ids;
 // `selected` is the one region while the set has one), one mode, one armed kind, one keyboard
-// focus cell, the history, and the field states that let an invalid keystroke stay on screen
-// without reaching the surface. Pure TypeScript with no browser in it: src/lib/ui/sandbox/ renders
-// and calls it, sandbox-ui.spec.ts drives it in node, and no method takes a pointer event. The
-// selector is the default tool: a click selects alone, Shift toggles, a click on empty clears, a
-// marquee is `selectTouching`; `choose(kind)` arms a kind for every `clickCell` until `cancel()`.
-// Every structural command takes the set as one - a drag's release is one `moveSelectedTo`, the
-// arrows one `nudgeSelected` (coalesced until `commitField`), `editNumber` and the setters write
-// every member under one entry, `paste` / `duplicate` land a group by geometry.ts's placementFor.
+// focus cell, the history, the sticky kind defaults (13B), and the field states that let an
+// invalid keystroke stay on screen without reaching the surface. Pure TypeScript with no browser:
+// src/lib/ui/sandbox/ renders and calls it, sandbox-ui.spec.ts drives it in node, no method takes
+// a pointer event. The selector is the default tool: a click selects alone, Shift toggles, a click
+// on empty clears, a marquee is `selectTouching`; `choose(kind)` arms a kind for every `clickCell`
+// (Alt+click fills) until `cancel()`. Every structural command takes the set as one, one entry:
+// `moveSelectedTo`, `nudgeSelected`, `editNumber` and the setters, `paste` / `duplicate` (by
+// placementFor), and 13B's `alignSelected` / `distributeSelected` / `transformSurface` / `renameElement`.
 // Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { noteName, noteNumber } from "../tune/view";
 import type { ClipboardContent } from "./clipboard";
 import {
+  NO_DEFAULTS,
+  SCHEMA_VERSION,
+  type KindDefaults,
+  type SandboxDefaults,
+} from "../store/schema";
+import {
   KIND_LABELS,
   TEMPLATE_BUTTON_NAME,
   TEMPLATE_FADER_NAME,
   CC_RANGE,
   CHANNEL_RANGE,
+  DISTRIBUTE_NO_ROOM,
   NOTE_RANGE,
   PASTE_AT_CAP,
   PASTE_NO_SPACE,
@@ -33,15 +40,23 @@ import {
   GEOMETRY_COPY,
   addRegion,
   adjacencyWarnings,
+  alignBoxes,
   applyEdits,
   buildCellMap,
+  distributeBoxes,
+  largestFreeBox,
   placementFor,
   touching,
+  transformBox,
+  validate,
   type AdjacencyWarning,
+  type Alignment,
+  type Axis,
   type CellMap,
   type GeometryRules,
   type Problem,
   type RegionEdit,
+  type SurfaceTransform,
 } from "./geometry";
 import { History, fieldKey, type EditKind } from "./history";
 import {
@@ -254,7 +269,75 @@ export type EditorOptions = {
   readonly rules?: GeometryRules;
   /** Called after every change with the new state. */
   readonly onchange?: (state: EditorState) => void;
+  /** The sticky defaults per kind (change 13B), read from the store by the route. */
+  readonly defaults?: SandboxDefaults;
+  /** Called with the defaults whenever they change - a single element's field edited, or the reset - so the route stores them. */
+  readonly ondefaults?: (defaults: SandboxDefaults) => void;
 };
+
+export { NO_DEFAULTS };
+
+/**
+ * The fields that stick per kind (change 13B, suggestion 8): the ones the readings named, and
+ * only on the kind that has them. The controller, the colour, the orientation, the name and
+ * the geometry never stick; a blank has nothing to remember.
+ */
+export const STICKY_FIELDS: Readonly<
+  Record<ElementKind, readonly (keyof KindDefaults)[]>
+> = {
+  fader: ["channel", "min", "max", "mode", "speed", "spring", "springValue"],
+  xy: ["channel", "min", "max", "mode", "speed", "touches"],
+  knob: ["channel", "min", "max", "mode"],
+  button: ["channel", "min", "max", "latch", "output", "group", "note"],
+  blank: [],
+};
+
+/** A region's sticky fields as a kind's record: each one present on the region, `note` its controller while it sends a note. */
+export function rememberKind(region: Region): KindDefaults {
+  const out: Record<string, unknown> = {};
+  for (const field of STICKY_FIELDS[region.kind]) {
+    const value =
+      field === "note"
+        ? outputOf(region) === "note"
+          ? region.cc
+          : undefined
+        : region[field];
+    if (value !== undefined) out[field] = value;
+  }
+  return out as KindDefaults;
+}
+
+/**
+ * A new region with its kind's sticky fields applied: only the kind's own fields, only a mode
+ * the kind offers; a button on Note takes the remembered note as its controller; an XY pad's
+ * controllers stay under the ceiling its remembered touch count allows.
+ */
+export function withKindDefaults(
+  region: Region,
+  defaults: KindDefaults | undefined,
+): Region {
+  if (defaults === undefined) return region;
+  const out: Record<string, unknown> = { ...region };
+  for (const field of STICKY_FIELDS[region.kind]) {
+    const value = defaults[field];
+    if (value === undefined || field === "note") continue;
+    if (field === "mode") {
+      const offered = region.kind === "knob" ? KNOB_MODES : CONTINUOUS_MODES;
+      if (!offered.includes(value as RegionMode)) continue;
+    }
+    out[field] = value;
+  }
+  let next = out as Region;
+  if (next.kind === "button" && outputOf(next) === "note") {
+    if (defaults.note !== undefined) next = { ...next, cc: defaults.note };
+  }
+  if (next.kind === "xy") {
+    const ceiling = ccCeiling(touchesOf(next));
+    const cc = Math.max(CC_MIN, Math.min(next.cc, ceiling - 1));
+    next = { ...next, cc, cc2: Math.min(ceiling, cc + 1) };
+  }
+  return next;
+}
 
 const clampCell = (n: number): number =>
   Math.min(LAST_CELL, Math.max(0, Math.trunc(n)));
@@ -271,6 +354,9 @@ const sameBox = (a: Box, b: Box): boolean =>
 
 const boxOf = (r: Region): Box => ({ col: r.col, row: r.row, w: r.w, h: r.h });
 
+/** The edit kinds a single element's field edit is remembered under (change 13B): a typed MIDI field, an option, the toggle. */
+const STICKY_KINDS: readonly EditKind[] = ["midi", "option", "latch"];
+
 export class SandboxEditor {
   private _surface: Surface;
   private _selection: readonly string[] = [];
@@ -282,6 +368,11 @@ export class SandboxEditor {
   private _touchesProblem: string | undefined = undefined;
   private readonly rules: GeometryRules;
   private readonly onchange: ((state: EditorState) => void) | undefined;
+  private readonly ondefaults:
+    | ((defaults: SandboxDefaults) => void)
+    | undefined;
+  /** The sticky defaults per kind (change 13B), the same shape the store keeps. */
+  private _defaults: SandboxDefaults;
   private minted = 0;
   /** Regions this editor has created, for the palette (header, last paragraph). */
   private created = 0;
@@ -291,6 +382,8 @@ export class SandboxEditor {
     this._surface = surface;
     this.rules = options.rules ?? {};
     this.onchange = options.onchange;
+    this.ondefaults = options.ondefaults;
+    this._defaults = options.defaults ?? NO_DEFAULTS;
   }
 
   // -------------------------------------------------------------------------
@@ -343,6 +436,11 @@ export class SandboxEditor {
     return (
       this._surface.regions.length >= (this.rules.cap ?? SURFACE_ELEMENT_CAP)
     );
+  }
+
+  /** The sticky defaults as they stand (change 13B). */
+  get defaults(): SandboxDefaults {
+    return this._defaults;
   }
 
   /** The region holding a cell, if any. */
@@ -436,11 +534,16 @@ export class SandboxEditor {
       // colour in and the cycle does not move.
       colour: colour === undefined ? this.nextColour() : [...colour],
     };
-    if (kind === "xy") return { ...region, cc2: Math.min(CC_MAX, cc + 1) };
-    if (kind === "button") return { ...region, latch: false };
-    if (kind === "fader")
-      return { ...region, orientation: orientation ?? "vertical" };
-    return region;
+    const shaped: Region =
+      kind === "xy"
+        ? { ...region, cc2: Math.min(CC_MAX, cc + 1) }
+        : kind === "button"
+          ? { ...region, latch: false }
+          : kind === "fader"
+            ? { ...region, orientation: orientation ?? "vertical" }
+            : region;
+    // The sticky defaults (change 13B): the settings the user last gave this kind.
+    return withKindDefaults(shaped, this._defaults.kinds[kind]);
   }
 
   // -------------------------------------------------------------------------
@@ -470,8 +573,18 @@ export class SandboxEditor {
     if (this._selection.length > 0) this.select(undefined);
   }
 
-  /** The one entry point for a click on the plate, by pointer or by Enter; Shift toggles the held element in the set. */
-  clickCell(col: number, row: number, shift = false): ClickOutcome {
+  /**
+   * The one entry point for a click on the plate, by pointer or by Enter; Shift toggles the held
+   * element in the set. With a kind armed, `fill` (Alt+click, change 13B) places the element grown
+   * to the largest free rectangle holding the cell - a knob the largest free square, a fader turned
+   * along the longer side - and the kind's minimum refuses a rectangle too small for it.
+   */
+  clickCell(
+    col: number,
+    row: number,
+    shift = false,
+    fill = false,
+  ): ClickOutcome {
     if (this._mode === "play") return { kind: "play" };
     const at = { col: clampCell(col), row: clampCell(row) };
     this._focus = at;
@@ -483,13 +596,21 @@ export class SandboxEditor {
         return { kind: "refused", message: GEOMETRY_COPY.cap };
       }
       const size = DEFAULT_SIZES[pending.type];
-      const box = {
+      const fallback = {
         col: Math.min(at.col, SURFACE_SIZE - size.w),
         row: Math.min(at.row, SURFACE_SIZE - size.h),
         w: size.w,
         h: size.h,
       };
-      return this.place(pending.type, box, "place");
+      const filled = fill ? this.fillBox(pending.type, at) : undefined;
+      const box = filled ?? fallback;
+      const orientation =
+        filled !== undefined && pending.type === "fader"
+          ? box.w > box.h
+            ? "horizontal"
+            : "vertical"
+          : undefined;
+      return this.place(pending.type, box, "place", orientation);
     }
 
     const holder = this.regionAt(at.col, at.row);
@@ -515,6 +636,13 @@ export class SandboxEditor {
     }
     this.setSelection([], at);
     return { kind: "cleared" };
+  }
+
+  /** The fill-to-fit box (change 13B): geometry.ts's largest free rectangle holding the cell, a square for a knob; undefined on a held cell. */
+  fillBox(kind: ElementKind, at: Cell): Box | undefined {
+    const built = buildCellMap(this._surface.regions);
+    if (!built.ok) return undefined;
+    return largestFreeBox(at, built.map, kind === "knob");
   }
 
   private place(
@@ -571,9 +699,9 @@ export class SandboxEditor {
     this.emit();
   }
 
-  /** Enter on the plate: the same click, at the focus cell. */
-  mark(): ClickOutcome {
-    return this.clickCell(this._focus.col, this._focus.row);
+  /** Enter on the plate: the same click, at the focus cell; Alt+Enter the fill-to-fit click (change 13B). */
+  mark(fill = false): ClickOutcome {
+    return this.clickCell(this._focus.col, this._focus.row, false, fill);
   }
 
   // -------------------------------------------------------------------------
@@ -713,7 +841,28 @@ export class SandboxEditor {
       this._selection,
     );
     this._surface = result.surface;
+    // The sticky defaults (change 13B): a field edited on ONE element is remembered for its kind; a multi-edit is not.
+    if (STICKY_KINDS.includes(kind) && edits.length === 1) {
+      const region = result.surface.regions.find((r) => r.id === edits[0][0]);
+      if (region !== undefined) this.remember(region);
+    }
     return undefined;
+  }
+
+  /** The kind's record replaced by this region's sticky fields, and the route told. */
+  private remember(region: Region): void {
+    if (region.kind === "blank") return;
+    this._defaults = {
+      schema: SCHEMA_VERSION,
+      kinds: { ...this._defaults.kinds, [region.kind]: rememberKind(region) },
+    };
+    this.ondefaults?.(this._defaults);
+  }
+
+  /** Reset defaults (change 13B): every kind back to the model's own. Not a surface edit - no entry, and Undo does not take it back. */
+  resetDefaults(): void {
+    this._defaults = NO_DEFAULTS;
+    this.ondefaults?.(this._defaults);
   }
 
   /**
@@ -1219,6 +1368,116 @@ export class SandboxEditor {
     this._touchesProblem = undefined;
     this.emit();
     return { kind: "done", count: regions.length };
+  }
+
+  // -------------------------------------------------------------------------
+  // Change 13B: the set aligned or spaced out, the whole surface flipped or turned, an element renamed by id.
+
+  /**
+   * Align the set (suggestion 3): every member to the set's edge or centre line, sizes kept, one
+   * entry under `align` through applyEdits - refused whole with the first line where a member
+   * would overlap or is locked; nothing with fewer than two selected or when nothing would move.
+   */
+  alignSelected(to: Alignment): CommandOutcome {
+    const regions = this.selectedRegions;
+    if (this._mode === "play" || regions.length < 2) return { kind: "nothing" };
+    return this.arrange(regions, alignBoxes(regions.map(boxOf), to), "align");
+  }
+
+  /**
+   * Space the set out (suggestion 3): equal gaps along the axis, the outermost two fixed, one entry
+   * under `distribute`; refused with its own line when the members are wider than the span; nothing
+   * with fewer than three selected (two have nothing between them).
+   */
+  distributeSelected(axis: Axis): CommandOutcome {
+    const regions = this.selectedRegions;
+    if (this._mode === "play" || regions.length < 3) return { kind: "nothing" };
+    const boxes = distributeBoxes(regions.map(boxOf), axis);
+    if (boxes === undefined)
+      return { kind: "refused", message: DISTRIBUTE_NO_ROOM };
+    return this.arrange(regions, boxes, "distribute");
+  }
+
+  /** One box per member as one entry: the lock's refusal first, the same boxes no entry, else applyEdits' verdict. */
+  private arrange(
+    regions: readonly Region[],
+    boxes: readonly Box[],
+    kind: "align" | "distribute",
+  ): CommandOutcome {
+    const locked = this.lockedMember();
+    if (locked !== undefined)
+      return { kind: "refused", message: lockedMoveLine(locked.name) };
+    if (regions.every((r, i) => sameBox(r, boxes[i])))
+      return { kind: "nothing" };
+    const edits = regions.map((r, i): RegionEdit => [r.id, boxes[i]]);
+    const problem = this.applyPatches(edits, kind);
+    if (problem !== undefined)
+      return { kind: "refused", message: problem.message };
+    this._fields = {};
+    this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
+    const origin = boundingBox(this.selectedRegions.map(boxOf)) as Box;
+    this._focus = { col: origin.col, row: origin.row };
+    this.emit();
+    return { kind: "done", count: regions.length };
+  }
+
+  /**
+   * The whole surface flipped left to right, top to bottom, or turned a quarter clockwise
+   * (suggestion 4): every region's box through geometry.ts's transformBox, a fader's orientation
+   * following a turn, the kinds unchanged; the result re-validated whole (each region and the map)
+   * and refused with the first line if it fails - a surface transform is not an element edit, so a
+   * locked element moves with it. One entry under `transform`, the selection kept.
+   */
+  transformSurface(transform: SurfaceTransform): CommandOutcome {
+    if (this._mode === "play" || this._surface.regions.length === 0)
+      return { kind: "nothing" };
+    const regions = this._surface.regions.map((r): Region => {
+      const next: Region = { ...r, ...transformBox(boxOf(r), transform) };
+      if (transform !== "rotate" || r.kind !== "fader") return next;
+      return {
+        ...next,
+        orientation:
+          orientationOf(r) === "vertical" ? "horizontal" : "vertical",
+      };
+    });
+    const after: Surface = { ...this._surface, regions };
+    for (const r of regions) {
+      const verdict = validate(r, after, this.rules);
+      if (!verdict.ok)
+        return { kind: "refused", message: verdict.problem.message };
+    }
+    this.record(
+      "transform",
+      this._surface,
+      after,
+      this.selectedId,
+      undefined,
+      this._selection,
+    );
+    this._surface = after;
+    this._fields = {};
+    this._orientationProblem = undefined;
+    this._touchesProblem = undefined;
+    this.emit();
+    return { kind: "done", count: regions.length };
+  }
+
+  /**
+   * Rename one element by id (suggestion 7, the plate's inline rename): one entry under `rename`,
+   * sealed at once - not coalesced with the inspector's field. False in Play, for an unknown id,
+   * an empty name or the same name; the selection is not moved.
+   */
+  renameElement(id: string, name: string): boolean {
+    const trimmed = name.trim();
+    const region = this._surface.regions.find((r) => r.id === id);
+    if (this._mode === "play" || region === undefined || trimmed === "")
+      return false;
+    if (region.name === trimmed) return false;
+    const problem = this.applyPatches([[id, { name: trimmed }]], "rename");
+    this.history.seal();
+    this.emit();
+    return problem === undefined;
   }
 
   // -------------------------------------------------------------------------

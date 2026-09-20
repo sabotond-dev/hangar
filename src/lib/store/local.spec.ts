@@ -203,6 +203,7 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
       "hangar.intro.v1",
       "hangar.motion.v1",
       "hangar.collections.v1",
+      "hangar.sandbox-defaults.v1",
     ]);
     expect([
       DRAFTS_KEY,
@@ -216,7 +217,8 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
     // collections.ts is its one reader and writer.
     expect(COLLECTIONS_KEY).toBe("hangar.collections.v1");
     expect(OWNED_KEYS, "the spent key is owned").toContain(COLLECTIONS_KEY);
-    expect(OWNED_KEYS.length).toBe(7);
+    // The Sandbox's sticky defaults (change 13B): the eighth key, owned by sandbox-defaults.ts.
+    expect(OWNED_KEYS.length).toBe(8);
     expect(SCHEMA_VERSION).toBe(1);
   });
 
