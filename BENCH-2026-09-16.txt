@@ -1991,3 +1991,88 @@ left as is; say if GHOST should have its own line. (f) STEPS reads Tempo (BPM) a
 say if the eighth reading (the header's old "bar of eighths") is wanted despite 250 BPM as the
 default. (g) GHOST's `Clocks a point` is 1 / 2 / 3; say if a "2 points a clock" (faster than
 drawn) rung is wanted. (h) Changes 1 to 11's and 8's (b)-(j) questions still stand.
+
+**Done - change 12b, 2026-09-18 (RADAR rebuilt by hand, on the DAW's clock, off the front door).**
+Five source commits and one docs commit, no push, no device, no deploy: `9f56f5b` feat(front-door)
+- RADAR leaves the row; `7afa4be` feat(catalog) - `src/lib/catalog/entries/radar.ts`, the wiring,
+the spec pins, `frames.json`, audition row 38 and `docs/entries/radar.md`; `829473d`, `a72f6a0`,
+`85a0f64` test(sweep) - the sweep specs' pins, one run at a time; then this paragraph with
+`docs/TESTING.md`'s "2026-09-18 change 12b", a dated line in `docs/entries/library.md`, the gate
+script's quick constant at the proved 95 / 1003 and the gate records `gate/change-12b.*` (before,
+at `6e09278`, on a clean worktree `../hangar-gate-12b` with its own `npm ci`, removed after) and
+`gate/change-12b-after.*` (at `85a0f64`).
+
+**The preset, as read** (its compiled strings are pinned in `docs/entries/radar.md`): layer 2 the
+ring colour at phase `sqrt(u*u+v*v)*45` per cell, the firmware's sine walked at fre 254 - the
+firmware ADDS fre, so -2 a tick, the crest OUTWARD, 128 ticks a ring at the default detent 2 - under
+a keeper the Timer re-arms every 300 s; layer 1 the comet colour 255,170,34 and the library's
+`K(x,y,1,252)`; the wire the compiler's first-finger xy emitter - the raw pair on CC 16 / 17,
+channel 1, on every sample of the claimant (press, move, fast tap), the release on 3 / >=5, a
+second finger silent. Three tune knobs: Colour (the lattice), Speed (1 2 3 4 6 8 12 16), Send
+(twelve CC bases). **The rebuild:** that Setup verbatim with `@COL @SPEED @CC` as tokens, the
+Timer verbatim (no token), plus `@SYNC @DIV` - five knobs, no `@CH` (the preset had none). Under
+External `@SYNC and 0 or 256-@SPEED` freezes the walk at the rest picture and `grxm(2,3)` routes
+the clock; the step is a SETUP LOCAL `f(s)` called by the callback directly - not the published
+`s.f` of change 12, because this Timer runs every 300 s and `s.f` is the compiler's finger id -
+writing every cell's phase to `(s.a[n]-k*32)%256`, eight steps a ring (half a bar at the 16th, a
+bar at the 8th, a beat at the 32nd); Start resets k and q so the next clock lands the ring at the
+centre, Stop holds it where it is, Continue resumes, no release. `self.rtmrx_cb=function(s,h,b)if
+b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif
+b==248 and s.r then if s.q%@DIV==0 then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or
+0)gtt(0,3e5)`. Setup **758** at the defaults, **763** at the worst of the 2,880 states (145 free),
+Timer **50**; no system slot. The Speed knob keeps the preset's rates (no BPM ladder lands 1.28 s;
+the rail ascends, bigger is faster).
+
+**Faithful, proved:** `frames.json`'s radar block is byte-identical through the regeneration (it
+moved to the end with the entry), the OG set is byte-identical (`radar.png` included), and
+lua-smoke holds the Lua card against `new PadSim(presetById("radar").state)` frame for frame at
+seven ticks, under a finger, after its lift and sixty ticks on, with the wire asserted literal.
+**The divergences, D-14 style:** nothing on the wire; the colour knob is a five-colour palette
+with the picker rather than the lattice; the sentence carries the house apostrophe at source
+(copy.spec.ts; `typographic.spec.ts` now proves the transform on the shelf preset through
+`portedEntry`); lua-smoke's keeper guard reads the layer's shape (a sign-turned walk at `+@SPEED`
+from `128-p` was measured to keep the rate low and not taken: the sine is symmetric only to
+rounding and the frames moved); touch-guard's eighth declared row for the compiler's release
+`e==3 or e>=5`; `addedAt` 2026-09-18. **The front door** is seven - `radar` excluded with its
+reason, RADAR POINTS's reason no longer names a preset at position 5, the spec's floor of eight
+lowered to seven with the reason. **The wire diff:** set `53a8e114…` -> `852b8c14…`, 2,805 ->
+2,775: 2,711 identical, 0 moved, 94 `P/radar/…` out, 64 `E/radar/…` in, nothing else; full
+`850747bf…` -> `2932fc5a…` (2,737 identical, 95 out, 65 in). **Old links:** `pradar` and any tuned
+BOTOR RADAR stamp land `unreadable` under the Lua card and open it at its defaults (stamp.spec.ts,
+against real stamps encoded through the shelf preset); RADAR is not in `wild-stamps.json`.
+**The VM cases** (lua-smoke 46 -> 47): Internal beside the preset; External - fre 0 from the
+Setup, the Timer moving nothing over 300 and 200 ticks, clocks before Start nothing, step 0 on the
+first clock after Start (no first-period caveat: the step is in the Setup), the centre at 224 on
+the seventh, the finger's pair unchanged, Stop, Continue from clock 7, the eight-step wrap, Start
+again; Division 12 and 3.
+
+**Counts, carried + delta:** quick 95 / 1002 + 1 todo -> **95 / 1003 + 1 todo** (+0 / +1), green
+at `--maxWorkers=2` four times (one direct, three through the gate); check 659 -> **660** (0 / 0);
+lint clean; sweep `4 19` green; e2e 91 / 106 -> **91 / 106** (no title added; four full runs at
+104 / 103 / 102 / 104 with every red but two on the recorded browse lines, c3 by its files **21
+passed**, c2 **20 passed** with `:299` and `:343` red, alone `:299` green and `:343` red - the
+fill-before-hydration shape on a grid that stayed at 27, its expected six untouched by this
+change; c4's and c1's files green in all four full runs); audition rows 37 -> **38**; utilities
+**44** -> **44**; catalog **27** (stays 27); testids **321** equal; copy exports equal; OG 27 files
+/ 159,169 B / `9becd682…` equal; `frames.json` `ccb860ca` -> `3bf1ef05` (moved, not changed), the
+three other fixtures equal; census 2,862 -> 2,872; titles 1,003 -> 1,004; `src/` 19 modified / 1
+added. **The gate** exits 1 at the wire by design.
+
+**Departures from the brief:** the step in the Setup, not published from the Timer; no `@CH`;
+the Speed rail in rates, not BPM; `divergence.ts`'s rows and `presets.ts`'s declaration stay (they
+describe the shelf preset, which `presets.spec.ts` still holds against the vendored nine; the tpad
+precedent); the description's apostrophe; the keeper guard's shape read; five source commits (the
+sweep found three pins one run at a time; each re-ran the gate); the OG not regenerated in effect;
+`library.ts`, `sequence.ts`, `src/vendor/`, the manifest, `Knob.svelte`, `ColourPicker.svelte`,
+`pad-sim.ts`, `firmware-oracle.spec.ts`, every other entry untouched; STATE / ROADMAP /
+REQUIREMENTS untouched; CAT-04 stays `[ ]`. Not deployed - on the user's word.
+
+**Questions for the user.** (a) Eight steps a ring under External (32 phase a step: half a bar at
+the 16th) - say if sixteen steps of 16 (a bar at the 16th, a smoother crest) is wanted instead.
+(b) The ring under External is FROZEN until the DAW's Start; say if it should keep rolling at the
+Speed knob until the first clock lands (the fold would go, the first clock would snap the phase).
+(c) No channel knob: say if `@CH` is wanted on RADAR as on the other sync cards (six knobs; the
+Setup has 145 free). (d) The Ring speed rail reads the firmware rate 1 to 16; say if a period in
+seconds (2.56 to 0.16) is the wanted reading. (e) `browse.e2e.ts:343` is red alone today
+(`:299` green alone); its expected six are untouched by this change - say if the recorded flake
+should be given a hydration wait in the test. (f) Changes 1 to 12's questions still stand.

@@ -6503,3 +6503,128 @@ first - holds; `BUDGET_ERROR` 890 is the vendored compiler's line with no consum
 `cdc1548`; `library.ts`, `sequence.ts`, `src/vendor/`, the manifest, `Knob.svelte`,
 `ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts`, RADAR and every other entry
 untouched; ROADMAP / REQUIREMENTS / STATE untouched; CAT-04 stays `[ ]`; not deployed.
+
+## 2026-09-18 change 12b - RADAR rebuilt by hand, on the DAW's clock
+
+`BENCH-2026-09-16.txt` section 12, the user's answer `2`: the ported RADAR preset rebuilt as a
+hand-authored Lua entry under its own id with ORBIT's clock idiom, and taken off the front door.
+Five source commits and one docs commit, no push, no device, no deploy: `9f56f5b`
+feat(front-door): RADAR leaves the row (green on its own: the partition holds with `radar`
+excluded while still a preset); `7afa4be` feat(catalog): the entry, the wiring, the spec pins,
+`frames.json`, the audition row and `docs/entries/radar.md`; `829473d`, `a72f6a0`, `85a0f64`
+test(sweep): the sweep specs' pins (seven compiler-driven racks, thirty-four colour knobs exempt
+by format, the two compiler-pass floors at 24,000 for the observed 24,438, the scoped ladder set
+at seven), each found by running the sweep; then this section, the Done paragraph "12b" under
+section 12, a dated line in `docs/entries/library.md`, the gate script's quick constant at the
+proved 95 / 1003 and the gate records `gate/change-12b.*` (before, at `6e09278`, on a clean
+worktree `../hangar-gate-12b` with its own `npm ci`, removed after the records were copied; the
+first attempt was cut with the session at its quick term and retaken whole) and
+`gate/change-12b-after.*` (at `85a0f64`; two earlier after-runs at `7afa4be` and `a72f6a0` were
+superseded by the sweep-pin commits and replaced).
+
+**What the rebuild is** (`docs/entries/radar.md` has the preset's compiled strings and the whole
+argument). The compiled Setup of HANGAR's shelf preset carried verbatim into
+`src/lib/catalog/entries/radar.ts` with its three knobs as tokens - `@COL` the ring colour (a
+palette of five, the preset's 255,68,0 first), `@SPEED` the firmware's rate (the preset's eight
+detents 1 2 3 4 6 8 12 16, ascending, spelled `256-@SPEED` in the Lua because the firmware ADDS
+fre), `@CC` the CC pair (the preset's twelve `SEND_OPTIONS`) - plus `@SYNC` (Internal / External,
+`previewIndex: 0`) and `@DIV` (12 / 6 / 3); the Timer is the preset's keeper re-arm and carries no
+token. Under External the fold `@SYNC and 0 or 256-@SPEED` freezes the walk at the rest picture
+and `grxm(2,3)` routes the clock to `rtmrx_cb`; the step is a Setup LOCAL `f(s)` (the Timer's
+period is the preset's 300 s, so a published step would leave five minutes of clocks counted and
+not stepped; `s.f` stays the compiler's first-finger id) that writes every cell's layer-2 phase to
+`(s.a[n]-k*32)%256` - eight steps a ring, half a bar at the 16th; Start puts the ring back at the
+centre on the next clock, Stop holds it, Continue resumes, no release (no note). The first finger's
+raw CC pair on channel 1 is the compiler's text: nothing on the wire moved. Setup 758 at the
+defaults, 763 at the worst of the 2,880-state cross-product (145 free), Timer 50; no system slot.
+
+**The picture is the preset's byte for byte.** `frames.json`'s radar block did not move through
+the regeneration (the five sampled ticks hash the same under the Lua VM as under the native
+PadSim; the block moved to the end of the file with the entry, `ccb860ca` -> `3bf1ef05`), the OG
+set is byte-identical (27 files, 159,169 B, `9becd682…`: `radar.png` at tick 64 is the same PNG),
+and lua-smoke's RADAR case holds the two engines frame for frame with and without a finger. A
+sign-turned walk (`(128-p)%256` at `+@SPEED`) was measured first, to keep the rate under
+lua-smoke's keeper guard, and not taken: the sine lookup is symmetric only to rounding, the
+regenerated frames kept every non-zero count and moved every hash. So the guard now reads the
+layer's SHAPE (`sha === 0`, a decay) - pitfall 1 is a keeper under a decay's countdown, and the
+compiler's own continuous look at 254 under a keeper is what every RADAR card has always been.
+
+**What moved in the suites.** `lua-smoke.spec.ts` 46 -> 47: RADAR as the compiled preset and on
+the clock (Internal: frames equal to `new PadSim(presetById("radar").state)` at ticks 0, 1, 37,
+64, 101, 128, 300, under a finger on LED (4,4), after a move to (6,2), after the lift and sixty
+ticks on; the press and the move send CC 16 / 17 raw on channel 0, a second finger and the lift
+nothing, the next finger claims the pair; External: fre 0 from the Setup, 300 and 200 Timer ticks
+moving nothing, twelve clocks before Start nothing, step 0 on the first clock after Start - no
+first-period caveat on this card - the centre at 224 and ring 1 at 13 on the seventh, the finger's
+pair unchanged, Stop holding through clocks and 254, Continue from clock 7 to 192 on the sixth,
+eight steps wrapping to rest with `s.k` reading 1, Start resetting; Division 12 and 3; the words
+and the preview), and the strobe guard's shape read. `catalog.spec.ts`: `SHELF_NOT_CARDED` is
+`tpad` + `radar` (a Lua card may hold a shelf id only when declared there; seven carded, two
+named); `brightness`, `frames`, `wire-pin`, `surprise` (7 racks; `radar: send` last in the
+excluded list, still thirty-three on twenty), `colour-picker` (5 lattice knobs on the shelf) at
+seven; `touch-guard.spec.ts`'s eighth declared row - the compiler's first-finger release `e==3 or
+e>=5`, right because the claim and the send precede it in the same pass; `typographic.spec.ts`
+test 3 through `portedEntry("radar")` (the Lua card's sentence carries the house apostrophe, held
+by `copy.spec.ts`; the shelf's ASCII one is still what the transform is proven on);
+`stamp.spec.ts`: `pradar` and a tuned BOTOR stamp of the shelf preset land `unreadable` under the
+Lua card, and the Lua card's `w` stamp under the shelf preset; `audition.spec.ts` `ROW_COUNT` 37
+-> 38; the sweep specs' pins above. `ported.ts`: `radar` in `SHELF_ONLY_META` beside `tpad`,
+`portedEntry("radar")` still building the preset card. `front-door.ts`: the row is seven, `radar`
+excluded with its reason, RADAR POINTS's reason no longer names a preset at position 5; the spec's
+floor eight -> seven with the reason.
+
+**Counts, carried + delta:** quick 95 / 1002 + 1 todo -> **95 / 1003 + 1 todo** (+0 / +1), green
+at `--maxWorkers=2` in four runs (one direct on the fresh build, three through the gate's
+`check-counts.mjs 95 1003` at `829473d`, `a72f6a0`, `85a0f64`; the first direct pass was red only
+on `og/build.spec.ts` against a stale `build/` with the old apostrophe); check 659 -> **660** (0 /
+0; the new file); lint clean; sweep `4 19` green (RADAR's 2,880 states in the Lua pass, the
+preset pass at 24,438); e2e 91 / 106 -> **91 / 106** (no title added; the runs below); audition
+rows 37 -> **38**; utilities **44** -> **44** (0 appeared, 0 disappeared; scoped `5aa7323e…` and
+raw `e6d0ee3b…` equal); catalog **27** (stays 27: one card replaced by one card); testids **321**
+equal; copy exports `09a12df9…` equal; OG 27 files / 159,169 B / `9becd682…` equal; `frames.json`
+`ccb860ca` -> `3bf1ef05` (the radar block byte-identical, moved), `golden-frames.json`,
+`preset-baseline.json` and `synthetic-zona.json` equal; `src/` 19 modified / 1 added / 0 deleted /
+0 renamed against `6e09278`.
+
+**The gate's terms** (`--before change-12b` at `6e09278`, `--after change-12b --against change-12b
+--check 660` at `85a0f64`; the after-record's dirty flag reads 1 for the gate script's own quick
+constant): the wire set `53a8e114…` -> `852b8c14…`, 2,805 -> 2,775 records - **2,711
+byte-identical, 0 moved, 94 removed, 64 added: every removed record `P/radar/…`, every added one
+`E/radar/…`, nothing outside RADAR**; the full `850747bf…` -> `2932fc5a…`, 2,832 -> 2,802 (2,737
+identical, 0 moved, 95 out, 65 in; Lua states 902,360 -> 905,240, preset states 25,384 -> 22,696);
+the sandbox set `3bdb5974…` equal; the census `7300d394…` -> `e2585d8c…` (2,862 -> 2,872 literals,
+195 -> 196 files); the titles `79ce1bc2…` -> `63c35e7a…` (1,003 -> 1,004 vitest titles incl.
+todo; 106 playwright runs); the JS `35983e18…` -> `62a0b202…` (71 files); the comment-lines
+record: 5 files moved (ported, front-door, index, listing; radar.ts added, its header at the
+ten-line rule by `comment-lines.mjs --todo`). The script exits 1 at the wire by design; the
+before's quick term read `no Vitest summary lines` as change 12's did.
+
+**Chunks** (a fresh detached wrangler dev on 4173 per invocation, stopped through PowerShell,
+HTTP 000 after each; 5173 untouched - no `vite dev` was running; the build stamped `85a0f64`).
+Four invocations with a chunk NAME ALONE ran the whole suite of 106 each (the script's one-chunk
+form needs the files; the brief's "one chunk name per invocation" reads as the name and the
+files): 104, 103, 102 and 104 passed; every red but two was a `browse.e2e.ts` line the brief
+records as the hydration flake (`:299` four of four, `:343` three of four, `:1186`, `:1263`,
+`:1404` once each), the two others `tuning.e2e.ts:699` once (SURPRISE ME's random vector landing
+on the current one, "a surprise that changed nothing") and the webkit-phone `browse.e2e.ts:842`
+once (`wasm streaming compile failed: Load failed`). So c4's five files and c1's two files are
+green four times over. Then by their files: **c3 21 passed**; **c2 20 passed**, `:299` and `:343`
+red; alone, **`:299` passed** and **`:343` red** - `field.fill("colour")` typed into a grid that
+stayed at 27 for its 5 s (the fill-before-hydration shape; its expected six are the description
+word "colour", which this change does not touch, and it passed in two of the four full runs).
+`:299`'s red in every loaded run is the NAME-sort arm reading the FEATURED order: `expectOrder`
+waits only for the first card, `arc` in both orders.
+
+**Departures from the brief:** the step is a Setup local called directly, not the Timer-published
+`s.f` of change 12 (the preset's 300 s Timer; `s.f` is the compiler's finger); no `@CH` knob (the
+preset had none - the brief's condition); the Speed knob is the preset's eight rates, not a BPM
+rail (no BPM ladder lands 1.28 s exactly); `divergence.ts`'s `NINE` and RADAR's rows stay - they
+describe the shelf preset, which `presets.spec.ts` still diffs against the vendored nine, and
+`presets.ts` keeps the declaration (the tpad precedent); the description carries the house
+apostrophe (copy.spec.ts) rather than the vendored one; lua-smoke's keeper guard gained a shape
+read; the front door is one shorter (the spec pinned a floor of eight, lowered to seven with the
+reason); `addedAt` is 2026-09-18; five source commits, not two, because the sweep found three pins
+one run at a time and each pin's commit re-ran the gate; the three gate after-runs; the OG was not
+regenerated in effect (byte-identical); `library.ts`, `sequence.ts`, `src/vendor/`, the manifest,
+`Knob.svelte`, `ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts` and every other
+entry untouched; STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed.

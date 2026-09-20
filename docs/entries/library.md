@@ -510,3 +510,10 @@ EUCLID where they mean ORBIT, because that file is on the change's untouched lis
 its own entry (`docs/entries/steps.md`, `radar-points.md`, `ghost.md`, the change 12 sections);
 still an idiom, not a library function, and `library.ts` is untouched again. The two cards that
 hold notes publish a release beside the step (`s.u` beside `s.f`) for the DAW's Start and Stop.
+
+2026-09-18 (change 12b): RADAR took the idiom as a hand-authored card - the ported preset rebuilt
+under its own id (`docs/entries/radar.md`), so `K` gains a hand-authored caller whose call is the
+compiler's own `K(x,y,1,252)`; still an idiom, not a library function, and `library.ts` is
+untouched again (its section 5 still lists RADAR among the compiler's comet callers, which is
+where the same call came from). The step on this card is a Setup local rather than a published
+`s.f`: the preset's Timer runs every 300 s, and `s.f` is the compiler's first-finger id there.

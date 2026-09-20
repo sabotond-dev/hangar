@@ -1,0 +1,288 @@
+# 13.2 gate --after change-12b --against change-12b --check 660
+HEAD 85a0f64 (85a0f64b95e3e3b4a91e76accceaf68bc4e7a7e6); dirty (src e2e scripts docs) 1; free memory 1.9 GB; 2026-09-20T20:09:13Z
+before-record HEAD 6e092780d78727761127fbc8fde4d3baca3cf5ea
+
+## the wire
+2775 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 852b8c14ed4b39c1a86e55f7c7e441b74f12f8106143ce70bbb89b5d0ad70f4d
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 2932fc5a3cfe3d5476989dee8777763b14c8c583d9ef00307d3607675dd91ab4
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+196 files; 2872 distinct literals (6731 occurrences); 7 copy modules; 321 data-testids
+literal census sha256 e2585d8c72be446c5f97d20a2152914095e15238084735fd5114e3c17dcbd031
+copy exports   sha256 09a12df90520f1de455c77e1c27ad738ece3b4693461d4c87fad39a879a2d3e8
+data-testids   sha256 ee1f20c11511bc391be69c0fd57a6c0eb4053fca7007ee433d23d44443fea6d6
+- 1 -> 2	"0,110,255"
+- 3 -> 4	"0,255,140"
+- 11 -> 13	"12"
+- 8 -> 10	"16"
+- 4 -> 5	"180,0,255"
+- 7 -> 8	"20"
+- 5 -> 6	"24"
+- 17 -> 18	"255,255,255"
+- 3 -> 4	"28"
+- 2 -> 3	"32"
+- 8 -> 9	"36"
+- 5 -> 6	"40"
+- 1 -> 2	"44"
+- 11 -> 12	"48"
+- 2 -> 3	"52"
+- 2 -> 3	"64"
+- 4 -> 5	"80"
+- 5 -> 6	"@CC"
+- 4 -> 5	"@DIV"
+- 1 -> 2	"@SPEED"
+- 4 -> 5	"@SYNC"
+- 1 -> 2	"CC pair"
+- 3 -> 4	"Division"
+- 3 -> 1	"Rings roll out from the centre, and the pad sends your finger's position to your computer."
+- 4 -> 5	"Sync"
+- 1 -> 0	"The hand-authored radar the user asked for, built as a second card under plan 11-14's answer new-entry so the RADAR preset at ring position 5 stays exactly as it is. It cannot take that position or an eighth-plus-one: front-door.spec.ts requires preview === 'padsim' of every row entry, and 11-14-HANDOVER.md measured that the rule is live for a reason its own comment does not give - Coverflow.svelte builds an engine for every ring entry, so a 'lua' row would put the 271 KB Lua VM on the front page's first paint, which e2e/tuning.e2e.ts forbids in words. Beyond that, the front door is a curated row; new configurations join it deliberately, not by arriving in the catalog."
+- 29 -> 30	"amount"
+- 25 -> 24	"animated"
+- 65 -> 67	"colour"
+- 4 -> 5	"division"
+- 24 -> 25	"expressive"
+- 8 -> 9	"false"
+- 31 -> 32	"generative"
+- 61 -> 63	"lua"
+- 34 -> 36	"mode"
+- 18 -> 19	"modulation"
+- 17 -> 16	"padsim"
+- 6 -> 7	"radar"
+- 3 -> 4	"send"
+- 17 -> 19	"speed"
+- 4 -> 5	"sync"
+- 66 -> 67	"true"
++ 0 -> 1	"--[[@cb]]gtt(0,3e5)for a=0,80 do glt(a,2,65535)end"
++ 0 -> 1	"--[[@cb]]self.a={}self.k=0 self.q=0 for n=0,80 do local a,u,v=glag(0,n),n%9-4,n//9-4 local p=math.sqrt(u*u+v*v)*45//1 self.a[n]=p glc(a,2,@COL,1)glpfs(a,2,p,@SYNC and 0 or 256-@SPEED,3)glt(a,2,65535)glc(a,1,255,170,34,1)end local function f(s)local k=s.k%8 s.k=k+1 for n=0,80 do glp(glag(0,n),2,(s.a[n]-k*32)%256)end end self.touch_cb=function(s,i,e,x,y)K(x,y,1,252)if(e==4 or e==9)and not s.f then s.f=i end if i==s.f then if e==1 or e==4 or e>8 then s:gms(0,176,@CC,x,0)s:gms(0,176,@CC+1,y,0)end if e==3 or e>=5 then s.f=nil end end end self.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then if s.q%@DIV==0 then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,3e5)"
++ 0 -> 1	"./entries/radar"
++ 0 -> 1	"2026-09-18"
++ 0 -> 1	"255,68,0"
++ 0 -> 1	"@COL"
++ 0 -> 1	"Hand-authored Lua since change 12b - the ported RADAR preset rebuilt by hand so it can step on the DAW's MIDI clock - and the row is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. The user's word was to take it off the row, so the row is one shorter; the front door is a curated row and it rejoins deliberately or not at all."
++ 0 -> 1	"Ring colour"
++ 0 -> 1	"Ring speed"
++ 0 -> 2	"Rings roll out from the centre, and the pad sends your finger’s position to your computer."
++ 0 -> 1	"The hand-authored radar the user asked for, built as a second card under plan 11-14's answer new-entry so the RADAR preset, then at ring position 5, stayed exactly as it was (the preset left the row at change 12b, when RADAR itself became a Lua card). It cannot take a row position: front-door.spec.ts requires preview === 'padsim' of every row entry, and 11-14-HANDOVER.md measured that the rule is live for a reason its own comment does not give - Coverflow.svelte builds an engine for every ring entry, so a 'lua' row would put the 271 KB Lua VM on the front page's first paint, which e2e/tuning.e2e.ts forbids in words. Beyond that, the front door is a curated row; new configurations join it deliberately, not by arriving in the catalog."
+
+## the comment lines
+197 files; 48677 lines, 31233 code, 13543 comment, 3901 blank, 4189 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/ported.ts | 149 | 154 | 47 | 52 | 12 | 12 |
+| src/lib/catalog/entries/radar.ts (new) | - | 199 | - | 105 | - | 77 |
+| src/lib/catalog/front-door.ts | 246 | 248 | 74 | 79 | 22 | 22 |
+| src/lib/catalog/index.ts | 137 | 142 | 27 | 29 | 9 | 9 |
+| src/lib/catalog/listing.ts | 499 | 507 | 151 | 159 | 12 | 12 |
+| **totals (196 -> 197 files)** | 48458 | 48677 | 13418 | 13543 | 4112 | 4189 |
+
+5 file(s) moved
+
+## check and lint
+check: 1789934990284 COMPLETED 660 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 1003 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 85a0f64
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 3bf1ef05986f7fce1577fffeaa0f2da2847ba613 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: e6d0ee3b6bac9f74b07a3d9621513e81c57f8d2dfeabe294c47d5fd10e28ae2d (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 e6d0ee3b6bac9f74b07a3d9621513e81c57f8d2dfeabe294c47d5fd10e28ae2d
+SCOPED CSS sha256 5aa7323e1a4541d3e97fac31f23569c4c275fc5512dcba052dcf6c558010c20d
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 62a0b202f83226269441c44c8a2229e9b953cf085c2bdcd466f3e343e57e27d7 (71 files)
+
+## the titles
+TITLES sha256 63c35e7ac5f7f279c6950ace581b0516e16bb4f718f5b71f63f0f61decb2a9d9 (1004 vitest titles incl. todo, 106 playwright runs)
+
+## src/ against the before-record's HEAD 6e092780d78727761127fbc8fde4d3baca3cf5ea
+git diff --name-status: 19 modified, 1 added, 0 deleted, 0 renamed
+  A	src/lib/catalog/entries/radar.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-12b
+wire moved: set 53a8e1140365486c464232a4432c0a06b2f57021e952efe49f32a256bb904b97 -> 852b8c14ed4b39c1a86e55f7c7e441b74f12f8106143ce70bbb89b5d0ad70f4d; full 850747bf8314a82609d26d58fe32473ad141787263f0a9a9cbdedaf3a54d52af -> 2932fc5a3cfe3d5476989dee8777763b14c8c583d9ef00307d3607675dd91ab4
+  - P/radar/defaults/setup
+  - P/radar/defaults/timer
+  - P/radar/corner (every knob last)/setup
+  - P/radar/corner (every knob last)/timer
+  - P/radar/knob colour=0/setup
+  - P/radar/knob colour=0/timer
+  - P/radar/knob colour=1/setup
+  - P/radar/knob colour=1/timer
+  - P/radar/knob colour=15/setup
+  - P/radar/knob colour=15/timer
+  - P/radar/knob colour=16/setup
+  - P/radar/knob colour=16/timer
+  - P/radar/knob colour=17/setup
+  - P/radar/knob colour=17/timer
+  - P/radar/knob colour=31/setup
+  - P/radar/knob colour=31/timer
+  - P/radar/knob colour=240/setup
+  - P/radar/knob colour=240/timer
+  - P/radar/knob colour=241/setup
+  - P/radar/knob colour=241/timer
+  - P/radar/knob colour=255/setup
+  - P/radar/knob colour=255/timer
+  - P/radar/knob colour=256/setup
+  - P/radar/knob colour=256/timer
+  - P/radar/knob colour=257/setup
+  - P/radar/knob colour=257/timer
+  - P/radar/knob colour=271/setup
+  - P/radar/knob colour=271/timer
+  - P/radar/knob colour=272/setup
+  - P/radar/knob colour=272/timer
+  - P/radar/knob colour=273/setup
+  - P/radar/knob colour=273/timer
+  - P/radar/knob colour=287/setup
+  - P/radar/knob colour=287/timer
+  - P/radar/knob colour=496/setup
+  - P/radar/knob colour=496/timer
+  - P/radar/knob colour=497/setup
+  - P/radar/knob colour=497/timer
+  - P/radar/knob colour=511/setup
+  - P/radar/knob colour=511/timer
+  - P/radar/knob colour=3840/setup
+  - P/radar/knob colour=3840/timer
+  - P/radar/knob colour=3841/setup
+  - P/radar/knob colour=3841/timer
+  - P/radar/knob colour=3855/setup
+  - P/radar/knob colour=3855/timer
+  - P/radar/knob colour=3856/setup
+  - P/radar/knob colour=3856/timer
+  - P/radar/knob colour=3857/setup
+  - P/radar/knob colour=3857/timer
+  - P/radar/knob colour=3871/setup
+  - P/radar/knob colour=3871/timer
+  - P/radar/knob colour=4080/setup
+  - P/radar/knob colour=4080/timer
+  - P/radar/knob colour=4081/setup
+  - P/radar/knob colour=4081/timer
+  - P/radar/knob colour=4095/setup
+  - P/radar/knob colour=4095/timer
+  - P/radar/knob speed=0/setup
+  - P/radar/knob speed=0/timer
+  - P/radar/knob speed=2/setup
+  - P/radar/knob speed=2/timer
+  - P/radar/knob speed=3/setup
+  - P/radar/knob speed=3/timer
+  - P/radar/knob speed=4/setup
+  - P/radar/knob speed=4/timer
+  - P/radar/knob speed=5/setup
+  - P/radar/knob speed=5/timer
+  - P/radar/knob speed=6/setup
+  - P/radar/knob speed=6/timer
+  - P/radar/knob speed=7/setup
+  - P/radar/knob speed=7/timer
+  - P/radar/knob send=1/setup
+  - P/radar/knob send=1/timer
+  - P/radar/knob send=2/setup
+  - P/radar/knob send=2/timer
+  - P/radar/knob send=3/setup
+  - P/radar/knob send=3/timer
+  - P/radar/knob send=4/setup
+  - P/radar/knob send=4/timer
+  - P/radar/knob send=5/setup
+  - P/radar/knob send=5/timer
+  - P/radar/knob send=6/setup
+  - P/radar/knob send=6/timer
+  - P/radar/knob send=7/setup
+  - P/radar/knob send=7/timer
+  - P/radar/knob send=8/setup
+  - P/radar/knob send=8/timer
+  - P/radar/knob send=9/setup
+  - P/radar/knob send=9/timer
+  - P/radar/knob send=10/setup
+  - P/radar/knob send=10/timer
+  - P/radar/knob send=11/setup
+  - P/radar/knob send=11/timer
+  - P/radar/cross-product (2688 states)
+  + E/radar/defaults/setup
+  + E/radar/defaults/timer
+  + E/radar/corner/setup
+  + E/radar/corner/timer
+  + E/radar/knob colour=0/setup
+  + E/radar/knob colour=0/timer
+  + E/radar/knob colour=1/setup
+  + E/radar/knob colour=1/timer
+  + E/radar/knob colour=2/setup
+  + E/radar/knob colour=2/timer
+  + E/radar/knob colour=3/setup
+  + E/radar/knob colour=3/timer
+  + E/radar/knob colour=4/setup
+  + E/radar/knob colour=4/timer
+  + E/radar/knob speed=0/setup
+  + E/radar/knob speed=0/timer
+  + E/radar/knob speed=1/setup
+  + E/radar/knob speed=1/timer
+  + E/radar/knob speed=2/setup
+  + E/radar/knob speed=2/timer
+  + E/radar/knob speed=3/setup
+  + E/radar/knob speed=3/timer
+  + E/radar/knob speed=4/setup
+  + E/radar/knob speed=4/timer
+  + E/radar/knob speed=5/setup
+  + E/radar/knob speed=5/timer
+  + E/radar/knob speed=6/setup
+  + E/radar/knob speed=6/timer
+  + E/radar/knob speed=7/setup
+  + E/radar/knob speed=7/timer
+  + E/radar/knob send=0/setup
+  + E/radar/knob send=0/timer
+  + E/radar/knob send=1/setup
+  + E/radar/knob send=1/timer
+  + E/radar/knob send=2/setup
+  + E/radar/knob send=2/timer
+  + E/radar/knob send=3/setup
+  + E/radar/knob send=3/timer
+  + E/radar/knob send=4/setup
+  + E/radar/knob send=4/timer
+  + E/radar/knob send=5/setup
+  + E/radar/knob send=5/timer
+  + E/radar/knob send=6/setup
+  + E/radar/knob send=6/timer
+  + E/radar/knob send=7/setup
+  + E/radar/knob send=7/timer
+  + E/radar/knob send=8/setup
+  + E/radar/knob send=8/timer
+  + E/radar/knob send=9/setup
+  + E/radar/knob send=9/timer
+  + E/radar/knob send=10/setup
+  + E/radar/knob send=10/timer
+  + E/radar/knob send=11/setup
+  + E/radar/knob send=11/timer
+  + E/radar/knob sync=0/setup
+  + E/radar/knob sync=0/timer
+  + E/radar/knob sync=1/setup
+  + E/radar/knob sync=1/timer
+  + E/radar/knob division=0/setup
+  + E/radar/knob division=0/timer
+  + E/radar/knob division=1/setup
+  + E/radar/knob division=1/timer
+  + E/radar/knob division=2/setup
+  + E/radar/knob division=2/timer
+  + E/radar/cross-product (2880 states)
+FAIL: the wire
