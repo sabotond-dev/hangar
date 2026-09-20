@@ -2110,3 +2110,19 @@ touches. Built in three serial parts on Fable: 13A the selection model, the clip
 lock, Tab; 13B the geometry tools - align / distribute, flip / rotate, fill-to-fit, auto-names and
 the plate rename, sticky defaults; 13C the surfaces - the right-click menu, the cheat-sheet,
 export / import, the MIDI monitor, the plate toggles and the conflicts pass, the colour tools.
+
+> also keep in mind. the json file for export should be in the way the Grid Editor can implement
+> it. this is important:
+> we need to be able to export the full lua config from the hangar app as a .json file onto our
+> harddisk, locally for our own computer, whether it's mac os, linux or windows - where the app
+> website was itself opened. The full lua config is equivalent of a profile-cloud profile. Use a
+> reference json file found under grid-userdata/configs. although hangar is a separate app
+> developed specifically for ZONA, the configuration created in hangar should be copyable into
+> the grid-userdata/configs folder, so it can be opened with the grid-editor desktop app as well.
+
+Recorded 2026-09-20: suggestion 10's export is a Grid Editor profile file - the same shape as a
+profile-cloud profile in `Documents/grid-userdata/configs` on this machine - holding the full Lua
+config (every slot HANGAR writes), downloaded by the browser to the user's own disk on any OS, so
+the file dropped into grid-userdata/configs opens in the Grid Editor desktop app. The export
+covers what HANGAR lands: a tuned playground configuration and a Sandbox surface alike. Import
+reads the same file back where the content is HANGAR's. Folded into part 13C.
