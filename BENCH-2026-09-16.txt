@@ -2076,3 +2076,12 @@ Setup has 145 free). (d) The Ring speed rail reads the firmware rate 1 to 16; sa
 seconds (2.56 to 0.16) is the wanted reading. (e) `browse.e2e.ts:343` is red alone today
 (`:299` green alone); its expected six are untouched by this change - say if the recorded flake
 should be given a hydration wait in the test. (f) Changes 1 to 12's questions still stand.
+
+13. Sandbox quality of life - clipboard, multi-select, multi-edit, and more (2026-09-20, queued for Fable)
+--------------------------------------------------------------------------------
+
+> next up: add basic quality of life improvements that are staple for most modern softwares. make
+> it possible to copy, paste and cut elements. Make it possible to be able to select multiple
+> elements either with holding shift and clicking or with the selection tool when dragging and
+> making a square. Make it that you can adjust/edit multiple elements. research more of these
+> typical quality of life and user experience ease features and suggest me more to add.
