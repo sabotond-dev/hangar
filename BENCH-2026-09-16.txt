@@ -2138,3 +2138,14 @@ the rest as Init placeholders; the element / event lists from `@intechstudio/gri
 (`get_module_element_list`, `get_element_events` for ZONA), the loader in
 `C:/Users/sabot/Documents/Claude/grid-editor` read for what it requires. The download is the
 browser's own (a Blob and an `<a download>`), which lands in the Downloads folder on every OS.
+
+14. SNAKE is broken - remake it (2026-09-20, lowest priority, queued last)
+--------------------------------------------------------------------------------
+
+> nice, one more note but thats on the lowest part of the priority list rn: the SNAKE gimmick
+> profile is broken, we'll need to remake that
+
+Recorded: SNAKE (`src/lib/catalog/entries/snake.ts`) is broken on the bench; a remake, queued
+after change 13's three parts. What is broken - which hardware behaviour - is not yet described;
+the question to ask before the remake is what the user saw (the snake not moving, the steering,
+the food, the death, the picture) so the remake starts from the fault, not a guess.
