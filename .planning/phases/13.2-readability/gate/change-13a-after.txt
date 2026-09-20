@@ -1,0 +1,152 @@
+# 13.2 gate --after change-13a --against change-13a --check 661
+HEAD cff8f01 (cff8f01c0e14c2505adabf5bfbe5905d68e94f2f); dirty (src e2e scripts docs) 0; free memory 1.51 GB; 2026-09-20T21:40:44Z
+before-record HEAD 34732c6de9c27a013469f2f6f1e52b92775ab27b
+
+## the wire
+2775 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 852b8c14ed4b39c1a86e55f7c7e441b74f12f8106143ce70bbb89b5d0ad70f4d
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 2932fc5a3cfe3d5476989dee8777763b14c8c583d9ef00307d3607675dd91ab4
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+197 files; 2914 distinct literals (6823 occurrences); 7 copy modules; 327 data-testids
+literal census sha256 0df9e009f812e4b8b54da9db1f9ef5faf0de32032209035f8e01d1852e800b1d
+copy exports   sha256 eea5099f8ea1567f160f145095c3fa3867770dc634ce3a36bdef873c94ff2b89
+data-testids   sha256 ed13451fd505f152c626a9626b34ddd04f11ca1201799d4bd26ce9c7bf88e717
+- 2 -> 3	"${} ${}."
+- 1 -> 2	"Delete ${}"
+- 1 -> 2	"Locked"
+- 14 -> 13	"absolute"
+- 2 -> 3	"boolean"
+- 8 -> 11	"cap"
+- 22 -> 21	"cc"
+- 4 -> 5	"delete"
+- 2 -> 3	"duplicate"
+- 5 -> 4	"half"
+- 11 -> 13	"helper type-helper"
+- 4 -> 5	"id"
+- 22 -> 24	"idle"
+- 24 -> 26	"kept"
+- 19 -> 17	"knob"
+- 2 -> 6	"lock"
+- 2 -> 3	"no region with id ${}"
+- 5 -> 9	"no-space"
+- 14 -> 15	"object"
+- 1 -> 0	"outline"
+- 6 -> 8	"overlap"
+- 48 -> 52	"play"
+- 43 -> 48	"refused"
+- 2 -> 3	"selected"
+- 67 -> 68	"true"
+- 10 -> 9	"vertical"
++ 0 -> 1	" : String(touches)}\n            disabled={play}\n            aria-describedby={view.touchesProblem !== undefined\n              ? touchesProblemId\n              : lock}\n            onchange={(event) => {\n              const select = event.currentTarget;\n              ontouches?.(Number.parseInt(select.value, 10));\n              const now = shared(touchesOf);\n              select.value = now === undefined ? "
++ 0 -> 1	"${} is locked. Unlock it to delete it."
++ 0 -> 1	"${} is locked. Unlock it to move or resize it."
++ 0 -> 1	"${} selected."
++ 0 -> 1	"${}-locked"
++ 0 -> 1	"A change here applies to every selected element."
++ 0 -> 1	"A locked element stays where it is: it can’t be moved, resized or deleted. Its settings still change."
++ 0 -> 1	"Copied ${}."
++ 0 -> 1	"Cut ${}."
++ 0 -> 1	"Duplicated ${}."
++ 0 -> 1	"Locked ${}."
++ 0 -> 1	"Mixed"
++ 0 -> 1	"Nothing to paste yet. Copy or cut an element first."
++ 0 -> 1	"Pasted ${}."
++ 0 -> 1	"SELECTED ELEMENTS"
++ 0 -> 1	"Tab"
++ 0 -> 1	"There’s no free area for what you copied. Clear some room and paste again."
++ 0 -> 1	"This surface is full. Remove an element to paste another."
++ 0 -> 1	"Unlocked ${}."
++ 0 -> 1	"colour-mixed"
++ 0 -> 3	"cut"
++ 0 -> 2	"deselected"
++ 0 -> 9	"done"
++ 0 -> 1	"field-locked"
++ 0 -> 1	"hangar:sandbox-clipboard"
++ 0 -> 1	"inspector-count"
++ 0 -> 1	"lock-body"
++ 0 -> 1	"lock-shackle"
++ 0 -> 2	"locked"
++ 0 -> 1	"marquee-box"
++ 0 -> 2	"mixed"
++ 0 -> 3	"nothing"
++ 0 -> 1	"outline group"
++ 0 -> 1	"outline member"
++ 0 -> 3	"paste"
++ 0 -> 1	"surface-group"
++ 0 -> 1	"surface-lock"
++ 0 -> 1	"surface-marquee"
++ 0 -> 1	"surface-member"
++ 0 -> 1	"}\n              disabled={play}\n              aria-describedby={view.orientationProblem !== undefined\n                ? orientationProblemId\n                : lock}\n              onchange={(event) =>\n                onorientation(event.currentTarget.value as Orientation)}\n            >\n              {@render mixedOption(orientation === undefined)}\n              {#each ORIENTATIONS as o (o)}\n                <option value={o} selected={o === orientation}\n                  >{o === "
++ 0 -> 1	"}\n            disabled={play}\n            aria-describedby={lock}\n            onchange={(event) => onspeed?.(event.currentTarget.value as Speed)}\n          >\n            {@render mixedOption(speed === undefined)}\n            {#each SPEEDS as s (s)}\n              <option value={s} selected={s === speed}\n                >{s === "
++ 0 -> 1	"}\n          disabled={play}\n          aria-describedby={lock}\n          onchange={(event) =>\n            onmode?.(event.currentTarget.value as RegionMode)}\n        >\n          {@render mixedOption(mode === undefined)}\n          {#each CONTINUOUS_MODES as m (m)}\n            <option value={m} selected={m === mode}\n              >{m === "
++ 0 -> 1	"}\n          disabled={play}\n          aria-describedby={lock}\n          onchange={(event) =>\n            onoutput?.(event.currentTarget.value as ButtonOutput)}\n        >\n          {@render mixedOption(output === undefined)}\n          {#each BUTTON_OUTPUTS as o (o)}\n            <option value={o} selected={o === output}\n              >{o === "
+
+## the comment lines
+198 files; 49628 lines, 31956 code, 13708 comment, 3964 blank, 4197 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/sandbox/clipboard.ts (new) | - | 57 | - | 17 | - | 11 |
+| src/lib/sandbox/copy.ts | 244 | 284 | 75 | 83 | 14 | 14 |
+| src/lib/sandbox/editor.ts | 1038 | 1341 | 139 | 201 | 13 | 13 |
+| src/lib/sandbox/geometry.ts | 398 | 506 | 74 | 95 | 13 | 13 |
+| src/lib/sandbox/history.ts | 117 | 131 | 26 | 27 | 12 | 12 |
+| src/lib/sandbox/model.ts | 423 | 450 | 130 | 133 | 12 | 12 |
+| src/lib/store/schema.ts | 372 | 379 | 105 | 108 | 15 | 15 |
+| src/lib/ui/sandbox/ElementList.svelte | 167 | 175 | 17 | 20 | 13 | 13 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 826 | 912 | 47 | 54 | 15 | 14 |
+| src/lib/ui/sandbox/SurfaceEditor.svelte | 1090 | 1285 | 99 | 129 | 15 | 15 |
+| src/lib/ui/shell/layout.ts | 271 | 274 | 139 | 140 | 17 | 17 |
+| src/routes/sandbox/[draftId]/+page.svelte | 1012 | 1115 | 81 | 90 | 17 | 15 |
+| **totals (197 -> 198 files)** | 48677 | 49628 | 13543 | 13708 | 4189 | 4197 |
+
+12 file(s) moved
+
+## check and lint
+check: 1789940476440 COMPLETED 661 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 95 files, 1006 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp cff8f01
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 3bf1ef05986f7fce1577fffeaa0f2da2847ba613 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 4e8f13baa9e8074f8a3018bea2bb5b17fb66a9ae6d17cfbdeeb80405c18aae75 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 4e8f13baa9e8074f8a3018bea2bb5b17fb66a9ae6d17cfbdeeb80405c18aae75
+SCOPED CSS sha256 68eedc241916542609ff41358e85a1462f941dd00c1a3cd457fe6d2370f59ba1
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 c32244aa3e921043b5ed75efef7e164692af7032c6c4585ad1a9c271a8c5631b (71 files)
+
+## the titles
+TITLES sha256 6c60983274dc83be5f6a99d925b885d146cf10f72445391561d963d1b0773261 (1007 vitest titles incl. todo, 107 playwright runs)
+
+## src/ against the before-record's HEAD 34732c6de9c27a013469f2f6f1e52b92775ab27b
+git diff --name-status: 12 modified, 1 added, 0 deleted, 0 renamed
+  A	src/lib/sandbox/clipboard.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-13a
+wire: equal (set 852b8c14ed4b39c1a86e55f7c7e441b74f12f8106143ce70bbb89b5d0ad70f4d, full 2932fc5a3cfe3d5476989dee8777763b14c8c583d9ef00307d3607675dd91ab4)
+sandbox set: equal (3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159)
+FAIL: the literal census (e2585d8c72be446c5f97d20a2152914095e15238084735fd5114e3c17dcbd031 -> 0df9e009f812e4b8b54da9db1f9ef5faf0de32032209035f8e01d1852e800b1d; the -/+ lines above name every literal whose count moved)

@@ -6628,3 +6628,99 @@ one run at a time and each pin's commit re-ran the gate; the three gate after-ru
 regenerated in effect (byte-identical); `library.ts`, `sequence.ts`, `src/vendor/`, the manifest,
 `Knob.svelte`, `ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts` and every other
 entry untouched; STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed.
+
+## 2026-09-20 change 13A - the Sandbox's selection set, clipboard, multi-edit, lock and Tab
+
+`BENCH-2026-09-16.txt` section 13, the user's "love them all. do it", part A of three: the
+selection is a set, the clipboard, multi-edit, lock, Tab. Four source commits and one docs
+commit, no push, no device, no deploy: `285aa7b` feat(sandbox) - the model (schema.ts's optional
+`locked`, geometry.ts's `touching` / `applyEdits` / `placementFor`, history.ts's `selection` on an
+entry and the `paste` / `cut` / `lock` kinds, editor.ts's set and every command on it,
+clipboard.ts, copy.ts's eighteen strings, `sandbox-ui.spec` 13 -> 16); `99dda92` feat(sandbox) -
+the plate, the list, the route; `278ac92` feat(sandbox) - the inspector; `cff8f01` test(sandbox) -
+the e2e walk, the list's member row at D-03's three signals, the gate's quick constant at the
+proved 95 / 1006; then this section, the Done paragraph "13A" under section 13 and the gate
+records `gate/change-13a.*` (before, at `34732c6`, on a clean worktree `../hangar-gate-13a` with
+its own `npm ci`, removed after the records were copied) and `gate/change-13a-after.*` (at
+`cff8f01`). The runbook is untouched: no row's steps move (a Sandbox surface is placed and stored
+as before; the new keys are the editor's).
+
+**What moved in the suites.** `sandbox-ui.spec.ts` 13 -> 16: 14 the selection set (Shift+click
+toggles, a plain click alone, the marquee's `touching` on one shared cell with a locked element
+skipped, Ctrl+A every unlocked one, Tab / Shift+Tab walking the surface's order from the set's
+last / first and wrapping, Escape clearing and - armed - only disarming; a group moved, nudged and
+deleted as one, refused whole off the plate, onto a blank, or with a locked member, one Undo
+re-selecting the set; the lock's four refusals with its two lines, a locked element still taking
+a field, Ctrl+L on a mixed set locking all and on an all-locked set unlocking, the checkbox's
+`setLocked`; the shape half: a member outline per member and ONE group outline, no handle on a
+set, the delete icon on a set and none on a locked single, the lock glyph, the list's
+`aria-pressed` with `aria-current` on the one, the plate's marquee / Tab / deferred-click source,
+the route's six Ctrl keys and `editor.escape()`; the schema's `locked`), 15 the clipboard
+(`autoName`'s lowest free number per kind, copy as clones, the paste at the focus cell, the
+down-right cell, the first free origin in reading order - and `placementFor` on the pure function
+- the cut under `cut`, a pair pasted with its layout kept, refused with `PASTE_NO_SPACE` /
+`PASTE_AT_CAP` (no digit in either), duplicate on a set by the same rule with Undo leaving
+nothing selected and Redo the copies, Play landing nothing, `clipboard.ts`'s two homes and a
+foreign value read as empty), 16 multi-edit (`mixed` in the state - cc, channel, min, note - a
+typed channel writing two under one entry re-selecting the set on Undo, a refusal on any member
+refusing the whole edit with its line - the second fader one column wide, both turned horizontal
+- the four setters over two faders, the kind-specific setters refusing over a fader and a button,
+the name single-selection only, a note over two buttons, a cc ceiling read off every pad,
+`regionRow` / `regionTail` byte-identical with `locked` on; the shape half: SELECTED ELEMENTS /
+FADER, the count, the lede, no name field or units chip, the Mixed placeholder on min and none on
+max, no blank option where they agree, a mixed spring checkbox `aria-checked="mixed"`, a mixed
+colour's line, the blank disabled option on a mixed orientation, SELECTED ELEMENTS / MIXED with no
+Behavior over a fader and a button, Locked checked after Ctrl+L, `Delete 2 elements`). Test 2's
+pins move with the wiring (`onclick(at.col, at.row, shift)`, `view.selection.length > 0`), 3's
+(the member outline's test id, the list's `onselect(region.id, event.shiftKey)`), 4 / 6 / 8's
+`remove()` as a `CommandOutcome`, 9's `if (!any)`, 13's `const now = shared(touchesOf);`.
+`identity.spec.ts` test 6 caught the list's member row painting `--color-raised` without the 3px
+rule on the first cut - the row carries all three signals with the current one now.
+`e2e/sandbox.e2e.ts` 8 -> 9 titles: the selection walk (three buttons, Shift+click two under one
+group outline with both rows pressed and `Delete 2 elements`, a marquee from (8, 4) to (0, 1)
+selecting three, Ctrl+C / Ctrl+V landing Button 4 to 6 on row 2, Ctrl+X as one Undo, Delete on the
+set, a channel typed over two writing both and reading Mixed once they differ, Ctrl+L locking
+Button 3, a body drag and Delete refused with its lines, the checkbox unlocking).
+
+**Counts, carried + delta:** quick 95 / 1003 + 1 todo -> **95 / 1006 + 1 todo** (+0 / +3), green
+twice at `--maxWorkers=2` through `check-counts.mjs 95 1006` (runs A and B) and once more in the
+gate's after-record; check 660 -> **661** (0 / 0; `clipboard.ts`); lint clean; e2e 91 / 106 ->
+**92 / 107** (+1 / +1); utilities **44** -> **44** (0 appeared, 0 disappeared); catalog **27**;
+testids 321 -> **327** (`surface-member`, `surface-group`, `surface-marquee`, `surface-lock`,
+`inspector-count`, `colour-mixed`; `field-locked` rides through the check snippet's argument like
+`field-spring`); copy exports +18 (`SELECTED_ELEMENTS`, `MULTI_LEDE`, `MIXED`, `deleteElements`,
+`selectedCountLine`, `LOCKED`, `LOCKED_HELPER`, `lockedMoveLine`, `lockedDeleteLine`,
+`lockedLine`, `unlockedLine`, `copiedLine`, `cutLine`, `pastedLine`, `duplicatedLine`,
+`NOTHING_TO_PASTE`, `PASTE_NO_SPACE`, `PASTE_AT_CAP`); OG 27 files / 159,169 B / `9becd682…`,
+the four fixtures and the refuse-list unmoved; `src/` 12 modified / 1 added / 0 deleted / 0
+renamed against `34732c6`.
+
+**The gate's terms** (`--before change-13a` at `34732c6` on the worktree; `--after change-13a
+--against change-13a --check 661` at `cff8f01`): **the wire set `852b8c14…`, the full
+`2932fc5a…` and the sandbox set `3bdb5974…` all equal - every catalog string and all 475 Sandbox
+fixture strings byte-identical** (no Lua moved; `locked` is editor state and never a row column,
+test 16 holds `regionRow` and `regionTail` to it); the census `e2585d8c…` -> `0df9e009…` (2,872
+-> 2,914 literals, 196 -> 197 files: the eighteen strings, the six ids, `lock` 2 -> 6, `done`
+0 -> 9, `cut` 0 -> 3, `deselected` 0 -> 2, `Tab`, `outline` 1 -> 0); the copy exports
+`09a12df9…` -> `eea5099f…`; the testids `ee1f20c1…` -> `ed13451f…` (321 -> 327); the SCOPED CSS
+`5aa7323e…` -> `68eedc24…` and the raw `e6d0ee3b…` -> `4e8f13ba…` (the Sandbox's own rules:
+`.region.locked .body`, `.lock-body`, `.lock-shackle`, `.selection .outline.group`,
+`.marquee-box`, `.plate.marquee` in SurfaceEditor; the member row's shared selector in
+ElementList; `.input::placeholder` in RegionInspector); utilities 44 -> 44; the titles `63c35e7a…`
+-> `6c609832…` (1,004 -> 1,007 vitest incl. todo, 106 -> 107 playwright); the JS `62a0b202…` ->
+`c32244aa…` (71 files); the comment-lines record 12 files moved, `clipboard.ts` added, every
+header at the ten-line rule by `comment-lines.mjs --todo` (the route's, twelve since `e8c22ec`,
+back at ten). The script exits 1 at the census by design; the later terms are compared from the
+two records. The before's quick term read `no Vitest summary lines` (the pipe, as 10B, 11 and
+12b; its JSON: 1002 passed / 1 failed - the `radius.spec.ts` layer B on a build absent at that
+point of the script - / 1 todo); the after's read 95 / 1006, exit 0.
+
+**Chunks** (a fresh detached wrangler dev on 4173 per invocation, stopped through PowerShell,
+HTTP 000 after each; 5173 untouched; the build stamped `cff8f01`): c4 by its five files **20
+passed** (the nine Sandbox titles among them); c5 by its four files **11 passed** (radius's title
+walks the Sandbox to a knob's panel and its delete icon); c2 by its two files **3 failed / 19
+passed** at three workers (`browse:299`, `:1186`, `:1404` - the recorded hydration family; the
+title that names a Sandbox surface, `:1672`, passed), then `browse.e2e.ts` alone at `--workers 1`
+**13 passed / `:343` red** (the fill-before-hydration shape, recorded since change 3), then
+**`:343` alone 1 passed** on a fresh server. c1 and c3 not run: no install, session or tuning
+title reads the Sandbox.

@@ -2169,3 +2169,175 @@ briefed when it reaches the top of the queue.
 
 Recorded 2026-09-20: the queue runs on without further questions - 13A, 13B, 13C, then 14 (the
 SNAKE remake on the reading above). Nothing deploys until the user's word.
+
+**Done - change 13A, 2026-09-20 (the selection set, the clipboard, multi-edit, lock, Tab).** Four
+source commits, no push, no device, no deploy: `285aa7b` feat(sandbox) - the model; `99dda92`
+feat(sandbox) - the plate, the list, the route; `278ac92` feat(sandbox) - the inspector;
+`cff8f01` test(sandbox) - the e2e walk, the list's row at D-03's three signals, the gate's quick
+constant; then this paragraph with `docs/TESTING.md`'s "2026-09-20 change 13A" and the gate
+records `gate/change-13a.*` (before, at `34732c6`, on a clean worktree `../hangar-gate-13a` with
+its own `npm ci`; removed after the records were copied) and `gate/change-13a-after.*` (at
+`cff8f01`). The runbook is untouched (no row's steps move). Parts 13B and 13C are the next
+executors'; the set is theirs to build on: a selection is an ordered list of ids, every structural
+command takes it, and a landed group goes through one placement rule.
+
+**The selection model.** `editor.ts`'s `_selection` is an ORDERED list of ids (the order the set
+was made in); `selection` reads it and `selectedRegions` the set's regions in the surface's order;
+`selectedId` and `selected` are the one region ONLY while the set has exactly one, so every
+single-selection caller reads as it did. `select(id)` selects alone, `toggleSelect(id)` (Shift on
+the plate or a list row) adds or removes, `selectAll()` (Ctrl+A) takes every UNLOCKED element in
+the surface's order, `selectTouching(box, add)` is the marquee, `selectNext(step)` the Tab walk,
+`escape()` disarms an armed kind or, with the selector, clears the set (V only disarms). The plate:
+a plain click on an element selects it alone; a press on a member of a set keeps the set and moves
+it whole, the click DEFERRED to a release with no motion (which then selects the pressed one
+alone); Shift+click toggles and starts no drag; a click on empty clears (Shift keeps the set, so a
+marquee can add). Every member draws its own action-colour outline and the set draws ONE dashed
+outline round its bounding box (`surface-group`); the eight handles only on an unlocked single;
+the delete icon at the set's corner deletes the set (none on a locked single, the model would
+refuse); the list marks every member `aria-pressed` (a button takes no `aria-selected` - svelte-
+check warns and D-03's three signals are the row's) and the one selected row `aria-current`. A
+history entry carries the set (`selection`) and undo / redo re-select it.
+
+**The marquee rule (the recorded reading).** A pointer drag from an EMPTY cell with the selector
+draws a 1px action-colour rectangle, no fill, no radius (`surface-marquee`), from the cell it
+started on to the cell under the pointer, drawn once the pointer has left the first cell (a click
+is a click); on release every unlocked element the box TOUCHES - one cell in common - becomes the
+set, or joins it with Shift held (`geometry.ts` `touching`). A locked element is skipped unless
+Shift-clicked. Nothing touched clears the set.
+
+**Group commands.** `moveSelectedTo(cell)` puts the set's bounding-box origin at the cell, every
+member keeping its place in it; `nudgeSelected` shifts the set; both go through `geometry.ts`
+`applyEdits` - one patch per member validated as a whole (each against the untouched ones first,
+then the map over everything) - so a move that would overlap, leave the plate or touch a locked
+member is refused whole with the first line and the surface stays the same object; one entry per
+command, a held arrow one entry until the key-up. `resizeSelectedBy` / `resizeSelectedTo` are a
+single selection's (a set returns undefined, silently). `remove()` deletes the set as one entry
+(`delete`, or `cut` for Ctrl+X) and returns a `CommandOutcome` - done with a count, refused with a
+line, nothing - the shape the route puts on the plate's status line.
+
+**The clipboard and the placement rule.** Ctrl+C is `copySelection()` - clones in the surface's
+order - held by `src/lib/sandbox/clipboard.ts` in TWO homes: the module's own slot (the route
+navigates inside the app, so it outlives a surface and pastes into another) and, when the route
+hands it in, `sessionStorage` under `hangar:sandbox-clipboard` (`browse/return.ts`'s namespaced
+family; a reload in the tab keeps it, a new tab starts empty; the content is validated on the way
+back through schema.ts's `isRegion`, now exported, so a foreign value reads as empty). Ctrl+X is
+the copy then `remove("cut")` - one Undo. Ctrl+V is `paste(content)` and Ctrl+D / the panel's
+Duplicate `duplicate()`, both through `land()` and `geometry.ts placementFor`: the group's
+bounding-box origin goes to the FOCUS CELL if every member fits there with the layout kept, else
+ONE CELL DOWN-RIGHT of the group's own origin, else the FIRST ORIGIN IN READING ORDER (row-major)
+at which every member is on the plate and covers only free cells (cell by cell, so another element
+may sit in the group's gaps); nowhere fits -> refused whole. Read plainly: a multi-cell element
+covers its own down-right cell, so that candidate lands only a one-cell element (a blank) - a
+fader's or a button's copy falls to the reading-order scan and lands beside the original. A
+pasted element keeps the original's settings and colour (the controller too, as Duplicate always
+did - the Bible's "retain the original mapping"), takes a fresh id, and takes an AUTO-NUMBERED
+name from `editor.ts autoName(kind, regions)` - the kind's label and the lowest number no region
+carries (`Fader 2` beside `Fader 1`; `Fader 1` again once it is gone), each member in turn so a
+pasted pair is `Fader 3`, `Fader 4`. The one function 13B calls for adds (`newRegion` already
+does). The palette's colour cycle is not consulted by a paste. The landed set becomes the
+selection; one entry under `paste` / `duplicate`; Undo leaves nothing selected (the copies are
+gone), Redo re-selects the copies. Refused without a number: the cap (`This surface is full.
+Remove an element to paste another.` - counted on the whole group: fifteen plus two is refused,
+fifteen plus one lands), no room (`There's no free area for what you copied. Clear some room and
+paste again.`), nothing held (`Nothing to paste yet. Copy or cut an element first.`). The status
+line's words: `Copied N elements.` / `Cut ...` / `Pasted ...` / `Duplicated ...` / `Locked ...` /
+`Unlocked ...` (through `elementsLine`, `1 element` singular), `N elements selected.` with the
+focus cell while a set is selected.
+
+**Multi-edit.** With more than one selected the inspector reads SELECTED ELEMENTS / the shared
+kind (or MIXED), the count as the headline (`inspector-count`), `A change here applies to every
+selected element.` as the lede, no name field, no units chip. Shared: Locked, Colour, Channel, Min,
+Max; kind-specific only when every member is that kind: Orientation (faders), Mode / Speed /
+Spring and its value (faders; Speed while any is relative), Touches (pads), Toggle / Group /
+Output (buttons), Note (buttons all on Note); the controller fields are single-only; a blank in
+the set drops MIDI output. MIXED: a typed field reads empty with the placeholder `Mixed`
+(`data-mixed`), a select shows a blank disabled `Mixed` option, a checkbox is `indeterminate` with
+`aria-checked="mixed"`, a mixed colour writes `Mixed` under the swatch (the swatch shows the first
+member's). Applying writes every member through `applyEdits` under ONE entry of the existing
+`EditKind` with a group key - `field:<id1>+<id2>+...:<field>` for the typed fields (so keystrokes
+coalesce over the set) - and the entry's `selection` re-selects the set on Undo; a refusal on any
+member refuses the whole edit with its line (the orientation's on `orientation-problem`, a typed
+field's on its message, the cc ceiling read off every pad's count). Delete on a set reads `Delete
+N elements`.
+
+**Lock.** `locked?: boolean` on `Region` (schema.ts, optional, validated as a boolean; an old
+draft reads as it did; off is NO field - `applyEdits` removes a key whose patch value is
+undefined). A locked element cannot be moved, resized, nudged or deleted: `commitBoxes` and
+`remove` refuse with `<name> is locked. Unlock it to move or resize it.` / `... Unlock it to
+delete it.` (on a set, the FIRST locked member's name), the surface the same object; the fields
+still edit (chosen: the brief's default). The plate draws a padlock of straight lines inside the
+region's top-right corner (`surface-lock`, `SANDBOX_LOCK_ICON` 12: a square body and a square
+arch), hides the handles and the delete icon on a locked single, and gives it the default cursor;
+the marquee and Ctrl+A skip it; the inspector's `Locked` checkbox (`field-locked`, under
+Identity, with `A locked element stays where it is: it can't be moved, resized or deleted. Its
+settings still change.`) is `setLocked`; Ctrl+L is `toggleLock()` - a mixed set locks all, an
+all-locked set unlocks - one entry under `lock`. `locked` never reaches the emitter (rows read
+named fields; test 16 holds `regionRow` and `regionTail` byte-identical with it on; the gate's
+three wire terms equal).
+
+**Tab.** With the plate focused and a selection, Tab selects the next element in the surface's
+order (from the set's LAST member) and Shift+Tab the previous (from the FIRST), alone, wrapping at
+either end; with a kind armed Tab is the browser's. THE TAB ORDER: with nothing selected Tab
+leaves the plate as it always did, so the keyboard's way off the plate is Escape (clears the
+selection) then Tab - chosen over the documented `]` / `[` alternative because Tab is what the
+readings named; say if you want the brackets instead (or as well). The model's `selectNext` from
+an empty selection takes the first (or last) element, for a caller that wants it.
+
+**Copy added (18, `copy.ts`):** `SELECTED_ELEMENTS`, `MULTI_LEDE`, `MIXED`, `deleteElements`,
+`selectedCountLine`, `LOCKED`, `LOCKED_HELPER`, `lockedMoveLine`, `lockedDeleteLine`,
+`lockedLine`, `unlockedLine`, `copiedLine`, `cutLine`, `pastedLine`, `duplicatedLine`,
+`NOTHING_TO_PASTE`, `PASTE_NO_SPACE`, `PASTE_AT_CAP` (D-05's register; the three refusals carry
+no digit, spec 15 asserts). **Test ids:** `surface-member`, `surface-group`, `surface-marquee`,
+`surface-lock`, `inspector-count`, `colour-mixed` new (321 -> 327), `field-locked` through the
+check snippet; every existing id kept. The Bible's register: no `border-radius` anywhere new (the
+plate's spec scans for it and for `rx=` / `ry=`; the padlock is rects and a polyline).
+
+**Counts, carried + delta:** quick 95 / 1003 + 1 todo -> **95 / 1006 + 1 todo** (+3:
+`sandbox-ui` 13 -> 16), green twice at `--maxWorkers=2` and in the gate's after; check 660 ->
+**661** (`clipboard.ts`); lint clean; e2e 91 / 106 -> **92 / 107**; utilities **44** -> **44**;
+catalog **27**; testids 321 -> **327**; copy exports +18; OG, the four fixtures, the refuse-list
+unmoved; `src/` 12 modified / 1 added / 0 deleted / 0 renamed. **The gate's terms** (`--before
+change-13a` at `34732c6`; `--after change-13a --against change-13a --check 661` at `cff8f01`):
+**the wire set `852b8c14...`, the full `2932fc5a...` and the sandbox set `3bdb5974...` equal -
+byte-identical, every catalog string and all 475 Sandbox fixture strings**; the census
+`e2585d8c...` -> `0df9e009...` (2,872 -> 2,914 literals); the copy exports `09a12df9...` ->
+`eea5099f...`; the testids `ee1f20c1...` -> `ed13451f...`; the scoped CSS `5aa7323e...` ->
+`68eedc24...` and the raw `e6d0ee3b...` -> `4e8f13ba...` (the Sandbox's own rules, named in
+TESTING.md); the titles `63c35e7a...` -> `6c609832...` (1,004 -> 1,007 vitest incl. todo; 106
+-> 107 playwright); the JS `62a0b202...` -> `c32244aa...` (71 files); comment lines: 12 files
+moved, every header at the rule (the route's back at ten). The script exits 1 at the census by
+design; the before's quick term read `no Vitest summary lines` (the pipe, as 10B / 11 / 12b; JSON
+1002 / 1 - layer B on the absent build - / 1 todo), the after's 95 / 1006, exit 0.
+
+**Chunks** (fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000 after
+each; 5173 untouched; the build stamped `cff8f01`): c4 by its five files **20 passed** (the nine
+Sandbox titles among them); c5 by its four files **11 passed**; c2 by its two files **3 failed /
+19 passed** at three workers (`browse:299`, `:1186`, `:1404`, the recorded hydration family; the
+Sandbox-naming `:1672` passed), `browse.e2e.ts` alone at `--workers 1` **13 passed / `:343`
+red**, `:343` alone **1 passed**. c1 and c3 not run (no install, session or tuning title reads
+the Sandbox).
+
+**Questions for the user.** (a) The plain click on a member of a set keeps the set for a drag and
+selects alone on release with no motion (Figma's rule); say if a plain click should select alone
+at once. (b) Ctrl+A takes every UNLOCKED element and the marquee skips locked ones; a set that
+holds a locked member (Shift-clicked in) refuses a move and a delete whole with the locked one's
+name - say if the locked member should be skipped instead. (c) "One cell down-right of the
+original" is taken literally and lands only a one-cell element; say if it should mean past the
+original's far corner (col + w, row + h). (d) Undo of a paste or a duplicate leaves nothing
+selected; say if the originals should be re-selected. (e) Tab leaves the plate only with nothing
+selected (Escape first); say if you want `]` / `[` too. (f) A locked element's fields still edit
+and its colour still changes; say if lock should freeze those too. (g) The delete icon is hidden
+on a locked single (the handles too); say if it should show and refuse. (h) The list's rows carry
+`aria-pressed`, not the brief's `aria-selected` (a button role does not take it). (i) Changes 1
+to 12b's questions still stand.
+
+**Departures from the brief:** the pasted element's name numbering is `autoName`, the same
+function `newRegion` already used (13B's "auto-numbered names on add" is already the case);
+`aria-pressed` for `aria-selected`; `remove()` returns a `CommandOutcome` rather than a boolean
+(three spec pins moved); `Escape` with the selector clears the selection (new; V does not); a
+group does not resize; the inspector's swatch shows the first member's colour over a mixed set
+with a `Mixed` line rather than a blank; the route's header, twelve lines since `e8c22ec`, is at
+ten now; the first commit's message says "twenty-one strings" where the count is eighteen (not
+amended - no history rewrite); `identity.spec.ts` test 6 red on the first cut of the list's row
+(fixed in the fourth commit); the runbook untouched; STATE / ROADMAP / REQUIREMENTS untouched;
+CAT-04 stays `[ ]`; not deployed.
