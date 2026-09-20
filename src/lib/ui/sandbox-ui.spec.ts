@@ -16,13 +16,17 @@ import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import {
+  ARRANGE_HELPER,
   BUTTON_MIN_MAX_HELPER,
   CC_RANGE,
   CHANNEL_RANGE,
+  DEFAULTS_HELPER,
   DISTRIBUTE_NO_ROOM,
   DUPLICATE_AT_CAP,
   EMPTY_INSTRUCTION,
   EMPTY_SECOND_LINE,
+  FLIP_HORIZONTAL,
+  FLIP_VERTICAL,
   GROUP_HELPER,
   KIND_LABELS,
   KNOB_MODE_WORDS,
@@ -33,10 +37,13 @@ import {
   MULTI_LEDE,
   NOTE_RANGE,
   NOTHING_TO_PASTE,
+  PALETTE_FILL_HELPER,
   PASTE_AT_CAP,
   PASTE_NO_SPACE,
   PLAY_LOCKS_FIELDS,
   PLAY_LOCKS_PALETTE,
+  RESET_DEFAULTS_HELPER,
+  ROTATE,
   SPRING_HELPER,
   STARTER_ACTION,
   TEMPLATE_ACTION,
@@ -45,6 +52,7 @@ import {
   TOO_FULL_TO_STORE,
   TOUCHES,
   TOUCHES_HELPER,
+  TRANSFORM_HELPER,
   VALUE_RANGE,
   WHOLE_NUMBER,
   lockedMoveLine,
@@ -126,6 +134,7 @@ import ElementList from "./sandbox/ElementList.svelte";
 import Palette from "./sandbox/Palette.svelte";
 import RegionInspector from "./sandbox/RegionInspector.svelte";
 import SurfaceEditor from "./sandbox/SurfaceEditor.svelte";
+import SurfaceTransforms from "./sandbox/SurfaceTransforms.svelte";
 import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
@@ -436,7 +445,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(
       source,
       "the click path fires from pointerdown, so a plain click is a whole step",
-    ).toMatch(/function onpointerdown[^]*?onclick\(at\.col, at\.row, shift\)/);
+    ).toMatch(
+      /function onpointerdown[^]*?onclick\(at\.col, at\.row, shift, alt\)/,
+    );
     expect(
       source,
       "a release is never a second click (the area accelerator went)",
@@ -1204,8 +1215,8 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(source).toContain("<BrightnessField");
     expect(source).toContain("onchange={(next) => onbrightness?.(next)}");
     expect(source).toContain("onreset={() => onbrightness?.(255)}");
-    expect(source, "no selection lists Appearance alone").toMatch(
-      /if [(]!any[)] return \[\{ title: APPEARANCE, content: appearance \}\];/,
+    expect(source, "no selection lists Appearance, then New elements").toMatch(
+      /if [(]!any[)]\s*return \[\s*\{ title: APPEARANCE, content: appearance \},\s*\{ title: NEW_ELEMENTS, content: defaults \},\s*\];/,
     );
     const route = code(ROUTE);
     expect(route).toContain(
@@ -2195,7 +2206,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(source).toContain('if (event.key === "Tab")');
     expect(source).toContain("onselectnext?.(event.shiftKey ? -1 : 1)");
     expect(source).toContain(
-      "if (m?.deferred) onclick(m.at.col, m.at.row, false)",
+      "if (m?.deferred) onclick(m.at.col, m.at.row, false, false)",
     );
     expect(source, "no rounded corner (D-01)").not.toContain("border-radius");
     expect(source).not.toMatch(/(^|\s)r[xy]=/m);
@@ -2851,6 +2862,40 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(editor.alignSelected("right")).toEqual({ kind: "nothing" });
     expect(editor.distributeSelected("vertical")).toEqual({ kind: "nothing" });
     editor.setMode("edit");
+
+    // THE SHAPE HALF: over a set the inspector's Arrange row carries eight
+    // named boxes, the two spacings disabled under three members and live
+    // at three; a single has no row; the route wires both calls.
+    editor.select(b1.id);
+    editor.toggleSelect(b2.id);
+    let panel = inspector(editor);
+    expect(panel).toContain('data-testid="arrange"');
+    for (const id of [
+      "arrange-left",
+      "arrange-right",
+      "arrange-top",
+      "arrange-bottom",
+      "arrange-centre-x",
+      "arrange-centre-y",
+      "arrange-space-x",
+      "arrange-space-y",
+    ])
+      expect(panel).toContain(`data-testid="${id}"`);
+    expect(panel).toContain('aria-label="Align left edges"');
+    expect(panel).toContain('aria-label="Space out vertically"');
+    expect(panel).toMatch(/data-testid="arrange-space-x"[^>]*disabled/);
+    expect(panel).not.toMatch(/data-testid="arrange-left"[^>]*disabled/);
+    expect(panel).toContain(ARRANGE_HELPER);
+    editor.toggleSelect(blank.id);
+    panel = inspector(editor);
+    expect(panel).not.toMatch(/data-testid="arrange-space-x"[^>]*disabled/);
+    editor.select(b1.id);
+    expect(inspector(editor)).not.toContain('data-testid="arrange"');
+    const route = code(ROUTE);
+    expect(route).toContain("onalign={align}");
+    expect(route).toContain("ondistribute={distribute}");
+    expect(route).toContain("editor.alignSelected(to)");
+    expect(route).toContain("editor.distributeSelected(axis)");
     for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
   });
 
@@ -2951,6 +2996,33 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(fresh().editor.transformSurface("flip-vertical")).toEqual({
       kind: "nothing",
     });
+
+    // THE SHAPE HALF: the row's three named boxes and its helper, all three
+    // disabled and described when told to be; straight lines only, no
+    // radius; the route mounts it off in Play and on an empty surface.
+    const row = render(SurfaceTransforms, {
+      props: { ontransform: noop },
+    }).body;
+    for (const id of ["flip-horizontal", "flip-vertical", "turn-surface"])
+      expect(row).toContain(`data-testid="${id}"`);
+    expect(row).toContain(`aria-label="${FLIP_HORIZONTAL}"`);
+    expect(row).toContain(`aria-label="${FLIP_VERTICAL}"`);
+    expect(row).toContain(`aria-label="${ROTATE}"`);
+    expect(row).toContain(TRANSFORM_HELPER);
+    expect(row).not.toContain("disabled");
+    const off = render(SurfaceTransforms, {
+      props: { ontransform: noop, disabled: true, describedBy: "why" },
+    }).body;
+    expect(count(off, 'disabled=""')).toBe(3);
+    expect(count(off, 'aria-describedby="why"')).toBe(3);
+    const source = code(`${UI}/SurfaceTransforms.svelte`);
+    expect(source).not.toMatch(/border-radius:\s*[1-9]/);
+    expect(source).not.toMatch(/(^|\s)r[xy]=/m);
+    expect(source, "straight lines only").not.toContain("<path");
+    const route = code(ROUTE);
+    expect(route).toContain("<SurfaceTransforms");
+    expect(route).toContain("disabled={play || empty}");
+    expect(route).toContain("editor.transformSurface(kind)");
     for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
   });
 
@@ -3120,6 +3192,45 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(named.renameElement(first.id, "Play")).toBe(false);
     named.setMode("edit");
     expect(named.history.depth).toBe(depth + 1);
+
+    // THE SHAPE HALF: the plate's click carries Alt from pointerdown and
+    // Enter carries it to onmark; a double-click opens the rename field,
+    // whose keys and pointer stay its own (nothing reaches the plate's
+    // handler, so Escape in the field clears no selection and Delete in it
+    // deletes nothing); the palette's helper names the fill while a kind is
+    // armed and not otherwise; the route wires the three.
+    const source = code(`${UI}/SurfaceEditor.svelte`);
+    expect(source).toMatch(
+      /function onpointerdown[^]*?const alt = event\.altKey;[^]*?onclick\(at\.col, at\.row, shift, alt\)/,
+    );
+    expect(source).toContain("onmark(event.altKey)");
+    expect(source).toContain("function ondblclick");
+    expect(source).toContain('data-testid="surface-rename"');
+    expect(source).toContain(`aria-label={ELEMENT_NAME}`);
+    expect(source).toContain(
+      "if (event.target instanceof HTMLInputElement) return;",
+    );
+    expect(source).toMatch(
+      /function onrenamekey[^]*?event\.stopPropagation\(\);/,
+    );
+    expect(source).toContain(
+      "onpointerdown={(event) => event.stopPropagation()}",
+    );
+    expect(source).toContain("largestFreeBox(at, view.cellMap");
+    expect(source, "no rounded corner (D-01)").not.toContain("border-radius");
+    editor.choose("fader");
+    let rail = palette(editor.state());
+    expect(rail).toContain('data-testid="palette-fill-helper"');
+    expect(rail).toContain(PALETTE_FILL_HELPER);
+    editor.cancel();
+    rail = palette(editor.state());
+    expect(rail).not.toContain(PALETTE_FILL_HELPER);
+    const route = code(ROUTE);
+    expect(route).toContain("void editor?.clickCell(col, row, shift, alt)");
+    expect(route).toContain("onmark={(fill) => void editor?.mark(fill)}");
+    expect(route).toContain(
+      "onrename={(id, next) => void editor?.renameElement(id, next)}",
+    );
     for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
   });
 
@@ -3300,5 +3411,34 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(resetSandboxDefaults(undefined)).toBe(false);
     expect(SANDBOX_DEFAULTS_KEY).toBe("hangar.sandbox-defaults.v1");
     expect(OWNED_KEYS).toContain(SANDBOX_DEFAULTS_KEY);
+
+    // THE SHAPE HALF: with nothing selected the inspector's New elements
+    // section carries the helper, Reset defaults and the line that says it
+    // is not undone - disabled in Play, gone with a selection; the route
+    // reads the store into the editor and writes every change back.
+    const { editor: bare } = fresh();
+    let panel = inspector(bare);
+    expect(panel).toContain(">New elements<");
+    expect(panel).toContain('data-testid="reset-defaults"');
+    expect(panel).toContain(DEFAULTS_HELPER);
+    expect(panel).toContain(RESET_DEFAULTS_HELPER);
+    expect(RESET_DEFAULTS_HELPER).toContain("Undo");
+    expect(panel).not.toMatch(/data-testid="reset-defaults"[^>]*disabled/);
+    bare.setMode("play");
+    expect(inspector(bare)).toMatch(
+      /data-testid="reset-defaults"[^>]*disabled/,
+    );
+    bare.setMode("edit");
+    bare.choose("button");
+    bare.clickCell(0, 0);
+    bare.cancel();
+    panel = inspector(bare);
+    expect(panel).not.toContain('data-testid="reset-defaults"');
+    expect(panel).not.toContain(">New elements<");
+    const route = code(ROUTE);
+    expect(route).toContain("defaults: readSandboxDefaults(store)");
+    expect(route).toContain("onresetdefaults={resetDefaults}");
+    expect(route).toContain("resetSandboxDefaults(local())");
+    expect(route).toContain("writeSandboxDefaults(local(), defaults)");
   });
 });

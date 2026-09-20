@@ -6,8 +6,8 @@
   a knob's Mode - only when every selected element is that kind), MIDI output (the controllers
   single only; Channel, Min and Max shared; a button's Output and Note; not with a blank),
   Appearance through Swatch.svelte, then the pinned Duplicate / Delete. Over a set a field whose
-  values differ reads MIXED (a placeholder, a blank option, a mixed checkbox) and a value typed or
-  chosen writes every member as one entry; a refusal on any member refuses the whole edit inline. In Play every field is read-only.
+  values differ reads MIXED and a value writes every member as one entry, refused whole inline; a
+  set has an Arrange row (13B); with nothing selected, New elements with Reset defaults (13B). In Play every field is read-only.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -21,14 +21,25 @@
     levelsOf,
   } from "$lib/sandbox/colour-knob";
   import {
+    ALIGN_BOTTOM,
+    ALIGN_CENTRE_X,
+    ALIGN_CENTRE_Y,
+    ALIGN_LEFT,
+    ALIGN_RIGHT,
+    ALIGN_TOP,
     APPEARANCE,
+    ARRANGE,
+    ARRANGE_HELPER,
     BEHAVIOR,
     BUTTON_MIN_MAX_HELPER,
     CC_NUMBER,
     CC_NUMBER_Y,
     CHANNEL,
     COLOUR_LABEL,
+    DEFAULTS_HELPER,
     DELETE_ELEMENT,
+    DISTRIBUTE_X,
+    DISTRIBUTE_Y,
     DUPLICATE,
     ELEMENT_NAME,
     GROUP,
@@ -49,6 +60,7 @@
     MODE_HELPER,
     MODE_RELATIVE,
     MULTI_LEDE,
+    NEW_ELEMENTS,
     NOTE_HELPER,
     NOTE_NUMBER,
     NO_SELECTION_EYEBROW,
@@ -61,6 +73,8 @@
     OUTPUT_CC,
     OUTPUT_NOTE,
     PLAY_LOCKS_FIELDS,
+    RESET_DEFAULTS,
+    RESET_DEFAULTS_HELPER,
     SELECTED_ELEMENT,
     SELECTED_ELEMENTS,
     SPEED,
@@ -85,6 +99,7 @@
     type EditorState,
     type NumericField,
   } from "$lib/sandbox/editor";
+  import type { Alignment, Axis } from "$lib/sandbox/geometry";
   import {
     BUTTON_OUTPUTS,
     CONTINUOUS_MODES,
@@ -132,6 +147,9 @@
     onlocked,
     oncolour,
     onbrightness,
+    onalign,
+    ondistribute,
+    onresetdefaults,
     onduplicate,
     ondelete,
     notice,
@@ -159,9 +177,14 @@
     oncolour: (colour: readonly [number, number, number]) => void;
     /** The whole surface's brightness, 1..255 (change 5); 255 to reset. */
     onbrightness?: (brightness: number) => void;
+    /** The Arrange row over a set (change 13B): editor.alignSelected and editor.distributeSelected. */
+    onalign?: (to: Alignment) => void;
+    ondistribute?: (axis: Axis) => void;
+    /** Reset defaults, with nothing selected (change 13B): editor.resetDefaults - not an entry. */
+    onresetdefaults?: () => void;
     onduplicate: () => void;
     ondelete: () => void;
-    /** A duplicate refused, or a store that declined - the panel's one notice. */
+    /** A duplicate refused, a store that declined, the defaults reset - the panel's one notice. */
     notice?: string;
   } = $props();
 
@@ -177,6 +200,83 @@
   const touchesId = `${uid}-touches`;
   const lockedId = `${uid}-locked`;
   const lockId = `${uid}-lock`;
+  const arrangeHelperId = `${uid}-arrange-helper`;
+  const defaultsHelperId = `${uid}-defaults-helper`;
+
+  /** A glyph is straight lines on a 20 x 20 box: [x1, y1, x2, y2] each (no curve, no radius). */
+  type Glyph = readonly (readonly [number, number, number, number])[];
+  /** An edge line and two bars from it; the centres a line through two centred bars; the spacings three bars. */
+  const EDGE_LEFT: Glyph = [
+    [3, 2, 3, 18],
+    [3, 6, 15, 6],
+    [3, 13, 11, 13],
+  ];
+  const flipX = (g: Glyph): Glyph =>
+    g.map(([x1, y1, x2, y2]) => [20 - x1, y1, 20 - x2, y2]);
+  const swap = (g: Glyph): Glyph =>
+    g.map(([x1, y1, x2, y2]) => [y1, x1, y2, x2]);
+  const CENTRE_X: Glyph = [
+    [10, 2, 10, 18],
+    [3, 6, 17, 6],
+    [6, 13, 14, 13],
+  ];
+  const SPACE_X: Glyph = [
+    [4, 3, 4, 17],
+    [10, 5, 10, 15],
+    [16, 3, 16, 17],
+  ];
+  /** The Arrange row's eight commands (change 13B): a test id, an accessible name, a glyph, and the call. */
+  const ARRANGEMENTS: readonly {
+    id: string;
+    label: string;
+    glyph: Glyph;
+    align?: Alignment;
+    distribute?: Axis;
+  }[] = [
+    { id: "arrange-left", label: ALIGN_LEFT, glyph: EDGE_LEFT, align: "left" },
+    {
+      id: "arrange-right",
+      label: ALIGN_RIGHT,
+      glyph: flipX(EDGE_LEFT),
+      align: "right",
+    },
+    {
+      id: "arrange-top",
+      label: ALIGN_TOP,
+      glyph: swap(EDGE_LEFT),
+      align: "top",
+    },
+    {
+      id: "arrange-bottom",
+      label: ALIGN_BOTTOM,
+      glyph: swap(flipX(EDGE_LEFT)),
+      align: "bottom",
+    },
+    {
+      id: "arrange-centre-x",
+      label: ALIGN_CENTRE_X,
+      glyph: CENTRE_X,
+      align: "centre-x",
+    },
+    {
+      id: "arrange-centre-y",
+      label: ALIGN_CENTRE_Y,
+      glyph: swap(CENTRE_X),
+      align: "centre-y",
+    },
+    {
+      id: "arrange-space-x",
+      label: DISTRIBUTE_X,
+      glyph: SPACE_X,
+      distribute: "horizontal",
+    },
+    {
+      id: "arrange-space-y",
+      label: DISTRIBUTE_Y,
+      glyph: swap(SPACE_X),
+      distribute: "vertical",
+    },
+  ];
   const orientationProblemId = `${uid}-orientation-problem`;
   const touchesProblemId = `${uid}-touches-problem`;
   const fieldId = (field: NumericField) => `${uid}-${field}`;
@@ -248,9 +348,15 @@
   }
 
   const sections = $derived.by((): InspectorSection[] => {
-    // No selection: the surface's own Appearance (the brightness) and nothing else.
-    if (!any) return [{ title: APPEARANCE, content: appearance }];
+    // No selection: the surface's own Appearance (the brightness), then New elements (the sticky defaults, 13B).
+    if (!any)
+      return [
+        { title: APPEARANCE, content: appearance },
+        { title: NEW_ELEMENTS, content: defaults },
+      ];
     const out: InspectorSection[] = [];
+    // A set: the Arrange row first (13B) - the spacings need three.
+    if (multi) out.push({ title: ARRANGE, content: arrange });
     // Every sending kind has a Behavior since change 10B; a blank has none, and a set has one only when every member is one kind.
     if (sharedKind !== undefined && sharedKind !== "blank")
       out.push({ title: BEHAVIOR, content: behavior });
@@ -618,6 +724,52 @@
   />
 {/snippet}
 
+{#snippet arrange()}
+  <!-- Eight 44px icon boxes (change 13B): the six alignments, the two spacings - disabled under three members - each named, described by the helper. -->
+  <div class="arrange" role="group" aria-label={ARRANGE} data-testid="arrange">
+    {#each ARRANGEMENTS as a (a.id)}
+      <button
+        class="icon"
+        type="button"
+        data-testid={a.id}
+        aria-label={a.label}
+        title={a.label}
+        disabled={play || (a.distribute !== undefined && members.length < 3)}
+        aria-describedby={play ? lock : arrangeHelperId}
+        onclick={() =>
+          a.align !== undefined
+            ? onalign?.(a.align)
+            : a.distribute !== undefined
+              ? ondistribute?.(a.distribute)
+              : undefined}
+      >
+        <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
+          {#each a.glyph as [x1, y1, x2, y2], i (i)}
+            <line {x1} {y1} {x2} {y2} />
+          {/each}
+        </svg>
+      </button>
+    {/each}
+  </div>
+  <p class="helper type-helper" id={arrangeHelperId}>{ARRANGE_HELPER}</p>
+{/snippet}
+
+{#snippet defaults()}
+  <!-- The sticky defaults (change 13B): what a new element starts from, and the one-click reset - not an entry, so its helper says Undo does not take it back. -->
+  <p class="helper first type-helper">{DEFAULTS_HELPER}</p>
+  <button
+    class="outlined"
+    type="button"
+    data-testid="reset-defaults"
+    disabled={play}
+    aria-describedby={play ? lock : defaultsHelperId}
+    onclick={() => onresetdefaults?.()}>{RESET_DEFAULTS}</button
+  >
+  <p class="helper type-helper" id={defaultsHelperId}>
+    {RESET_DEFAULTS_HELPER}
+  </p>
+{/snippet}
+
 {#snippet actions()}
   {#if any}
     <button
@@ -652,17 +804,16 @@
     lead={!any ? undefined : identity}
     actions={!any ? undefined : actions}
   >
-    {#if any}
-      {#if play}
-        <p class="lock type-helper" id={lockId} data-testid="fields-locked">
-          {PLAY_LOCKS_FIELDS}
-        </p>
-      {/if}
-      {#if notice !== undefined}
-        <p class="notice type-helper" data-testid="inspector-notice">
-          {notice}
-        </p>
-      {/if}
+    {#if play}
+      <p class="lock type-helper" id={lockId} data-testid="fields-locked">
+        {PLAY_LOCKS_FIELDS}
+      </p>
+    {/if}
+    <!-- The notice with or without a selection (13B: the defaults' reset has none). -->
+    {#if notice !== undefined}
+      <p class="notice type-helper" data-testid="inspector-notice">
+        {notice}
+      </p>
     {/if}
   </Inspector>
 </div>
@@ -864,6 +1015,52 @@
   .notice {
     margin: 12px 0 0;
     color: var(--color-ink-quiet);
+  }
+
+  /* A helper that opens a section sits on the title's rhythm, and the control under it takes the same gap. */
+  .helper.first {
+    margin-block: 0 12px;
+  }
+
+  /* The Arrange row (13B): eight square icon boxes, wrapping in the narrow panel. */
+  .arrange {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 44px;
+    block-size: 44px;
+    padding: 0;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .icon:hover:not(:disabled) {
+    border-color: var(--color-action);
+    color: var(--color-action);
+  }
+
+  .icon:disabled {
+    color: var(--color-ink-quiet);
+    cursor: default;
+  }
+
+  .glyph {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+
+  .glyph line {
+    stroke: currentColor;
+    stroke-width: 2;
   }
 
   .check {

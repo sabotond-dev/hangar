@@ -4,11 +4,11 @@
   the selection - each member's outline, the set's one outline round its bounding
   box, the eight drag handles on an unlocked single, the delete icon (on a set it
   deletes the set) - the marquee, the proposed bounds, the focus cell and the
-  status line. Props: view, onclick (the ONE placement and selection call, fired
-  from pointerdown with Shift; no drag is ever required), onmarquee (a drag from
-  an empty cell, on release), onmove, onmark, oncancel, ondelete, onselectnext
-  (the keyboard route: one tab stop, arrows, Enter, Escape, Delete, Tab cycling a
-  selection), onresize / onmoveto / onnudge / onresizeby / oncommit, notice, onfinger and preview (Play). Every number is layout.ts's.
+  status line, and the inline rename (13B: a double-click opens a field over the
+  element). Props: view, onclick (the ONE placement and selection call, fired from
+  pointerdown with Shift and Alt - Alt fills; no drag is ever required), onmarquee,
+  onmove, onmark (Enter; Alt+Enter fills), oncancel, ondelete, onselectnext, onrename,
+  onresize / onmoveto / onnudge / onresizeby / oncommit, notice, onfinger and preview (Play). Every number is layout.ts's.
   Decided at 13-16 / 13.1-03 (13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -16,6 +16,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import {
+    ELEMENT_NAME,
     KIND_LABELS,
     MATRIX_LINE,
     NOTHING_SELECTED,
@@ -32,7 +33,7 @@
     type Cell,
     type EditorState,
   } from "$lib/sandbox/editor";
-  import type { Problem } from "$lib/sandbox/geometry";
+  import { largestFreeBox, type Problem } from "$lib/sandbox/geometry";
   import {
     SURFACE_SIZE,
     boundingBox,
@@ -65,6 +66,8 @@
   type MoveDrag = { from: Box; grab: Cell; at: Cell; deferred: boolean };
   /** A marquee in progress (change 13A): the cell pressed on, and whether Shift adds to the set. */
   type Marquee = { from: Cell; add: boolean };
+  /** The inline rename (change 13B): the element under the double-click, its name as it was, and its box for the field. */
+  type Renaming = { id: string; name: string; box: Box };
 
   let {
     view,
@@ -75,6 +78,7 @@
     oncancel,
     ondelete,
     onselectnext,
+    onrename,
     onresize,
     onmoveto,
     onnudge,
@@ -85,20 +89,22 @@
     preview,
   }: {
     view: EditorState;
-    /** The one placement and selection call (editor.ts); Shift toggles the held element in the set. */
-    onclick: (col: number, row: number, shift: boolean) => void;
+    /** The one placement and selection call (editor.ts); Shift toggles the held element in the set; Alt fills the free area (13B). */
+    onclick: (col: number, row: number, shift: boolean, alt: boolean) => void;
     /** A marquee's release (change 13A): the box dragged from an empty cell; `add` with Shift held. */
     onmarquee?: (box: Box, add: boolean) => void;
     /** Arrows: the focus cell moves by a delta. */
     onmove: (dcol: number, drow: number) => void;
-    /** Enter on the plate: the same click, at the focus cell. */
-    onmark: () => void;
+    /** Enter on the plate: the same click, at the focus cell; with Alt the fill-to-fit click (13B). */
+    onmark: (fill: boolean) => void;
     /** Escape: nothing pending - the selector, or the selection cleared. */
     oncancel: () => void;
     /** Delete: the selection. */
     ondelete: () => void;
     /** Tab / Shift+Tab with a selection (change 13A): the next / previous element in the surface's order. */
     onselectnext?: (step: 1 | -1) => void;
+    /** The inline rename's commit (change 13B): editor.renameElement; the inspector's name field is the keyboard route. */
+    onrename?: (id: string, name: string) => void;
     /** A command's outcome for the status line (the clipboard's, the lock's; change 13A), shown until the next change. */
     notice?: string;
     /** A handle drag's box on release; the route wires editor.resizeSelectedTo and the problem shows in the status line. Optional so the spec's render needs no drag. */
@@ -164,6 +170,10 @@
   /** A marquee in progress, and the box it has drawn so far (undefined until the pointer leaves the first cell). */
   let marquee = $state<Marquee | undefined>(undefined);
   let marqueeBox = $state<Box | undefined>(undefined);
+  /** Alt held over the plate (change 13B): the proposed bounds show the fill instead of the default size. */
+  let altHeld = $state(false);
+  /** The inline rename in progress (change 13B), or undefined. */
+  let renaming = $state<Renaming | undefined>(undefined);
   /** The last drag's refusal, shown until the next pointer or key or until the surface moves under it. Raw, so the identity check in `status` is against the editor's own reference. */
   let refused = $state.raw<
     { message: string; surface: EditorState["surface"] } | undefined
@@ -217,12 +227,17 @@
     const pending = view.placement;
     if (pending.kind === "element") {
       const size = DEFAULT_SIZES[pending.type];
-      return {
+      const fallback = {
         col: Math.min(at.col, SURFACE_SIZE - size.w),
         row: Math.min(at.row, SURFACE_SIZE - size.h),
         w: size.w,
         h: size.h,
       };
+      // With Alt held the bounds show the fill (change 13B), the same box the click would place.
+      if (!altHeld) return fallback;
+      return (
+        largestFreeBox(at, view.cellMap, pending.type === "knob") ?? fallback
+      );
     }
     return undefined;
   });
@@ -282,7 +297,7 @@
       : `${selectedLine(r.name, KIND_LABELS[r.kind])} ${where}.`;
   });
 
-  function cellOf(event: PointerEvent): Cell | undefined {
+  function cellOf(event: MouseEvent): Cell | undefined {
     if (plate === null) return undefined;
     const rect = plate.getBoundingClientRect();
     if (rect.width <= 0) return undefined;
@@ -374,7 +389,7 @@
     moveDrag = undefined;
     dragBox = undefined;
     if (box === undefined) {
-      if (m?.deferred) onclick(m.at.col, m.at.row, false);
+      if (m?.deferred) onclick(m.at.col, m.at.row, false, false);
       return;
     }
     let problem: Problem | undefined;
@@ -438,20 +453,21 @@
     // moves it whole, the click deferred to a release with no motion; otherwise the click
     // selects it and a drag from here moves it - the box follows the pointer and commits on release.
     const holder = idle ? holderAt(at) : undefined;
+    const alt = event.altKey;
     if (holder === undefined) {
-      onclick(at.col, at.row, shift);
+      onclick(at.col, at.row, shift, alt);
       if (!idle) return;
       capture(event);
       marquee = { from: at, add: shift };
       return;
     }
     if (shift) {
-      onclick(at.col, at.row, true);
+      onclick(at.col, at.row, true, false);
       return;
     }
     const deferred =
       view.selection.length > 1 && view.selection.includes(holder.id);
-    if (!deferred) onclick(at.col, at.row, false);
+    if (!deferred) onclick(at.col, at.row, false, false);
     const from = deferred
       ? (group as Box)
       : { col: holder.col, row: holder.row, w: holder.w, h: holder.h };
@@ -470,6 +486,7 @@
       return;
     }
     hover = cellOf(event);
+    altHeld = event.altKey;
     if (hover === undefined) return;
     // A drag in progress: the proposed bounds follow the cell, nothing commits; a marquee draws
     // its box once the pointer has left the cell it started on.
@@ -502,10 +519,62 @@
 
   function onpointerleave(): void {
     hover = undefined;
+    altHeld = false;
+  }
+
+  /**
+   * The inline rename (change 13B): a double-click on an element with the selector opens a field
+   * over it; Enter commits, Escape cancels, blur commits; never in Play. A double-click inside the
+   * field is the field's own. The inspector's name field stays the keyboard route.
+   */
+  function ondblclick(event: MouseEvent): void {
+    if (play || view.placement.kind !== "idle" || onrename === undefined)
+      return;
+    if (event.target instanceof HTMLInputElement) return;
+    const at = cellOf(event);
+    const holder = at === undefined ? undefined : holderAt(at);
+    if (holder === undefined) return;
+    event.preventDefault();
+    renaming = {
+      id: holder.id,
+      name: holder.name,
+      box: { col: holder.col, row: holder.row, w: holder.w, h: holder.h },
+    };
+  }
+
+  /** The field's keys stay its own: Enter commits, Escape cancels, nothing reaches the plate's handler. */
+  function onrenamekey(event: KeyboardEvent): void {
+    event.stopPropagation();
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitRename(event.currentTarget as HTMLInputElement);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      renaming = undefined;
+      plate?.focus({ preventScroll: true });
+    }
+  }
+
+  /** The commit: the typed name to onrename (the editor trims and refuses an empty or unchanged one), the field closed. */
+  function commitRename(field: HTMLInputElement): void {
+    const r = renaming;
+    if (r === undefined) return;
+    renaming = undefined;
+    onrename?.(r.id, field.value);
+  }
+
+  /** The field takes focus with its text selected the moment it mounts. */
+  function focusSelect(node: HTMLInputElement): void {
+    node.focus();
+    node.select();
   }
 
   function onkeydown(event: KeyboardEvent): void {
     if (play) return;
+    if (event.key === "Alt") {
+      altHeld = true;
+      return;
+    }
     refused = undefined;
     const arrow = ARROWS[event.key];
     if (arrow !== undefined) {
@@ -535,7 +604,7 @@
     switch (event.key) {
       case "Enter":
       case " ":
-        onmark();
+        onmark(event.altKey);
         break;
       case "Escape":
         oncancel();
@@ -550,9 +619,14 @@
     event.preventDefault();
   }
 
-  /** An arrow released: the boundary, so a held arrow is one Undo. */
+  /** An arrow released: the boundary, so a held arrow is one Undo. Alt released: the default bounds again. */
   function onkeyup(event: KeyboardEvent): void {
-    if (play || ARROWS[event.key] === undefined) return;
+    if (play) return;
+    if (event.key === "Alt") {
+      altHeld = false;
+      return;
+    }
+    if (ARROWS[event.key] === undefined) return;
     oncommit?.();
   }
 </script>
@@ -584,6 +658,7 @@
     {onpointerup}
     onpointercancel={onpointerup}
     {onpointerleave}
+    {ondblclick}
     {onkeydown}
     {onkeyup}
     onfocus={() => (focused = true)}
@@ -593,6 +668,25 @@
       <div class="preview" data-testid="surface-preview">
         {@render preview()}
       </div>
+    {/if}
+    {#if renaming !== undefined}
+      <!-- The inline rename (change 13B): a field over the element, sized by its box in the plate's own percentages; its pointer and keys stay its own. -->
+      <input
+        class="rename"
+        type="text"
+        autocomplete="off"
+        aria-label={ELEMENT_NAME}
+        data-testid="surface-rename"
+        value={renaming.name}
+        style:left="{(renaming.box.col / SURFACE_SIZE) * 100}%"
+        style:top="{(renaming.box.row / SURFACE_SIZE) * 100}%"
+        style:width="{(renaming.box.w / SURFACE_SIZE) * 100}%"
+        style:height="{(renaming.box.h / SURFACE_SIZE) * 100}%"
+        use:focusSelect
+        onpointerdown={(event) => event.stopPropagation()}
+        onkeydown={onrenamekey}
+        onblur={(event) => commitRename(event.currentTarget)}
+      />
     {/if}
     <svg
       class="overlay"
@@ -1257,6 +1351,28 @@
   .plate:focus-visible {
     outline: 2px solid var(--color-action);
     outline-offset: 2px;
+  }
+
+  /* The inline rename's field (13B): over the element, above the SVG, the display face at the name's size, its text selectable; square by preflight's input rule (radius.e2e.ts's header). */
+  .rename {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    padding-inline: 8px;
+    border: 1px solid var(--color-action);
+    background: var(--color-workspace);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--color-ink);
+    user-select: text;
+  }
+
+  .rename:focus {
+    outline: none;
   }
 
   .under {

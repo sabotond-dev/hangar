@@ -2,13 +2,13 @@
   /sandbox/{id}/ - the Sandbox: PDF page 3 on the shell (13-16; Bible sections 2, 8, 14, 16;
   BUILD-01/02/06/07/08, PREV-04, KEEP-01). The rail (Palette, ElementList, `+ New surface`) and
   the inspector (RegionInspector) are snippets handed to the shell; the centre is the name row with
-  the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file) and the plate.
-  One model: src/lib/sandbox/editor.ts holds the surface, the selection set, mode, focus and history;
-  this route keeps the one EditorState in raw state and owns the store, the landing, the preview, the
-  frame, the clipboard's session store and the window's key listener (the hotkeys, V / Escape, Delete,
-  Ctrl/Cmd + C X V D A L - never in a text field). The draft is saved as it is edited (drafts.ts,
-  debounced); the landing is land.ts's under the pinned minifier with SLOTS 5, its five strings going
-  to install.observeConfig; no number about the budget is shown; Play runs the surface's own strings.
+  the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file), the surface's
+  three transforms (SurfaceTransforms, 13B) and the plate. One model: src/lib/sandbox/editor.ts holds
+  the surface, the set, mode, focus, history and the sticky defaults; this route keeps the one
+  EditorState in raw state and owns the stores (the draft, the defaults, the clipboard's session), the
+  landing, the preview, the frame and the window's key listener (the hotkeys, V / Escape, Delete,
+  Ctrl/Cmd + C X V D A L - never in a text field). The landing is land.ts's under the pinned minifier
+  with SLOTS 5 to install.observeConfig; no number about the budget is shown; Play runs the surface's own strings.
   Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -22,6 +22,7 @@
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
   import {
+    DEFAULTS_RESET_LINE,
     DEFAULT_SURFACE_NAME,
     DRAFT_SAVED,
     DRAFT_UNSAVED,
@@ -30,6 +31,8 @@
     EMPTY_INSTRUCTION,
     EMPTY_SECOND_LINE,
     EYEBROW_SANDBOX,
+    FLIPPED_HORIZONTAL,
+    FLIPPED_VERTICAL,
     MODE_EDIT,
     MODE_LINE_EDIT,
     MODE_LINE_PLAY,
@@ -39,6 +42,7 @@
     NOTHING_TO_PASTE,
     REDO,
     RENAME_SURFACE,
+    ROTATED,
     SAVE_COPY,
     SAVE_REFUSED,
     STARTER_ACTION,
@@ -48,6 +52,7 @@
     TITLE,
     TOO_FULL_TO_STORE,
     UNDO,
+    alignedLine,
     copiedLine,
     copyName,
     cutLine,
@@ -57,6 +62,7 @@
     pastedLine,
     renameSurfaceName,
     savedLine,
+    spacedLine,
     unlockedLine,
   } from "$lib/sandbox/copy";
   import { readClipboard, writeClipboard } from "$lib/sandbox/clipboard";
@@ -74,6 +80,11 @@
     type Mode,
     type NumericField,
   } from "$lib/sandbox/editor";
+  import type {
+    Alignment,
+    Axis,
+    SurfaceTransform,
+  } from "$lib/sandbox/geometry";
   import { emptySurface } from "$lib/sandbox/model";
   import type { SurfaceLanding } from "$lib/sandbox/land";
   import { SimHost } from "$lib/sim/host";
@@ -82,6 +93,12 @@
   import { mapAxis } from "$lib/sim/touch";
   import { readCopy, saveCopy } from "$lib/store/library";
   import type { LocalStore } from "$lib/store/local";
+  import {
+    readSandboxDefaults,
+    resetSandboxDefaults,
+    writeSandboxDefaults,
+  } from "$lib/store/sandbox-defaults";
+  import type { SandboxDefaults } from "$lib/store/schema";
   import { downloadExport, exportFile } from "$lib/store/transfer";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
@@ -90,6 +107,7 @@
   import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
   import SurfaceEditor from "$lib/ui/sandbox/SurfaceEditor.svelte";
+  import SurfaceTransforms from "$lib/ui/sandbox/SurfaceTransforms.svelte";
   import Rail from "$lib/ui/shell/Rail.svelte";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
   import type { PageData } from "./$types";
@@ -357,6 +375,42 @@
     tell(editor.paste(content), pastedLine);
   }
 
+  /** The Arrange row (change 13B): the set aligned or spaced out; the outcome on the plate's status line. */
+  function align(to: Alignment): void {
+    if (editor !== undefined) tell(editor.alignSelected(to), alignedLine);
+  }
+
+  function distribute(axis: Axis): void {
+    if (editor !== undefined) tell(editor.distributeSelected(axis), spacedLine);
+  }
+
+  /** The surface's three transforms (change 13B): the outcome names the transform; a refusal its line. */
+  function transform(kind: SurfaceTransform): void {
+    if (editor === undefined) return;
+    const outcome = editor.transformSurface(kind);
+    if (outcome.kind === "refused") plateNotice = outcome.message;
+    else if (outcome.kind === "done")
+      plateNotice =
+        kind === "flip-horizontal"
+          ? FLIPPED_HORIZONTAL
+          : kind === "flip-vertical"
+            ? FLIPPED_VERTICAL
+            : ROTATED;
+  }
+
+  /** The sticky defaults (change 13B): the editor's every change goes to the store; an empty envelope removes the key. */
+  function ondefaults(defaults: SandboxDefaults): void {
+    if (Object.keys(defaults.kinds).length === 0) resetSandboxDefaults(local());
+    else writeSandboxDefaults(local(), defaults);
+  }
+
+  /** Reset defaults, one click: not an entry, so the panel says so and the notice stays until the next change. */
+  function resetDefaults(): void {
+    if (editor === undefined) return;
+    editor.resetDefaults();
+    notice = DEFAULTS_RESET_LINE;
+  }
+
   /** Ctrl+L: the set locks, or unlocks when every member is locked. */
   function toggleLock(): void {
     const outcome = editor?.toggleLock();
@@ -519,7 +573,11 @@
     const store = local();
     const stored = readSurfaceDraft(store, id) ?? fromCopy(store, id);
     const surface = stored ?? emptySurface(id, DEFAULT_SURFACE_NAME);
-    editor = new SandboxEditor(surface, { onchange });
+    editor = new SandboxEditor(surface, {
+      onchange,
+      defaults: readSandboxDefaults(store),
+      ondefaults,
+    });
     view = editor.state();
     draftLine = stored === undefined ? undefined : DRAFT_SAVED;
     notice = undefined;
@@ -636,6 +694,9 @@
       onlocked={(locked) => editor?.setLocked(locked)}
       oncolour={(colour) => editor?.setColour(colour)}
       onbrightness={(next) => editor?.setBrightness(next)}
+      onalign={align}
+      ondistribute={distribute}
+      onresetdefaults={resetDefaults}
       onduplicate={duplicate}
       ondelete={remove}
       {notice}
@@ -777,16 +838,25 @@
       </div>
     </div>
 
+    <!-- The surface's three transforms (change 13B): a row of their own under the toolbar, off in Play and on an empty surface. -->
+    <SurfaceTransforms
+      disabled={play || empty}
+      describedBy={play ? "sandbox-mode-line" : undefined}
+      ontransform={transform}
+    />
+
     <div class="centre">
       <SurfaceEditor
         {view}
-        onclick={(col, row, shift) => void editor?.clickCell(col, row, shift)}
+        onclick={(col, row, shift, alt) =>
+          void editor?.clickCell(col, row, shift, alt)}
         onmarquee={(box, add) => void editor?.selectTouching(box, add)}
         onmove={(dc, dr) => editor?.moveFocus(dc, dr)}
-        onmark={() => void editor?.mark()}
+        onmark={(fill) => void editor?.mark(fill)}
         oncancel={() => editor?.escape()}
         ondelete={remove}
         onselectnext={(step) => void editor?.selectNext(step)}
+        onrename={(id, next) => void editor?.renameElement(id, next)}
         notice={plateNotice}
         onresize={(box) => editor?.resizeSelectedTo(box)}
         onmoveto={(cell) => editor?.moveSelectedTo(cell)}
