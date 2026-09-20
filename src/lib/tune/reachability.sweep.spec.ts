@@ -445,10 +445,11 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
       `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 260`,
     ).toBe(260);
 
-    // And the ladder, on the scoped set: eight worst-cost states since plan
-    // 12-10 (one per carded preset; tpad's was the ninth), zero over-budget
-    // ones, and not one step to offer between them.
-    expect(laddered.length, "the scoped ladder set").toBe(over.length + 8);
+    // And the ladder, on the scoped set: seven worst-cost states since change
+    // 12b, 2026-09-18 (one per carded preset; tpad's left at plan 12-10 and
+    // radar's with the Lua rebuild), zero over-budget ones, and not one step to
+    // offer between them.
+    expect(laddered.length, "the scoped ladder set").toBe(over.length + 7);
     for (const each of laddered) {
       expect(each.fits, `${each.label}: fit() refused a fitting state`).toBe(
         true,
