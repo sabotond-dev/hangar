@@ -33,7 +33,10 @@
 // ninth, change 13A, the selection walk - Shift+click, the marquee, Ctrl+C / V / X, a
 // channel typed over two, a lock refusing a drag; the tenth, change 13B, the geometry
 // walk - align left, space out, a quarter turn, Alt+click's fill, the double-click
-// rename, a sticky channel and its reset.) THE PUT-BACK HALF LEFT AT
+// rename, a sticky channel and its reset; the eleventh, change 13C, the
+// surfaces walk - the menu, the sheet, the profile file out and back, the
+// shared-controller mark, the names toggle, a recent colour's chip, the Play
+// monitor.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -772,6 +775,194 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await expect(sandbox).toHaveAttribute("data-depth", "2");
 
     expect(consoleErrors, "no console error on the round trip").toEqual([]);
+  });
+
+  test("the surfaces walk (change 13C): a right-click on an element opens the menu and Duplicate lands a copy, Paste is disabled with its reason on the empty plate, ? opens the shortcut sheet and Escape closes it, Export for Grid Editor downloads a profile whose JSON is type ZONA with the five strings and the surface under hangar, Import a profile opens it as a new draft, two elements on one CC show the mark and the line, a press in Play writes a monitor line, the names toggle hides the names, and a recent colour's chip recolours the selection", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const consoleErrors = collectErrors(page);
+    // A recent colour in the store before the page opens: the strip's chip is the assertion, not the picker.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "hangar.sandbox-colours.v1",
+        JSON.stringify({ schema: 1, colours: [[15, 0, 0]] }),
+      );
+    });
+    const plate = await openFresh(page);
+    const status = page.getByTestId("surface-status");
+    const count = page.getByTestId("surface-count");
+    const at = async (col: number, row: number) => {
+      const box = await plate.boundingBox();
+      if (box === null) throw new Error("the plate has no box");
+      const pitch = box.width / 9;
+      return { x: (col + 0.5) * pitch, y: (row + 0.5) * pitch };
+    };
+
+    // B, two clicks, V: two buttons.
+    await plate.focus();
+    await page.keyboard.press("b");
+    await clickCell(plate, 0, 0);
+    await clickCell(plate, 3, 0);
+    await page.keyboard.press("v");
+    await expect(count).toHaveText("2 elements");
+
+    // THE MENU on an element: it opens, Duplicate lands Button 3, the menu closes.
+    await plate.click({ position: await at(0, 0), button: "right" });
+    const menu = page.getByTestId("surface-menu");
+    await expect(menu).toBeVisible();
+    await expect(page.getByTestId("menu-cut")).toBeEnabled();
+    await expect(page.getByTestId("menu-rename")).toBeEnabled();
+    await page.getByTestId("menu-duplicate").click();
+    await expect(menu).toHaveCount(0);
+    await expect(status).toHaveText("Duplicated 1 element.");
+    await expect(count).toHaveText("3 elements");
+    // On the empty plate: Paste disabled with its reason, Select all live; Escape closes.
+    await plate.click({ position: await at(4, 7), button: "right" });
+    await expect(menu).toBeVisible();
+    await expect(page.getByTestId("menu-paste")).toBeDisabled();
+    await expect(page.getByTestId("menu-paste")).toHaveAttribute(
+      "title",
+      "Nothing to paste yet. Copy or cut an element first.",
+    );
+    await expect(page.getByTestId("menu-select-all")).toBeEnabled();
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+
+    // THE SHEET: ? opens it with Close focused; Escape closes it; the box opens it too.
+    await plate.focus();
+    await page.keyboard.press("?");
+    const sheet = page.getByTestId("shortcut-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(page.getByTestId("shortcut-sheet-close")).toBeFocused();
+    await expect(page.getByTestId("shortcut-row").first()).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
+    await page.getByTestId("shortcuts-open").click();
+    await expect(sheet).toBeVisible();
+    await page.getByTestId("shortcut-sheet-close").click();
+    await expect(sheet).toHaveCount(0);
+
+    // EXPORT FOR GRID EDITOR: the landing measured, the browser's own download,
+    // the Editor's shape, the five strings, the surface under hangar.
+    const exportButton = page.getByTestId("export-profile");
+    await expect(exportButton).toBeEnabled({ timeout: 30_000 });
+    const downloading = page.waitForEvent("download");
+    await exportButton.click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toBe("My performance.json");
+    await expect(page.getByTestId("profile-outcome")).toHaveText(
+      "Exported as My performance.json.",
+    );
+    const exportedPath = await download.path();
+    if (exportedPath === null) throw new Error("the download has no path");
+    const exportedText = readFileSync(exportedPath, "utf8");
+    const profile = JSON.parse(exportedText) as {
+      type: string;
+      configType: string;
+      name: string;
+      version: { major: string };
+      configs: {
+        controlElementNumber: number;
+        events: { event: number; config: string }[];
+      }[];
+      hangar: { app: string; kind: string };
+    };
+    expect(profile.type).toBe("ZONA");
+    expect(profile.configType).toBe("profile");
+    expect(profile.name).toBe("My performance");
+    expect(profile.version.major).toBe("1");
+    expect(profile.configs.map((c) => c.controlElementNumber)).toEqual([
+      0, 255,
+    ]);
+    const strings = profile.configs.flatMap((c) =>
+      c.events.map((e) => e.config),
+    );
+    expect(strings).toHaveLength(5);
+    for (const s of strings) expect(s.startsWith("--[[@cb]]")).toBe(true);
+    expect(profile.hangar.app).toBe("hangar");
+    expect(profile.hangar.kind).toBe("sandbox");
+
+    // IMPORT A PROFILE: the same file back opens as a NEW surface with the three elements.
+    const before = page.url();
+    await page.getByTestId("import-profile").setInputFiles({
+      name: "My performance.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(exportedText, "utf8"),
+    });
+    await expect(page).toHaveURL(SURFACE_ADDRESS);
+    await expect.poll(() => page.url()).not.toBe(before);
+    await expect(count).toHaveText("3 elements");
+    await expect(page.getByTestId("profile-outcome")).toHaveText(
+      "Imported My performance as a new surface.",
+    );
+
+    // TWO ON ONE CONTROLLER: Button 1 and Button 2 both on CC 16 - the mark on each, the line with nothing selected, no refusal.
+    await clickCell(plate, 0, 0);
+    const cc = page.getByTestId("field-cc");
+    await cc.fill("16");
+    await cc.press("Enter");
+    await clickCell(plate, 3, 0);
+    await cc.fill("16");
+    await cc.press("Enter");
+    await expect(page.getByTestId("surface-conflict")).toHaveCount(2);
+    await plate.focus();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("conflict-line")).toHaveText(
+      "Button 1 and Button 2 both send CC 16 on channel 1.",
+    );
+
+    // THE NAMES TOGGLE: the names leave the picture and come back.
+    await page.getByTestId("view-names").click();
+    await expect(page.getByTestId("surface-region").first()).toHaveClass(
+      /no-names/,
+    );
+    await page.getByTestId("view-names").click();
+    await expect(page.getByTestId("surface-region").first()).not.toHaveClass(
+      /no-names/,
+    );
+
+    // A RECENT COLOUR: the strip's chip recolours the selected button.
+    await clickCell(plate, 0, 0);
+    const chip = page.getByTestId("recent-colour").first();
+    await expect(chip).toHaveAttribute("data-colour", "15,0,0");
+    await chip.click();
+    await expect(
+      page.getByTestId("surface-region").first().locator("rect.body"),
+    ).toHaveAttribute("style", /rgb\(255,? 0,? 0\)/);
+
+    // PLAY: the monitor under the plate, a press on Button 1's cell writes a line.
+    await page.getByTestId("segment-play").click();
+    const monitor = page.getByTestId("play-monitor");
+    await expect(monitor).toBeVisible();
+    await expect(page.getByTestId("play-monitor-empty")).toBeVisible();
+    await page.waitForFunction(
+      () => {
+        const c = document.querySelector(
+          '[data-testid="pad-canvas-sandbox-preview"]',
+        ) as HTMLCanvasElement | null;
+        return c !== null && c.width === 9;
+      },
+      undefined,
+      { timeout: 30_000 },
+    );
+    const box = await plate.boundingBox();
+    if (box === null) throw new Error("no plate");
+    const pitch = box.width / 9;
+    await page.mouse.move(box.x + 0.5 * pitch, box.y + 0.5 * pitch);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await expect(page.getByTestId("play-monitor-line").first()).toContainText(
+      "CC 16 ch 1 →",
+      { timeout: 10_000 },
+    );
+    await page.getByTestId("play-monitor-clear").click();
+    await expect(page.getByTestId("play-monitor-empty")).toBeVisible();
+    await page.getByTestId("segment-edit").click();
+    await expect(monitor).toHaveCount(0);
+
+    expect(consoleErrors, "no console error on the surfaces walk").toEqual([]);
   });
 });
 
