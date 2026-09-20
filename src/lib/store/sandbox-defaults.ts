@@ -1,4 +1,4 @@
-// The Sandbox's sticky defaults (change 13B, BENCH-2026-09-16.txt section 13, suggestion 8): the
+// The Sandbox's remembered defaults (change 13B, BENCH-2026-09-16.txt section 13, suggestion 8): the
 // settings the user last gave each kind, so the next new element of that kind starts from them.
 // One envelope under SANDBOX_DEFAULTS_KEY, one record per kind (schema.ts's KindDefaults), read
 // whole and validated whole - a corrupt or foreign envelope reads as empty and is replaced by

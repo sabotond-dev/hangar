@@ -50,7 +50,7 @@ export const MOTION_KEY = storeKey("motion", SCHEMA_VERSION);
 /** Spent by 13-13: collections.ts owns it (D-13, D-22). */
 export const COLLECTIONS_KEY = storeKey("collections", SCHEMA_VERSION);
 
-/** The Sandbox's sticky defaults per kind (change 13B): sandbox-defaults.ts owns it. */
+/** The Sandbox's remembered defaults per kind (change 13B): sandbox-defaults.ts owns it. */
 export const SANDBOX_DEFAULTS_KEY = storeKey(
   "sandbox-defaults",
   SCHEMA_VERSION,

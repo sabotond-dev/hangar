@@ -67,7 +67,7 @@ import {
   NUMERIC_FIELDS,
   PALETTE,
   SELECTOR_KEY,
-  STICKY_FIELDS,
+  REMEMBERED_FIELDS,
   SandboxEditor,
   autoName,
   kindForKey,
@@ -3234,14 +3234,14 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
   });
 
-  it("20. sticky defaults per kind (change 13B): a field edited on ONE element is remembered for its kind and the next new element of that kind starts from it - channel, min, max, mode, speed, spring and its value, toggle, output and note, group, touches - while the controller, the colour and the orientation are not; a multi-edit, a rename, a recolour and a move remember nothing; the reset forgets every kind and is not an entry; the store round-trips, a corrupt envelope reads as empty, and the key is owned", () => {
+  it("20. remembered defaults per kind (change 13B): a field edited on ONE element is remembered for its kind and the next new element of that kind starts from it - channel, min, max, mode, speed, spring and its value, toggle, output and note, group, touches - while the controller, the colour and the orientation are not; a multi-edit, a rename, a recolour and a move remember nothing; the reset forgets every kind and is not an entry; the store round-trips, a corrupt envelope reads as empty, and the key is owned", () => {
     const told: SandboxDefaults[] = [];
     const editor = new SandboxEditor(emptySurface("t", "Test"), {
       ondefaults: (d) => void told.push(d),
     });
     expect(editor.defaults).toBe(NO_DEFAULTS);
     // A fader shaped: channel 5, min 10, relative at full speed, a spring
-    // at 40. Every one is told; the record is the kind's sticky fields as
+    // at 40. Every one is told; the record is the kind's remembered fields as
     // they stand - max is absent on the region, so absent here.
     editor.choose("fader");
     editor.clickCell(0, 0);
@@ -3339,7 +3339,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       withKindDefaults({ ...pad, cc: 126, cc2: 127 }, { touches: 5 }),
     ).toMatchObject({ touches: 5, cc: 118, cc2: 119 });
     // Only the kind's own fields apply, and only a mode the kind offers.
-    expect(STICKY_FIELDS.blank).toEqual([]);
+    expect(REMEMBERED_FIELDS.blank).toEqual([]);
     expect(
       withKindDefaults(byId(editor, f1.id), {
         touches: 3,

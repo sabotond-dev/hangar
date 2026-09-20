@@ -4,7 +4,7 @@
   the inspector (RegionInspector) are snippets handed to the shell; the centre is the name row with
   the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file), the surface's
   three transforms (SurfaceTransforms, 13B) and the plate. One model: src/lib/sandbox/editor.ts holds
-  the surface, the set, mode, focus, history and the sticky defaults; this route keeps the one
+  the surface, the set, mode, focus, history and the remembered defaults; this route keeps the one
   EditorState in raw state and owns the stores (the draft, the defaults, the clipboard's session), the
   landing, the preview, the frame and the window's key listener (the hotkeys, V / Escape, Delete,
   Ctrl/Cmd + C X V D A L - never in a text field). The landing is land.ts's under the pinned minifier
@@ -398,7 +398,7 @@
             : ROTATED;
   }
 
-  /** The sticky defaults (change 13B): the editor's every change goes to the store; an empty envelope removes the key. */
+  /** The remembered defaults (change 13B): the editor's every change goes to the store; an empty envelope removes the key. */
   function ondefaults(defaults: SandboxDefaults): void {
     if (Object.keys(defaults.kinds).length === 0) resetSandboxDefaults(local());
     else writeSandboxDefaults(local(), defaults);

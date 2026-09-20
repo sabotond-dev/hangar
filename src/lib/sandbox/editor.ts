@@ -1,6 +1,6 @@
 // The Sandbox editor's model: one surface, one SELECTION SET (change 13A: an ordered list of ids;
 // `selected` is the one region while the set has one), one mode, one armed kind, one keyboard
-// focus cell, the history, the sticky kind defaults (13B), and the field states that let an
+// focus cell, the history, the remembered kind defaults (13B), and the field states that let an
 // invalid keystroke stay on screen without reaching the surface. Pure TypeScript with no browser:
 // src/lib/ui/sandbox/ renders and calls it, sandbox-ui.spec.ts drives it in node, no method takes
 // a pointer event. The selector is the default tool: a click selects alone, Shift toggles, a click
@@ -269,7 +269,7 @@ export type EditorOptions = {
   readonly rules?: GeometryRules;
   /** Called after every change with the new state. */
   readonly onchange?: (state: EditorState) => void;
-  /** The sticky defaults per kind (change 13B), read from the store by the route. */
+  /** The remembered defaults per kind (change 13B), read from the store by the route. */
   readonly defaults?: SandboxDefaults;
   /** Called with the defaults whenever they change - a single element's field edited, or the reset - so the route stores them. */
   readonly ondefaults?: (defaults: SandboxDefaults) => void;
@@ -282,7 +282,7 @@ export { NO_DEFAULTS };
  * only on the kind that has them. The controller, the colour, the orientation, the name and
  * the geometry never stick; a blank has nothing to remember.
  */
-export const STICKY_FIELDS: Readonly<
+export const REMEMBERED_FIELDS: Readonly<
   Record<ElementKind, readonly (keyof KindDefaults)[]>
 > = {
   fader: ["channel", "min", "max", "mode", "speed", "spring", "springValue"],
@@ -292,10 +292,10 @@ export const STICKY_FIELDS: Readonly<
   blank: [],
 };
 
-/** A region's sticky fields as a kind's record: each one present on the region, `note` its controller while it sends a note. */
+/** A region's remembered fields as a kind's record: each one present on the region, `note` its controller while it sends a note. */
 export function rememberKind(region: Region): KindDefaults {
   const out: Record<string, unknown> = {};
-  for (const field of STICKY_FIELDS[region.kind]) {
+  for (const field of REMEMBERED_FIELDS[region.kind]) {
     const value =
       field === "note"
         ? outputOf(region) === "note"
@@ -308,7 +308,7 @@ export function rememberKind(region: Region): KindDefaults {
 }
 
 /**
- * A new region with its kind's sticky fields applied: only the kind's own fields, only a mode
+ * A new region with its kind's remembered fields applied: only the kind's own fields, only a mode
  * the kind offers; a button on Note takes the remembered note as its controller; an XY pad's
  * controllers stay under the ceiling its remembered touch count allows.
  */
@@ -318,7 +318,7 @@ export function withKindDefaults(
 ): Region {
   if (defaults === undefined) return region;
   const out: Record<string, unknown> = { ...region };
-  for (const field of STICKY_FIELDS[region.kind]) {
+  for (const field of REMEMBERED_FIELDS[region.kind]) {
     const value = defaults[field];
     if (value === undefined || field === "note") continue;
     if (field === "mode") {
@@ -355,7 +355,7 @@ const sameBox = (a: Box, b: Box): boolean =>
 const boxOf = (r: Region): Box => ({ col: r.col, row: r.row, w: r.w, h: r.h });
 
 /** The edit kinds a single element's field edit is remembered under (change 13B): a typed MIDI field, an option, the toggle. */
-const STICKY_KINDS: readonly EditKind[] = ["midi", "option", "latch"];
+const REMEMBERED_KINDS: readonly EditKind[] = ["midi", "option", "latch"];
 
 export class SandboxEditor {
   private _surface: Surface;
@@ -371,7 +371,7 @@ export class SandboxEditor {
   private readonly ondefaults:
     | ((defaults: SandboxDefaults) => void)
     | undefined;
-  /** The sticky defaults per kind (change 13B), the same shape the store keeps. */
+  /** The remembered defaults per kind (change 13B), the same shape the store keeps. */
   private _defaults: SandboxDefaults;
   private minted = 0;
   /** Regions this editor has created, for the palette (header, last paragraph). */
@@ -438,7 +438,7 @@ export class SandboxEditor {
     );
   }
 
-  /** The sticky defaults as they stand (change 13B). */
+  /** The remembered defaults as they stand (change 13B). */
   get defaults(): SandboxDefaults {
     return this._defaults;
   }
@@ -542,7 +542,7 @@ export class SandboxEditor {
           : kind === "fader"
             ? { ...region, orientation: orientation ?? "vertical" }
             : region;
-    // The sticky defaults (change 13B): the settings the user last gave this kind.
+    // The remembered defaults (change 13B): the settings the user last gave this kind.
     return withKindDefaults(shaped, this._defaults.kinds[kind]);
   }
 
@@ -841,15 +841,15 @@ export class SandboxEditor {
       this._selection,
     );
     this._surface = result.surface;
-    // The sticky defaults (change 13B): a field edited on ONE element is remembered for its kind; a multi-edit is not.
-    if (STICKY_KINDS.includes(kind) && edits.length === 1) {
+    // The remembered defaults (change 13B): a field edited on ONE element is remembered for its kind; a multi-edit is not.
+    if (REMEMBERED_KINDS.includes(kind) && edits.length === 1) {
       const region = result.surface.regions.find((r) => r.id === edits[0][0]);
       if (region !== undefined) this.remember(region);
     }
     return undefined;
   }
 
-  /** The kind's record replaced by this region's sticky fields, and the route told. */
+  /** The kind's record replaced by this region's remembered fields, and the route told. */
   private remember(region: Region): void {
     if (region.kind === "blank") return;
     this._defaults = {

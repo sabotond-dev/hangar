@@ -255,7 +255,7 @@ export const PASTE_AT_CAP =
 
 // ---------------------------------------------------------------------------
 // Change 13B (BENCH-2026-09-16.txt section 13): align and distribute, flip and rotate, the
-// fill-to-fit placement, and the sticky defaults. D-05's register; every line here is HANGAR's.
+// fill-to-fit placement, and the remembered defaults. D-05's register; every line here is HANGAR's.
 
 /** The inspector's Arrange row over a set: its title, its helper, and the eight commands' accessible names. */
 export const ARRANGE = "Arrange";
@@ -290,7 +290,7 @@ export const ROTATED = "Rotated the surface a quarter turn clockwise.";
 export const PALETTE_FILL_HELPER =
   "A click places the element at its default size. Alt+click (Option+click on a Mac) fills the free area around the cell.";
 
-/** The inspector's New elements section with nothing selected (suggestion 8): the sticky defaults and their reset. */
+/** The inspector's New elements section with nothing selected (suggestion 8): the remembered defaults and their reset. */
 export const NEW_ELEMENTS = "New elements";
 export const DEFAULTS_HELPER =
   "A new element takes the settings you last gave its kind: channel, range, mode and the rest. Its color still follows the palette.";

@@ -348,7 +348,7 @@
   }
 
   const sections = $derived.by((): InspectorSection[] => {
-    // No selection: the surface's own Appearance (the brightness), then New elements (the sticky defaults, 13B).
+    // No selection: the surface's own Appearance (the brightness), then New elements (the remembered defaults, 13B).
     if (!any)
       return [
         { title: APPEARANCE, content: appearance },
@@ -755,7 +755,7 @@
 {/snippet}
 
 {#snippet defaults()}
-  <!-- The sticky defaults (change 13B): what a new element starts from, and the one-click reset - not an entry, so its helper says Undo does not take it back. -->
+  <!-- The remembered defaults (change 13B): what a new element starts from, and the one-click reset - not an entry, so its helper says Undo does not take it back. -->
   <p class="helper first type-helper">{DEFAULTS_HELPER}</p>
   <button
     class="outlined"
