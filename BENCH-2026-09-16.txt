@@ -2126,3 +2126,15 @@ config (every slot HANGAR writes), downloaded by the browser to the user's own d
 the file dropped into grid-userdata/configs opens in the Grid Editor desktop app. The export
 covers what HANGAR lands: a tuned playground configuration and a Sandbox surface alike. Import
 reads the same file back where the content is HANGAR's. Folded into part 13C.
+
+Reference read 2026-09-20 (for 13C): `Documents/grid-userdata/configs/4 Virtual Pages.json` (EF44)
+and `New VSN1L Profile 1.json` - a profile file is `{ id (uuid), name, description, type (the
+module type string, "ZONA" here), version {major, minor, patch} (the Editor's, strings),
+configType: "profile", configs: [ { controlElementNumber, events: [ { event, config } ] } ],
+createdAt, modifiedAt (ISO), virtualPath: "" }`; every element the module has is listed with
+every event it owns, the untouched ones as `--[[@cb]] --[[Init]]`. HANGAR's ZONA file: element 0
+(the pad) with its events and element 255 (system) with 0, 4, 6 - the five slots HANGAR writes,
+the rest as Init placeholders; the element / event lists from `@intechstudio/grid-protocol`
+(`get_module_element_list`, `get_element_events` for ZONA), the loader in
+`C:/Users/sabot/Documents/Claude/grid-editor` read for what it requires. The download is the
+browser's own (a Blob and an `<a download>`), which lands in the Downloads folder on every OS.
