@@ -15,7 +15,7 @@
 /** The one version every body carries and every key name ends in. */
 export const SCHEMA_VERSION = 1 as const;
 
-/** The seven stores this module names. */
+/** The ten stores this module names. */
 export type StoreName =
   | "drafts"
   | "library"
@@ -24,7 +24,9 @@ export type StoreName =
   | "intro"
   | "motion"
   | "collections"
-  | "sandbox-defaults";
+  | "sandbox-defaults"
+  | "sandbox-view"
+  | "sandbox-colours";
 
 /**
  * The one place the key suffix is spelled. `storeKey("drafts", 1)` is
@@ -56,6 +58,12 @@ export const SANDBOX_DEFAULTS_KEY = storeKey(
   SCHEMA_VERSION,
 );
 
+/** The plate's two view toggles (change 13C): sandbox-view.ts owns it. */
+export const SANDBOX_VIEW_KEY = storeKey("sandbox-view", SCHEMA_VERSION);
+
+/** The Sandbox's recent colours (change 13C): sandbox-colours.ts owns it. */
+export const SANDBOX_COLOURS_KEY = storeKey("sandbox-colours", SCHEMA_VERSION);
+
 /** The ZONA's matrix is nine by nine; a region's cells are 0..8 on both axes. */
 export const SURFACE_SIZE = 9;
 
@@ -72,6 +80,8 @@ export const OWNED_KEYS: readonly string[] = [
   MOTION_KEY,
   COLLECTIONS_KEY,
   SANDBOX_DEFAULTS_KEY,
+  SANDBOX_VIEW_KEY,
+  SANDBOX_COLOURS_KEY,
 ];
 
 // ---------------------------------------------------------------------------
@@ -287,6 +297,38 @@ export const NO_DEFAULTS: SandboxDefaults = {
   kinds: {},
 };
 
+/**
+ * The plate's view toggles (change 13C, suggestion 12): whether the controller numbers and the
+ * names are drawn on the surface. Per viewer, not per surface; both on is the plate as it was.
+ */
+export type SandboxView = {
+  readonly schema: typeof SCHEMA_VERSION;
+  readonly numbers: boolean;
+  readonly names: boolean;
+};
+
+/** The plate as it was before the toggles: everything shown. */
+export const DEFAULT_VIEW: SandboxView = {
+  schema: SCHEMA_VERSION,
+  numbers: true,
+  names: true,
+};
+
+/** The most colours the recent strip keeps (change 13C, suggestion 13). */
+export const RECENT_COLOURS_CAP = 8;
+
+/** The recent colours, newest first, each RGB444 levels - the region's own resolution. */
+export type RecentColours = {
+  readonly schema: typeof SCHEMA_VERSION;
+  readonly colours: readonly (readonly [number, number, number])[];
+};
+
+/** No colour applied yet: one value, so a reader can compare by identity. */
+export const NO_COLOURS: RecentColours = {
+  schema: SCHEMA_VERSION,
+  colours: [],
+};
+
 /** The returning-visitor flag (13-CONTEXT D-14 Q2). */
 export type IntroFlag = {
   readonly schema: typeof SCHEMA_VERSION;
@@ -416,6 +458,29 @@ export function isRecentItem(value: unknown): value is RecentItem {
 export function isIntroFlag(value: unknown): value is IntroFlag {
   if (!isObject(value) || value.schema !== SCHEMA_VERSION) return false;
   return value.seen === true && isString(value.at);
+}
+
+/** The view envelope only if it is one: this version and two booleans. */
+export function isSandboxView(value: unknown): value is SandboxView {
+  if (!isObject(value) || value.schema !== SCHEMA_VERSION) return false;
+  return typeof value.numbers === "boolean" && typeof value.names === "boolean";
+}
+
+/** An RGB444 triple: three integers 0..15. */
+const isLevels = (value: unknown): value is readonly [number, number, number] =>
+  Array.isArray(value) &&
+  value.length === 3 &&
+  value.every((v) => isInt(v) && v >= 0 && v <= 15);
+
+/** The recent colours only if every entry is a triple and there are at most the cap. */
+export function isRecentColours(value: unknown): value is RecentColours {
+  if (!isObject(value) || value.schema !== SCHEMA_VERSION) return false;
+  const colours = value.colours;
+  return (
+    Array.isArray(colours) &&
+    colours.length <= RECENT_COLOURS_CAP &&
+    colours.every(isLevels)
+  );
 }
 
 /** A kind's defaults only if every field present is its own shape (the region's rules, field by field). */

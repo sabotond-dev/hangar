@@ -328,3 +328,74 @@ export const NO_LINK_EXPLANATION =
 /** The export's success line, with the file name the browser was asked for. */
 export const exportedLine = (fileName: string): string =>
   `Exported as ${fileName}.`;
+
+// ---------------------------------------------------------------------------
+// Change 13C (BENCH-2026-09-16.txt section 13): the right-click menu, the shortcut sheet, the
+// MIDI monitor in Play, the plate's view toggles, the shared-controller pass and the recent
+// colours. D-05's register; every line here is HANGAR's. The profile file's strings are
+// share/profile-copy.ts's (the workspace reads them too).
+
+/** The plate's menu (suggestion 1): its name, its items, and the reason each disabled item gives as its title. */
+export const MENU_NAME = "Surface menu";
+export const MENU_CUT = "Cut";
+export const MENU_COPY = "Copy";
+export const MENU_PASTE = "Paste";
+export const MENU_DELETE = "Delete";
+export const MENU_LOCK = "Lock";
+export const MENU_UNLOCK = "Unlock";
+export const MENU_RENAME = "Rename";
+export const MENU_ALIGN = "Align";
+export const MENU_DISTRIBUTE = "Space out";
+export const MENU_SELECT_ALL = "Select all";
+export const MENU_NEEDS_SELECTION = "Select an element first.";
+export const MENU_RENAME_ONE = "Select one element to rename it.";
+export const MENU_ALIGN_TWO = "Select two or more elements to align them.";
+export const MENU_SPACE_THREE =
+  "Select three or more elements to space them out.";
+export const MENU_NOTHING_TO_SELECT = "There’s nothing to select.";
+
+/** The shortcut sheet (suggestion 2): the dialog's title, its two columns, the close control, and the toolbar's way in. */
+export const SHORTCUTS_TITLE = "Keyboard shortcuts";
+export const SHORTCUTS_KEYS_COLUMN = "Keys";
+export const SHORTCUTS_DOES_COLUMN = "Does";
+export const SHORTCUTS_CLOSE = "Close";
+export const SHORTCUTS_OPEN_GLYPH = "?";
+export const SHORTCUTS_LEDE =
+  "Every shortcut the Sandbox answers. None of them works while you are typing in a field.";
+/** A control's title with its keys: `Undo (Ctrl+Z)`. */
+export const titledWithKeys = (label: string, keys: string): string =>
+  `${label} (${keys})`;
+
+/** The MIDI monitor in Play (suggestion 11): the list's name, its helper, its empty line and its one control. */
+export const PLAY_MONITOR = "MIDI monitor";
+export const PLAY_MONITOR_HELPER =
+  "The last twelve messages the surface sent, newest first. Nothing here reaches a MIDI port.";
+export const PLAY_MONITOR_EMPTY =
+  "Nothing sent yet. Touch the surface and what it sends shows here.";
+export const PLAY_MONITOR_CLEAR = "Clear";
+
+/** The plate's view toggles (suggestion 12): the group's name and its two switches. */
+export const VIEW_GROUP = "View";
+export const VIEW_NUMBERS = "CC numbers";
+export const VIEW_NAMES = "Names";
+export const VIEW_NUMBERS_HELPER =
+  "Show each element’s controller number on the surface.";
+export const VIEW_NAMES_HELPER = "Show each element’s name on the surface.";
+
+/** The shared-controller pass (suggestion 12): the section, its helper, and one line per pair. */
+export const CONFLICTS = "Shared controllers";
+export const CONFLICTS_HELPER =
+  "Two elements on one controller number and channel send over each other. That may be what you want; if not, change one of them.";
+export const conflictLine = (
+  a: string,
+  b: string,
+  cc: number,
+  channel: number,
+): string => `${a} and ${b} both send CC ${cc} on channel ${channel}.`;
+
+/** The recent colours (suggestion 13): the strip's name, its helper, and each chip's name. */
+export const RECENT_COLOURS = "Recent colors";
+export const RECENT_COLOURS_HELPER =
+  "The last eight colors you applied. Click one to apply it to every selected element.";
+export const recentColourName = (r: number, g: number, b: number): string =>
+  `Apply color ${r}, ${g}, ${b}`;

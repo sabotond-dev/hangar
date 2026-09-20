@@ -204,6 +204,8 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
       "hangar.motion.v1",
       "hangar.collections.v1",
       "hangar.sandbox-defaults.v1",
+      "hangar.sandbox-view.v1",
+      "hangar.sandbox-colours.v1",
     ]);
     expect([
       DRAFTS_KEY,
@@ -217,8 +219,9 @@ describe("the guarded primitive (src/lib/store/local.ts)", () => {
     // collections.ts is its one reader and writer.
     expect(COLLECTIONS_KEY).toBe("hangar.collections.v1");
     expect(OWNED_KEYS, "the spent key is owned").toContain(COLLECTIONS_KEY);
-    // The Sandbox's remembered defaults (change 13B): the eighth key, owned by sandbox-defaults.ts.
-    expect(OWNED_KEYS.length).toBe(8);
+    // The Sandbox's remembered defaults (change 13B): the eighth key, owned by sandbox-defaults.ts;
+    // its view toggles and recent colours (change 13C): the ninth and tenth, sandbox-view.ts and sandbox-colours.ts.
+    expect(OWNED_KEYS.length).toBe(10);
     expect(SCHEMA_VERSION).toBe(1);
   });
 

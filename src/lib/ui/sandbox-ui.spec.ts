@@ -1,6 +1,8 @@
-// The Sandbox's interface, twenty tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by change
-// 10A - the selector, the hotkeys, the move, the delete icon, the blank kind; 12 by 10B, 13 by change
-// 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B), two halves each:
+// The Sandbox's interface, twenty-seven tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by
+// change 10A - the selector, the hotkeys, the move, the delete icon, the blank kind; 12 by 10B, 13
+// by change 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B; 21 to 27 by 13C - the menu,
+// the sheet, the Play monitor, the shared-controller pass, the view toggles, the recent colours, the
+// profile controls), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -11,7 +13,7 @@
 // Decided at 13-16 / 13.1-03 (Bible sections 2, 8, 14, 16); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
@@ -20,6 +22,8 @@ import {
   BUTTON_MIN_MAX_HELPER,
   CC_RANGE,
   CHANNEL_RANGE,
+  CONFLICTS,
+  CONFLICTS_HELPER,
   DEFAULTS_HELPER,
   DISTRIBUTE_NO_ROOM,
   DUPLICATE_AT_CAP,
@@ -33,6 +37,11 @@ import {
   KNOB_RELATIVE_HELPER,
   LIST_EMPTY,
   LOCKED_HELPER,
+  MENU_ALIGN_TWO,
+  MENU_NEEDS_SELECTION,
+  MENU_NOTHING_TO_SELECT,
+  MENU_RENAME_ONE,
+  MENU_SPACE_THREE,
   MODE_HELPER,
   MULTI_LEDE,
   NOTE_RANGE,
@@ -42,8 +51,12 @@ import {
   PASTE_NO_SPACE,
   PLAY_LOCKS_FIELDS,
   PLAY_LOCKS_PALETTE,
+  PLAY_MONITOR_EMPTY,
+  PLAY_MONITOR_HELPER,
+  RECENT_COLOURS_HELPER,
   RESET_DEFAULTS_HELPER,
   ROTATE,
+  SHORTCUTS_TITLE,
   SPRING_HELPER,
   STARTER_ACTION,
   TEMPLATE_ACTION,
@@ -54,10 +67,50 @@ import {
   TOUCHES_HELPER,
   TRANSFORM_HELPER,
   VALUE_RANGE,
+  VIEW_NUMBERS_HELPER,
   WHOLE_NUMBER,
+  conflictLine,
+  lockedDeleteLine,
   lockedMoveLine,
+  recentColourName,
+  titledWithKeys,
   touchesCcRange,
 } from "../sandbox/copy";
+import {
+  conflictedIds,
+  controllersOf,
+  findConflicts,
+} from "../sandbox/conflicts";
+import { menuItems, type MenuItem } from "../sandbox/menu";
+import {
+  PLAY_MONITOR_ROWS,
+  messageWord,
+  newestRows,
+  playMonitorLine,
+} from "../sandbox/play-monitor";
+import {
+  SHORTCUT_GROUPS,
+  isMacPlatform,
+  keysRead,
+  keysWord,
+  platformOf,
+} from "../sandbox/shortcuts";
+import {
+  EXPORT_PROFILE,
+  EXPORT_PROFILE_HELPER,
+  EXPORT_PROFILE_OVER,
+  IMPORT_PROFILE,
+  profileExportedLine,
+} from "../share/profile-copy";
+import type { HostMidi } from "../sim/lua-host";
+import { MonitorLog, midiLogOf, type MonitorRow } from "../sim/monitor";
+import {
+  readRecentColours,
+  rememberColour,
+  writeRecentColours,
+} from "../store/sandbox-colours";
+import { readSandboxView, writeSandboxView } from "../store/sandbox-view";
+import { EXPORT_ACCEPT } from "../store/transfer";
 import { noteName } from "../tune/view";
 import {
   DEFAULT_COLOUR,
@@ -76,12 +129,20 @@ import {
   type EditorState,
 } from "../sandbox/editor";
 import {
+  DEFAULT_VIEW,
   ELEMENT_KINDS,
+  NO_COLOURS,
   OWNED_KEYS,
+  RECENT_COLOURS_CAP,
+  SANDBOX_COLOURS_KEY,
   SANDBOX_DEFAULTS_KEY,
+  SANDBOX_VIEW_KEY,
+  isRecentColours,
   isSandboxDefaults,
+  isSandboxView,
   isStoredRecord,
   type SandboxDefaults,
+  type SandboxView,
 } from "../store/schema";
 import {
   readSandboxDefaults,
@@ -127,14 +188,20 @@ import {
 import {
   SURFACE_ELEMENT_CAP,
   emptySurface,
+  type ElementKind,
   type Region,
   type Surface,
 } from "../sandbox/model";
+import ContextMenu from "./sandbox/ContextMenu.svelte";
 import ElementList from "./sandbox/ElementList.svelte";
 import Palette from "./sandbox/Palette.svelte";
+import PlayMonitor from "./sandbox/PlayMonitor.svelte";
+import ProfileActions from "./sandbox/ProfileActions.svelte";
 import RegionInspector from "./sandbox/RegionInspector.svelte";
+import ShortcutSheet from "./sandbox/ShortcutSheet.svelte";
 import SurfaceEditor from "./sandbox/SurfaceEditor.svelte";
 import SurfaceTransforms from "./sandbox/SurfaceTransforms.svelte";
+import ViewToggles from "./sandbox/ViewToggles.svelte";
 import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
@@ -3440,5 +3507,808 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toContain("onresetdefaults={resetDefaults}");
     expect(route).toContain("resetSandboxDefaults(local())");
     expect(route).toContain("writeSandboxDefaults(local(), defaults)");
+  });
+
+  it("21. the plate's menu (change 13C): the ten items in order on the empty plate, a single, a locked single, a set of two and of three, a set with a locked member, at the cap and in Play - a disabled item carries its reason, never hides - every leaf an editor command; the menu renders as menuitems with the platform's modifier word, the plate opens it on a right-click, Shift+F10 and the Menu key, and the route dispatches every action", () => {
+    const { editor } = fresh();
+    const byId = (list: readonly MenuItem[], id: string): MenuItem =>
+      list.find((i) => i.id === id) as MenuItem;
+    const ORDER = [
+      "cut",
+      "copy",
+      "paste",
+      "duplicate",
+      "delete",
+      "lock",
+      "rename",
+      "align",
+      "distribute",
+      "select-all",
+    ];
+    const ALIGNS = [
+      "align-left",
+      "align-right",
+      "align-top",
+      "align-bottom",
+      "align-centre-x",
+      "align-centre-y",
+    ];
+    const SPACINGS = ["distribute-horizontal", "distribute-vertical"];
+    // THE EMPTY PLATE: every item present, the selection-bound ones disabled
+    // with the one reason, Paste without a clipboard, Select all with nothing.
+    let items = menuItems(editor.state(), false);
+    expect(items.map((i) => i.id)).toEqual(ORDER);
+    for (const id of ["cut", "copy", "duplicate", "delete", "lock"]) {
+      expect(byId(items, id).disabled, id).toBe(MENU_NEEDS_SELECTION);
+    }
+    expect(byId(items, "paste").disabled).toBe(NOTHING_TO_PASTE);
+    expect(byId(items, "rename").disabled).toBe(MENU_RENAME_ONE);
+    expect(byId(items, "select-all").disabled).toBe(MENU_NOTHING_TO_SELECT);
+    expect(byId(items, "align").submenu?.map((s) => s.id)).toEqual(ALIGNS);
+    expect(byId(items, "distribute").submenu?.map((s) => s.id)).toEqual(
+      SPACINGS,
+    );
+    for (const sub of byId(items, "align").submenu ?? []) {
+      expect(sub.disabled).toBe(MENU_ALIGN_TWO);
+      expect(sub.action).toBe(sub.id);
+    }
+    for (const sub of byId(items, "distribute").submenu ?? []) {
+      expect(sub.disabled).toBe(MENU_SPACE_THREE);
+    }
+    expect(
+      Object.fromEntries(items.map((i) => [i.id, i.keys ?? null])),
+    ).toEqual({
+      cut: "Mod+X",
+      copy: "Mod+C",
+      paste: "Mod+V",
+      duplicate: "Mod+D",
+      delete: "Delete",
+      lock: "Mod+L",
+      rename: null,
+      align: null,
+      distribute: null,
+      "select-all": "Mod+A",
+    });
+    // A SINGLE, with a clipboard: everything but the two submenus runs.
+    editor.choose("button");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    const b1 = editor.surface.regions[0].id;
+    items = menuItems(editor.state(), true);
+    for (const id of ORDER.filter((i) => i !== "align" && i !== "distribute")) {
+      expect(byId(items, id).disabled, id).toBeUndefined();
+    }
+    expect(byId(items, "lock").label).toBe("Lock");
+    expect(byId(items, "align").submenu?.[0].disabled).toBe(MENU_ALIGN_TWO);
+    // A LOCKED SINGLE: Cut and Delete refuse with 13A's line, Lock reads Unlock, Copy and Duplicate still run.
+    editor.toggleLock();
+    items = menuItems(editor.state(), true);
+    expect(byId(items, "cut").disabled).toBe(lockedDeleteLine("Button 1"));
+    expect(byId(items, "delete").disabled).toBe(lockedDeleteLine("Button 1"));
+    expect(byId(items, "lock").label).toBe("Unlock");
+    expect(byId(items, "copy").disabled).toBeUndefined();
+    expect(byId(items, "duplicate").disabled).toBeUndefined();
+    editor.toggleLock();
+    // A SET OF TWO: Align runs, Space out needs three, Rename needs one.
+    editor.choose("button");
+    editor.clickCell(3, 0);
+    editor.cancel();
+    const b2 = editor.surface.regions[1].id;
+    editor.select(b1);
+    editor.toggleSelect(b2);
+    items = menuItems(editor.state(), false);
+    for (const sub of byId(items, "align").submenu ?? []) {
+      expect(sub.disabled).toBeUndefined();
+    }
+    expect(byId(items, "distribute").submenu?.[0].disabled).toBe(
+      MENU_SPACE_THREE,
+    );
+    expect(byId(items, "rename").disabled).toBe(MENU_RENAME_ONE);
+    expect(byId(items, "paste").disabled).toBe(NOTHING_TO_PASTE);
+    // THREE: Space out runs. A LOCKED MEMBER: Align, Space out, Cut and Delete refuse with the locked one's name; Lock locks the rest.
+    editor.choose("button");
+    editor.clickCell(6, 0);
+    editor.cancel();
+    const b3 = editor.surface.regions[2].id;
+    editor.select(b1);
+    editor.toggleSelect(b2);
+    editor.toggleSelect(b3);
+    items = menuItems(editor.state(), false);
+    expect(byId(items, "distribute").submenu?.[1].disabled).toBeUndefined();
+    editor.select(b3);
+    editor.toggleLock();
+    editor.select(b1);
+    editor.toggleSelect(b2);
+    editor.toggleSelect(b3);
+    items = menuItems(editor.state(), false);
+    expect(byId(items, "align").submenu?.[0].disabled).toBe(
+      lockedMoveLine("Button 3"),
+    );
+    expect(byId(items, "distribute").submenu?.[0].disabled).toBe(
+      lockedMoveLine("Button 3"),
+    );
+    expect(byId(items, "cut").disabled).toBe(lockedDeleteLine("Button 3"));
+    expect(byId(items, "delete").disabled).toBe(lockedDeleteLine("Button 3"));
+    expect(byId(items, "lock").label).toBe("Lock");
+    // AT THE CAP: Paste and Duplicate refuse with the cap's lines (no number).
+    const capped = new SandboxEditor(emptySurface("c", "Capped"), {
+      rules: { cap: 1 },
+    });
+    capped.choose("button");
+    capped.clickCell(0, 0);
+    capped.cancel();
+    items = menuItems(capped.state(), true);
+    expect(byId(items, "paste").disabled).toBe(PASTE_AT_CAP);
+    expect(byId(items, "duplicate").disabled).toBe(DUPLICATE_AT_CAP);
+    // IN PLAY: no menu.
+    editor.setMode("play");
+    expect(menuItems(editor.state(), true)).toEqual([]);
+    editor.setMode("edit");
+
+    // THE SHAPE HALF: ten menuitems with their test ids, a disabled one with
+    // its reason as the title, the modifier's word per platform; the plate
+    // opens on contextmenu, Shift+F10 and the Menu key, and mounts it; Rename
+    // is the plate's inline field; the route dispatches every other action.
+    const bare = fresh().editor;
+    const menuHtml = (mac: boolean) =>
+      render(ContextMenu, {
+        props: {
+          items: menuItems(bare.state(), false),
+          x: 0.2,
+          y: 0.2,
+          mac,
+          onaction: noop,
+          onclose: noop,
+        },
+      }).body;
+    const html = menuHtml(false);
+    expect(html).toContain('role="menu"');
+    expect(count(html, 'role="menuitem"')).toBe(10);
+    for (const id of ORDER) expect(html).toContain(`data-testid="menu-${id}"`);
+    expect(html).toMatch(/data-testid="menu-copy"[^>]*disabled/);
+    expect(html).toContain(`title="${MENU_NEEDS_SELECTION}"`);
+    expect(html).toContain("Ctrl+X");
+    expect(html).toContain('aria-haspopup="menu"');
+    const macHtml = menuHtml(true);
+    expect(macHtml).toContain("Cmd+X");
+    expect(macHtml).not.toContain("Ctrl+");
+    const plateSrc = code(`${UI}/SurfaceEditor.svelte`);
+    expect(plateSrc).toContain("function oncontextmenu(event: MouseEvent)");
+    expect(plateSrc).toContain("{oncontextmenu}");
+    expect(plateSrc).toContain('event.key === "ContextMenu"');
+    expect(plateSrc).toContain('event.key === "F10" && event.shiftKey');
+    expect(plateSrc).toContain("<ContextMenu");
+    expect(plateSrc).toContain('if (action === "rename")');
+    expect(plateSrc).toContain("openRename(r)");
+    expect(plateSrc).not.toContain("border-radius");
+    const route = code(ROUTE);
+    expect(route).toContain("menuItems={menu}");
+    expect(route).toContain("onmenu={menuAction}");
+    expect(route).toContain("onfocuscell={(cell) => editor?.setFocus(cell)}");
+    for (const action of [
+      "cut",
+      "copy",
+      "paste",
+      "duplicate",
+      "delete",
+      "lock",
+      "select-all",
+      ...ALIGNS,
+      ...SPACINGS,
+    ]) {
+      expect(route, action).toContain(`case "${action}":`);
+    }
+  });
+
+  it("22. the shortcut sheet (change 13C): every key the route's window listener and the plate's handler read is named by a row, and every key a row names is read by one; the platform is read in one place and turns Mod into Ctrl or Cmd and Alt into Option; the sheet renders every group and row with the platform's words; ? and the toolbar's box open it; and the palette rows, Undo, Redo, Duplicate and Delete carry their keys in their titles", () => {
+    const route = code(ROUTE);
+    const handler = route.slice(
+      route.indexOf("function onWindowKeyDown"),
+      route.indexOf("function fromCopy"),
+    );
+    expect(handler.length).toBeGreaterThan(500);
+    const readByRoute = [...handler.matchAll(/key === "([^"]+)"/g)].map((m) =>
+      m[1].toLowerCase(),
+    );
+    expect(readByRoute).toEqual(
+      expect.arrayContaining(["z", "y", "c", "x", "v", "d", "a", "l"]),
+    );
+    expect(readByRoute).toContain("?");
+    const plateSrc = code(`${UI}/SurfaceEditor.svelte`).slice(
+      code(`${UI}/SurfaceEditor.svelte`).indexOf("function onkeydown("),
+      code(`${UI}/SurfaceEditor.svelte`).indexOf("</script>"),
+    );
+    const readByPlate = [
+      ...[...plateSrc.matchAll(/event\.key === "([^"]+)"/g)].map((m) => m[1]),
+      ...[...plateSrc.matchAll(/case "([^"]+)":/g)].map((m) => m[1]),
+      ...[
+        ...code(`${UI}/SurfaceEditor.svelte`).matchAll(
+          /(Arrow(?:Left|Right|Up|Down)): \{ col/g,
+        ),
+      ].map((m) => m[1]),
+    ].map((k) => k.toLowerCase());
+    expect(readByPlate).toEqual(
+      expect.arrayContaining([
+        "tab",
+        "enter",
+        " ",
+        "escape",
+        "delete",
+        "backspace",
+        "alt",
+        "contextmenu",
+        "f10",
+        "arrowleft",
+        "arrowdown",
+      ]),
+    );
+    const handlersRead = new Set([
+      ...readByRoute,
+      ...readByPlate,
+      ...Object.values(HOTKEYS),
+      SELECTOR_KEY,
+    ]);
+    const named = keysRead();
+    for (const key of handlersRead) {
+      expect(named.has(key), `the sheet names ${JSON.stringify(key)}`).toBe(
+        true,
+      );
+    }
+    for (const key of named) {
+      expect(
+        handlersRead.has(key),
+        `${JSON.stringify(key)} is named but no handler reads it`,
+      ).toBe(true);
+    }
+    // THE PLATFORM, read in one place: shortcuts.ts's platformOf takes the
+    // navigator (Client Hints first); nothing else under the Sandbox reads it.
+    for (const platform of ["MacIntel", "macOS", "iPhone", "iPad"]) {
+      expect(isMacPlatform(platform), platform).toBe(true);
+    }
+    for (const platform of ["Win32", "Windows", "Linux x86_64", ""]) {
+      expect(isMacPlatform(platform), platform).toBe(false);
+    }
+    expect(
+      platformOf({ platform: "Win32", userAgentData: { platform: "macOS" } }),
+    ).toBe("macOS");
+    expect(platformOf({ platform: "Win32" })).toBe("Win32");
+    expect(platformOf(undefined)).toBe("");
+    expect(keysWord("Mod+Shift+Z", true)).toBe("Cmd+Shift+Z");
+    expect(keysWord("Mod+Shift+Z", false)).toBe("Ctrl+Shift+Z");
+    expect(keysWord("Alt+click", true)).toBe("Option+click");
+    expect(keysWord("Alt+click", false)).toBe("Alt+click");
+    expect(keysWord("Delete", true)).toBe("Delete");
+    expect(route).toContain("mac = isMacPlatform(platformOf(navigator))");
+    const sandboxSources = readdirSync(repo(UI))
+      .filter((f) => f.endsWith(".svelte"))
+      .map((f) => code(`${UI}/${f}`));
+    for (const source of [...sandboxSources, route]) {
+      expect(source).not.toContain("userAgentData");
+      expect(source).not.toContain("navigator.platform");
+    }
+    // THE SHEET: a dialog with every group's title and every row's words, the
+    // platform's words, Close; the route opens it on ? and the toggles' box.
+    const sheet = (mac: boolean) =>
+      render(ShortcutSheet, { props: { mac, onclose: noop } }).body;
+    const plain = sheet(false);
+    expect(plain).toContain('role="dialog"');
+    expect(plain).toContain('aria-modal="true"');
+    expect(plain).toContain(SHORTCUTS_TITLE);
+    expect(plain).toContain('data-testid="shortcut-sheet-close"');
+    let rows = 0;
+    for (const group of SHORTCUT_GROUPS) {
+      expect(plain).toContain(group.title);
+      for (const row of group.rows) {
+        expect(plain).toContain(row.what);
+        rows += 1;
+      }
+    }
+    expect(count(plain, 'data-testid="shortcut-row"')).toBe(rows);
+    expect(plain).toContain("Ctrl+C");
+    expect(plain).toContain("Alt+click");
+    const mac = sheet(true);
+    expect(mac).toContain("Cmd+C");
+    expect(mac).toContain("Option+click");
+    expect(mac).not.toContain("Ctrl+");
+    expect(route).toContain('event.key === "?"');
+    expect(route).toContain("<ShortcutSheet {mac} onclose={closeSheet} />");
+    expect(route).toContain("if (sheetOpen) {");
+    const toggles = render(ViewToggles, {
+      props: { numbers: true, names: true, ontoggle: noop, onshortcuts: noop },
+    }).body;
+    expect(toggles).toContain('data-testid="shortcuts-open"');
+    expect(toggles).toContain('title="Keyboard shortcuts (?)"');
+    // THE TITLES: the palette rows, Undo and Redo, Duplicate and Delete.
+    const { editor } = fresh();
+    const pal = palette(editor.state());
+    expect(pal).toContain('title="Fader (F)"');
+    expect(pal).toContain('title="XY pad (X)"');
+    expect(pal).toContain('title="Blank (L)"');
+    expect(route).toContain("titledWithKeys(UNDO, `${modWord(mac)}+Z`)");
+    expect(route).toContain("titledWithKeys(REDO, `${modWord(mac)}+Y`)");
+    editor.choose("button");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    const panel = inspector(editor);
+    expect(panel).toContain('title="Duplicate (Ctrl+D)"');
+    expect(panel).toContain('title="Delete element (Delete)"');
+    expect(titledWithKeys("Undo", "Ctrl+Z")).toBe("Undo (Ctrl+Z)");
+  });
+
+  it("23. the MIDI monitor in Play (change 13C): one line per message - CC 16 ch 1 → 64, Note on C4 ch 1 → 100, ×N when messages folded - through the Playground monitor's own log, the newest twelve of more; the hook is the preview engine's host log through midiLogOf; the list mounts under the plate in Play only with its empty line, its helper and a Clear disabled until a line", () => {
+    const row = (
+      cmd: number,
+      p1: number,
+      p2: number,
+      ch = 0,
+      n = 1,
+    ): MonitorRow => ({ at: 0, ch, cmd, p1, p2, count: n });
+    expect(playMonitorLine(row(176, 16, 64))).toBe("CC 16 ch 1 → 64");
+    expect(playMonitorLine(row(144, 60, 100))).toBe("Note on C4 ch 1 → 100");
+    expect(playMonitorLine(row(128, 61, 0, 2))).toBe("Note off C#4 ch 3 → 0");
+    expect(playMonitorLine(row(176, 16, 127, 0, 3))).toBe(
+      "CC 16 ch 1 → 127 ×3",
+    );
+    expect(playMonitorLine(row(224, 0, 64))).toBe("Pitch bend ch 1 → 8192");
+    expect(messageWord(176, 7)).toBe("CC 7");
+    expect(messageWord(144, 0)).toBe("Note on C-1");
+    expect(PLAY_MONITOR_ROWS).toBe(12);
+    // Through MonitorLog: twenty distinct controllers give twenty rows, the list shows the newest twelve.
+    const log = new MonitorLog();
+    const stream: HostMidi[] = [];
+    for (let i = 0; i < 20; i += 1) {
+      stream.push({ ch: 0, cmd: 176, p1: i, p2: i, mode: 0 });
+    }
+    expect(log.ingest(stream, 0)).toBe(true);
+    expect(log.visible).toHaveLength(20);
+    const shown = newestRows(log.visible);
+    expect(shown).toHaveLength(12);
+    expect(shown[0].p1).toBe(19);
+    expect(shown[11].p1).toBe(8);
+    expect(newestRows(log.visible, 3).map((r) => r.p1)).toEqual([19, 18, 17]);
+    // Alike messages inside the window fold: one line, the latest value, the count.
+    const folded = new MonitorLog();
+    folded.ingest(
+      [
+        { ch: 0, cmd: 176, p1: 16, p2: 1, mode: 0 },
+        { ch: 0, cmd: 176, p1: 16, p2: 2, mode: 0 },
+      ],
+      0,
+    );
+    expect(playMonitorLine(folded.visible[0])).toBe("CC 16 ch 1 → 2 ×2");
+    // THE HOOK: the Sandbox's engine is a LuaPadSim over a LuaHost whose
+    // `midi` is the log; midiLogOf reads it through the host field, and the
+    // route hands `() => midiLogOf(engine)` to the list.
+    expect(midiLogOf({ host: { midi: [] } })).toEqual([]);
+    expect(midiLogOf(undefined)).toBeUndefined();
+    expect(code("src/lib/sim/lua-pad-sim.ts")).toContain(
+      "private readonly host: LuaHost",
+    );
+    expect(code("src/lib/sim/lua-host.ts")).toContain(
+      "get midi(): readonly HostMidi[]",
+    );
+    const route = code(ROUTE);
+    expect(route).toMatch(
+      /\{#if play\}\s*<PlayMonitor source=\{\(\) => midiLogOf\(engine\)\} \/>\s*\{\/if\}/,
+    );
+    // THE SHAPE: the list, its empty line, its helper, Clear disabled.
+    const html = render(PlayMonitor, { props: { source: () => [] } }).body;
+    expect(html).toContain('data-testid="play-monitor"');
+    expect(html).toContain(PLAY_MONITOR_EMPTY);
+    expect(html).toContain(PLAY_MONITOR_HELPER);
+    expect(html).toMatch(/data-testid="play-monitor-clear"[^>]*disabled/);
+    expect(html).not.toContain('data-testid="play-monitor-line"');
+    expect(code(`${UI}/PlayMonitor.svelte`)).not.toMatch(
+      /border-radius: (?!0;)/,
+    );
+  });
+
+  it("24. the shared-controller pass (change 13C): a fader and a button on CC 16 channel 1 are a pair, a note button is not (a note is not a controller), a different channel is not, an XY pad's two axes and every finger's pair count, a blank sends nothing; each pair once per shared controller in the surface's order; the inspector lists the pairs first with nothing selected, the plate marks each member, and the editor still accepts two on one controller", () => {
+    const r = (
+      over: Partial<Region> & { id: string; name: string; kind: ElementKind },
+    ): Region => ({
+      col: 0,
+      row: 0,
+      w: 1,
+      h: 1,
+      cc: 16,
+      channel: 1,
+      colour: [15, 15, 7],
+      ...over,
+    });
+    const fader = r({ id: "f", name: "Fader 1", kind: "fader", w: 2, h: 6 });
+    const button = r({ id: "b", name: "Button 1", kind: "button", col: 3 });
+    const note = r({
+      id: "n",
+      name: "Note 1",
+      kind: "button",
+      col: 5,
+      output: "note",
+    });
+    const other = r({
+      id: "o",
+      name: "Fader 2",
+      kind: "fader",
+      col: 7,
+      channel: 2,
+      w: 2,
+      h: 6,
+    });
+    const pad = r({
+      id: "x",
+      name: "XY pad 1",
+      kind: "xy",
+      col: 0,
+      row: 6,
+      w: 3,
+      h: 3,
+      cc2: 17,
+      touches: 2,
+    });
+    const knob = r({
+      id: "k",
+      name: "Knob 1",
+      kind: "knob",
+      col: 3,
+      row: 6,
+      w: 3,
+      h: 3,
+      cc: 18,
+    });
+    const blank = r({
+      id: "l",
+      name: "Blank 1",
+      kind: "blank",
+      col: 6,
+      row: 6,
+    });
+    expect(controllersOf(fader)).toEqual([16]);
+    expect(controllersOf(button)).toEqual([16]);
+    expect(controllersOf(note)).toEqual([]);
+    expect(controllersOf(pad)).toEqual([16, 17, 18, 19]);
+    expect(controllersOf(knob)).toEqual([18]);
+    expect(controllersOf(blank)).toEqual([]);
+    const all = [fader, button, note, other, pad, knob, blank];
+    const found = findConflicts(all);
+    expect(found.map((c) => [c.a, c.b, c.cc, c.channel])).toEqual([
+      ["Fader 1", "Button 1", 16, 1],
+      ["Fader 1", "XY pad 1", 16, 1],
+      ["Button 1", "XY pad 1", 16, 1],
+      ["XY pad 1", "Knob 1", 18, 1],
+    ]);
+    expect(found[0]).toMatchObject({ aId: "f", bId: "b" });
+    expect([...conflictedIds(found)].sort()).toEqual(["b", "f", "k", "x"]);
+    expect(findConflicts([fader, other])).toEqual([]);
+    expect(findConflicts([fader, note])).toEqual([]);
+    expect(findConflicts([])).toEqual([]);
+    expect(conflictLine("Fader 1", "Button 1", 16, 1)).toBe(
+      "Fader 1 and Button 1 both send CC 16 on channel 1.",
+    );
+    // NEVER A REFUSAL: the editor accepts the second element on the same controller.
+    const { editor } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.choose("button");
+    editor.clickCell(3, 0);
+    editor.cancel();
+    expect(editor.editNumber("cc", "16")).toBe(true);
+    editor.commitField();
+    editor.select(editor.surface.regions[0].id);
+    expect(editor.editNumber("cc", "16")).toBe(true);
+    editor.commitField();
+    expect(findConflicts(editor.surface.regions)).toHaveLength(1);
+    // THE INSPECTOR: with nothing selected the pairs come first, each its
+    // line, the helper above them; with a selection, or none found, nothing.
+    editor.select(undefined);
+    const panelWith = render(RegionInspector, {
+      props: {
+        view: editor.state(),
+        onrename: noop,
+        onnumber: noop,
+        oncommit: noop,
+        onorientation: noop,
+        onlatch: noop,
+        oncolour: noop,
+        onduplicate: noop,
+        ondelete: noop,
+        conflicts: found,
+      },
+    }).body;
+    expect(panelWith).toContain(`>${CONFLICTS}<`);
+    expect(panelWith).toContain(CONFLICTS_HELPER);
+    expect(count(panelWith, 'data-testid="conflict-line"')).toBe(4);
+    expect(panelWith).toContain(conflictLine("XY pad 1", "Knob 1", 18, 1));
+    expect(panelWith.indexOf(`>${CONFLICTS}<`)).toBeLessThan(
+      panelWith.indexOf(">Appearance<"),
+    );
+    expect(inspector(editor)).not.toContain(`>${CONFLICTS}<`);
+    editor.select(editor.surface.regions[0].id);
+    expect(inspector(editor)).not.toContain(`>${CONFLICTS}<`);
+    // THE PLATE: a mark on each member given and on no other; straight lines.
+    editor.select(undefined);
+    const marked = render(SurfaceEditor, {
+      props: {
+        view: editor.state(),
+        onclick: noop,
+        onmove: noop,
+        onmark: noop,
+        oncancel: noop,
+        ondelete: noop,
+        conflicts: new Set([editor.surface.regions[0].id]),
+      },
+    }).body;
+    expect(count(marked, 'data-testid="surface-conflict"')).toBe(1);
+    expect(marked).toContain("<polygon");
+    expect(marked).not.toMatch(/\brx=|\bry=/);
+    expect(plate(editor.state())).not.toContain("surface-conflict");
+    const route = code(ROUTE);
+    expect(route).toContain("findConflicts(view.surface.regions)");
+    expect(route).toContain("conflicts={conflictIds}");
+    expect(route).toContain("{conflicts}");
+  });
+
+  it("25. the view toggles (change 13C): the store round-trips under its own key and a corrupt envelope reads as both on; with the numbers on every sending kind shows its controller - the fader its own numeral, a button, a knob and an XY pad a new one, a note button its note name, a blank none - and with them off none; names off drops the names; the toggles render pressed with their helpers as titles; the route reads the store on mount, writes every toggle, hands the plate the pair, and the draft never carries it", () => {
+    const { store, map } = mapStore();
+    expect(DEFAULT_VIEW).toEqual({ schema: 1, numbers: true, names: true });
+    expect(readSandboxView(store)).toBe(DEFAULT_VIEW);
+    const off: SandboxView = { schema: 1, numbers: false, names: true };
+    expect(writeSandboxView(store, off)).toBe(true);
+    expect(map.get(SANDBOX_VIEW_KEY)).toBe(JSON.stringify(off));
+    expect(readSandboxView(store)).toEqual(off);
+    for (const bad of [
+      "{",
+      JSON.stringify({ schema: 2, numbers: true, names: true }),
+      JSON.stringify({ schema: 1, numbers: "no", names: true }),
+      JSON.stringify({ schema: 1, numbers: true }),
+    ]) {
+      map.set(SANDBOX_VIEW_KEY, bad);
+      expect(readSandboxView(store), bad).toBe(DEFAULT_VIEW);
+    }
+    expect(isSandboxView({ schema: 1, numbers: true, names: false })).toBe(
+      true,
+    );
+    expect(readSandboxView(undefined)).toBe(DEFAULT_VIEW);
+    expect(writeSandboxView(undefined, off)).toBe(false);
+    expect(SANDBOX_VIEW_KEY).toBe("hangar.sandbox-view.v1");
+    expect(OWNED_KEYS).toContain(SANDBOX_VIEW_KEY);
+    // THE PLATE: five kinds placed; the numerals per toggle.
+    const { editor } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.choose("button");
+    editor.clickCell(3, 0);
+    editor.choose("knob");
+    editor.clickCell(3, 3);
+    editor.choose("xy");
+    editor.clickCell(6, 0);
+    editor.choose("blank");
+    editor.clickCell(6, 6);
+    editor.cancel();
+    const [, button, knob, xy] = editor.surface.regions;
+    const shown = (show: { numbers: boolean; names: boolean }) =>
+      render(SurfaceEditor, {
+        props: {
+          view: editor.state(),
+          onclick: noop,
+          onmove: noop,
+          onmark: noop,
+          oncancel: noop,
+          ondelete: noop,
+          show,
+        },
+      }).body;
+    const on = shown({ numbers: true, names: true });
+    expect(count(on, 'data-testid="surface-cc"')).toBe(3);
+    expect(on).toContain(`>${knob.cc}</text>`);
+    expect(on).toContain(`>${xy.cc} ${xy.cc2}</text>`);
+    expect(on).toContain(`>${button.cc}</text>`);
+    expect(on).not.toContain("no-numbers");
+    expect(on).not.toContain("no-names");
+    // The default is both on, as the plate was.
+    expect(count(plate(editor.state()), 'data-testid="surface-cc"')).toBe(3);
+    const numbersOff = shown({ numbers: false, names: true });
+    expect(numbersOff).not.toContain('data-testid="surface-cc"');
+    expect(count(numbersOff, "no-numbers")).toBe(5);
+    expect(numbersOff).toContain(">Fader 1</text>");
+    const namesOff = shown({ numbers: true, names: false });
+    expect(count(namesOff, "no-names")).toBe(5);
+    const plateSrc = code(`${UI}/SurfaceEditor.svelte`);
+    expect(plateSrc).toMatch(
+      /\.region\.no-numbers \.numeral,\s*\.region\.no-names \.name \{\s*display: none;/,
+    );
+    // A note button's numeral is its note name.
+    editor.select(button.id);
+    editor.setOutput("note");
+    editor.editNumber("note", "C4");
+    editor.commitField();
+    expect(shown({ numbers: true, names: true })).toContain(">C4</text>");
+    // THE TOGGLES.
+    const toggles = render(ViewToggles, {
+      props: { numbers: true, names: false, ontoggle: noop, onshortcuts: noop },
+    }).body;
+    expect(toggles).toMatch(
+      /data-testid="view-numbers"[^>]*aria-pressed="true"/,
+    );
+    expect(toggles).toMatch(
+      /data-testid="view-names"[^>]*aria-pressed="false"/,
+    );
+    expect(toggles).toContain(`title="${VIEW_NUMBERS_HELPER}"`);
+    expect(toggles).toContain('role="group"');
+    // THE ROUTE, and the draft: a Surface has no such field.
+    const route = code(ROUTE);
+    expect(route).toContain("viewPrefs = readSandboxView(local())");
+    expect(route).toContain("writeSandboxView(local(), viewPrefs)");
+    expect(route).toContain("show={viewPrefs}");
+    expect(Object.keys(editor.surface).sort()).toEqual([
+      "id",
+      "name",
+      "regions",
+    ]);
+  });
+
+  it("26. the recent colours (change 13C): rememberColour puts the colour first once and keeps eight, the same object back when it is already first; the store round-trips under its own key and a corrupt or oversize envelope reads as empty; 13A's setColour already writes every member of a set as one entry, so the strip's chip is the swatch's own call; the inspector renders a chip per colour newest first, named and filled, none without a colour or a selection, disabled in Play; the route wires the swatch and the debounce", () => {
+    const a: [number, number, number] = [15, 0, 0];
+    const b: [number, number, number] = [0, 15, 0];
+    let recent = NO_COLOURS;
+    recent = rememberColour(recent, a);
+    expect(recent.colours).toEqual([a]);
+    recent = rememberColour(recent, b);
+    expect(recent.colours).toEqual([b, a]);
+    expect(rememberColour(recent, b)).toBe(recent);
+    recent = rememberColour(recent, a);
+    expect(recent.colours).toEqual([a, b]);
+    for (let i = 1; i <= 9; i += 1) recent = rememberColour(recent, [i, i, i]);
+    expect(RECENT_COLOURS_CAP).toBe(8);
+    expect(recent.colours).toHaveLength(8);
+    expect(recent.colours[0]).toEqual([9, 9, 9]);
+    expect(recent.colours[7]).toEqual([2, 2, 2]);
+    // THE STORE.
+    const { store, map } = mapStore();
+    expect(readRecentColours(store)).toBe(NO_COLOURS);
+    expect(writeRecentColours(store, recent)).toBe(true);
+    expect(map.get(SANDBOX_COLOURS_KEY)).toBe(JSON.stringify(recent));
+    expect(readRecentColours(store)).toEqual(recent);
+    for (const bad of [
+      "{",
+      JSON.stringify({ schema: 2, colours: [] }),
+      JSON.stringify({ schema: 1, colours: [[16, 0, 0]] }),
+      JSON.stringify({ schema: 1, colours: [[1, 2]] }),
+      JSON.stringify({
+        schema: 1,
+        colours: Array.from({ length: 9 }, () => [1, 1, 1]),
+      }),
+      JSON.stringify({ schema: 1, colours: {} }),
+    ]) {
+      map.set(SANDBOX_COLOURS_KEY, bad);
+      expect(readRecentColours(store), bad).toBe(NO_COLOURS);
+    }
+    expect(isRecentColours({ schema: 1, colours: [[0, 15, 15]] })).toBe(true);
+    expect(readRecentColours(undefined)).toBe(NO_COLOURS);
+    expect(writeRecentColours(undefined, recent)).toBe(false);
+    expect(SANDBOX_COLOURS_KEY).toBe("hangar.sandbox-colours.v1");
+    expect(OWNED_KEYS).toContain(SANDBOX_COLOURS_KEY);
+    // 13A'S MULTI-EDIT, VERIFIED: one colour on a set writes every member as one entry.
+    const { editor } = fresh();
+    editor.choose("button");
+    editor.clickCell(0, 0);
+    editor.clickCell(3, 0);
+    editor.cancel();
+    const [b1, b2] = editor.surface.regions;
+    editor.select(b1.id);
+    editor.toggleSelect(b2.id);
+    const depth = editor.history.depth;
+    editor.setColour([1, 2, 3]);
+    editor.commitField();
+    expect(editor.surface.regions.map((r) => r.colour)).toEqual([
+      [1, 2, 3],
+      [1, 2, 3],
+    ]);
+    expect(editor.history.depth).toBe(depth + 1);
+    editor.undo();
+    expect(editor.selection).toEqual([b1.id, b2.id]);
+    // THE INSPECTOR.
+    const panel = (colours: readonly (readonly [number, number, number])[]) =>
+      render(RegionInspector, {
+        props: {
+          view: editor.state(),
+          onrename: noop,
+          onnumber: noop,
+          oncommit: noop,
+          onorientation: noop,
+          onlatch: noop,
+          oncolour: noop,
+          onduplicate: noop,
+          ondelete: noop,
+          recentColours: colours,
+        },
+      }).body;
+    const strip = panel([a, b]);
+    expect(strip).toContain('data-testid="recent-colours"');
+    expect(count(strip, 'data-testid="recent-colour"')).toBe(2);
+    expect(strip.indexOf('data-colour="15,0,0"')).toBeLessThan(
+      strip.indexOf('data-colour="0,15,0"'),
+    );
+    expect(strip).toContain(recentColourName(255, 0, 0));
+    expect(strip).toContain("background: rgb(255 0 0)");
+    expect(strip).toContain(RECENT_COLOURS_HELPER);
+    expect(strip).not.toMatch(/data-testid="recent-colour"[^>]*disabled/);
+    expect(panel([])).not.toContain('data-testid="recent-colours"');
+    editor.setMode("play");
+    expect(panel([a])).toMatch(/data-testid="recent-colour"[^>]*disabled/);
+    editor.setMode("edit");
+    editor.select(undefined);
+    expect(panel([a])).not.toContain('data-testid="recent-colours"');
+    const route = code(ROUTE);
+    expect(route).toContain("oncolour={colour}");
+    expect(route).toContain("editor?.setColour(next)");
+    expect(route).toContain("rememberColour(recent, next)");
+    expect(route).toContain("recent = readRecentColours(local())");
+    expect(route).toContain("recentColours={recent.colours}");
+  });
+
+  it("27. the Grid Editor profile controls (change 13C): Export for Grid Editor and Import a profile render as the toolbar's outlined boxes - the export disabled with its reason as its title while the landing is measuring or over the budget, the import a file input accepting the export's types - with the outcome beside them; the Sandbox route builds the file from the landing's strings and opens an imported surface as a new draft; the workspace's pinned button builds it from the tuner's strings; the destination zone is untouched", () => {
+    const html = render(ProfileActions, {
+      props: { onexport: noop, onimport: noop },
+    }).body;
+    expect(html).toContain('data-testid="export-profile"');
+    expect(html).toContain(EXPORT_PROFILE);
+    expect(html).toContain(IMPORT_PROFILE);
+    expect(html).not.toMatch(/data-testid="export-profile"[^>]*disabled/);
+    expect(html).toContain(`title="${EXPORT_PROFILE_HELPER}"`);
+    const input =
+      html.match(/<input[^>]*data-testid="import-profile"[^>]*>/)?.[0] ?? "";
+    expect(input).toContain('type="file"');
+    expect(html).toContain(`accept="${EXPORT_ACCEPT}"`);
+    expect(html).not.toContain('data-testid="profile-outcome"');
+    const held = render(ProfileActions, {
+      props: {
+        exportReason: EXPORT_PROFILE_OVER,
+        outcome: profileExportedLine("Loop.json"),
+        onexport: noop,
+        onimport: noop,
+      },
+    }).body;
+    expect(held).toMatch(/data-testid="export-profile"[^>]*disabled/);
+    expect(held).toContain(`title="${EXPORT_PROFILE_OVER}"`);
+    expect(held).toContain("Exported as Loop.json.");
+    expect(held).toMatch(/role="status"[^>]*data-testid="profile-outcome"/);
+    expect(code(`${UI}/ProfileActions.svelte`)).not.toMatch(
+      /border-radius: (?!0;)/,
+    );
+    // THE SANDBOX ROUTE: the landing's strings (what Store writes), the
+    // element count line as the description, the surface's envelope under
+    // the hangar key, the file name from the surface's name; an import lands
+    // on a fresh id as a draft, the surface held for open() as well.
+    const route = code(ROUTE);
+    expect(route).toContain("const strings = landing.config;");
+    expect(route).toContain(
+      "surfaceDescription(elementsLine(surface.regions.length))",
+    );
+    expect(route).toContain("profileFileName(surface.name)");
+    expect(route).toContain("hangar: exportFile(");
+    expect(route).toContain("readProfile(text, at)");
+    expect(route).toContain("const id = mintSurfaceId();");
+    expect(route).toContain("pendingImport = surface;");
+    expect(route).toContain("saveSurfaceDraft(local(), surface, at);");
+    expect(route).toContain(
+      "readSurfaceDraft(store, id) ?? imported ?? fromCopy(store, id)",
+    );
+    expect(route).toMatch(
+      /landing === undefined\s*\?\s*EXPORT_PROFILE_MEASURING\s*:\s*landing\.refusal !== undefined\s*\?\s*EXPORT_PROFILE_OVER/,
+    );
+    expect(route).toContain("<ProfileActions");
+    expect(route).toContain("onimport={(text) => void importProfile(text)}");
+    // THE WORKSPACE: the tuner's five strings, the card's sentence, the same
+    // record Save a copy writes under the hangar key, in the inspector's pinned actions.
+    const workspace = code("src/routes/playground/[id]/+page.svelte");
+    expect(workspace).toContain('data-testid="export-profile"');
+    expect(workspace).toContain("const strings = configStrings;");
+    expect(workspace).toContain("configDescription(entry.description)");
+    expect(workspace).toContain("stamp.stampKnobs(found)");
+    expect(workspace).toContain("profileLib.profileFileName(entry.name)");
+    expect(workspace).toMatch(
+      /overBudgetReason \?\?\s*\(configStrings === undefined \? EXPORT_PROFILE_MEASURING : undefined\)/,
+    );
+    expect(code("src/lib/ui/DestinationZone.svelte")).not.toContain("profile");
   });
 });

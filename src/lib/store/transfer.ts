@@ -147,16 +147,24 @@ export type DownloadDeps = {
  * afterwards. Returns the file name it asked for. No permission prompt, no
  * gesture beyond the click that called this.
  */
-export function downloadExport(
-  file: ExportFile,
+export function downloadExport(file: ExportFile, deps?: DownloadDeps): string {
+  return downloadText(exportFileName(file.record), serialiseExport(file), deps);
+}
+
+/**
+ * The same door for any JSON text under any name (change 13C: the Grid Editor profile is a
+ * second file shape through the one download). Returns the file name it asked for.
+ */
+export function downloadText(
+  name: string,
+  text: string,
   deps: DownloadDeps = {
     document,
     url: URL,
     defer: (run) => setTimeout(run, 0),
   },
 ): string {
-  const name = exportFileName(file.record);
-  const blob = new Blob([serialiseExport(file)], { type: "application/json" });
+  const blob = new Blob([text], { type: "application/json" });
   const href = deps.url.createObjectURL(blob);
   const anchor = deps.document.createElement("a");
   anchor.href = href;
