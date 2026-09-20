@@ -2164,3 +2164,8 @@ seeded walk that does not repeat the same short game (the sweep refuses `math.ra
 generation counter into the LCG is enough), death shown (a flash) and restarted after a pause,
 note-on at the bite with a note-off a generation later, the death note the same way. To be
 briefed when it reaches the top of the queue.
+
+> ill go to sleep soon, proceed to 14 at your best discretion
+
+Recorded 2026-09-20: the queue runs on without further questions - 13A, 13B, 13C, then 14 (the
+SNAKE remake on the reading above). Nothing deploys until the user's word.
