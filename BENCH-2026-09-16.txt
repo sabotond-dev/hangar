@@ -2085,3 +2085,28 @@ should be given a hydration wait in the test. (f) Changes 1 to 12's questions st
 > elements either with holding shift and clicking or with the selection tool when dragging and
 > making a square. Make it that you can adjust/edit multiple elements. research more of these
 > typical quality of life and user experience ease features and suggest me more to add.
+
+Readings put to the user 2026-09-20 with thirteen suggestions: (the four) cut / copy / paste on
+Ctrl+X / C / V (Cmd on Mac) and Ctrl+D duplicate, paste at the focus cell if free else one cell
+down-right of the original, the clipboard kept in the app so it pastes into another surface;
+multi-select by Shift+click, a marquee dragged on empty plate with the selector, Ctrl+A; one
+outline round the group, moved / deleted / cut / copied / duplicated as one, resize handles on a
+single selection only; multi-edit through the inspector - shared fields, "Mixed" where the values
+differ, a typed value applies to all, kind-specific fields only when every selected element is
+that kind, one Undo per edit. The suggestions: (1) a right-click menu on the plate; (2) a shortcut
+cheat-sheet on ? and hints in tooltips; (3) align and distribute a multi-selection; (4) flip /
+rotate the surface; (5) fill-to-fit placement; (6) lock an element; (7) double-click to rename on
+the plate, auto-numbered names on add; (8) sticky defaults per kind; (9) Tab / Shift+Tab cycles
+elements; (10) export / import a surface as .json; (11) a MIDI monitor in Play; (12) grid helpers -
+toggle the numbers / names on the plate, a conflicts pass for two elements on one CC and channel;
+(13) colour tools - recent colours, apply to all selected.
+
+> this is for sandbox mode obv
+> love them all. do it
+
+Recorded: all seventeen, Sandbox only. Where the readings left a choice: a pasted element keeps
+the original's settings and colour and takes an auto-numbered name; the marquee selects what it
+touches. Built in three serial parts on Fable: 13A the selection model, the clipboard, multi-edit,
+lock, Tab; 13B the geometry tools - align / distribute, flip / rotate, fill-to-fit, auto-names and
+the plate rename, sticky defaults; 13C the surfaces - the right-click menu, the cheat-sheet,
+export / import, the MIDI monitor, the plate toggles and the conflicts pass, the colour tools.
