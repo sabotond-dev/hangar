@@ -179,3 +179,137 @@ src/lib/catalog/lua-entries.sweep.spec.ts asserts every one of those claims.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 14, 2026-09-21 - the remake (BENCH-2026-09-16.txt section 14)
+
+The user's word, 2026-09-20: "the SNAKE gimmick profile is broken, we'll need to remake that";
+the quiz (stored through HANGAR, the module rebooted): the picture "runs the same sequence over
+and over again i have barely any affect on it", the steering "turns the wrong way / late", the
+notes "hang or spam"; then "ill go to sleep soon, proceed to 14 at your best discretion". Remade
+on the reading recorded under section 14, every decision below taken without a question.
+
+### The two strings the entry carried until change 14, verbatim
+
+```lua
+--[[@cb]]local function P(k,r,g,b)local a=glag(0,k)glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end self.b={}self.o={}self.p=1 self.l=2 self.u=1 self.v=0 self.f=41 self.t=0 for k=39,40 do self.b[k-39]=k self.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then return end s.t=3 local h=s.b[s.p]local c=x*9//128-h%9 local r=y*9//128-h//9 local m=c<0 and -c or c local w=r<0 and -r or r if m>w then if s.u==0 then s.u=c>0 and 1 or -1 s.v=0 end elseif w>0 then if s.v==0 then s.v=r>0 and 1 or -1 s.u=0 end end end gtt(0,@SPEED)
+```
+
+```lua
+--[[@cb]]gtt(0,@SPEED)local s=self local function P(k,r,g,b)local a=glag(0,k)glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end local h=s.b[s.p]local o=s.u~=0 if s.t>0 then s.t=s.t-1 else local d=o and s.f//9-h//9 or s.f%9-h%9 if d~=0 then d=d>0 and 1 or -1 if o then s.v=d s.u=0 else s.u=d s.v=0 end end end local n=(h//9+s.v)%9*9+(h%9+s.u)%9 if s.o[n]then s:gms(@CH,144,@NOTE-12,110,0)for k=0,80 do P(k,0,0,0)end s.o={}s.b={}s.p=1 s.l=2 s.u=1 s.v=0 s.f=41 for k=39,40 do s.b[k-39]=k s.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)return end s.p=(s.p+1)%81 if n==s.f then s.l=s.l+1 local g=0 for k=0,80 do if k~=n and not s.o[k]then g=k break end end local w=s.f for _=1,12 do w=(w*7+23)%81 if w~=n and not s.o[w]then g=w break end end s.f=g P(g,@FOODC)s:gms(@CH,144,@NOTE+s.l%12,100,0)else local t=s.b[(s.p-s.l)%81]s.o[t]=nil P(t,0,0,0)end s.b[s.p]=n s.o[n]=1 P(n,@SNAKEC)
+```
+
+Setup 581 / Timer 870 at the defaults, 585 / 880 at the RGB444 picker corner (323 and
+TWENTY-EIGHT free); the rack `@SPEED @SNAKEC @FOODC @NOTE @CH`, five knobs, unchanged by this
+change.
+
+### The fault, read against that Lua and confirmed in the VM
+
+1. **"The same sequence over and over."** Death was a deterministic reset to the two-cell snake
+   at 39 / 40 with the food at 41, and the food walked `(g*7+23)%81` from a fixed seed, so every
+   game after a death was the first game again: on the shelf five bites and a death every 29
+   generations (ticks 22, 110, 308, 550, 594, 638 at 220 ms, then 660 + the same), forever.
+   Confirmed by running the old entry in the VM for 2,200 ticks: three identical games.
+2. **"Turns the wrong way / late."** The handler read the touch cell from the RAW pair
+   (`x*9//128`, `y*9//128`) - SNAKE was left out of 12.1's calibration refit as one of the
+   "untouched Lua entries" - so on the module the finger landed a cell out near the edges and
+   the turn came off the wrong cell; and the control credit `s.t=3` lasted three generations, so
+   a finger that stopped moving handed the snake back to the autopilot after three steps and
+   the autopilot turned it toward the food again. "Barely any affect on it" is that credit.
+3. **"Hang or spam."** A bite and a death sent a note-on and nothing ever sent a note-off ("at
+   most one message per generation" was the header's rule) - every note hung until the next
+   note-on on the same pitch, and the autopilot's bites kept sending them.
+
+### What moved
+
+- **Steering.** The touch cell is the library's calibrated `N(x,y)` (12.1's map, the same map
+  every other finger on this site reads); the direction is the dominant axis from the head to
+  that cell, a horizontal steer accepted only while `s.u` is 0 and a vertical one only while
+  `s.v` is 0 (a reversal refused by construction, as before). Every sample re-steers, so the
+  finger steers for as long as it is down; a still finger sends no sample (the firmware's
+  change gate) and the direction stays; the lift changes nothing. **No credit:** `s.t=1` on any
+  live sample and NEVER decremented.
+- **The autopilot rule.** The autopilot runs only while `s.t` is nil - nobody has touched this
+  game - so the card is alive on a browse page and in the OG image; the first finger switches it
+  off until the next death's restart, which clears `s.t`. A refused steer (a reversal, the axis
+  already travelled) still sets `s.t`: a finger that touched the game owns it. The other honest
+  form, a knob `Autopilot: Off / On`, was measured at ten characters of Timer (`if @AUTO and not s.t then`: 741 at the
+  defaults, 749 at the corner) plus a sixth knob, a rack change and stamp.spec.ts's grown-rack
+  exception; the rule is cheaper and needs
+  no explaining on the card. Not taken.
+- **The food.** `F(s,n)` in the Setup: the first free cell computed first as the fallback, then
+  `w=(w*7+23+s.g)%81` from the food just eaten, re-rolled while it lands on the body or the new
+  head, bounded by the literal 12. `s.g` is the game's seed: `s.c` is a generation counter
+  incremented on every Timer call and never reset, and the restart copies it into `s.g`. The
+  first game has `s.g` 0, so its walk is the old one; every later game starts from a different
+  count, so its walk differs (81 distinct walks per starting food; two consecutive games are
+  asserted to differ). Deterministic from a cold start: no random source anywhere.
+- **Death.** The death call sends the low note and paints every occupied cell in `@FOODC` - the
+  flash - and sets `s.d=6`; the next two calls hold it; the third blacks the board (one bounded
+  pass over 0..80); two more stay dark; the sixth runs `I(s)`, the restart. Six generations:
+  1.32 s at the default 220 ms, 0.66 s at 110, 1.8 s at 300. The food colour rather than white:
+  the snake becomes food, and the corner cost is the same eleven characters.
+- **Notes.** A bite sends `144, @NOTE+s.l%12, 100` and leaves the pitch in `s.z`; the death
+  sends `144, @NOTE-12, 110` the same way; the next Timer call sends `128, s.z, 0` before
+  anything else and clears it (RADAR POINTS's pending list, one note deep: a bite and a death
+  are mutually exclusive, so one note is ever pending). Nothing hangs; one note-on per bite.
+- **Speed.** `@SPEED` as before, the period in milliseconds in both events (300 220 160 110). A
+  BPM reading was not taken: no honest BPM ladder lands 220 ms exactly, and the rest frame and
+  the first game had to stay.
+- **The Setup clears the board.** `I(s)` blacks all 81 cells before it paints the two-cell
+  snake, and the Setup runs `I(self)` once, so an Apply over another card's picture starts from
+  black (before, the Setup painted three cells and left the rest as they were).
+- **Three Setup locals published on `self`.** `P` (the painter, as before), `I` (the restart)
+  and `F` (the placer) are `local function`s of the Setup, published as `self.P self.I self.F`
+  and read back into Timer locals (`local P,I,F=s.P,s.I,s.F`, 24 characters against the 89 of
+  the painter declared twice). The brief's "a global function name free of the library's
+  twenty-one and the runtime's" was not possible: host-surface.spec.ts admits a bare call only
+  when it is a host name, a library name or a local of the same event, so a global `I(` in the
+  Timer would be refused there, and every single capital is taken between the library's
+  twenty-one, `R`, the Sandbox emitter's `J` and `M` and the runtime's `S F I R O Q D K` in any
+  case. The fields are the element's own; `I` and `F` collide with nothing that runs on this
+  element, and `P` keeps brightness.ts's declared painter row unchanged.
+
+### The costs, under the pinned `compressScript` after `initLuaFormatter()`
+
+At the RGB444 picker corner: **Setup 585 -> 877** (323 -> 31 free), **Timer 880 -> 739** (28 ->
+169 free); 871 / 732 at the defaults. Both fixed points, both accepted by `checkSyntax`; the sweep
+(`4 19`) measures every knob value, the 27-colour sample per colour knob and both corners. No
+system slot. The Setup carries the three functions and the handler; the Timer only steps. The
+Setup's corner is the tighter of the two now (the reverse of before); moving `F` back into the
+Timer was measured at 663 / 938 at the corner - thirty over the budget - so the split stands.
+
+### The first game, the frames and the OG
+
+The first game from Setup is byte-identical to the old entry's: `s.g` is 0, the autopilot is the
+old arithmetic, and the VM's wire for it is the old sequence (five bites and the death at ticks
+22, 110, 308, 550, 594, 638) plus a note-off exactly one generation after each note-on. So
+`frames.json`'s records at ticks 0, 37, 101 and 500 and the OG image (tick 64) did not move; the
+record at tick 1009 did - the old entry restarted at the death tick and tick 1009 was the second
+game's fifteenth generation (12 lit bytes), the remade card restarts six generations later on a
+different walk, dies again at tick 924 and is inside that death's dark pause at 1009 (0 lit bytes).
+Regenerated; SNAKE's block is the only one that moved, and only that one record in it.
+
+### The VM cases (`lua-smoke.spec.ts`, 47 -> 49)
+
+A `describe("SNAKE remade (change 14)")` at the end of the file, two cases. (1) The shelf: the two
+colours sampled off the Setup's own picture; the first game's wire held equal to the OLD note-on
+list pasted from a run of the old entry (tick, pitch, velocity) with an off one period after each;
+the death tick's flash (every body cell and the food in the food colour, eight cells, no
+snake-coloured cell), held two generations, the death note released on the first, the board black
+on the third and through the fifth, the restart on the sixth with nothing sent through the pause,
+the second game's first bite one generation on at the same pitch with the food at the seeded
+walk's cell `(41*7+23+35)%81 = 21`, not the first game's 67. (2) The steer, through the measured
+knots: a finger straight above the head turns the snake up on the very next generation; the
+direction outlives the lift for two more generations with the autopilot off (it would have turned
+onto the food's column); a finger straight below while travelling up is refused; a finger to the
+right on the head's row turns it right, and it keeps right; the wire carries the first bite's pair
+and nothing else. The existing catalog-wide cases (the smoke gesture, the residue probe, the
+parity tap, the keeper guard) are untouched and green. A note on the residue probe: since the
+Setup's clear every cell is at phase 255 (black or coloured) in the untouched run, so that probe
+cannot flag this card either way - the card's picture is colour under a constant phase, which the
+probe's phase test was never able to see (its own comment on SNAKE says so).
+
+### The stamp
+
+The rack is unchanged, so every SNAKE stamp - the shelf's and any tuned link - still decodes to
+the same five indices and opens the remade card at that state.

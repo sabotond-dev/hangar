@@ -12450,3 +12450,263 @@ describe("the gradient (12.1)", () => {
     );
   }, 120000);
 });
+
+// ---------------------------------------------------------------------------
+// SNAKE REMADE (change 14, 2026-09-21; BENCH-2026-09-16.txt section 14). The bench: "runs the same
+// sequence over and over", the steer "turns the wrong way / late", the notes "hang or spam". The
+// cases below drive the remade card through the shelf's first game (byte-identical to the one
+// before the change), a calibrated steer that outlives the lift, a refused reversal, the note-off
+// a generation after every note-on, the death's flash, pause and restart, and two games whose
+// food walks differ.
+// ---------------------------------------------------------------------------
+
+describe("SNAKE remade (change 14)", () => {
+  /**
+   * The first game's note-ons on the tree BEFORE the change (HEAD 8878084, the
+   * VM at the defaults, nobody touching): five bites and the death, by tick.
+   * Pasted from a run of the old entry, so the remade card is held to the
+   * OLD sequence and not to itself; `docs/entries/snake.md` carries the old
+   * strings verbatim.
+   */
+  const PRE_CHANGE_FIRST_GAME: readonly {
+    tick: number;
+    p1: number;
+    p2: number;
+  }[] = [
+    { tick: 22, p1: 51, p2: 100 },
+    { tick: 110, p1: 52, p2: 100 },
+    { tick: 308, p1: 53, p2: 100 },
+    { tick: 550, p1: 54, p2: 100 },
+    { tick: 594, p1: 55, p2: 100 },
+    { tick: 638, p1: 36, p2: 110 },
+  ];
+
+  /** Every screen cell whose rendered colour is exactly `rgb`. */
+  function cellsOf(frame: Uint8Array, rgb: string): number[] {
+    const out: number[] = [];
+    for (let cell = 0; cell < CELLS; cell += 1)
+      if (rgbAt(frame, cell) === rgb) out.push(cell);
+    return out;
+  }
+
+  it("keeps the pre-change first game on the shelf, releases every note a generation later, flashes and pauses on death, restarts, and seeds the next game's food differently", async () => {
+    const entry = entryById("snake");
+    const period = knobValueOf(entry, "speed") / 10;
+    expect(period, "snake: the default step is a whole number of ticks").toBe(
+      22,
+    );
+    const channel = knobValueOf(entry, "channel");
+    const lowest = knobValueOf(entry, "note");
+    const rendered = renderLua(entry);
+    expect(
+      rendered.timer.includes(`:gms(${channel},128,`),
+      "snake: the Timer sends NOTE-OFF, status 128, through gms",
+    ).toBe(true);
+    // The walk, read off the entry: `(w*7+23+s.g)%81`, seeded per game.
+    expect(rendered.setup, "snake: the seeded food walk").toContain(
+      "w=(w*7+23+s.g)%81",
+    );
+    expect(rendered.setup, "snake: the calibrated touch cell").toContain(
+      "N(x,y)",
+    );
+    expect(rendered.setup, "snake: no raw divisor").not.toContain("*9//128");
+
+    const { host } = await open(entry);
+    try {
+      type Ev = { tick: number; cmd: number; p1: number; p2: number };
+      const events: Ev[] = [];
+      let seen = 0;
+      let tick = 0;
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) {
+          host.tick();
+          tick += 1;
+          while (seen < host.midi.length) {
+            const m = host.midi[seen];
+            seen += 1;
+            events.push({ tick, cmd: m.cmd, p1: m.p1, p2: m.p2 });
+          }
+        }
+      };
+      // The two colours as the engine renders them, sampled off the Setup's
+      // own picture: the head at 40 and the food at 41.
+      run(1);
+      const snakeRgb = rgbAt(host.frame, 40);
+      const foodRgb = rgbAt(host.frame, 41);
+      expect(snakeRgb, "the head is lit").not.toBe("[0,0,0]");
+      expect(foodRgb, "the food is lit").not.toBe("[0,0,0]");
+      expect(foodRgb, "the two colours tell apart").not.toBe(snakeRgb);
+      expect(cellsOf(host.frame, snakeRgb), "the two-cell snake").toEqual([
+        39, 40,
+      ]);
+      expect(cellsOf(host.frame, foodRgb), "the food at 41").toEqual([41]);
+
+      // THE FIRST GAME, to the death tick. Every note-on on the old tick with
+      // the old pitch and velocity, and a note-off for it exactly one
+      // generation later - nothing else on the wire.
+      const deathTick =
+        PRE_CHANGE_FIRST_GAME[PRE_CHANGE_FIRST_GAME.length - 1].tick;
+      run(deathTick - tick);
+      const expected: Ev[] = [];
+      for (const on of PRE_CHANGE_FIRST_GAME) {
+        expected.push({ tick: on.tick, cmd: 144, p1: on.p1, p2: on.p2 });
+        if (on.tick + period <= deathTick)
+          expected.push({
+            tick: on.tick + period,
+            cmd: 128,
+            p1: on.p1,
+            p2: 0,
+          });
+      }
+      expected.sort((a, b) => a.tick - b.tick);
+      expect(events, "the first game's wire").toEqual(expected);
+      // The first bite placed the food by the unseeded walk from 41.
+      const firstFood = (41 * 7 + 23) % 81;
+      expect(firstFood).toBe(67);
+
+      // THE DEATH TICK: the whole body (two cells plus five bites) and the food
+      // in the food colour, nothing in the snake colour - the flash.
+      const bodyLength = 2 + (PRE_CHANGE_FIRST_GAME.length - 1);
+      expect(
+        cellsOf(host.frame, foodRgb).length,
+        "the flash: every body cell and the food in the food colour",
+      ).toBe(bodyLength + 1);
+      expect(cellsOf(host.frame, snakeRgb), "no snake-coloured cell").toEqual(
+        [],
+      );
+      // Held for two more generations; the death note released on the first.
+      run(period);
+      expect(events.at(-1), "the death note released").toEqual({
+        tick: deathTick + period,
+        cmd: 128,
+        p1: lowest - 12,
+        p2: 0,
+      });
+      expect(cellsOf(host.frame, foodRgb).length, "still flashing").toBe(
+        bodyLength + 1,
+      );
+      run(period);
+      expect(cellsOf(host.frame, foodRgb).length, "still flashing").toBe(
+        bodyLength + 1,
+      );
+      // The third generation blacks the board; two more stay dark.
+      run(period);
+      expect(lit(host.frame), "the board blacked").toBe(0);
+      run(period * 2);
+      expect(lit(host.frame), "still dark").toBe(0);
+      const sentBeforeRestart = events.length;
+      // The sixth restarts: the two-cell snake and the food at 41, no send.
+      run(period);
+      const restartTick = deathTick + 6 * period;
+      expect(tick).toBe(restartTick);
+      expect(cellsOf(host.frame, snakeRgb), "restarted").toEqual([39, 40]);
+      expect(cellsOf(host.frame, foodRgb), "the food back at 41").toEqual([41]);
+      expect(events.length, "nothing sent through the pause").toBe(
+        sentBeforeRestart,
+      );
+
+      // THE SECOND GAME'S FIRST BITE, one generation on: the same pitch, and
+      // the food placed by the walk seeded with the generation count at the
+      // restart - a different cell from the first game's.
+      run(period);
+      expect(events.at(-1), "the second game's first bite").toEqual({
+        tick: restartTick + period,
+        cmd: 144,
+        p1: lowest + 3,
+        p2: 100,
+      });
+      const generationsAtRestart = restartTick / period;
+      const secondFood = (41 * 7 + 23 + generationsAtRestart) % 81;
+      expect(secondFood, "the seeded walk lands elsewhere").not.toBe(firstFood);
+      expect(cellsOf(host.frame, foodRgb), "the second game's food").toEqual([
+        secondFood,
+      ]);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+  }, 60000);
+
+  it("steers from the calibrated cell for as long as the finger is down, keeps the direction after the lift with the autopilot off, refuses a reversal, and turns right when told", async () => {
+    const entry = entryById("snake");
+    const period = knobValueOf(entry, "speed") / 10;
+    const { host } = await open(entry);
+    try {
+      let tick = 0;
+      const run = (n: number): void => {
+        for (let i = 0; i < n; i += 1) {
+          host.tick();
+          tick += 1;
+        }
+      };
+      run(1);
+      const snakeRgb = rgbAt(host.frame, 40);
+      const foodRgb = rgbAt(host.frame, 41);
+      const snake = (): number[] => cellsOf(host.frame, snakeRgb);
+      // A finger on LED (col, row) through the measured knots: the library's
+      // `N` puts it on that cell, where the raw divisor would not near an edge.
+      const at = (col: number, row: number): [number, number] => [
+        ledCentre(col, "x"),
+        ledCentre(row, "y"),
+      ];
+
+      // Generation 1: the snake eats the food at 41; the head is at column 5.
+      run(period - tick);
+      expect(snake(), "after the first bite").toEqual([39, 40, 41]);
+      expect(
+        cellsOf(host.frame, foodRgb),
+        "the food moved off column 5's path",
+      ).toEqual([67]);
+
+      // A finger straight above the head (col 5, row 1): the dominant axis is
+      // vertical, the snake is travelling horizontally, so it turns UP on the
+      // next generation - not on a later one.
+      host.touchDown(0, ...at(5, 1));
+      run(1);
+      run(period - (tick % period));
+      expect(tick).toBe(2 * period);
+      expect(snake(), "turned up on the very next generation").toEqual([
+        32, 40, 41,
+      ]);
+      // The finger lifts. The direction outlives it: up, and up again, with
+      // no autopilot pulling the snake toward the food's column.
+      host.touchUp(0, ...at(5, 1));
+      run(1);
+      run(period - (tick % period));
+      expect(snake(), "still up after the lift").toEqual([23, 32, 41]);
+      run(period);
+      expect(snake(), "and up again").toEqual([14, 23, 32]);
+
+      // A reversal: a finger straight BELOW the head while travelling up is
+      // the vertical axis again, and s.v is not 0, so it is refused.
+      host.touchDown(0, ...at(5, 7));
+      run(1);
+      host.touchUp(0, ...at(5, 7));
+      run(1);
+      run(period - (tick % period));
+      expect(snake(), "the reversal refused, still up").toEqual([5, 14, 23]);
+
+      // A finger to the RIGHT of the head on its own row: horizontal, s.u is
+      // 0, so the snake turns right on the next generation.
+      host.touchDown(0, ...at(8, 0));
+      run(1);
+      host.touchUp(0, ...at(8, 0));
+      run(1);
+      run(period - (tick % period));
+      expect(snake(), "turned right").toEqual([5, 6, 14]);
+      run(period);
+      expect(snake(), "and keeps right").toEqual([5, 6, 7]);
+      // No bite on this path, so the wire carries the first bite's pair only.
+      expect(
+        host.midi.map((m) => [m.cmd, m.p1, m.p2]),
+        "one note-on and its release",
+      ).toEqual([
+        [144, 51, 100],
+        [128, 51, 0],
+      ]);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+  }, 60000);
+});

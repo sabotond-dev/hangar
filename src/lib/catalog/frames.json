@@ -637,8 +637,8 @@
       },
       {
         "tick": 1009,
-        "sha256": "fe9da6ce3a5b0378f1bbfe3fce0b2d9a9b4cd28ed66b9458c7041167ee36a31e",
-        "nonZeroBytes": 12,
+        "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
+        "nonZeroBytes": 0,
         "animating": true
       }
     ],
