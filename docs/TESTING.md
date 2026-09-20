@@ -6849,3 +6849,79 @@ its server after one document - every title `ERR_CONNECTION_REFUSED`, wrangler's
 `GET /sandbox/ 200 OK` with no crash line - and the same file on a fresh server read **10
 passed** in 20.5 s. c1, c2 and c3 not run: no install, session, browse or tuning title reads the
 Sandbox.
+
+## 2026-09-21 change 14 - SNAKE remade
+
+`BENCH-2026-09-16.txt` section 14, the lowest-priority item of the 2026-09-20 queue, run on the
+reading recorded there while the user slept ("proceed to 14 at your best discretion"). Three source
+commits and one docs commit, no push, no device, no deploy: `27ef042` feat(catalog) - the entry
+(`src/lib/catalog/entries/snake.ts`), `frames.json` regenerated, the two VM cases at the end of
+`lua-smoke.spec.ts` (47 -> 49) and `docs/entries/snake.md`'s dated section with the old strings
+verbatim; `38cda37` docs(audition) - row 39, the cost row in place, `ROW_COUNT` 39 and the gate's
+quick constant at 1012; `42a8ec7` docs(audition) - row 39's cells padded to the table's columns by
+prettier (the first after-run's lint term refused the file; one line, no text moved); then this section, the Done paragraph under section 14 and the gate
+records `gate/change-14.*` (before, at `8878084`, on a clean worktree `../hangar-gate-14` with its
+own `npm ci`, removed after the records were copied) and `gate/change-14-after.*` (at `42a8ec7`,
+on a clean worktree `../hangar-gate-14-after2` with its own `npm ci` - the working tree carried
+change 13C's uncommitted files throughout, so every after term was read on the clean tree; the
+worktree removed after). Change 13C was being executed in the same tree at the same time; nothing
+here touches a Sandbox file, `copy.ts`, a route or `e2e/sandbox.e2e.ts`.
+
+**The fault, confirmed against the Lua (docs/entries/snake.md carries it in full).** Death was a
+deterministic reset and the food walked a fixed formula from a fixed seed, so the module replayed
+one 29-generation game forever ("the same sequence over and over"); the steer read the touch cell
+off the RAW pair (SNAKE was left out of 12.1's refit) and a finger's credit lasted three
+generations, after which the autopilot took the snake back ("turns the wrong way / late", "barely
+any affect"); bites and deaths sent note-ons and nothing ever sent an off ("hang or spam").
+
+**What moved in the suites.** `lua-smoke.spec.ts` gains `describe("SNAKE remade (change 14)")`
+with two cases: (1) the shelf - the two colours sampled off the Setup's picture, the first game's
+wire held EQUAL to the old entry's note-on list (tick, pitch, velocity - pasted from a run of the
+old entry at `8878084`) with a note-off one period after each, the death tick's flash (eight cells
+in the food colour, none in the snake's), held two generations with the death note released on the
+first, black on the third through the fifth, the restart on the sixth with nothing sent through
+the pause, the second game's first bite one generation on and its food at `(41*7+23+35)%81 = 21`
+against the first game's 67; (2) the steer through the measured knots - a finger straight above
+the head turns the snake up on the very next generation, the direction outlives the lift for two
+generations with the autopilot off (it would have turned onto the food's column), a finger straight
+below while travelling up is refused, a finger to the right on the head's row turns it right and
+it keeps right, the wire the first bite's pair alone. `frames.json`: SNAKE's tick-1009 record
+alone moved (12 -> 0 lit bytes: the old entry restarted at the death tick and 1009 was the second
+game's fifteenth generation; the remade card restarts six generations later on a different walk
+and is inside its second death's dark pause at 1009); ticks 0, 37, 101 and 500 and the OG (tick 64) are byte-identical, the first game being the old one. `audition.spec.ts` `ROW_COUNT` 38 -> 39. Every catalog-wide gate (the sweep's six, host-surface's six, brightness, touch-guard,
+decay-idiom, the smoke gesture, the residue probe, the parity tap, the keeper guard, listing,
+stamp, the OG render) green untouched. A note the residue probe's own SNAKE comment already makes:
+the card's picture is colour under a constant phase 255, and since the Setup's clear every cell
+holds that phase in the untouched run, so the probe cannot flag this card either way.
+
+**Counts, carried + delta:** quick 95 / 1010 + 1 todo -> **95 / 1012 + 1 todo** (+0 / +2), green
+twice at `--maxWorkers=2` on the after-worktree's build through `check-counts.mjs 95 1012` (runs A and B, both `matches the expected counts`); check 663 -> **663** (0 / 0 on the clean tree; the working tree read 676 files
+with 5 errors and 2 warnings, all in change 13C's untracked Sandbox files); lint clean; sweep
+`4 19` green; e2e 93 / 108 -> **93 / 108** (no title added; c3 by its two files **21 passed** in 28.0 s on a fresh detached wrangler dev on 4173, stopped through PowerShell, HTTP 000 after; a first attempt read 21 failed because the fresh worktree had no `.dev.vars` and every page was the Basic Auth gate's 401 - the file copied in, the harness and not the tree; 5173 untouched; c4 not run -
+no title reads SNAKE); audition rows 38 -> **39**; utilities **44** -> **44**; catalog **27**;
+testids equal; copy exports equal; OG 27 files / 159,169 B / `9becd682…` equal (the OG at tick 64 is inside the kept first game); `frames.json` `3bf1ef05` -> `290ff266` (one record),
+the three other fixtures equal; `src/` 4 modified / 0 added against `8878084`.
+
+**The gate's terms** (`--before change-14` at `8878084`; `--after change-14 --against change-14
+--check 663` at `42a8ec7`, both on clean worktrees; a first after-run at `38cda37` on `../hangar-gate-14-after` read every term the same and its lint term red on the runbook's padding, so it was run again at the fix): **the wire set `852b8c14…` -> `654e202e…`, the
+full `2932fc5a…` -> `1c4acf19…`: the set 2,775 records, 2,731 byte-identical, 44 moved, 0 removed, 0 added; the full 2,802, 2,757 identical, 45 moved, 0 / 0 - the moved records are every `E/snake/` record there is (44 in the set, 45 in the full: the defaults, the picker corner, every single-knob position and the cross-product) - nothing outside `E/snake/`; the sandbox set
+`3bdb5974…` equal**; the census `7cdbc682…` -> `0a2a46b1…` (2,973 literals either side: SNAKE's two strings out, two in); the copy exports equal; the testids equal; the scoped
+CSS `8ef5e915…` equal and the raw `d81eb2c0…` equal; utilities 44 -> 44, 0 appeared, 0 disappeared; the titles `e664ad7d…` ->
+`42737061…` (1,011 -> 1,013 vitest incl. todo; 108 playwright); the JS `06754f71…` -> `74b13066…` (71 files; snake.ts is in the bundle); the comment-lines
+record 1 file moved (snake.ts, its header at the ten-line rule by `comment-lines.mjs --todo`). The script exits 1 at the wire by design; the before's quick term read `no
+Vitest summary lines` (the pipe, as 13A / 13B), the after's the same line (its JSON 1011 passed / 1 failed / 1 todo - the recorded ordering hole, `radius.spec.ts` layer B on the worktree's absent build, the quick term running before the build term).
+
+**Departures from the brief:** the three shared routines are Setup locals published on `self`
+and read into Timer locals, not globals (host-surface.spec.ts admits a bare call only as a host
+name, a library name or a local of the same event, and every single capital is spoken for); the
+autopilot rule rather than an `@AUTO` knob (measured: ten Timer characters, 749 at the corner,
+plus a sixth knob, the rack and the stamp exception; not taken); the flash in the food colour, not
+white; the death sequence six generations rather than a fixed second (1.32 s at the default);
+`@SPEED` stays a period in ms (no BPM ladder lands 220 exactly and the first game had to stay);
+the Setup clears the board (new; before, three cells were painted over whatever was there);
+`frames.json` regenerated for one record (the first game kept, the second not keepable by
+design); the description, `listing.ts`, `brightness.ts`, `stamp.spec.ts` untouched (the rack and
+the painter's name did not move); `src/vendor/`, `library.ts`, every other entry, `sequence.ts`,
+the manifest, `Knob.svelte`, `ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts`
+untouched; STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed - on the
+user's word.

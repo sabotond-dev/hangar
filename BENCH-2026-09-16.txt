@@ -2547,3 +2547,130 @@ ten now; the first commit's message says "twenty-one strings" where the count is
 amended - no history rewrite); `identity.spec.ts` test 6 red on the first cut of the list's row
 (fixed in the fourth commit); the runbook untouched; STATE / ROADMAP / REQUIREMENTS untouched;
 CAT-04 stays `[ ]`; not deployed.
+
+**Done - change 14, 2026-09-21 (SNAKE remade on the reading above; the user asleep, nothing
+asked).** Three source commits and one docs commit, no push, no device, no deploy: `27ef042`
+feat(catalog) - the entry, `frames.json`, the two VM cases, `docs/entries/snake.md`'s dated
+section with the old Setup and Timer verbatim and the fault as read; `38cda37` docs(audition) -
+row 39, the cost row 581 / 870 -> 871 / 732, `ROW_COUNT` 39, the gate's quick constant at 1012; `42a8ec7` docs(audition) - row 39's cells padded to the table's columns
+by prettier (the first after-run's lint term refused the file; one line, no text moved); then this paragraph with `docs/TESTING.md`'s "2026-09-21 change 14" and the gate records
+`gate/change-14.*` (before, at `8878084`, on a clean worktree `../hangar-gate-14` with its own
+`npm ci`, removed after the records were copied) and `gate/change-14-after.*` (at `42a8ec7`, on a
+clean worktree `../hangar-gate-14-after2` with its own `npm ci`, because the working tree carried
+change 13C's uncommitted files the whole time; removed after). Change 13C ran in the same tree at
+the same time; every commit here is `--only` SNAKE's paths, and no Sandbox file, `copy.ts`, route
+or `e2e/sandbox.e2e.ts` is touched.
+
+**The fault, confirmed against the Lua.** (1) Death was `s.o={}s.b={}s.p=1 s.l=2 s.u=1 s.v=0
+s.f=41` - a reset to the same two cells and the same food - and the walk `(w*7+23)%81` ran from
+that fixed food, so every game after a death was the first game: in the VM at 220 ms five bites
+and a death at ticks 22, 110, 308, 550, 594, 638, then the identical game from 660, three times
+over in 2,200 ticks. That is "the same sequence over and over". (2) The handler read the cell
+from `x*9//128` / `y*9//128` - the raw pair, SNAKE being one of 12.1's "untouched Lua entries" -
+so on the module the finger sat a cell out near the edges and the turn came off the wrong cell;
+and `s.t=3` gave a finger three generations, after which the autopilot steered onto the food
+again, so a still finger "had barely any affect". (3) Bites and deaths sent `144` and nothing
+sent `128`, under the header's "at most one message per generation" - "hang or spam". All three
+as section 14's reading had them; nothing to correct.
+
+**The steering rule.** The touch cell is the library's `N(x,y)` (the calibrated map every other
+finger on the site reads); the direction is the dominant axis from the head to that cell; a
+horizontal steer only while `s.u` is 0, a vertical one only while `s.v` is 0 - a reversal refused
+by construction, as before. Every live sample re-steers, so the finger steers for as long as it is
+down; a still finger sends no sample (the firmware's change gate) and the direction stays; the
+lift changes nothing. **The autopilot rule:** `s.t=1` on any live sample - a refused steer
+included: a finger that touched the game owns it - and never decremented; the Timer's autopilot
+(the old arithmetic: the perpendicular axis onto the food's row or column) runs only while `s.t`
+is nil, and the restart clears it. So the shelf plays itself until the first finger of a game,
+and again from the next death. Chosen over an `Autopilot: Off / On` knob, measured at ten Timer
+characters (`if @AUTO and not s.t then`, 741 / 749) plus a sixth knob, a rack change and
+`stamp.spec.ts`'s grown-rack exception; the rule is the cheaper honest form and needs no line on
+the card. A finger during the death pause sets `s.t` and the restart clears it - harmless.
+
+**The food walk.** `F(s,n)` in the Setup: the first free cell first as the fallback, then
+`w=(w*7+23+s.g)%81` from the food just eaten, re-rolled while it lands on the body or the new
+head, bounded by the literal 12. `s.c` counts Timer calls from Setup and is never reset; the
+restart copies it into `s.g`, so the first game runs with `s.g` 0 (the old walk, byte for byte)
+and every later game from a different count. Deterministic from a cold start; no `math.random`
+(the sweep's D-08 term). Two consecutive games are asserted to differ (the second game's first
+food at cell 21 against the first game's 67). **The death sequence, in generations:** the death
+call sends the low note and paints every occupied cell in `@FOODC` (one bounded pass over 0..80
+testing `s.o[k]`, never the ring buffer's stale slots) and sets `s.d=6`; the next two calls hold
+the flash; the third blacks the board; two more stay dark; the sixth runs the restart - six
+generations, 1.32 s at the default 220 ms, 0.66 s at 110, 1.8 s at 300. The food colour rather
+than white (the snake becomes food; the same eleven characters at the corner). **The note-off:**
+a bite sends `144, @NOTE+s.l%12, 100` and leaves the pitch in `s.z`; the death sends `144,
+@NOTE-12, 110` the same way; the next Timer call sends `128, s.z, 0` before anything else and
+clears it - RADAR POINTS's pending list one note deep, a bite and a death being mutually
+exclusive. Nothing hangs; one note-on per bite, ever; at most two messages a generation.
+**Speed:** `@SPEED` as before, the period in ms in both events - no honest BPM ladder lands 220
+exactly and the rest frame and the first game had to stay.
+
+**The function names spent, and the split.** `P` (the painter, as before - `brightness.ts`'s
+declared painter row unchanged), `I` (the restart: black all 81 cells, the two-cell snake at 39
+and 40 travelling right, the food at 41, `s.t` and `s.d` cleared, `s.g=s.c`) and `F` (the placer)
+are `local function`s of the Setup published as `self.P self.I self.F` and read back into Timer
+locals (`local P,I,F=s.P,s.I,s.F`, 24 characters against the 89 of the painter declared twice);
+the Setup runs `I(self)` once after `self.c=0`, so an Apply over another card's picture starts
+from black. NOT a global function, and that is a departure from the brief's words: the
+host-surface classifier admits a bare call only as a host name, a library name or a local of the
+SAME event, so a global `I(` in the Timer would be refused there - and every single capital is
+spoken for between the library's twenty-one, `R`, the emitter's `J` and `M` and the runtime's `S F
+I R O Q D K` anyway. The fields are the element's own; `I` and `F` collide with nothing that runs
+on it. **Setup 585 -> 877 at the RGB444 picker corner (323 -> 31 free; 871 at the defaults), Timer
+880 -> 739 (28 -> 169 free; 732)**, both fixed points, both accepted by `checkSyntax`, every knob
+state through the sweep; no system slot. The placer back in the Timer was measured at 663 / 938 -
+thirty over - so the split stands; the Setup's corner is the tighter of the two now.
+
+**The first game, the frames and the OG.** Kept: with `s.g` 0 and the old autopilot the VM's wire
+for the first game is the old sequence to the tick, so `frames.json`'s records at ticks 0, 37,
+101 and 500 and the OG (tick 64) did not move. Tick 1009 moved (12 -> 0 lit bytes): the old entry
+restarted at the death tick and 1009 was the second game's fifteenth generation; the remade card
+restarts six generations later on a different walk, dies again at 924 and is inside that death's
+dark pause at 1009. Regenerated; SNAKE's block alone, one record in it. **The VM cases**
+(`lua-smoke` 47 -> 49): the shelf's first game held equal to the OLD note-on list pasted from a
+run at `8878084` with an off one period after each, the flash (eight cells in the food colour,
+none in the snake's), held two generations with the death note released on the first, black on
+the third through the fifth, the restart on the sixth with nothing sent through the pause, the
+second game's first bite and its food elsewhere; the steer through the measured knots - up on the
+very next generation, kept after the lift for two more with the autopilot off, a reversal
+refused, a right turn kept, the wire the first bite's pair alone. The catalog-wide gates green
+untouched. The residue probe's own SNAKE comment already says its phase test cannot see this
+card; since the Setup's clear every cell is at phase 255 in the untouched run too, so it cannot
+flag the card either way - stated, not hidden.
+
+**The wire diff:** set `852b8c14…` -> `654e202e…`, full `2932fc5a…` -> `1c4acf19…`: the set 2,775 records, 2,731 byte-identical, 44 moved, 0 removed, 0 added; the full 2,802, 2,757 identical, 45 moved, 0 / 0 - the moved records are every `E/snake/` record there is (44 in the set, 45 in the full: the defaults, the picker corner, every single-knob position and the cross-product) -
+`E/snake/` records only, nothing outside them; the sandbox set `3bdb5974…` equal. **Counts,
+carried + delta:** quick 95 / 1010 + 1 todo -> **95 / 1012 + 1 todo** (+0 / +2), green
+twice at `--maxWorkers=2` on the after-worktree's build through `check-counts.mjs 95 1012` (runs A and B, both `matches the expected counts`); check 663 -> **663** on the clean tree (the working tree read 676 files with 5
+errors and 2 warnings, every one in 13C's untracked Sandbox files - theirs); lint clean; sweep
+`4 19` green; e2e 93 / 108 -> **93 / 108** (no title added; c3 by its two files **21 passed** in 28.0 s on a fresh detached wrangler dev on 4173, stopped through PowerShell, HTTP 000 after; a first attempt read 21 failed because the fresh worktree had no `.dev.vars` and every page was the Basic Auth gate's 401 - the file copied in, the harness and not the tree; 5173 untouched; c4 not
+run - no title reads SNAKE); audition rows 38 -> **39**; utilities **44** -> **44**;
+catalog **27**; testids equal; copy exports equal; OG 27 files / 159,169 B / `9becd682…` equal (the OG at tick 64 is inside the kept first game); `frames.json` `3bf1ef05` ->
+`290ff266` (one record), the three other fixtures equal; the census `7cdbc682…` -> `0a2a46b1…` (2,973 literals either side: SNAKE's two strings out, two in); the titles
+`e664ad7d…` -> `42737061…` (1,011 -> 1,013 incl. todo; 108); the JS `06754f71…` -> `74b13066…` (71 files; snake.ts is in the bundle); the scoped CSS
+`8ef5e915…` equal; the comment-lines record 1 file moved (snake.ts, its header at the ten-line rule by `comment-lines.mjs --todo`); `src/` 4 modified / 0 added / 0 deleted against
+`8878084`. The gate exits 1 at the wire by design; the before's quick term read `no Vitest
+summary lines` (the pipe, as 13A / 13B), the after's the same line (its JSON 1011 passed / 1 failed / 1 todo - the recorded ordering hole, `radius.spec.ts` layer B on the worktree's absent build, the quick term running before the build term).
+
+**Departures from the brief:** published Setup locals, not a global (above); the autopilot rule,
+not the knob; the flash in the food colour; six generations, not a fixed second; `@SPEED` in ms;
+the Setup clears the board (new behaviour, a correctness gain on an Apply); `frames.json`
+regenerated for one record; the description, `listing.ts`, `brightness.ts` and `stamp.spec.ts`
+untouched (neither the rack nor the painter's name moved); the after-run on a clean worktree
+rather than the working tree; `src/vendor/`, `library.ts`, every other entry, `sequence.ts`, the
+manifest, `Knob.svelte`, `ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts` untouched;
+STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`. Not deployed - on the user's word.
+
+**Questions for the user.** (a) The autopilot switches off at a game's first finger and comes
+back only after a death; say if it should come back after a quiet spell instead (a `s.t` stamp
+against `s.c`, about twenty Timer characters), or never. (b) A refused steer (a reversal, the axis
+already travelled) still switches the autopilot off; say if only an accepted steer should. (c) The
+death sequence is six generations at whatever Step time is set (0.66 s at 110 ms); say if it
+should be a fixed time. (d) The flash is the food colour; say if white, or the snake colour
+blinking, reads better on the diffuser. (e) The walk is seeded per game by the generation count;
+say if a per-bite fold (every food unpredictable inside a game too) is wanted - it would move the
+first game and the OG. (f) The Setup now clears the board on an Apply; say if the old
+three-cells-over-whatever behaviour was relied on. (g) Row 39 is the bench's; the steer's "wrong
+way / late" fix rests on the calibrated map being this unit's (12.1's one-prototype map, row 24).
+(h) Changes 1 to 13B's questions still stand.
