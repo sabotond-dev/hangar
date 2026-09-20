@@ -4,9 +4,9 @@
   three signals keyed to aria-current - Rail.svelte's paint at its numbers. A
   complete alternative to the plate for selection (section 14, BUILD-08): every
   row a real button, ArrowUp / ArrowDown walk the rows, Home and End jump, Delete
-  on a focused row is the inspector's delete. Props: regions, selectedId (the
-  plate's selection arrives back and the row re-raises), onselect, ondelete.
-  Nothing here holds state of its own; the empty section says so in one quiet line.
+  on a focused row is the inspector's delete, Shift+click toggles the row in the
+  set (change 13A: every member reads aria-pressed; the one selected row aria-current).
+  Props: regions, selectedId, selection, onselect (with Shift), ondelete. Nothing here holds state of its own.
   Decided at 13-16 (Bible section 14); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -24,12 +24,17 @@
   let {
     regions,
     selectedId,
+    selection = [],
     onselect,
     ondelete,
   }: {
     regions: readonly Region[];
+    /** The one selected id while the set has one: its row is aria-current. */
     selectedId: string | undefined;
-    onselect: (id: string) => void;
+    /** The selection set (change 13A): every member's row is aria-pressed. */
+    selection?: readonly string[];
+    /** A row clicked: alone, or with Shift toggled in the set. */
+    onselect: (id: string, shift: boolean) => void;
     /** Delete on a focused row: the same deletion the inspector's button makes. */
     ondelete?: (id: string) => void;
   } = $props();
@@ -82,8 +87,9 @@
             data-row={region.id}
             data-testid="element-row"
             aria-current={region.id === selectedId ? "true" : undefined}
+            aria-pressed={selection.includes(region.id)}
             aria-label={listRowName(region.name, KIND_LABELS[region.kind])}
-            onclick={() => onselect(region.id)}
+            onclick={(event) => onselect(region.id, event.shiftKey)}
             onkeydown={(event) => onkeydown(event, region.id, index)}
           >
             <span class="label">{region.name}</span>
@@ -136,7 +142,15 @@
     background: var(--color-raised);
   }
 
-  /* D-03's three signals, together, on the selected row. */
+  /* D-03's three signals: every member of the set is raised with the action ink (aria-pressed), the one selected row rules too (aria-current). */
+  .row[aria-pressed="true"] {
+    background: var(--color-raised);
+  }
+
+  .row[aria-pressed="true"] .label {
+    color: var(--color-action);
+  }
+
   .row[aria-current] {
     background: var(--color-raised);
     border-inline-start: 3px solid var(--color-action);

@@ -155,6 +155,7 @@ const list = (view: EditorState) =>
     props: {
       regions: view.surface.regions,
       selectedId: view.selectedId,
+      selection: view.selection,
       onselect: noop,
     },
   }).body;
@@ -392,7 +393,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(
       source,
       "the click path fires from pointerdown, so a plain click is a whole step",
-    ).toMatch(/function onpointerdown[^]*?onclick\(at\.col, at\.row\)/);
+    ).toMatch(/function onpointerdown[^]*?onclick\(at\.col, at\.row, shift\)/);
     expect(
       source,
       "a release is never a second click (the area accelerator went)",
@@ -427,7 +428,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       expect(source, `the plate handles ${key}`).toContain(`case "${key}":`);
     }
     expect(source).toContain(
-      'view.selected !== undefined && view.placement.kind === "idle"',
+      'view.selection.length > 0 && view.placement.kind === "idle"',
     );
 
     // The proposed bounds are drawn from the focus cell too, so the keyboard
@@ -456,7 +457,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     for (const key of ["ArrowDown", "ArrowUp", "Home", "End"]) {
       expect(source, `the list handles ${key}`).toContain(`"${key}"`);
     }
-    expect(source).toContain("onclick={() => onselect(region.id)}");
+    expect(source).toContain(
+      "onclick={(event) => onselect(region.id, event.shiftKey)}",
+    );
 
     // SELECT EACH FROM THE LIST: what a row's activation does is
     // editor.select(id) and nothing else; the plate's selection follows,
@@ -491,13 +494,15 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
           `data-testid="surface-handle" data-handle="${name}"`,
         );
       }
-      // The outline sits on the selected region's own box.
+      // The outline sits on the selected region's own box (a member's outline; no group outline on one).
       const pitch = 571 / 9;
       expect(html).toMatch(
         new RegExp(
-          `class="outline[^"]*" x="${region.col * pitch}" y="${region.row * pitch}"`,
+          `class="outline member[^"]*" data-testid="surface-member" x="${region.col * pitch}" y="${region.row * pitch}"`,
         ),
       );
+      expect(count(html, 'data-testid="surface-member"')).toBe(1);
+      expect(count(html, 'data-testid="surface-group"')).toBe(0);
 
       const panel = inspector(editor);
       expect(panel).toContain(`data-testid="inspector-name">${region.name}<`);
@@ -1987,13 +1992,13 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(byId(editor, c.id)).toMatchObject({ col: 7, row: 4 });
 
     // THE GROUP DELETES AS ONE: one entry, undone as one with the set back.
-    const count = editor.surface.regions.length;
+    const total = editor.surface.regions.length;
     expect(editor.remove()).toEqual({ kind: "done", count: 3 });
     expect(editor.surface.regions.map((r) => r.id)).toEqual([blank.id]);
     expect(editor.selection).toEqual([]);
     expect(editor.remove(), "nothing selected").toEqual({ kind: "nothing" });
     expect(editor.undo()).toBe(true);
-    expect(editor.surface.regions).toHaveLength(count);
+    expect(editor.surface.regions).toHaveLength(total);
     expect(editor.selection).toEqual([a.id, b.id, c.id]);
 
     // A LOCK refuses a move, a nudge, a resize and a delete with its line -
@@ -2087,6 +2092,94 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       expect(wholeSurfaceValid(entry.before)).toBe(true);
       expect(wholeSurfaceValid(entry.after)).toBe(true);
     }
+    // THE SHAPE HALF. The plate over a set: one selection group, a member
+    // outline per member, ONE group outline round the bounding box, no
+    // handle and one delete icon (it deletes the set); over a single every
+    // handle and no group outline; over a locked single the lock glyph, no
+    // handle, no delete icon; the list marks every member aria-pressed and
+    // the one selected row aria-current; the plate's source wires the
+    // marquee, Tab and the Shift click, and draws no rounded corner.
+    editor.select(a.id);
+    editor.toggleSelect(c.id);
+    let html = plate(editor.state());
+    expect(count(html, 'data-testid="surface-selection"')).toBe(1);
+    expect(count(html, 'data-testid="surface-member"')).toBe(2);
+    expect(count(html, 'data-testid="surface-group"')).toBe(1);
+    {
+      const left = byId(editor, a.id);
+      const right = byId(editor, c.id);
+      const pitch = 571 / 9;
+      expect(html).toMatch(
+        new RegExp(
+          `data-testid="surface-group" x="${left.col * pitch}" y="${left.row * pitch}" width="${(right.col + right.w - left.col) * pitch}"`,
+        ),
+      );
+    }
+    expect(count(html, 'data-testid="surface-handle"')).toBe(0);
+    expect(count(html, 'data-testid="surface-delete"')).toBe(1);
+    expect(html).toContain("2 elements selected.");
+    let rows = list(editor.state());
+    expect(count(rows, 'aria-pressed="true"')).toBe(2);
+    expect(count(rows, 'aria-current="true"')).toBe(0);
+    editor.select(b.id);
+    html = plate(editor.state());
+    expect(count(html, 'data-testid="surface-handle"')).toBe(8);
+    expect(count(html, 'data-testid="surface-group"')).toBe(0);
+    expect(count(html, 'data-testid="surface-lock"'), "the blank's glyph").toBe(
+      1,
+    );
+    rows = list(editor.state());
+    expect(count(rows, 'aria-pressed="true"')).toBe(1);
+    expect(rows).toMatch(
+      new RegExp(
+        `data-row="${b.id}"[^>]*aria-current="true"[^>]*aria-pressed="true"`,
+      ),
+    );
+    editor.toggleLock();
+    html = plate(editor.state());
+    expect(
+      count(html, 'data-testid="surface-lock"'),
+      "the blank's and Button 2's",
+    ).toBe(2);
+    expect(count(html, 'data-testid="surface-handle"')).toBe(0);
+    expect(count(html, 'data-testid="surface-delete"')).toBe(0);
+    expect(count(html, 'data-testid="surface-member"')).toBe(1);
+    editor.toggleLock();
+    const source = code(`${UI}/SurfaceEditor.svelte`);
+    expect(source).toContain("marquee = { from: at, add: shift }");
+    expect(source).toContain("onmarquee?.(box, m.add)");
+    expect(source).toContain('data-testid="surface-marquee"');
+    expect(source).toContain('if (event.key === "Tab")');
+    expect(source).toContain("onselectnext?.(event.shiftKey ? -1 : 1)");
+    expect(source).toContain(
+      "if (m?.deferred) onclick(m.at.col, m.at.row, false)",
+    );
+    expect(source, "no rounded corner (D-01)").not.toContain("border-radius");
+    expect(source).not.toMatch(/(^|\s)r[xy]=/m);
+    const rowsSource = code(`${UI}/ElementList.svelte`);
+    expect(rowsSource).toContain(
+      "aria-pressed={selection.includes(region.id)}",
+    );
+    const route = code(ROUTE);
+    for (const wire of [
+      'key === "c"',
+      'key === "x"',
+      'key === "v"',
+      'key === "d"',
+      'key === "a"',
+      'key === "l"',
+      "editor.escape()",
+      "onmarquee={(box, add) => void editor?.selectTouching(box, add)}",
+      "onselectnext={(step) => void editor?.selectNext(step)}",
+      "shift ? editor?.toggleSelect(id) : editor?.select(id)",
+      "writeClipboard(sessionStore(), content)",
+      "readClipboard(sessionStore())",
+    ])
+      expect(route, wire).toContain(wire);
+    expect(route, "Ctrl and Cmd alike").toContain(
+      "event.ctrlKey || event.metaKey",
+    );
+
     // The bounding box and the schema's field.
     expect(boundingBox([])).toBeUndefined();
     expect(

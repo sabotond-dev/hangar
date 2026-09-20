@@ -1,14 +1,14 @@
 <!--
   The plate: PDF page 3's 571px square, the 9 x 9 lattice (a static SVG overlay,
-  drawn once), the regions with their kind's marks, the selection with its eight
-  drag handles and its delete icon, the proposed bounds, the focus cell and the
+  drawn once), the regions with their kind's marks (a lock glyph on a locked one),
+  the selection - each member's outline, the set's one outline round its bounding
+  box, the eight drag handles on an unlocked single, the delete icon (on a set it
+  deletes the set) - the marquee, the proposed bounds, the focus cell and the
   status line. Props: view, onclick (the ONE placement and selection call, fired
-  from pointerdown - no drag is ever required), onmove, onmark, oncancel, ondelete
-  (the keyboard route: one tab stop, arrows, Enter, Escape, Delete), onresize and
-  onmoveto (a handle or body drag's box on release, one Undo each), onnudge and
-  onresizeby (an arrow with a selection; Shift resizes), oncommit (the arrow's
-  release), onfinger and preview (Play: the route's canvas under the SVG). The
-  marks are page 3's (13.1-03); the knob's circle is an SVG circle, not a radius (D-15). Every number is layout.ts's.
+  from pointerdown with Shift; no drag is ever required), onmarquee (a drag from
+  an empty cell, on release), onmove, onmark, oncancel, ondelete, onselectnext
+  (the keyboard route: one tab stop, arrows, Enter, Escape, Delete, Tab cycling a
+  selection), onresize / onmoveto / onnudge / onresizeby / oncommit, notice, onfinger and preview (Play). Every number is layout.ts's.
   Decided at 13-16 / 13.1-03 (13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -23,6 +23,7 @@
     cellLine,
     elementsLine,
     placeInstruction,
+    selectedCountLine,
     selectedLine,
   } from "$lib/sandbox/copy";
   import {
@@ -34,8 +35,10 @@
   import type { Problem } from "$lib/sandbox/geometry";
   import {
     SURFACE_SIZE,
+    boundingBox,
     cellIndex,
     colourByte,
+    lockedOf,
     springOf,
     springPosition,
     toDisplay,
@@ -47,40 +50,57 @@
     SANDBOX_HANDLE,
     SANDBOX_HANDLE_HIT,
     SANDBOX_LABEL_SIZE,
+    SANDBOX_LOCK_ICON,
     SANDBOX_PITCH,
     SANDBOX_PLATE,
   } from "$lib/ui/shell/layout";
 
   type HandleName = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
-  /** A body drag in progress (change 10A): the region's box, and where inside it the pointer went down. */
-  type MoveDrag = { from: Box; grab: Cell };
+  /**
+   * A body drag in progress (change 10A): the set's box, where inside it the pointer went down,
+   * the cell pressed, and whether the press was on a member of a set whose plain click is
+   * DEFERRED to the release (change 13A: a press keeps the set so the drag moves it; a release
+   * with no motion selects the pressed one alone).
+   */
+  type MoveDrag = { from: Box; grab: Cell; at: Cell; deferred: boolean };
+  /** A marquee in progress (change 13A): the cell pressed on, and whether Shift adds to the set. */
+  type Marquee = { from: Cell; add: boolean };
 
   let {
     view,
     onclick,
+    onmarquee,
     onmove,
     onmark,
     oncancel,
     ondelete,
+    onselectnext,
     onresize,
     onmoveto,
     onnudge,
     onresizeby,
     oncommit,
+    notice,
     onfinger,
     preview,
   }: {
     view: EditorState;
-    /** The one placement and selection call (editor.ts). */
-    onclick: (col: number, row: number) => void;
+    /** The one placement and selection call (editor.ts); Shift toggles the held element in the set. */
+    onclick: (col: number, row: number, shift: boolean) => void;
+    /** A marquee's release (change 13A): the box dragged from an empty cell; `add` with Shift held. */
+    onmarquee?: (box: Box, add: boolean) => void;
     /** Arrows: the focus cell moves by a delta. */
     onmove: (dcol: number, drow: number) => void;
     /** Enter on the plate: the same click, at the focus cell. */
     onmark: () => void;
-    /** Escape: nothing pending. */
+    /** Escape: nothing pending - the selector, or the selection cleared. */
     oncancel: () => void;
     /** Delete: the selection. */
     ondelete: () => void;
+    /** Tab / Shift+Tab with a selection (change 13A): the next / previous element in the surface's order. */
+    onselectnext?: (step: 1 | -1) => void;
+    /** A command's outcome for the status line (the clipboard's, the lock's; change 13A), shown until the next change. */
+    notice?: string;
     /** A handle drag's box on release; the route wires editor.resizeSelectedTo and the problem shows in the status line. Optional so the spec's render needs no drag. */
     onresize?: (box: Box) => Problem | undefined;
     /** A body drag's origin on release (change 10A); the route wires editor.moveSelectedTo. */
@@ -112,6 +132,7 @@
   const LABEL = SANDBOX_LABEL_SIZE;
   const ICON = SANDBOX_DELETE_ICON;
   const ICON_HIT = SANDBOX_DELETE_HIT;
+  const LOCK = SANDBOX_LOCK_ICON;
   /** The gap between the selection's corner and its delete icon. */
   const ICON_GAP = 4;
 
@@ -136,10 +157,13 @@
   let focused = $state(false);
   /** A handle drag in progress: which handle, and the box it started from. */
   let drag = $state<{ handle: HandleName; from: Box } | undefined>(undefined);
-  /** A body drag in progress: the selected region, pressed with the selector. */
+  /** A body drag in progress: the selected set, pressed with the selector. */
   let moveDrag = $state<MoveDrag | undefined>(undefined);
   /** The box either drag would commit, drawn as the proposed bounds. */
   let dragBox = $state<Box | undefined>(undefined);
+  /** A marquee in progress, and the box it has drawn so far (undefined until the pointer leaves the first cell). */
+  let marquee = $state<Marquee | undefined>(undefined);
+  let marqueeBox = $state<Box | undefined>(undefined);
   /** The last drag's refusal, shown until the next pointer or key or until the surface moves under it. Raw, so the identity check in `status` is against the editor's own reference. */
   let refused = $state.raw<
     { message: string; surface: EditorState["surface"] } | undefined
@@ -147,6 +171,18 @@
 
   const play = $derived(view.mode === "play");
   const regions = $derived(view.surface.regions);
+  /** The set (change 13A), its one outline's box, and the unlocked single that takes handles. */
+  const members = $derived(view.selectedRegions);
+  const group = $derived(
+    boundingBox(
+      members.map((r) => ({ col: r.col, row: r.row, w: r.w, h: r.h })),
+    ),
+  );
+  const resizable = $derived(
+    view.selected !== undefined && !lockedOf(view.selected)
+      ? view.selected
+      : undefined,
+  );
 
   /** "rgb(221 255 119)" from RGB444 levels. */
   const fillOf = (r: Region): string =>
@@ -156,7 +192,7 @@
   const y = (row: number) => row * PITCH;
 
   /** A region's box in plate units: edges, size and centre. */
-  const frame = (r: Region) => {
+  const frame = (r: Box) => {
     const left = x(r.col);
     const top = y(r.row);
     const w = r.w * PITCH;
@@ -205,9 +241,9 @@
     return { x, y };
   }
 
-  /** The eight handles of the selected region: corners and edge midpoints, named. */
+  /** The eight handles of an unlocked single selection: corners and edge midpoints, named. */
   const handles = $derived.by(() => {
-    const r = view.selected;
+    const r = resizable;
     if (r === undefined || play) return [];
     const f = frame(r);
     const midX = (f.left + f.right) / 2;
@@ -224,8 +260,9 @@
     ] as const;
   });
 
-  /** The status line: what the next click or Enter does, and what is selected. */
+  /** The status line: a command's outcome, a refusal, what the next click or Enter does, and what is selected. */
   const status = $derived.by(() => {
+    if (notice !== undefined) return notice;
     if (refused !== undefined && refused.surface === view.surface) {
       return refused.message;
     }
@@ -238,6 +275,8 @@
       toDisplay(view.focus.col),
       toDisplay(view.focus.row),
     );
+    if (members.length > 1)
+      return `${selectedCountLine(members.length)} ${where}.`;
     return r === undefined
       ? `${NOTHING_SELECTED} ${where}.`
       : `${selectedLine(r.name, KIND_LABELS[r.kind])} ${where}.`;
@@ -271,6 +310,14 @@
   const sameBox = (a: Box, b: Box): boolean =>
     a.col === b.col && a.row === b.row && a.w === b.w && a.h === b.h;
 
+  /** The box between two cells, both inside it (the marquee). */
+  const boxBetween = (a: Cell, b: Cell): Box => ({
+    col: Math.min(a.col, b.col),
+    row: Math.min(a.row, b.row),
+    w: Math.abs(a.col - b.col) + 1,
+    h: Math.abs(a.row - b.row) + 1,
+  });
+
   /** The region holding a cell, from the state's own map. */
   function holderAt(at: Cell): Region | undefined {
     const index = view.cellMap[cellIndex(at.col, at.row)];
@@ -296,7 +343,7 @@
   }
 
   function startDrag(event: PointerEvent, handle: HandleName): void {
-    const r = view.selected;
+    const r = resizable;
     if (play || r === undefined || event.button !== 0) return;
     // The plate's own pointerdown must not run: a press on a handle is not a click on the cell.
     event.stopPropagation();
@@ -314,7 +361,11 @@
     plate?.focus({ preventScroll: true });
   }
 
-  /** Either drag's release: a handle's box to onresize, a body's origin to onmoveto; the same box commits nothing. */
+  /**
+   * Either drag's release: a handle's box to onresize, a body's origin to onmoveto; the same
+   * box commits nothing - and a deferred press released with no motion is the plain click on
+   * the pressed member (it selects alone).
+   */
   function endDrag(): void {
     const d = drag;
     const m = moveDrag;
@@ -322,7 +373,10 @@
     drag = undefined;
     moveDrag = undefined;
     dragBox = undefined;
-    if (box === undefined) return;
+    if (box === undefined) {
+      if (m?.deferred) onclick(m.at.col, m.at.row, false);
+      return;
+    }
     let problem: Problem | undefined;
     if (d !== undefined) {
       if (sameBox(box, d.from)) return;
@@ -335,6 +389,16 @@
       problem === undefined
         ? undefined
         : { message: problem.message, surface: view.surface };
+  }
+
+  /** The marquee's release: the box it drew, if the pointer ever left the first cell, to onmarquee. */
+  function endMarquee(): void {
+    const m = marquee;
+    const box = marqueeBox;
+    marquee = undefined;
+    marqueeBox = undefined;
+    if (m === undefined || box === undefined) return;
+    onmarquee?.(box, m.add);
   }
 
   function fingerAt(phase: "down" | "move" | "up", event: PointerEvent): void {
@@ -366,15 +430,37 @@
     // WITHOUT SCROLLING (13-17): a programmatic focus that scrolled the plate would move the
     // page under a pressed pointer, and the release would land on another cell.
     plate?.focus({ preventScroll: true });
-    // The selector on a held cell (change 10A): the click selects it, and a drag from here moves
-    // it - the box follows the pointer and commits on release. With a kind armed, the click places.
-    const holder = view.placement.kind === "idle" ? holderAt(at) : undefined;
-    onclick(at.col, at.row);
-    if (holder === undefined) return;
+    const idle = view.placement.kind === "idle";
+    const shift = event.shiftKey;
+    // With a kind armed, the click places. The selector on an EMPTY cell: the click clears (or,
+    // with Shift, keeps the set) and a drag from here is a marquee. On a held cell (change 10A):
+    // Shift toggles it and starts no drag; a plain press on a member of a set keeps the set and
+    // moves it whole, the click deferred to a release with no motion; otherwise the click
+    // selects it and a drag from here moves it - the box follows the pointer and commits on release.
+    const holder = idle ? holderAt(at) : undefined;
+    if (holder === undefined) {
+      onclick(at.col, at.row, shift);
+      if (!idle) return;
+      capture(event);
+      marquee = { from: at, add: shift };
+      return;
+    }
+    if (shift) {
+      onclick(at.col, at.row, true);
+      return;
+    }
+    const deferred =
+      view.selection.length > 1 && view.selection.includes(holder.id);
+    if (!deferred) onclick(at.col, at.row, false);
+    const from = deferred
+      ? (group as Box)
+      : { col: holder.col, row: holder.row, w: holder.w, h: holder.h };
     capture(event);
     moveDrag = {
-      from: { col: holder.col, row: holder.row, w: holder.w, h: holder.h },
-      grab: { col: at.col - holder.col, row: at.row - holder.row },
+      from,
+      grab: { col: at.col - from.col, row: at.row - from.row },
+      at,
+      deferred,
     };
   }
 
@@ -385,12 +471,16 @@
     }
     hover = cellOf(event);
     if (hover === undefined) return;
-    // A drag in progress: the proposed bounds follow the cell, nothing commits.
+    // A drag in progress: the proposed bounds follow the cell, nothing commits; a marquee draws
+    // its box once the pointer has left the cell it started on.
     if (drag !== undefined) {
       dragBox = boxFor(drag.handle, drag.from, hover);
     } else if (moveDrag !== undefined) {
       const box = movedBox(moveDrag, hover);
       dragBox = sameBox(box, moveDrag.from) ? undefined : box;
+    } else if (marquee !== undefined) {
+      const box = boxBetween(marquee.from, hover);
+      if (marqueeBox !== undefined || box.w > 1 || box.h > 1) marqueeBox = box;
     }
   }
 
@@ -399,13 +489,15 @@
       fingerAt("up", event);
       return;
     }
-    if (drag === undefined && moveDrag === undefined) return;
+    if (drag === undefined && moveDrag === undefined && marquee === undefined)
+      return;
     try {
       plate?.releasePointerCapture(event.pointerId);
     } catch {
       // Already released.
     }
-    endDrag();
+    if (marquee !== undefined) endMarquee();
+    else endDrag();
   }
 
   function onpointerleave(): void {
@@ -417,9 +509,9 @@
     refused = undefined;
     const arrow = ARROWS[event.key];
     if (arrow !== undefined) {
-      // With the selector and a selection the arrows move the element, and with Shift resize it
+      // With the selector and a selection the arrows move the set, and with Shift resize a single
       // (change 10A, answer 4); with a kind armed or nothing selected they move the focus cell.
-      if (view.selected !== undefined && view.placement.kind === "idle") {
+      if (view.selection.length > 0 && view.placement.kind === "idle") {
         const problem = event.shiftKey
           ? onresizeby?.(arrow.col, arrow.row)
           : onnudge?.(arrow.col, arrow.row);
@@ -428,6 +520,15 @@
       } else {
         onmove(arrow.col, arrow.row);
       }
+      event.preventDefault();
+      return;
+    }
+    // Tab cycles a SELECTION through the elements (change 13A) and wraps; with nothing selected it
+    // leaves the plate as it always did - Escape clears the selection, so the way off by keyboard
+    // is Escape, then Tab.
+    if (event.key === "Tab") {
+      if (view.selection.length === 0 || view.placement.kind !== "idle") return;
+      onselectnext?.(event.shiftKey ? -1 : 1);
       event.preventDefault();
       return;
     }
@@ -471,6 +572,7 @@
     class:focused
     class:armed={view.placement.kind === "element"}
     class:dragging={drag !== undefined || moveDrag !== undefined}
+    class:marquee={marquee !== undefined}
     role="application"
     tabindex="0"
     aria-label={PLATE_NAME}
@@ -509,11 +611,13 @@
       <!-- The regions: the ground that hides the lattice, the tinted fill, the 1px boundary, the kind's mark, the name (header: THE MARKS). -->
       {#each regions as r (r.id)}
         {@const fill = fillOf(r)}
-        {@const selected = r.id === view.selectedId}
+        {@const selected = view.selection.includes(r.id)}
+        {@const locked = lockedOf(r)}
         {@const f = frame(r)}
         <g
           class="region"
           class:selected
+          class:locked
           data-region={r.id}
           data-kind={r.kind}
           data-testid="surface-region"
@@ -709,16 +813,56 @@
               font-size={LABEL}>OFF</text
             >
           {/if}
+          {#if locked}
+            <!-- The lock glyph (change 13A): a padlock of straight lines inside the top-right corner - the body a square, the shackle a square arch. -->
+            <g class="lock" data-testid="surface-lock" aria-hidden="true">
+              <rect
+                class="lock-body"
+                x={f.right - LOCK - 4}
+                y={f.top + 4 + LOCK * 0.45}
+                width={LOCK}
+                height={LOCK * 0.55}
+              />
+              <polyline
+                class="lock-shackle"
+                points="{f.right - LOCK - 4 + LOCK * 0.25},{f.top +
+                  4 +
+                  LOCK * 0.45} {f.right - LOCK - 4 + LOCK * 0.25},{f.top +
+                  4} {f.right - 4 - LOCK * 0.25},{f.top + 4} {f.right -
+                  4 -
+                  LOCK * 0.25},{f.top + 4 + LOCK * 0.45}"
+              />
+            </g>
+          {/if}
         </g>
       {/each}
 
-      <!-- The selection: an action-colour 1px outline plus eight square handles with their hit squares beneath, and the delete icon (Edit only). -->
-      {#if view.selected !== undefined && !play}
-        {@const r = view.selected}
-        {@const f = frame(r)}
+      <!-- The selection (Edit only): each member's action-colour 1px outline, the set's one outline round its bounding box, eight square handles with their hit squares beneath on an unlocked single, and the delete icon at the set's corner. -->
+      {#if group !== undefined && !play}
+        {@const f = frame(group)}
         {@const icon = deleteIconAt(f)}
         <g class="selection" data-testid="surface-selection">
-          <rect class="outline" x={f.left} y={f.top} width={f.w} height={f.h} />
+          {#each members as m (m.id)}
+            {@const mf = frame(m)}
+            <rect
+              class="outline member"
+              data-testid="surface-member"
+              x={mf.left}
+              y={mf.top}
+              width={mf.w}
+              height={mf.h}
+            />
+          {/each}
+          {#if members.length > 1}
+            <rect
+              class="outline group"
+              data-testid="surface-group"
+              x={f.left}
+              y={f.top}
+              width={f.w}
+              height={f.h}
+            />
+          {/if}
           <!-- The handles and their hit squares take a pointerdown and have no role: a pointer accelerator inside the aria-hidden SVG; the arrows are the keyboard route. -->
           {#each handles as h (h.name)}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -744,44 +888,58 @@
               onpointerdown={(event) => startDrag(event, h.name)}
             />
           {/each}
-          <!-- The delete icon (change 10A): a square off the top-right corner, its 44px hit beneath; the click is the panel's Delete element, one Undo. -->
-          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-          <g
-            class="delete"
-            data-testid="surface-delete"
-            onpointerdown={holdForDelete}
-            onclick={() => ondelete()}
-          >
-            <rect
-              class="delete-hit"
-              x={icon.x + ICON / 2 - ICON_HIT / 2}
-              y={icon.y + ICON / 2 - ICON_HIT / 2}
-              width={ICON_HIT}
-              height={ICON_HIT}
-            />
-            <rect
-              class="delete-box"
-              x={icon.x}
-              y={icon.y}
-              width={ICON}
-              height={ICON}
-            />
-            <line
-              class="delete-glyph"
-              x1={icon.x + 6}
-              y1={icon.y + 6}
-              x2={icon.x + ICON - 6}
-              y2={icon.y + ICON - 6}
-            />
-            <line
-              class="delete-glyph"
-              x1={icon.x + ICON - 6}
-              y1={icon.y + 6}
-              x2={icon.x + 6}
-              y2={icon.y + ICON - 6}
-            />
-          </g>
+          <!-- The delete icon (change 10A): a square off the top-right corner, its 44px hit beneath; the click is the panel's Delete element, one Undo - on a set the set's; not on a locked single (the model would refuse). -->
+          {#if members.length > 1 || resizable !== undefined}
+            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+            <g
+              class="delete"
+              data-testid="surface-delete"
+              onpointerdown={holdForDelete}
+              onclick={() => ondelete()}
+            >
+              <rect
+                class="delete-hit"
+                x={icon.x + ICON / 2 - ICON_HIT / 2}
+                y={icon.y + ICON / 2 - ICON_HIT / 2}
+                width={ICON_HIT}
+                height={ICON_HIT}
+              />
+              <rect
+                class="delete-box"
+                x={icon.x}
+                y={icon.y}
+                width={ICON}
+                height={ICON}
+              />
+              <line
+                class="delete-glyph"
+                x1={icon.x + 6}
+                y1={icon.y + 6}
+                x2={icon.x + ICON - 6}
+                y2={icon.y + ICON - 6}
+              />
+              <line
+                class="delete-glyph"
+                x1={icon.x + ICON - 6}
+                y1={icon.y + 6}
+                x2={icon.x + 6}
+                y2={icon.y + ICON - 6}
+              />
+            </g>
+          {/if}
         </g>
+      {/if}
+
+      <!-- The marquee (change 13A): the action colour, 1px, no fill, while the pointer drags from an empty cell. -->
+      {#if marqueeBox !== undefined}
+        <rect
+          class="marquee-box"
+          data-testid="surface-marquee"
+          x={x(marqueeBox.col)}
+          y={y(marqueeBox.row)}
+          width={marqueeBox.w * PITCH}
+          height={marqueeBox.h * PITCH}
+        />
       {/if}
 
       <!-- The proposed bounds, before anything commits (section 8). -->
@@ -966,17 +1124,54 @@
     fill: var(--color-action);
   }
 
-  /* The selected body drags: the move cursor over it. */
+  /* The selected body drags: the move cursor over it; a locked one does not move. */
   .region.selected .body {
     cursor: move;
   }
 
-  /* The selection: the action colour, 1px, and eight filled squares. */
+  .region.locked .body {
+    cursor: default;
+  }
+
+  /* The lock glyph: the quiet ink, a filled square body and a 2px square arch. */
+  .lock-body {
+    fill: var(--color-ink-quiet);
+    pointer-events: none;
+  }
+
+  .lock-shackle {
+    fill: none;
+    stroke: var(--color-ink-quiet);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+
+  /* The selection: the action colour, 1px, round each member and round the set; eight filled squares. */
   .selection .outline {
     fill: none;
     stroke: var(--color-action);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
+  }
+
+  /* The set's outline is dashed so it reads as the group, not a ninth element. */
+  .selection .outline.group {
+    stroke-dasharray: 4 3;
+  }
+
+  /* The marquee: the action colour, 1px, no fill, no radius. */
+  .marquee-box {
+    fill: none;
+    stroke: var(--color-action);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+
+  /* While a marquee is drawn the plate keeps the crosshair. */
+  .plate.marquee {
+    cursor: crosshair;
   }
 
   .selection .handle {

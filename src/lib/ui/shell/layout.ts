@@ -160,6 +160,9 @@ export const SANDBOX_LABEL_SIZE = 11;
 export const SANDBOX_DELETE_ICON = 20;
 export const SANDBOX_DELETE_HIT = 44;
 
+/** The lock glyph on a locked element (change 13A): a 12px padlock inside the region's top-right corner. */
+export const SANDBOX_LOCK_ICON = 12;
+
 /** Section 7's 24px centre padding; the PDF measures 24-34. */
 export const CENTRE_PAD = 24;
 

@@ -3,14 +3,12 @@
   BUILD-01/02/06/07/08, PREV-04, KEEP-01). The rail (Palette, ElementList, `+ New surface`) and
   the inspector (RegionInspector) are snippets handed to the shell; the centre is the name row with
   the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file) and the plate.
-  One model: src/lib/sandbox/editor.ts holds the surface, selection, mode, focus and history; this
-  route keeps the one EditorState in raw state and owns the store, the landing, the preview, the
-  frame and the window's key listener (the hotkeys, V / Escape, Delete - never in a text field).
-  The draft is saved as it is edited (drafts.ts, debounced, `sandbox:{id}`); the landing is land.ts's
-  under the pinned minifier with SLOTS 5 (change 10B), its five strings going to install.observeConfig
-  after every measurement, and DestinationZone is the one component both routes mount (13.1-06).
-  No number about the budget is shown (change 10A); an over-budget landing refuses Store in words.
-  Play builds a Lua engine on the surface's own strings and routes the finger through touch.ts's mapAxis, tick-locked.
+  One model: src/lib/sandbox/editor.ts holds the surface, the selection set, mode, focus and history;
+  this route keeps the one EditorState in raw state and owns the store, the landing, the preview, the
+  frame, the clipboard's session store and the window's key listener (the hotkeys, V / Escape, Delete,
+  Ctrl/Cmd + C X V D A L - never in a text field). The draft is saved as it is edited (drafts.ts,
+  debounced); the landing is land.ts's under the pinned minifier with SLOTS 5, its five strings going
+  to install.observeConfig; no number about the budget is shown; Play runs the surface's own strings.
   Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -38,6 +36,7 @@
     MODE_PLAY,
     MODE_PLAY_GLYPH,
     NEW_SURFACE,
+    NOTHING_TO_PASTE,
     REDO,
     RENAME_SURFACE,
     SAVE_COPY,
@@ -49,11 +48,18 @@
     TITLE,
     TOO_FULL_TO_STORE,
     UNDO,
+    copiedLine,
     copyName,
+    cutLine,
+    duplicatedLine,
     exportedLine,
+    lockedLine,
+    pastedLine,
     renameSurfaceName,
     savedLine,
+    unlockedLine,
   } from "$lib/sandbox/copy";
+  import { readClipboard, writeClipboard } from "$lib/sandbox/clipboard";
   import {
     mintSurfaceId,
     readSurfaceDraft,
@@ -63,6 +69,7 @@
     SELECTOR_KEY,
     SandboxEditor,
     kindForKey,
+    type CommandOutcome,
     type EditorState,
     type Mode,
     type NumericField,
@@ -105,6 +112,8 @@
   let landing = $state.raw<SurfaceLanding | undefined>(undefined);
   let exported = $state<string | undefined>(undefined);
   let notice = $state<string | undefined>(undefined);
+  /** A command's outcome on the plate's status line (change 13A): the clipboard's, the lock's, a refusal; cleared by the next change. */
+  let plateNotice = $state<string | undefined>(undefined);
   let saved = $state<string | undefined>(undefined);
   let unavailable = $state(false);
   let renaming = $state(false);
@@ -132,6 +141,16 @@
     }
   }
 
+  /** The clipboard's second home (change 13A): the session store, so a reload in this tab keeps it. */
+  function sessionStore(): LocalStore | undefined {
+    if (!browser) return undefined;
+    try {
+      return window.sessionStorage;
+    } catch {
+      return undefined;
+    }
+  }
+
   const name = $derived(view?.surface.name ?? DEFAULT_SURFACE_NAME);
   const empty = $derived(
     view !== undefined && view.surface.regions.length === 0,
@@ -144,6 +163,7 @@
     const before = view;
     view = state;
     notice = undefined;
+    plateNotice = undefined;
     if (before !== undefined && before.surface !== state.surface) {
       scheduleSave();
       scheduleMeasure();
@@ -278,21 +298,72 @@
   const onnumber = (field: NumericField, text: string): void =>
     void editor?.editNumber(field, text);
 
+  /** Duplicate, the panel's button and Ctrl+D: the copies land by the paste's rule; a refusal on the panel and the plate. */
   function duplicate(): void {
     if (editor === undefined) return;
     const result = editor.duplicate();
-    if (result.ok) return;
+    if (result.ok) {
+      plateNotice = duplicatedLine(result.regions.length);
+      return;
+    }
     notice = result.reason === "cap" ? DUPLICATE_AT_CAP : DUPLICATE_NO_SPACE;
+    plateNotice = notice;
+  }
+
+  /** A command's refusal goes to the plate's status line; done says nothing here. */
+  function tell(outcome: CommandOutcome, done: (n: number) => string): void {
+    if (outcome.kind === "refused") plateNotice = outcome.message;
+    else if (outcome.kind === "done") plateNotice = done(outcome.count);
   }
 
   function remove(): void {
-    editor?.remove();
+    if (editor === undefined) return;
+    const outcome = editor.remove();
+    if (outcome.kind === "refused") plateNotice = outcome.message;
   }
 
   function removeById(id: string): void {
     if (editor === undefined) return;
     editor.select(id);
-    editor.remove();
+    remove();
+  }
+
+  /** Ctrl+C: the set to the clipboard, in memory and the session store. */
+  function copy(): void {
+    const content = editor?.copySelection();
+    if (content === undefined) return;
+    writeClipboard(sessionStore(), content);
+    plateNotice = copiedLine(content.regions.length);
+  }
+
+  /** Ctrl+X: the copy, then the delete under `cut` - one Undo. */
+  function cut(): void {
+    if (editor === undefined) return;
+    const content = editor.copySelection();
+    if (content === undefined) return;
+    const outcome = editor.remove("cut");
+    if (outcome.kind === "done") writeClipboard(sessionStore(), content);
+    tell(outcome, cutLine);
+  }
+
+  /** Ctrl+V: the clipboard's regions by the placement rule. */
+  function paste(): void {
+    if (editor === undefined) return;
+    const content = readClipboard(sessionStore());
+    if (content === undefined) {
+      plateNotice = NOTHING_TO_PASTE;
+      return;
+    }
+    tell(editor.paste(content), pastedLine);
+  }
+
+  /** Ctrl+L: the set locks, or unlocks when every member is locked. */
+  function toggleLock(): void {
+    const outcome = editor?.toggleLock();
+    if (outcome === undefined) return;
+    plateNotice = outcome.locked
+      ? lockedLine(outcome.count)
+      : unlockedLine(outcome.count);
   }
 
   /** Save copy (section 11; library.ts): a NEW named copy, never a write over the draft. */
@@ -358,10 +429,13 @@
   }
 
   /**
-   * The window's keys (change 10A): Ctrl/Cmd+Z and +Y as before; a kind's hotkey arms it (HOTKEYS),
-   * V or Escape returns to the selector, Delete or Backspace deletes the selection. Never while a
-   * text field, a text area or a select has focus (a name field typing "f" arms nothing), never
-   * with Alt held, and never for a key the plate or the list already handled (defaultPrevented).
+   * The window's keys (change 10A): Ctrl/Cmd+Z and +Y as before; since change 13A Ctrl/Cmd+C, X,
+   * V, D copy, cut, paste and duplicate the set, +A selects every unlocked element, +L toggles
+   * the lock; a kind's hotkey arms it (HOTKEYS), V returns to the selector, Escape the selector
+   * or the selection cleared, Delete or Backspace deletes the selection. Never while a text
+   * field, a text area or a select has focus (a name field typing "f" arms nothing; Ctrl+C in a
+   * field stays the browser's), never with Alt held, and never for a key the plate or the list
+   * already handled (defaultPrevented).
    */
   function onWindowKeyDown(event: KeyboardEvent): void {
     if (editor === undefined || event.defaultPrevented) return;
@@ -381,18 +455,41 @@
       } else if ((key === "z" && event.shiftKey) || key === "y") {
         event.preventDefault();
         editor.redo();
+      } else if (key === "c") {
+        event.preventDefault();
+        copy();
+      } else if (key === "x") {
+        event.preventDefault();
+        cut();
+      } else if (key === "v") {
+        event.preventDefault();
+        paste();
+      } else if (key === "d") {
+        event.preventDefault();
+        duplicate();
+      } else if (key === "a") {
+        event.preventDefault();
+        editor.selectAll();
+      } else if (key === "l") {
+        event.preventDefault();
+        toggleLock();
       }
       return;
     }
     if (event.altKey) return;
-    if (key === "escape" || key === SELECTOR_KEY) {
+    if (key === "escape") {
+      event.preventDefault();
+      editor.escape();
+      return;
+    }
+    if (key === SELECTOR_KEY) {
       event.preventDefault();
       editor.cancel();
       return;
     }
     if (key === "delete" || key === "backspace") {
       event.preventDefault();
-      editor.remove();
+      remove();
       return;
     }
     const kind = kindForKey(key);
@@ -499,7 +596,9 @@
       <ElementList
         regions={view.surface.regions}
         selectedId={view.selectedId}
-        onselect={(id) => editor?.select(id)}
+        selection={view.selection}
+        onselect={(id, shift) =>
+          shift ? editor?.toggleSelect(id) : editor?.select(id)}
         ondelete={removeById}
       />
       {#snippet action()}
@@ -680,11 +779,14 @@
     <div class="centre">
       <SurfaceEditor
         {view}
-        onclick={(col, row) => void editor?.clickCell(col, row)}
+        onclick={(col, row, shift) => void editor?.clickCell(col, row, shift)}
+        onmarquee={(box, add) => void editor?.selectTouching(box, add)}
         onmove={(dc, dr) => editor?.moveFocus(dc, dr)}
         onmark={() => void editor?.mark()}
-        oncancel={() => editor?.cancel()}
+        oncancel={() => editor?.escape()}
         ondelete={remove}
+        onselectnext={(step) => void editor?.selectNext(step)}
+        notice={plateNotice}
         onresize={(box) => editor?.resizeSelectedTo(box)}
         onmoveto={(cell) => editor?.moveSelectedTo(cell)}
         onnudge={(dc, dr) => editor?.nudgeSelected(dc, dr)}
