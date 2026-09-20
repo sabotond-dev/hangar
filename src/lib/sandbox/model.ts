@@ -381,6 +381,33 @@ export function minimumSizeFor(
 // ---------------------------------------------------------------------------
 // Cells.
 
+/** A region's place and size, zero-based - the plate's own cells. */
+export type Box = {
+  readonly col: number;
+  readonly row: number;
+  readonly w: number;
+  readonly h: number;
+};
+
+/** The smallest box holding every box given; undefined for none (change 13A: a group's outline and its move). */
+export function boundingBox(boxes: readonly Box[]): Box | undefined {
+  if (boxes.length === 0) return undefined;
+  let left = SURFACE_SIZE;
+  let top = SURFACE_SIZE;
+  let right = 0;
+  let bottom = 0;
+  for (const b of boxes) {
+    left = Math.min(left, b.col);
+    top = Math.min(top, b.row);
+    right = Math.max(right, b.col + b.w);
+    bottom = Math.max(bottom, b.row + b.h);
+  }
+  return { col: left, row: top, w: right - left, h: bottom - top };
+}
+
+/** Locked (change 13A): the element is not moved, resized or deleted; absent is unlocked. */
+export const lockedOf = (region: Region): boolean => region.locked === true;
+
 /** The cell index of a column and a row, both 0-based: `row*9 + col`. */
 export const cellIndex = (col: number, row: number): number =>
   row * SURFACE_SIZE + col;

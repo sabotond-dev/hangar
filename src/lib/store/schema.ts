@@ -155,7 +155,9 @@ export const TOUCHES_MAX = 5;
  * them reads exactly as it did; sandbox/model.ts holds the readers. `touches`
  * (change 11) is an XY pad's finger count, 1..5, absent 1: finger n sends on
  * `cc + 2(n-1)` and `cc2 + 2(n-1)`, so a region whose last finger would pass
- * 127 is not a region.
+ * 127 is not a region. `locked` (change 13A) is EDITOR state - a locked
+ * element is not moved, resized or deleted - absent is unlocked, and it is
+ * never a row column: the emitter reads named fields and never this one.
  */
 export type Region = {
   readonly id: string;
@@ -180,6 +182,7 @@ export type Region = {
   readonly output?: ButtonOutput;
   readonly group?: number;
   readonly touches?: number;
+  readonly locked?: boolean;
 };
 
 /**
@@ -267,7 +270,8 @@ export function isEnvelope(value: unknown): value is { schema: 1 } {
   return isObject(value) && value.schema === SCHEMA_VERSION;
 }
 
-function isRegion(value: unknown): value is Region {
+/** A region only if every field is; exported for the clipboard's reader (change 13A). */
+export function isRegion(value: unknown): value is Region {
   if (!isObject(value)) return false;
   if (!isString(value.id) || !isString(value.name)) return false;
   if (!ELEMENT_KINDS.includes(value.kind as ElementKind)) return false;
@@ -326,6 +330,9 @@ function isRegion(value: unknown): value is Region {
       const cc2 = isInt(value.cc2) ? value.cc2 : 0;
       if ((value.cc as number) + shift > 127 || cc2 + shift > 127) return false;
     }
+  }
+  if (value.locked !== undefined && typeof value.locked !== "boolean") {
+    return false;
   }
   const colour = value.colour;
   if (!Array.isArray(colour) || colour.length !== 3) return false;

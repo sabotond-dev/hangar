@@ -16,12 +16,14 @@ import {
   SURFACE_CELLS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
+  boundingBox,
   cellIndex,
   cellsOf,
   cloneRegion,
   minimumSizeFor,
   orientationOf,
   toDisplay,
+  type Box,
   type CellSize,
   type MinimumSizes,
   type Region,
@@ -154,7 +156,7 @@ function offSurfaceField(region: Region): GeometryField | undefined {
 // Rules 1, 2, 3 and the cap: validate one region against a surface.
 
 export type Problem = {
-  readonly rule: "off-surface" | "overlap" | "too-small" | "cap";
+  readonly rule: "off-surface" | "overlap" | "too-small" | "cap" | "locked";
   /** The field a component should mark, where one applies. */
   readonly field?: GeometryField | "kind" | "count";
   readonly message: string;
@@ -260,6 +262,60 @@ export function applyEdit(
   return { ok: true, surface: { ...surface, regions } };
 }
 
+/** One region's patch inside a group edit. */
+export type RegionEdit = readonly [
+  id: string,
+  patch: Partial<Omit<Region, "id">>,
+];
+
+/**
+ * Apply one patch per region AS ONE (change 13A): every patched region is validated against the
+ * surface with every other patch already applied, so a group move that would overlap or leave the
+ * plate is refused whole - the surface handed in comes back unchanged beside the first problem -
+ * and the model is never transiently invalid. A key whose patch value is `undefined` is REMOVED
+ * from the region (the canonical absence: `locked` off is no field). An unknown id throws.
+ */
+export function applyEdits(
+  surface: Surface,
+  edits: readonly RegionEdit[],
+  rules: GeometryRules = {},
+): EditResult {
+  const regions = surface.regions.slice();
+  const touched = new Set<number>();
+  for (const [id, patch] of edits) {
+    const index = regions.findIndex((r) => r.id === id);
+    if (index === -1) throw new Error(`no region with id ${id}`);
+    const edited: Record<string, unknown> = { ...regions[index], ...patch, id };
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined) delete edited[key];
+    }
+    regions[index] = edited as Region;
+    touched.add(index);
+  }
+  // Each patched region against the UNTOUCHED ones first (validate assumes the others are a
+  // valid surface: rules 1 and 3 and an overlap with a bystander, named right); then the map
+  // over everything, where the only conflict left is between two patched regions.
+  const untouched = regions.filter((_, index) => !touched.has(index));
+  for (const index of touched) {
+    const verdict = validate(
+      regions[index],
+      { ...surface, regions: [...untouched, regions[index]] },
+      rules,
+    );
+    if (!verdict.ok) return { ok: false, surface, problem: verdict.problem };
+  }
+  const built = buildCellMap(regions);
+  if (!built.ok) {
+    const other = built.kind === "overlap" ? built.a : built.region;
+    return {
+      ok: false,
+      surface,
+      problem: { rule: "overlap", message: overlapLine(other) },
+    };
+  }
+  return { ok: true, surface: { ...surface, regions } };
+}
+
 /** Add a region; the same contract as `applyEdit`. */
 export function addRegion(
   surface: Surface,
@@ -346,6 +402,58 @@ export function duplicate(
     surface: { ...surface, regions: [...surface.regions, region] },
     region,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Change 13A: the marquee's hit-test and the paste's placement rule.
+
+/** The regions a box TOUCHES - one cell in common is enough (the marquee's rule, BENCH section 13). */
+export function touching(box: Box, regions: readonly Region[]): Region[] {
+  return regions.filter(
+    (r) =>
+      r.col < box.col + box.w &&
+      box.col < r.col + r.w &&
+      r.row < box.row + box.h &&
+      box.row < r.row + r.h,
+  );
+}
+
+/**
+ * Where a group of boxes lands, as the origin its bounding box takes (the paste, the duplicate):
+ * the anchor cell - the keyboard focus cell - if every box fits there with the group's layout
+ * kept; else one cell down-right of the group's own origin; else the first origin in reading
+ * order (row-major) at which every box is on the plate and covers only free cells. Undefined when
+ * nowhere fits. A box "fits" cell by cell, so another element may sit in the group's gaps.
+ */
+export function placementFor(
+  boxes: readonly Box[],
+  anchor: { readonly col: number; readonly row: number },
+  map: CellMap,
+): { col: number; row: number } | undefined {
+  const origin = boundingBox(boxes);
+  if (origin === undefined) return undefined;
+  const fits = (at: { col: number; row: number }): boolean =>
+    boxes.every((b) => {
+      const col = b.col - origin.col + at.col;
+      const row = b.row - origin.row + at.row;
+      if (col < 0 || row < 0) return false;
+      if (col + b.w > SURFACE_SIZE || row + b.h > SURFACE_SIZE) return false;
+      for (let r = row; r < row + b.h; r += 1) {
+        for (let c = col; c < col + b.w; c += 1) {
+          if (map[cellIndex(c, r)] !== 0) return false;
+        }
+      }
+      return true;
+    });
+  const candidates = [
+    { col: anchor.col, row: anchor.row },
+    { col: origin.col + 1, row: origin.row + 1 },
+  ];
+  for (let row = 0; row < SURFACE_SIZE; row += 1) {
+    for (let col = 0; col < SURFACE_SIZE; col += 1)
+      candidates.push({ col, row });
+  }
+  return candidates.find(fits);
 }
 
 // ---------------------------------------------------------------------------

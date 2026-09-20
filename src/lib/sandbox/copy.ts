@@ -213,6 +213,46 @@ export const DUPLICATE_AT_CAP =
 export const defaultName = (kind: string, n: number): string => `${kind} ${n}`;
 export const copyName = (name: string): string => `${name} copy`;
 
+// ---------------------------------------------------------------------------
+// Change 13A (BENCH-2026-09-16.txt section 13): the selection set, the clipboard, multi-edit,
+// lock and Tab. D-05's register; every line here is HANGAR's.
+
+/** The inspector over more than one element: the eyebrow, the lede, and a field whose values differ. */
+export const SELECTED_ELEMENTS = "SELECTED ELEMENTS";
+export const MULTI_LEDE = "A change here applies to every selected element.";
+export const MIXED = "Mixed";
+/** The pinned delete on a group: `Delete 3 elements`. */
+export const deleteElements = (n: number): string =>
+  `Delete ${elementsLine(n)}`;
+/** The plate's status with more than one selected. */
+export const selectedCountLine = (n: number): string =>
+  `${elementsLine(n)} selected.`;
+
+/** Lock (suggestion 6): the checkbox, its helper, and the two refusals a locked element makes. */
+export const LOCKED = "Locked";
+export const LOCKED_HELPER =
+  "A locked element stays where it is: it can’t be moved, resized or deleted. Its settings still change.";
+export const lockedMoveLine = (name: string): string =>
+  `${name} is locked. Unlock it to move or resize it.`;
+export const lockedDeleteLine = (name: string): string =>
+  `${name} is locked. Unlock it to delete it.`;
+export const lockedLine = (n: number): string => `Locked ${elementsLine(n)}.`;
+export const unlockedLine = (n: number): string =>
+  `Unlocked ${elementsLine(n)}.`;
+
+/** The clipboard's outcomes on the plate's status line, and its three refusals (no number about the cap). */
+export const copiedLine = (n: number): string => `Copied ${elementsLine(n)}.`;
+export const cutLine = (n: number): string => `Cut ${elementsLine(n)}.`;
+export const pastedLine = (n: number): string => `Pasted ${elementsLine(n)}.`;
+export const duplicatedLine = (n: number): string =>
+  `Duplicated ${elementsLine(n)}.`;
+export const NOTHING_TO_PASTE =
+  "Nothing to paste yet. Copy or cut an element first.";
+export const PASTE_NO_SPACE =
+  "There’s no free area for what you copied. Clear some room and paste again.";
+export const PASTE_AT_CAP =
+  "This surface is full. Remove an element to paste another.";
+
 /** Save copy's outcome. */
 export const savedLine = (name: string): string =>
   `${name} saved to My configs.`;

@@ -29,6 +29,9 @@ import {
   LIST_EMPTY,
   MODE_HELPER,
   NOTE_RANGE,
+  NOTHING_TO_PASTE,
+  PASTE_AT_CAP,
+  PASTE_NO_SPACE,
   PLAY_LOCKS_FIELDS,
   PLAY_LOCKS_PALETTE,
   SPRING_HELPER,
@@ -52,15 +55,33 @@ import {
   PALETTE,
   SELECTOR_KEY,
   SandboxEditor,
+  autoName,
   kindForKey,
   type EditorState,
 } from "../sandbox/editor";
 import { ELEMENT_KINDS, isStoredRecord } from "../store/schema";
-import { GEOMETRY_COPY, buildCellMap, validate } from "../sandbox/geometry";
+import {
+  CLIPBOARD_KEY,
+  clearClipboard,
+  isClipboardContent,
+  readClipboard,
+  writeClipboard,
+  type ClipboardContent,
+} from "../sandbox/clipboard";
+import { regionRow, regionTail } from "../sandbox/emit";
+import {
+  GEOMETRY_COPY,
+  buildCellMap,
+  placementFor,
+  touching,
+  validate,
+} from "../sandbox/geometry";
 import { History } from "../sandbox/history";
 import {
+  boundingBox,
   ccCeiling,
   flagsOf,
+  lockedOf,
   seventhOf,
   withBrightness,
 } from "../sandbox/model";
@@ -534,7 +555,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(panel).toMatch(/data-testid="delete-element"[^>]*disabled/);
     expect(editor.editNumber("cc", "3"), "a numeric edit in Play").toBe(false);
     expect(editor.nudgeSelected(1, 0), "a nudge in Play").toBeUndefined();
-    expect(editor.remove(), "a delete in Play").toBe(false);
+    expect(editor.remove().kind, "a delete in Play").toBe("nothing");
     expect(editor.undo(), "an undo in Play").toBe(false);
     expect(byId(editor, fader.id)).toMatchObject({ col: 1, cc: 1 });
     expect(html, "no delete icon in Play").not.toContain("surface-delete");
@@ -718,7 +739,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(copyId).not.toBe(id);
     step("delete", () => {
       editor.select(id);
-      expect(editor.remove()).toBe(true);
+      expect(editor.remove().kind).toBe("done");
     });
     expect(editor.surface.regions.map((r) => r.id)).toEqual([copyId]);
     expect(editor.history.entries.map((e) => e.kind)).toEqual([
@@ -1010,7 +1031,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
 
     // A DELETION IS NOT A STEP BACK: delete the fifth, place a sixth - it is
     // the next of the cycle, not the fifth's colour again.
-    expect(editor.remove()).toBe(true);
+    expect(editor.remove().kind).toBe("done");
     editor.clickCell(8, 2);
     expect(editor.surface.regions[4].colour).toEqual(PALETTE[1]);
     // The colours are the region's own value: the picker still recolours,
@@ -1838,5 +1859,629 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       isStoredRecord(record({ kind: "button", touches: 5, cc: 127 })),
       "the ceiling is the pad's",
     ).toBe(true);
+  });
+
+  it("14. the selection set (change 13A): Shift+click toggles, a plain click selects alone, the marquee selects what it touches and skips a locked element, Ctrl+A every unlocked one, Tab and Shift+Tab walk the surface's order and wrap, Escape clears; a group moves, nudges and deletes as one - refused whole where a member would overlap, leave the plate or is locked - one Undo re-selecting the set; a lock refuses a move, a resize and a delete and lets the fields edit", () => {
+    const { editor, emitted } = fresh();
+    editor.choose("button");
+    editor.clickCell(0, 0);
+    editor.clickCell(3, 0);
+    editor.clickCell(6, 0);
+    editor.choose("blank");
+    editor.clickCell(0, 8);
+    editor.cancel();
+    const [a, b, c, blank] = editor.surface.regions;
+    const depth = editor.history.depth;
+
+    // SHIFT+CLICK toggles the held element in the set, in the order made; a
+    // plain click selects alone; `selected` and `selectedId` are the one
+    // region only while the set has one.
+    expect(editor.clickCell(0, 0).kind).toBe("selected");
+    expect(editor.clickCell(3, 0, true)).toEqual({
+      kind: "selected",
+      region: b,
+    });
+    expect(editor.selection).toEqual([a.id, b.id]);
+    expect(editor.selectedId, "several: no one id").toBeUndefined();
+    expect(editor.selected).toBeUndefined();
+    expect(editor.selectedRegions.map((r) => r.id)).toEqual([a.id, b.id]);
+    expect(editor.clickCell(0, 0, true)).toEqual({
+      kind: "deselected",
+      region: a,
+    });
+    expect(editor.selection).toEqual([b.id]);
+    expect(editor.selectedId).toBe(b.id);
+    editor.toggleSelect(c.id);
+    editor.toggleSelect("nobody");
+    expect(editor.selection).toEqual([b.id, c.id]);
+    // Shift on an empty cell keeps the set (a marquee may follow); plain clears.
+    expect(editor.clickCell(4, 4, true).kind).toBe("kept");
+    expect(editor.selection).toEqual([b.id, c.id]);
+    expect(editor.clickCell(4, 4).kind).toBe("cleared");
+    expect(editor.selection).toEqual([]);
+    expect(editor.history.depth, "selection is no entry").toBe(depth);
+    // A state carries the set, its regions in the surface's order.
+    editor.toggleSelect(c.id);
+    editor.toggleSelect(a.id);
+    const state = editor.state();
+    expect(state.selection).toEqual([c.id, a.id]);
+    expect(state.selectedRegions.map((r) => r.id)).toEqual([a.id, c.id]);
+    expect(state.focus, "the focus is the set's origin").toEqual({
+      col: 0,
+      row: 0,
+    });
+
+    // THE MARQUEE selects what it TOUCHES: a box over one cell of the first
+    // two buttons takes both and not the third; Shift adds; a box over
+    // nothing clears; a locked element is skipped.
+    expect(
+      touching({ col: 1, row: 1, w: 3, h: 1 }, editor.surface.regions).map(
+        (r) => r.id,
+      ),
+    ).toEqual([a.id, b.id]);
+    expect(editor.selectTouching({ col: 1, row: 1, w: 3, h: 1 })).toBe(2);
+    expect(editor.selection).toEqual([a.id, b.id]);
+    expect(editor.selectTouching({ col: 7, row: 1, w: 1, h: 1 }, true)).toBe(1);
+    expect(editor.selection).toEqual([a.id, b.id, c.id]);
+    expect(editor.selectTouching({ col: 2, row: 4, w: 4, h: 3 })).toBe(0);
+    expect(editor.selection).toEqual([]);
+    editor.select(blank.id);
+    expect(editor.toggleLock()).toEqual({ locked: true, count: 1 });
+    expect(byId(editor, blank.id).locked).toBe(true);
+    expect(editor.selectTouching({ col: 0, row: 0, w: 9, h: 9 })).toBe(3);
+    expect(editor.selection, "the locked blank is skipped").toEqual([
+      a.id,
+      b.id,
+      c.id,
+    ]);
+    // CTRL+A: every unlocked element.
+    editor.select(undefined);
+    editor.selectAll();
+    expect(editor.selection).toEqual([a.id, b.id, c.id]);
+
+    // A GROUP MOVES AS ONE: the drag's release puts the set's bounding box
+    // origin at the cell, every member keeping its place; one entry; the
+    // arrows nudge the set; a nudge that would leave the plate is refused
+    // whole and nothing moved; a move onto the blank is refused whole with
+    // section 16's line naming it.
+    const before = editor.history.depth;
+    expect(editor.moveSelectedTo({ col: 1, row: 2 })).toBeUndefined();
+    expect(byId(editor, a.id)).toMatchObject({ col: 1, row: 2 });
+    expect(byId(editor, b.id)).toMatchObject({ col: 4, row: 2 });
+    expect(byId(editor, c.id)).toMatchObject({ col: 7, row: 2 });
+    expect(editor.history.depth).toBe(before + 1);
+    expect(editor.history.entries.at(-1)?.selection).toEqual([
+      a.id,
+      b.id,
+      c.id,
+    ]);
+    expect(editor.focus).toEqual({ col: 1, row: 2 });
+    expect(editor.nudgeSelected(0, 1)).toBeUndefined();
+    expect(editor.nudgeSelected(0, 1)).toBeUndefined();
+    editor.commitField();
+    expect(editor.history.depth, "a held arrow is one entry").toBe(before + 2);
+    expect(byId(editor, b.id)).toMatchObject({ col: 4, row: 4 });
+    const held = editor.surface;
+    expect(editor.nudgeSelected(1, 0)?.message).toBe(
+      GEOMETRY_COPY.offSurface("w"),
+    );
+    expect(editor.surface, "refused whole: the same object").toBe(held);
+    expect(editor.moveSelectedTo({ col: 0, row: 7 })?.message).toBe(
+      "This region overlaps Blank 1. Choose another area or resize it.",
+    );
+    expect(editor.surface).toBe(held);
+    expect(
+      editor.resizeSelectedBy(1, 0),
+      "a set does not resize",
+    ).toBeUndefined();
+    expect(editor.surface).toBe(held);
+    // UNDO the nudge and the move: each one step, the set re-selected.
+    editor.select(undefined);
+    expect(editor.undo()).toBe(true);
+    expect(editor.selection).toEqual([a.id, b.id, c.id]);
+    expect(byId(editor, b.id)).toMatchObject({ col: 4, row: 2 });
+    expect(editor.undo()).toBe(true);
+    expect(byId(editor, b.id)).toMatchObject({ col: 3, row: 0 });
+    expect(editor.redo()).toBe(true);
+    expect(editor.redo()).toBe(true);
+    expect(byId(editor, c.id)).toMatchObject({ col: 7, row: 4 });
+
+    // THE GROUP DELETES AS ONE: one entry, undone as one with the set back.
+    const count = editor.surface.regions.length;
+    expect(editor.remove()).toEqual({ kind: "done", count: 3 });
+    expect(editor.surface.regions.map((r) => r.id)).toEqual([blank.id]);
+    expect(editor.selection).toEqual([]);
+    expect(editor.remove(), "nothing selected").toEqual({ kind: "nothing" });
+    expect(editor.undo()).toBe(true);
+    expect(editor.surface.regions).toHaveLength(count);
+    expect(editor.selection).toEqual([a.id, b.id, c.id]);
+
+    // A LOCK refuses a move, a nudge, a resize and a delete with its line -
+    // on a set, the first locked member's - and a locked element still takes
+    // a field; Ctrl+L on a mixed set locks all, on an all-locked set unlocks.
+    editor.select(a.id);
+    expect(editor.toggleLock()).toEqual({ locked: true, count: 1 });
+    expect(byId(editor, a.id).locked).toBe(true);
+    expect(editor.history.entries.at(-1)?.kind).toBe("lock");
+    const lockedSurface = editor.surface;
+    expect(editor.moveSelectedTo({ col: 5, row: 5 })?.message).toBe(
+      "Button 1 is locked. Unlock it to move or resize it.",
+    );
+    expect(editor.nudgeSelected(1, 0)?.message).toBe(
+      "Button 1 is locked. Unlock it to move or resize it.",
+    );
+    expect(editor.resizeSelectedBy(1, 0)?.message).toBe(
+      "Button 1 is locked. Unlock it to move or resize it.",
+    );
+    expect(editor.resizeSelectedTo({ col: 1, row: 2, w: 3, h: 2 })?.rule).toBe(
+      "locked",
+    );
+    expect(editor.remove()).toEqual({
+      kind: "refused",
+      message: "Button 1 is locked. Unlock it to delete it.",
+    });
+    expect(editor.surface, "nothing moved").toBe(lockedSurface);
+    expect(editor.editNumber("channel", "5")).toBe(true);
+    expect(byId(editor, a.id).channel).toBe(5);
+    editor.toggleSelect(b.id);
+    expect(editor.nudgeSelected(0, 1)?.message).toContain("Button 1 is locked");
+    expect(editor.toggleLock(), "a mixed set locks all").toEqual({
+      locked: true,
+      count: 2,
+    });
+    expect(byId(editor, b.id).locked).toBe(true);
+    expect(editor.toggleLock(), "an all-locked set unlocks").toEqual({
+      locked: false,
+      count: 2,
+    });
+    expect(byId(editor, a.id), "off is no field").not.toHaveProperty("locked");
+    expect(byId(editor, b.id)).not.toHaveProperty("locked");
+    editor.setLocked(true);
+    expect(byId(editor, a.id).locked).toBe(true);
+    editor.setLocked(false);
+    expect(byId(editor, a.id)).not.toHaveProperty("locked");
+    expect(lockedOf(byId(editor, a.id))).toBe(false);
+    editor.setMode("play");
+    expect(editor.toggleLock()).toBeUndefined();
+    editor.setMode("edit");
+
+    // TAB walks the surface's order from the LAST of the set, wraps, and
+    // selects alone; Shift+Tab walks back from the FIRST; nothing selected
+    // starts at the first (or the last); Escape clears - and Escape with a
+    // kind armed only disarms.
+    editor.select(undefined);
+    expect(editor.selectNext(1)).toBe(true);
+    expect(editor.selection).toEqual([a.id]);
+    editor.selectNext(1);
+    editor.selectNext(1);
+    expect(editor.selection).toEqual([c.id]);
+    editor.selectNext(1);
+    expect(editor.selection).toEqual([blank.id]);
+    editor.selectNext(1);
+    expect(editor.selection, "wraps").toEqual([a.id]);
+    editor.selectNext(-1);
+    expect(editor.selection).toEqual([blank.id]);
+    editor.select(undefined);
+    editor.selectNext(-1);
+    expect(editor.selection, "back from nothing: the last").toEqual([blank.id]);
+    editor.toggleSelect(b.id);
+    editor.selectNext(1);
+    expect(editor.selection, "forward from the set's last").toEqual([c.id]);
+    editor.toggleSelect(a.id);
+    editor.selectNext(-1);
+    expect(editor.selection, "back from the set's first").toEqual([b.id]);
+    editor.escape();
+    expect(editor.selection).toEqual([]);
+    editor.select(a.id);
+    editor.choose("knob");
+    editor.escape();
+    expect(editor.placement).toEqual({ kind: "idle" });
+    expect(editor.selection, "armed: Escape disarms and keeps").toEqual([a.id]);
+    expect(fresh().editor.selectNext(1), "no element").toBe(false);
+    // Play: no marquee.
+    editor.setMode("play");
+    expect(editor.selectTouching({ col: 0, row: 0, w: 9, h: 9 })).toBe(0);
+    editor.setMode("edit");
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+    for (const entry of editor.history.entries) {
+      expect(wholeSurfaceValid(entry.before)).toBe(true);
+      expect(wholeSurfaceValid(entry.after)).toBe(true);
+    }
+    // The bounding box and the schema's field.
+    expect(boundingBox([])).toBeUndefined();
+    expect(
+      boundingBox([
+        { col: 1, row: 2, w: 2, h: 2 },
+        { col: 4, row: 0, w: 1, h: 5 },
+      ]),
+    ).toEqual({ col: 1, row: 0, w: 4, h: 5 });
+    const record = (extra: Record<string, unknown>) => ({
+      schema: 1,
+      id: "sandbox:s-4",
+      name: "Locked",
+      kind: "sandbox",
+      source: "s-4",
+      createdAt: "2026-09-20T00:00:00.000Z",
+      editedAt: "2026-09-20T00:00:00.000Z",
+      surface: {
+        id: "s-4",
+        name: "Locked",
+        regions: [{ ...blank, ...extra }],
+      },
+    });
+    expect(isStoredRecord(record({ locked: true }))).toBe(true);
+    expect(isStoredRecord(record({ locked: undefined }))).toBe(true);
+    expect(isStoredRecord(record({ locked: "yes" }))).toBe(false);
+  });
+
+  it("15. the clipboard (change 13A): Ctrl+C takes the set as clones, Ctrl+X cuts as one entry, Ctrl+V lands a single element at the focus cell if free, else one cell down-right of the original, else the first free spot in reading order, a group keeping its layout the same way, every pasted element keeping its settings and colour with an auto-numbered name; refused without a number when nothing fits or the cap would be passed; Ctrl+D duplicates by the same rule; the clipboard lives in memory and the session store", () => {
+    const { editor, emitted } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    const fader = editor.surface.regions[0];
+    editor.editNumber("channel", "7");
+    editor.commitField();
+    editor.setColour([15, 0, 0]);
+    editor.setRegionMode("relative");
+
+    // THE NAMING RULE, one function: the lowest free number per kind label.
+    expect(autoName("fader", editor.surface.regions)).toBe("Fader 2");
+    expect(autoName("button", editor.surface.regions)).toBe("Button 1");
+    expect(
+      autoName("fader", [
+        { ...fader, name: "Fader 1" },
+        { ...fader, id: "x", name: "Fader 3" },
+      ]),
+    ).toBe("Fader 2");
+    expect(autoName("fader", [])).toBe("Fader 1");
+
+    // COPY: clones in the surface's order; nothing selected is nothing.
+    const content = editor.copySelection();
+    expect(content?.regions).toHaveLength(1);
+    expect(content?.regions[0]).toEqual(byId(editor, fader.id));
+    expect(content?.regions[0], "a clone, not the region").not.toBe(
+      byId(editor, fader.id),
+    );
+    editor.select(undefined);
+    expect(editor.copySelection()).toBeUndefined();
+    expect(editor.paste(undefined)).toEqual({ kind: "nothing" });
+
+    // PASTE: the focus cell is the fader's own origin (selected), so not
+    // free; one cell down-right of the original, (1, 1), is under the
+    // original too (a two-wide element covers its own down-right cell - only
+    // a one-cell element ever lands there); so the first free origin in
+    // reading order, (2, 0). The paste keeps the channel, the colour and the
+    // mode, takes Fader 2, is selected, and is one entry.
+    editor.select(fader.id);
+    const depth = editor.history.depth;
+    expect(editor.paste(content)).toEqual({ kind: "done", count: 1 });
+    const pasted = editor.surface.regions[1];
+    expect(pasted).toMatchObject({
+      name: "Fader 2",
+      kind: "fader",
+      col: 2,
+      row: 0,
+      w: 2,
+      h: 6,
+      channel: 7,
+      colour: [15, 0, 0],
+      mode: "relative",
+      cc: fader.cc,
+    });
+    expect(pasted.id).not.toBe(fader.id);
+    expect(editor.selection).toEqual([pasted.id]);
+    expect(editor.history.depth).toBe(depth + 1);
+    expect(editor.history.entries.at(-1)?.kind).toBe("paste");
+    expect(editor.focus).toEqual({ col: 2, row: 0 });
+    // At a FREE focus cell the paste lands there.
+    editor.setFocus({ col: 6, row: 2 });
+    expect(editor.paste(content).kind).toBe("done");
+    expect(editor.surface.regions[2]).toMatchObject({
+      name: "Fader 3",
+      col: 6,
+      row: 2,
+    });
+    // Neither the focus nor down-right free: the first free origin in
+    // reading order - (4, 0), the first whose 2 x 6 covers only free cells.
+    editor.select(fader.id);
+    expect(editor.paste(content).kind).toBe("done");
+    expect(editor.surface.regions[3]).toMatchObject({
+      name: "Fader 4",
+      col: 4,
+      row: 0,
+    });
+    // The placement rule, on the pure function: a one-cell box at a free
+    // anchor; at a held anchor one cell down-right of its own origin; with
+    // that held too the first free cell in reading order; a two-cell box at
+    // a free anchor; a box nothing fits; no box.
+    const built = buildCellMap(editor.surface.regions);
+    const map = built.ok ? built.map : [];
+    const cell = [{ col: 0, row: 0, w: 1, h: 1 }];
+    expect(placementFor(cell, { col: 8, row: 8 }, map)).toEqual({
+      col: 8,
+      row: 8,
+    });
+    expect(
+      placementFor([{ col: 7, row: 7, w: 1, h: 1 }], { col: 0, row: 0 }, map),
+    ).toEqual({ col: 8, row: 8 });
+    expect(placementFor(cell, { col: 0, row: 0 }, map)).toEqual({
+      col: 6,
+      row: 0,
+    });
+    expect(
+      placementFor([{ col: 0, row: 0, w: 2, h: 2 }], { col: 0, row: 6 }, map),
+    ).toEqual({ col: 0, row: 6 });
+    expect(
+      placementFor([{ col: 0, row: 0, w: 9, h: 9 }], { col: 0, row: 0 }, map),
+    ).toBeUndefined();
+    expect(placementFor([], { col: 0, row: 0 }, map)).toBeUndefined();
+
+    // CUT: the content taken, the deletion one entry under `cut`, Undo
+    // brings the set back; a paste after the cut lands where it was (the
+    // focus cell is free now).
+    editor.select(editor.surface.regions[3].id);
+    const cutContent = editor.copySelection();
+    expect(editor.remove("cut")).toEqual({ kind: "done", count: 1 });
+    expect(editor.history.entries.at(-1)?.kind).toBe("cut");
+    expect(editor.surface.regions).toHaveLength(3);
+    expect(editor.focus).toEqual({ col: 4, row: 0 });
+    expect(editor.paste(cutContent).kind).toBe("done");
+    expect(editor.surface.regions[3]).toMatchObject({
+      name: "Fader 4",
+      col: 4,
+      row: 0,
+    });
+
+    // A GROUP keeps its relative layout: with Fader 3 and Fader 4 gone, the
+    // pair at (0,0) and (2,0) pasted with the focus at (5, 2) lands at (5,2)
+    // and (7,2); then, with nothing free for the pair, the paste is refused
+    // with a line that carries no number and nothing lands.
+    editor.select(editor.surface.regions[3].id);
+    editor.toggleSelect(editor.surface.regions[2].id);
+    expect(editor.remove().kind).toBe("done");
+    editor.select(fader.id);
+    editor.toggleSelect(pasted.id);
+    const pair = editor.copySelection();
+    expect(pair?.regions.map((r) => r.name)).toEqual(["Fader 1", "Fader 2"]);
+    editor.setFocus({ col: 5, row: 2 });
+    expect(editor.paste(pair)).toEqual({ kind: "done", count: 2 });
+    expect(editor.surface.regions.slice(-2)).toMatchObject([
+      { name: "Fader 3", col: 5, row: 2 },
+      { name: "Fader 4", col: 7, row: 2 },
+    ]);
+    expect(editor.selection).toEqual(
+      editor.surface.regions.slice(-2).map((r) => r.id),
+    );
+    const full = editor.surface;
+    const fullDepth = editor.history.depth;
+    expect(editor.paste(pair)).toEqual({
+      kind: "refused",
+      message: PASTE_NO_SPACE,
+    });
+    expect(editor.surface).toBe(full);
+    expect(editor.history.depth).toBe(fullDepth);
+    expect(PASTE_NO_SPACE).not.toMatch(/[0-9]/);
+    expect(PASTE_AT_CAP).not.toMatch(/[0-9]/);
+    expect(NOTHING_TO_PASTE).not.toMatch(/[0-9]/);
+    // THE CAP: a surface at fifteen refuses a paste of two with the cap's line.
+    const capped = fresh().editor;
+    capped.choose("blank");
+    for (let i = 0; i < SURFACE_ELEMENT_CAP - 1; i += 1)
+      capped.clickCell(i % 9, Math.floor(i / 9));
+    capped.cancel();
+    capped.select(capped.surface.regions[0].id);
+    capped.toggleSelect(capped.surface.regions[1].id);
+    const two = capped.copySelection();
+    expect(capped.paste(two)).toEqual({
+      kind: "refused",
+      message: PASTE_AT_CAP,
+    });
+    expect(capped.surface.regions).toHaveLength(SURFACE_ELEMENT_CAP - 1);
+    capped.select(capped.surface.regions[0].id);
+    expect(capped.paste(capped.copySelection()).kind, "one fits").toBe("done");
+    expect(capped.surface.regions).toHaveLength(SURFACE_ELEMENT_CAP);
+    expect(capped.duplicate()).toEqual({ ok: false, reason: "cap" });
+
+    // DUPLICATE (Ctrl+D, the panel's button) is the same rule on the set:
+    // the focus is the originals' origin and their down-right cell is
+    // theirs, so the pair lands at the first free origin in reading order,
+    // (0, 2), its layout kept; the copies auto-named and selected, one entry.
+    const dup = fresh().editor;
+    dup.choose("button");
+    dup.clickCell(0, 0);
+    dup.clickCell(3, 0);
+    dup.cancel();
+    dup.select(dup.surface.regions[0].id);
+    dup.toggleSelect(dup.surface.regions[1].id);
+    const result = dup.duplicate();
+    expect(result.ok).toBe(true);
+    expect(dup.surface.regions.slice(2)).toMatchObject([
+      { name: "Button 3", col: 0, row: 2 },
+      { name: "Button 4", col: 3, row: 2 },
+    ]);
+    expect(dup.selection).toEqual(
+      dup.surface.regions.slice(2).map((r) => r.id),
+    );
+    expect(dup.history.entries.at(-1)?.kind).toBe("duplicate");
+    expect(dup.undo()).toBe(true);
+    expect(dup.surface.regions).toHaveLength(2);
+    expect(dup.selection, "the copies are gone, nothing is selected").toEqual(
+      [],
+    );
+    expect(dup.redo()).toBe(true);
+    expect(dup.selection, "redo re-selects the copies").toEqual(
+      dup.surface.regions.slice(2).map((r) => r.id),
+    );
+    dup.undo();
+    // Play: nothing lands.
+    dup.setMode("play");
+    expect(dup.paste(pair)).toEqual({ kind: "nothing" });
+    expect(dup.duplicate()).toEqual({ ok: false, reason: "no-space" });
+    dup.setMode("edit");
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+
+    // THE CLIPBOARD'S HOME: memory first, the session store beside it; a
+    // fresh reader (memory cleared) reads the store back; a foreign value
+    // under the key reads as empty; no store is memory alone.
+    clearClipboard();
+    const backing = new Map<string, string>();
+    const store = {
+      getItem: (k: string) => backing.get(k) ?? null,
+      setItem: (k: string, v: string) => void backing.set(k, v),
+      removeItem: (k: string) => void backing.delete(k),
+    };
+    const held = pair as ClipboardContent;
+    expect(readClipboard(store)).toBeUndefined();
+    writeClipboard(store, held);
+    expect(readClipboard(store)).toEqual(held);
+    expect(CLIPBOARD_KEY).toBe("hangar:sandbox-clipboard");
+    expect(backing.has(CLIPBOARD_KEY)).toBe(true);
+    clearClipboard();
+    expect(readClipboard(store)).toEqual(held);
+    backing.set(CLIPBOARD_KEY, JSON.stringify({ regions: [{ id: 1 }] }));
+    clearClipboard();
+    expect(readClipboard(store)).toBeUndefined();
+    backing.set(CLIPBOARD_KEY, "{not json");
+    expect(readClipboard(store)).toBeUndefined();
+    expect(isClipboardContent({ regions: [] }), "empty is nothing").toBe(false);
+    writeClipboard(undefined, held);
+    expect(readClipboard(undefined)).toEqual(held);
+    clearClipboard();
+    expect(readClipboard(undefined)).toBeUndefined();
+  });
+
+  it("16. multi-edit (change 13A): over a set the numeric fields show the shared value or Mixed, a typed value or a select writes every member under one entry re-selecting the set on Undo, a refusal on any member refuses the whole edit with its line, the kind-specific setters apply only when every member is the kind, the name is single-selection only, and `locked` never reaches a row", () => {
+    const { editor, emitted } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.clickCell(3, 0);
+    editor.choose("button");
+    editor.clickCell(6, 0);
+    editor.cancel();
+    const [f1, f2, button] = editor.surface.regions;
+    editor.select(f1.id);
+    editor.editNumber("channel", "3");
+    editor.commitField();
+    editor.editNumber("min", "10");
+    editor.commitField();
+
+    // MIXED: channel differs (3 and 1), min differs, max agrees (127), cc
+    // differs (and with it the note, which is the cc read as a name).
+    editor.toggleSelect(f2.id);
+    const state = editor.state();
+    expect(state.mixed).toEqual(["cc", "channel", "min", "note"]);
+    expect(state.texts.channel).toBe("");
+    expect(state.texts.max).toBe("127");
+    expect(editor.fieldText("min")).toBe("");
+    // A TYPED VALUE writes every member as one entry; Undo takes both back
+    // and re-selects the set.
+    const depth = editor.history.depth;
+    expect(editor.editNumber("channel", "9")).toBe(true);
+    expect(byId(editor, f1.id).channel).toBe(9);
+    expect(byId(editor, f2.id).channel).toBe(9);
+    expect(editor.history.depth).toBe(depth + 1);
+    expect(editor.history.entries.at(-1)?.selection).toEqual([f1.id, f2.id]);
+    expect(editor.state().mixed).toEqual(["cc", "min", "note"]);
+    expect(editor.state().texts.channel).toBe("9");
+    editor.editNumber("channel", "10");
+    expect(editor.history.depth, "keystrokes coalesce over the set").toBe(
+      depth + 1,
+    );
+    editor.commitField();
+    editor.select(undefined);
+    expect(editor.undo()).toBe(true);
+    expect(editor.selection).toEqual([f1.id, f2.id]);
+    expect(byId(editor, f1.id).channel).toBe(3);
+    expect(byId(editor, f2.id).channel).toBe(1);
+    // A REFUSAL ON ANY MEMBER refuses the whole edit with its line: the
+    // second fader made one column wide, both turned horizontal - the first
+    // could turn, the second is under its minimum, so neither turns and the
+    // line is the second's.
+    editor.select(f2.id);
+    expect(
+      editor.resizeSelectedTo({ col: 3, row: 0, w: 1, h: 6 }),
+    ).toBeUndefined();
+    editor.select(f1.id);
+    editor.toggleSelect(f2.id);
+    const held = editor.surface;
+    expect(editor.setOrientation("horizontal")).toBe(false);
+    expect(editor.state().orientationProblem).toBe(
+      "A horizontal fader needs at least 2 columns.",
+    );
+    expect(editor.surface).toBe(held);
+    expect(byId(editor, f1.id).orientation).toBe("vertical");
+    // The options over the set: mode and speed on both faders; spring; a
+    // recolour; each one entry.
+    const before = editor.history.depth;
+    expect(editor.setRegionMode("relative")).toBe(true);
+    editor.setSpeed("full");
+    editor.setSpring(true);
+    editor.setColour([0, 15, 15]);
+    expect(editor.history.depth).toBe(before + 4);
+    for (const id of [f1.id, f2.id])
+      expect(byId(editor, id)).toMatchObject({
+        mode: "relative",
+        speed: "full",
+        spring: true,
+        colour: [0, 15, 15],
+      });
+    // KIND-SPECIFIC setters apply only when every member is the kind: with
+    // the button in the set a fader's mode, spring and orientation, and a
+    // button's toggle, output and group, all refuse with nothing recorded;
+    // channel, min, max and colour still write all three.
+    editor.toggleSelect(button.id);
+    const mixedDepth = editor.history.depth;
+    expect(editor.setRegionMode("absolute")).toBe(false);
+    expect(editor.setOrientation("vertical")).toBe(false);
+    editor.setSpring(false);
+    editor.setSpeed("half");
+    editor.setLatch(true);
+    editor.setOutput("note");
+    editor.setGroup(2);
+    expect(editor.setTouches(2)).toBe(false);
+    expect(editor.history.depth).toBe(mixedDepth);
+    expect(byId(editor, button.id)).not.toHaveProperty("group");
+    expect(editor.editNumber("max", "100")).toBe(true);
+    editor.commitField();
+    for (const id of [f1.id, f2.id, button.id])
+      expect(byId(editor, id).max).toBe(100);
+    expect(editor.history.depth).toBe(mixedDepth + 1);
+    // THE NAME is single-selection only.
+    editor.rename("Group");
+    expect(editor.history.depth).toBe(mixedDepth + 1);
+    expect(byId(editor, f1.id).name).toBe("Fader 1");
+    // A note over two buttons: both take C4; a cc ceiling over two pads
+    // reads every member's count.
+    editor.choose("button");
+    editor.clickCell(6, 3);
+    editor.cancel();
+    const b2 = editor.surface.regions[3];
+    editor.select(button.id);
+    editor.toggleSelect(b2.id);
+    editor.setOutput("note");
+    expect(editor.editNumber("note", "C4")).toBe(true);
+    expect(byId(editor, button.id).cc).toBe(60);
+    expect(byId(editor, b2.id).cc).toBe(60);
+    editor.choose("xy");
+    editor.clickCell(0, 6);
+    editor.clickCell(3, 6);
+    editor.cancel();
+    const [p1, p2] = editor.surface.regions.slice(4);
+    editor.select(p1.id);
+    editor.setTouches(3);
+    editor.select(p1.id);
+    editor.toggleSelect(p2.id);
+    expect(editor.editNumber("cc", "125")).toBe(false);
+    expect(editor.fields.cc?.message).toBe(touchesCcRange(3, 123));
+    expect(editor.setTouches(2)).toBe(true);
+    expect(byId(editor, p2.id).touches).toBe(2);
+    for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
+
+    // `locked` NEVER REACHES A ROW: the emitter's row and tail of a locked
+    // region are byte-identical to the unlocked one's.
+    const locked = { ...byId(editor, f1.id), locked: true };
+    expect(regionRow(locked)).toEqual(regionRow(byId(editor, f1.id)));
+    expect(regionTail(locked)).toEqual(regionTail(byId(editor, f1.id)));
   });
 });

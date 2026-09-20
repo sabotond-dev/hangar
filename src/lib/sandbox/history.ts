@@ -1,7 +1,7 @@
 // The Sandbox's undo and redo: a history over STRUCTURAL edits of one surface
-// (place, delete, move, resize, rename, duplicate, recolour, MIDI,
-// orientation, latch, brightness). Selection and mode are not entries. An entry holds the
-// surface before and after, both immutable values, and the region to re-select.
+// (place, delete, move, resize, rename, duplicate, recolour, MIDI, orientation, latch,
+// brightness; paste, cut and lock since change 13A). Selection and mode are not entries. An
+// entry holds the surface before and after, both immutable values, and the region (or the set) to re-select.
 // THE COALESCING BOUNDARY: a numeric field's keystrokes are ONE entry - an edit
 // under a coalesce key replaces the open entry's `after` until seal() (blur,
 // commit, an edit under another key, undo or redo); by key and recency, never
@@ -26,7 +26,10 @@ export type EditKind =
   | "latch"
   | "option"
   | "brightness"
-  | "template";
+  | "template"
+  | "paste"
+  | "cut"
+  | "lock";
 
 export type HistoryEntry = {
   readonly kind: EditKind;
@@ -36,12 +39,15 @@ export type HistoryEntry = {
   readonly regionId: string | undefined;
   /** The key this entry coalesces under, or undefined for a one-shot edit. */
   readonly key: string | undefined;
+  /** The selection set the edit was about (change 13A), re-selected whole on the way back; `regionId` alone otherwise. */
+  readonly selection?: readonly string[];
 };
 
-/** What undo or redo hands back: the surface to restore, and the region to select. */
+/** What undo or redo hands back: the surface to restore, and the region - or the set - to select. */
 export type HistoryStep = {
   readonly surface: Surface;
   readonly select: string | undefined;
+  readonly selection?: readonly string[];
 };
 
 /** The coalesce key of a numeric field's keystrokes. */
@@ -103,7 +109,11 @@ export class History {
     const entry = this.past.pop();
     if (entry === undefined) return undefined;
     this.future.push(entry);
-    return { surface: entry.before, select: entry.regionId };
+    return {
+      surface: entry.before,
+      select: entry.regionId,
+      selection: entry.selection,
+    };
   }
 
   redo(): HistoryStep | undefined {
@@ -111,6 +121,10 @@ export class History {
     const entry = this.future.pop();
     if (entry === undefined) return undefined;
     this.past.push(entry);
-    return { surface: entry.after, select: entry.regionId };
+    return {
+      surface: entry.after,
+      select: entry.regionId,
+      selection: entry.selection,
+    };
   }
 }
