@@ -142,21 +142,15 @@
     background: var(--color-raised);
   }
 
-  /* D-03's three signals: every member of the set is raised with the action ink (aria-pressed), the one selected row rules too (aria-current). */
+  /* D-03's three signals, together, on every selected row: the one selected (aria-current) and every member of the set (aria-pressed). */
+  .row[aria-current],
   .row[aria-pressed="true"] {
-    background: var(--color-raised);
-  }
-
-  .row[aria-pressed="true"] .label {
-    color: var(--color-action);
-  }
-
-  .row[aria-current] {
     background: var(--color-raised);
     border-inline-start: 3px solid var(--color-action);
   }
 
-  .row[aria-current] .label {
+  .row[aria-current] .label,
+  .row[aria-pressed="true"] .label {
     color: var(--color-action);
   }
 

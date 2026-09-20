@@ -29,7 +29,9 @@
 // the same: runbook row M is where that is asked. (The sixth is that loop; the
 // seventh, change 10B, is the options walk - a fader set Relative and Spring, a
 // button set Note and Toggle, a knob set Relative, recovered from the draft; the
-// eighth, change 11, an XY pad's Touches - the count, its helper, both refusals.) THE PUT-BACK HALF LEFT AT
+// eighth, change 11, an XY pad's Touches - the count, its helper, both refusals; the
+// ninth, change 13A, the selection walk - Shift+click, the marquee, Ctrl+C / V / X, a
+// channel typed over two, a lock refusing a drag.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -1202,5 +1204,186 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("field-cc")).toHaveValue("120");
 
     expect(consoleErrors, "no console error on the Touches walk").toEqual([]);
+  });
+
+  test("the selection walk (change 13A): Shift+click selects two under one group outline, a marquee selects the three it touches, Ctrl+C then Ctrl+V pastes them by the placement rule with auto-numbered names, Ctrl+X cuts them as one Undo, a channel typed over two writes both and reads Mixed when they differ, and a locked element refuses a drag and a delete with its line", async ({
+    page,
+  }) => {
+    // Chromium only, at the harness's 1280 x 720 like the body drag: the
+    // marquee and the group drag are mouse drags captured by the plate.
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+    const status = page.getByTestId("surface-status");
+    const count = page.getByTestId("surface-count");
+    const pitchUnits = 571 / 9;
+
+    // B, three clicks, V: three buttons across row 0, the last one selected.
+    await plate.focus();
+    await page.keyboard.press("b");
+    await clickCell(plate, 0, 0);
+    await clickCell(plate, 3, 0);
+    await clickCell(plate, 6, 0);
+    await page.keyboard.press("v");
+    await expect(count).toHaveText("3 elements");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 3");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+
+    // SHIFT+CLICK: a click selects Button 1 alone; Shift and a click on
+    // Button 2 makes a set of two - a member outline each, ONE group outline,
+    // no handle, the count in the status and the panel, both rows pressed.
+    await clickCell(plate, 0, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    const box = await plate.boundingBox();
+    if (box === null) throw new Error("the plate has no box");
+    const pitch = box.width / 9;
+    const at = (col: number, row: number) => ({
+      x: box.x + (col + 0.5) * pitch,
+      y: box.y + (row + 0.5) * pitch,
+    });
+    await plate.click({
+      position: { x: 3.5 * pitch, y: 0.5 * pitch },
+      modifiers: ["Shift"],
+    });
+    await expect(page.getByTestId("surface-member")).toHaveCount(2);
+    await expect(page.getByTestId("surface-group")).toHaveCount(1);
+    await expect(page.getByTestId("surface-handle")).toHaveCount(0);
+    await expect(status).toContainText("2 elements selected.");
+    await expect(page.getByTestId("inspector-count")).toHaveText("2 elements");
+    await expect(page.getByTestId("region-inspector")).toContainText(
+      "SELECTED ELEMENTS / BUTTON",
+    );
+    await expect(
+      page.locator('[data-testid="element-row"][aria-pressed="true"]'),
+    ).toHaveCount(2);
+    await expect(page.getByTestId("delete-element")).toHaveText(
+      "Delete 2 elements",
+    );
+
+    // THE MARQUEE: a drag from the empty cell (8, 4) up to (0, 1) draws its
+    // box and, on release, selects the three buttons it touches.
+    const from = at(8, 4);
+    const to = at(0, 1);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 4 });
+    await expect(page.getByTestId("surface-marquee")).toBeVisible();
+    await page.mouse.up();
+    await expect(page.getByTestId("surface-marquee")).toHaveCount(0);
+    await expect(page.getByTestId("surface-member")).toHaveCount(3);
+    await expect(status).toContainText("3 elements selected.");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+
+    // CTRL+C, CTRL+V: the three copied, then pasted - the focus cell and the
+    // cell down-right of the originals are theirs, so the copies land at the
+    // first free origin in reading order, row 2, their layout kept, named
+    // Button 4, 5 and 6, selected, one entry.
+    await page.keyboard.press("Control+c");
+    await expect(status).toHaveText("Copied 3 elements.");
+    await page.keyboard.press("Control+v");
+    await expect(status).toHaveText("Pasted 3 elements.");
+    await expect(count).toHaveText("6 elements");
+    await expect(sandbox).toHaveAttribute("data-depth", "4");
+    await expect(page.getByTestId("element-row").nth(3)).toContainText(
+      "Button 4",
+    );
+    await expect(page.getByTestId("element-row").nth(5)).toContainText(
+      "Button 6",
+    );
+    const pastedBody = page
+      .getByTestId("surface-region")
+      .nth(3)
+      .locator("rect.body");
+    expect(Number(await pastedBody.getAttribute("x"))).toBeCloseTo(0, 3);
+    expect(Number(await pastedBody.getAttribute("y"))).toBeCloseTo(
+      2 * pitchUnits,
+      3,
+    );
+    await expect(page.getByTestId("surface-member")).toHaveCount(3);
+
+    // CTRL+X: the pasted three cut as one entry; Undo brings them back,
+    // selected; Delete on the plate takes them away again.
+    await page.keyboard.press("Control+x");
+    await expect(status).toHaveText("Cut 3 elements.");
+    await expect(count).toHaveText("3 elements");
+    await expect(sandbox).toHaveAttribute("data-depth", "5");
+    await page.getByTestId("undo").click();
+    await expect(count).toHaveText("6 elements");
+    await expect(page.getByTestId("surface-member")).toHaveCount(3);
+    await plate.focus();
+    await page.keyboard.press("Delete");
+    await expect(count).toHaveText("3 elements");
+
+    // MULTI-EDIT: Button 1 alone, then Button 2 added; both on channel 1, so
+    // the field reads 1; 9 typed writes both (one entry); Button 1 alone set
+    // to 3, and the pair reads Mixed.
+    await clickCell(plate, 0, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    await plate.click({
+      position: { x: 3.5 * pitch, y: 0.5 * pitch },
+      modifiers: ["Shift"],
+    });
+    const channel = page.getByTestId("field-channel");
+    await expect(channel).toHaveValue("1");
+    const depthBefore = Number(await sandbox.getAttribute("data-depth"));
+    await channel.fill("9");
+    await channel.press("Enter");
+    await expect(sandbox).toHaveAttribute(
+      "data-depth",
+      String(depthBefore + 1),
+    );
+    await clickCell(plate, 0, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    await expect(channel).toHaveValue("9");
+    await clickCell(plate, 3, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 2");
+    await expect(channel).toHaveValue("9");
+    await channel.fill("3");
+    await channel.press("Enter");
+    await plate.click({
+      position: { x: 0.5 * pitch, y: 0.5 * pitch },
+      modifiers: ["Shift"],
+    });
+    await expect(channel).toHaveValue("");
+    await expect(channel).toHaveAttribute("placeholder", "Mixed");
+    await expect(page.getByTestId("field-min")).toHaveValue("0");
+
+    // THE LOCK: Button 3 alone, Ctrl+L locks it - the glyph, no handle, the
+    // checkbox checked - a body drag to row 4 is refused with its line and
+    // the button stays, Delete is refused with its line; unchecked, the
+    // handles are back.
+    await clickCell(plate, 6, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 3");
+    await page.keyboard.press("Control+l");
+    await expect(status).toHaveText("Locked 1 element.");
+    await expect(page.getByTestId("surface-lock")).toHaveCount(1);
+    await expect(page.getByTestId("surface-handle")).toHaveCount(0);
+    await expect(page.getByTestId("field-locked")).toBeChecked();
+    const grab = at(6, 0);
+    const down = at(6, 4);
+    await page.mouse.move(grab.x, grab.y);
+    await page.mouse.down();
+    await page.mouse.move(down.x, down.y, { steps: 3 });
+    await page.mouse.up();
+    await expect(status).toHaveText(
+      "Button 3 is locked. Unlock it to move or resize it.",
+    );
+    const third = page
+      .getByTestId("surface-region")
+      .nth(2)
+      .locator("rect.body");
+    expect(Number(await third.getAttribute("y"))).toBeCloseTo(0, 3);
+    await plate.focus();
+    await page.keyboard.press("Delete");
+    await expect(status).toHaveText(
+      "Button 3 is locked. Unlock it to delete it.",
+    );
+    await expect(count).toHaveText("3 elements");
+    await page.getByTestId("field-locked").uncheck();
+    await expect(page.getByTestId("surface-lock")).toHaveCount(0);
+    await expect(page.getByTestId("surface-handle")).toHaveCount(8);
+
+    expect(consoleErrors, "no console error on the selection walk").toEqual([]);
   });
 });
