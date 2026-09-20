@@ -374,3 +374,24 @@ Shipped as stated; each is one line to change.
 **One thing that is not a bench row.** Grifter's font file still declares PERSONAL USE; the swap is two lines in `src/app.css` and it still blocks a public site.
 
 Type "approved" at the checkpoint to close the phase, or name the changes to redo and the questions' answers. The two answers that would move code first: the arrow key's behaviour on the select (row 5 / 10), and whether `Clear` wants a confirmation (G).
+
+## Grid Editor profile files (2026-09-21, change 13C)
+
+Both halves of the site can hand you the configuration on screen as a file the desktop Grid Editor
+lists and loads: `Export for Grid Editor`, under the Sandbox's transforms row and in the workspace's
+pinned actions beside `Save copy`. The file is a Grid Editor profile - the same shape as the ones
+in `Documents/grid-userdata/configs` - named after the surface or the card (`My performance.json`,
+`ARC.json`), holding `type: "ZONA"`, `configType: "profile"`, the Editor's version `1.6.8`, and one
+entry per element of a ZONA with every event it owns: the pad (`controlElementNumber` 0) with its
+setup (event 0) and timer (6), and the system element (255) with its setup (0), utility (4) and
+timer (6). Those five events carry, verbatim, the five strings `Store on ZONA` would write - the
+same landing, byte for byte - so what the Editor loads is what HANGAR would have stored. A sixth
+top-level key, `hangar`, carries HANGAR's own export envelope (the surface, or the card and its
+knobs); the Editor's loader reads only `configs`, `type`, `name`, `description` and `id`, so the
+key is ignored there. To use the file in the Editor: quit nothing, copy the downloaded `.json`
+into `grid-userdata/configs` (the Editor's `Profile folder` in its settings), and it appears in
+the Editor's local configs beside your own; open it onto a page of a connected ZONA as you would
+any profile. `Import a profile`, in the Sandbox only, reads a file HANGAR exported and opens its
+surface as a new draft under a fresh address; a profile made elsewhere has no surface inside and
+is refused with a line saying so. The export needs no ZONA and no Web Serial: it is the browser's
+own download, and it lands in your Downloads folder on Windows, macOS and Linux alike.

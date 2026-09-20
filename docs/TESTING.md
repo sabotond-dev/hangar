@@ -6925,3 +6925,126 @@ the painter's name did not move); `src/vendor/`, `library.ts`, every other entry
 the manifest, `Knob.svelte`, `ColourPicker.svelte`, `pad-sim.ts`, `firmware-oracle.spec.ts`
 untouched; STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed - on the
 user's word.
+
+## 2026-09-21 change 13C - the Sandbox's surfaces: the menu, the sheet, the Grid Editor profile file, the Play monitor, the view toggles and the shared-controller pass, the recent colours
+
+`BENCH-2026-09-16.txt` section 13, part C of three (suggestions 1, 2, 10, 11, 12, 13 and the
+user's note on the export). Four source commits and one docs commit, no push, no device, no
+deploy: `ac2e602` feat(sandbox) - the model (`sandbox/menu.ts` `menuItems`; `sandbox/shortcuts.ts`
+`SHORTCUT_GROUPS` / `keysRead` / `platformOf` / `isMacPlatform` / `keysWord`;
+`sandbox/conflicts.ts` `controllersOf` / `findConflicts` / `conflictedIds`;
+`sandbox/play-monitor.ts` `playMonitorLine` / `messageWord` / `newestRows`; `share/profile.ts`
+`zonaElements` / `slotString` / `buildProfile` / `serialiseProfile` / `profileFileName` /
+`readProfile` with `share/profile-copy.ts`; `store/transfer.ts`'s `downloadText`; `schema.ts`'s
+`SandboxView` and `RecentColours` under `hangar.sandbox-view.v1` and `hangar.sandbox-colours.v1`
+with `store/sandbox-view.ts` and `store/sandbox-colours.ts`; `copy.ts`'s thirty-eight strings;
+`share/profile.spec.ts` new; `sandbox-ui.spec` 20 -> 27; `local.spec` test 1's `OWNED_KEYS` pin
+at ten); `5960847` feat(sandbox) - the interface (`ContextMenu.svelte`, `ShortcutSheet.svelte`,
+`ViewToggles.svelte`, `PlayMonitor.svelte`, `ProfileActions.svelte` new; the plate, the inspector,
+the palette, the Sandbox route, the workspace route); `018bfe5` test(sandbox) - the e2e walk and
+the gate's quick constants at 96 / 1026; `c177e20` fix(sandbox) - the menu's action ids reworded to `arrange-*` / `space-*` / `select-every` after the first after-run's CSS term read 44 -> 47 (`align-top`, `align-bottom`, `select-all` appeared off the string literals; CODE-STYLE section 8); then this section, the Done paragraph "13C" under
+section 13, the runbook's "Grid Editor profile files" section, and the gate records
+`gate/change-13c.*` (before, at `8878084`, on a clean worktree `../hangar-gate-13c` with its own
+`npm ci`, removed after the records were copied) and `gate/change-13c-after.*` (at `c177e20`, in
+the working tree; change 14's `27ef042` .. `5cad32c` landed in the same tree between the records).
+
+**What moved in the suites.** `share/profile.spec.ts` new, seven: 1 the package's list for ZONA is
+the pad (0: setup, timer) and the system element (255: setup, utility, timer), equal both ways to
+`sequence.ts`'s five `SLOTS`, so `slotString` answers every event and the Init placeholder
+(`--[[@cb]] --[[Init]]`, the Editor's own spelling) is never written; 2 the file's shape is the
+reference file's - the ten keys, type ZONA, the version's three strings 1 / 6 / 8, configType
+profile, ISO moments, an empty virtualPath, a v4 id, the elements in index order with their events
+in the package's order, the five strings in their slots, four-space JSON with no trailing newline;
+3 the template surface through `landSurface` at five slots: every event's config `toBe` the
+landing's string, and each survives the Editor's own path - `GridAction.parse`'s regex verbatim
+parses it into ONE `cb` action, `ActionData.toLua`'s one space is put back, `canonical` (the send
+path's `compressScript`) returns the same bytes; 4 the loader mirrored read for read
+(`loadConfigsFromDirectory`'s `configType` gate; `createFromCloudData`'s five reads and no
+`hangar`; for every typed index of the module's list an element found - the Editor's
+`.find(...).events` would throw otherwise; every listed event owned by its element - `findEvent`
+skips otherwise; every config parsing to at least one action; `type` equal to `ModuleType.ZONA` for
+`isCompatible`); 5 the payload's round trip (a surface's envelope under `hangar` reads back
+`toEqual` the surface) and the refusals (a playground payload, no key, a non-object, an array, bad
+JSON, a payload over the cap through transfer.ts's line, a payload whose app word is not HANGAR's);
+6 the file name (spaces and case kept, the nine characters and the controls to spaces, runs folded,
+a trailing dot dropped, the fallback, unicode kept); 7 `downloadText`'s door with fake deps (one
+Blob of the text, the name, `noopener`, one click, removed, revoked after). `sandbox-ui.spec.ts`
+20 -> 27: 21 the menu (the ten ids in order; the empty plate's reasons; a single with everything
+live; a locked single's Cut and Delete refusing with 13A's line and Lock reading Unlock; a set of
+two with Align live and Space out under three; three with Space out live; a locked member refusing
+Align, Space out, Cut and Delete with its name; the cap's two lines; Play empty; the shape half:
+ten menuitems with their ids, a disabled one's title, Ctrl+X and Cmd+X per platform, the plate's
+`oncontextmenu` / ContextMenu / Shift+F10 / `openRename`, no radius token, the route's fifteen
+`case`s (`arrange-*`, `space-*`, `select-every` - not `align-*` / `select-all`, Tailwind's)); 22 the sheet (every key the route's `onWindowKeyDown` and the plate's `onkeydown` read
+is in `keysRead()` and every key it names is read - scanned from the two sources; `isMacPlatform`
+on eight platform words, `platformOf`'s Client-Hints-first, `keysWord` on five strings, the one
+place asserted by scanning every Sandbox component and the route for `userAgentData` and
+`navigator.platform`; the dialog with every group and row, the row count, Ctrl+C / Cmd+C /
+Option+click; `?` in the route and the modal guard; the titles on the palette rows, Undo, Redo,
+Duplicate and Delete element, `titledWithKeys`); 23 the Play monitor (five lines' formats,
+`messageWord`, twelve of twenty through `MonitorLog`, a folded row's `×2`, `midiLogOf` through the
+host field, the route's `{#if play}` mount, the component's empty line, helper and disabled Clear);
+24 the shared-controller pass (`controllersOf` per kind - an XY pad's four at two touches, a note
+button's none, a blank's none - four pairs on a seven-element fixture in the surface's order, the
+ids, none across channels or against a note, the editor accepting 16 on both, the inspector's
+section first with nothing selected and absent with a selection, the plate's one mark on one id and
+none by default, `<polygon>` and no `rx`, the route's derivation); 25 the view toggles (the store's
+round trip and four corrupt envelopes, the key owned; five kinds placed - three `surface-cc`
+numerals with the numbers on, the fader's own and the blank's none, `no-numbers` / `no-names` on
+every region when off, the CSS rule, a note button's `C4`, the default both on; the toggles'
+`aria-pressed` and titles; the route's read, write and `show`; a Surface's keys unchanged); 26 the
+recent colours (`rememberColour`'s first / once / eight / same object; the store's round trip and
+six corrupt envelopes, the key owned; 13A's `setColour` over a set as one entry, verified; the
+strip's chips newest first with their names and fills, none without a colour or a selection,
+disabled in Play; the route's `oncolour={colour}`, the debounce's `rememberColour`, the read on
+mount); 27 the profile controls (`ProfileActions` live and disabled with its reason as its title,
+the file input's type and accept, the outcome as a status; the Sandbox route's landing strings,
+description, file name, `hangar` envelope, `readProfile`, the fresh id, the draft written and the
+surface held for `open()`, the export reason's two arms, the mount; the workspace's pinned button,
+`configStrings`, the card's sentence, `stampKnobs`, the file name, the reason's two arms;
+`DestinationZone.svelte` without the word). `local.spec.ts` test 1: `OWNED_KEYS` ten, the two new
+keys last. `e2e/sandbox.e2e.ts` 10 -> 11 titles: the surfaces walk (two buttons; a right-click on
+Button 1 opening the menu with Cut and Rename live and Duplicate landing Button 3 with
+`Duplicated 1 element.`; a right-click on the empty plate with Paste disabled under
+`NOTHING_TO_PASTE` and Select all live, Escape closing; `?` opening the sheet with Close focused,
+Escape closing, the toolbar's box opening it again; Export for Grid Editor once the landing is
+measured downloading `My performance.json` - type ZONA, configType profile, version major `1`,
+elements 0 and 255, five strings each starting with the marker, the surface under `hangar` - and
+`Exported as My performance.json.`; Import a profile with the same bytes opening a NEW address with
+`3 elements` and `Imported My performance as a new surface.`; Button 1 and Button 2 typed onto CC 16
+showing two `surface-conflict` marks and, after Escape, the pair's line; the Names toggle putting
+`no-names` on every region and taking it off; a recent colour seeded in `localStorage` before the
+page opens applying `rgb(255, 0, 0)` to the selected button through its chip; Play's monitor with
+its empty line, a press on Button 1's cell writing a `CC 16 ch 1 →` line, Clear emptying it, Edit
+unmounting it; no console error).
+
+**Counts, carried + delta:** quick 95 / 1012 + 1 todo (after change 14's `38cda37`) -> **96 /
+1026 + 1 todo** (+1 file / +14), green twice at `--maxWorkers=2` through `check-counts.mjs 96
+1026` (run A the first after-run at `018bfe5` - `check-counts` observed 96 files, 1026 passed, 1 todo, exit 0; run B `vitest run --project server --maxWorkers=2` at `c177e20` on the gate's build - the JSON reporter 1026 passed, 0 failed, 1 todo, and `check-counts.mjs 96 1026` on its log matches); check 663 -> **677** (+14: the four Sandbox modules, the two share
+modules and the spec, the two stores, the five components); lint clean; e2e 93 / 108 -> **94 /
+109** (+1 / +1); utilities **44** -> **44** (0 disappeared, 0 appeared after the reword at `c177e20`; the first after-run at `018bfe5` read 47 with `align-top`, `align-bottom` and `select-all` appeared off the menu ids); catalog **27**; testids
+332 -> **359**; copy exports +52 (`copy.ts` 38, `profile-copy.ts`
+14, named in the Done paragraph); OG 27 files / 159,169 B / `9becd682…`, the four fixtures
+unmoved by this change (`frames.json` moved by change 14's `27ef042`, theirs); `src/`
+14 modified, 14 added, 0 deleted, 0 renamed against `8878084` (change 14's `snake.ts` and `frames.json` among the modified).
+
+**The gate's terms** (`--before change-13c` at `8878084` on the worktree; `--after change-13c
+--against change-13c --check 677` at `c177e20`): **the sandbox set `3bdb5974…` equal - every one of the Sandbox fixture strings byte-identical, nothing 13C adds is a row column or a runtime part**; the wire set `852b8c14…` -> `654e202e…` and the full `2932fc5a…` -> `1c4acf19…` - EXACTLY change 14's after-record (`gate/change-14-after.txt`: SNAKE's E/snake records, theirs; this change moves no Lua); the census `7cdbc682…` -> `a684e569…` (2973 -> 3156 literals, 199 -> 212 files); the copy
+exports `5e3df867…` -> `cc7a68db…` (7 -> 8 copy modules); the testids `62f8f758…` -> `bcd5150b…` (332 -> 359); the SCOPED CSS `8ef5e915…` -> `d1c9ab44…` and the raw `d81eb2c0…` -> `703fb565…` (the new rules: the menu's
+`.menu` / `.row` / `.sub` / `.flip-x .sub` / `.item` / `.keys` / `.arrow`; the sheet's `.scrim` /
+`.sheet` / `.head` / `.title` / `.lede` / `.outlined` / `.keys-table` / `.group` / `.keys` / `kbd`
+/ `.or`; the toggles' `.view` / `.word` / `.toggle` / `.help`; the monitor's `.monitor` / `.head` /
+`.title` / `.outlined` / `.helper` / `.lines` / `.line`; the profile controls' `.profile` /
+`.outcome` / `.outlined` / `.file`; the plate's `.no-numbers` / `.no-names` / `.conflict-shape` /
+`.conflict-bar`; the inspector's `.recent` / `.chip-colour`; the route's `.view-row`); utilities
+44 -> 44; the titles `e664ad7d…` -> `d85f7867…` (1011 vitest titles incl. todo, 108 playwright runs -> 1027 vitest titles incl. todo, 109 playwright runs); the JS `06754f71…` -> `76858d0e…`; comment lines: every header at the
+ten-line rule by `comment-lines.mjs --todo`. The script exits 1 at the census by design; the
+before's quick term read `quick exit 1` (the pipe, as 13A / 13B / 14); the after's first (at `018bfe5`) `observed 96 files, 1026 tests passed, 1 todo`, exit 0; the second's (at `c177e20`, the record kept) the pipe again (`no Vitest summary lines`, exit 1), and run B on that record's build read 1026 / 0 / 1 todo.
+
+**Chunks** (a fresh detached wrangler dev on 4173 per invocation, stopped through PowerShell,
+HTTP 000 after each; 5173 untouched; the build stamped `c177e20`): c4 by its five files
+**22 passed** (the eleven Sandbox titles among them); c5 by its four files **11 passed** (radius's
+title walks the Sandbox); c3 by its two files **21 passed** (the workspace's inspector gained a
+pinned button); `sandbox.e2e.ts` alone twice on the way to green (a `rgb(255 0 0)` expectation
+against Chromium's `rgb(255, 0, 0)`, then 11 passed at 26 s and 34 s). c1 and c2 not run: no
+install, session or browse title reads the Sandbox or the workspace's inspector.
