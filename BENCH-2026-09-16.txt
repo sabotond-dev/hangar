@@ -2149,3 +2149,18 @@ Recorded: SNAKE (`src/lib/catalog/entries/snake.ts`) is broken on the bench; a r
 after change 13's three parts. What is broken - which hardware behaviour - is not yet described;
 the question to ask before the remake is what the user saw (the snake not moving, the steering,
 the food, the death, the picture) so the remake starts from the fault, not a guess.
+
+The quiz, 2026-09-20 (stored through HANGAR, module rebooted): the picture "runs the same sequence
+over and over again i have barely any affect on it"; steering "turns the wrong way / late"; the
+notes "hang or spam", and something else unnamed. Reading: the deterministic autopilot-and-reset
+loop is what the user sees (death is a fixed reset, so the shelf's short game repeats forever),
+a finger's control credit is three generations and the steer reads the touch cell against the
+head - if that cell comes from the raw pair rather than the calibrated map `N(x,y)` (12.1) the
+finger lands on the wrong cell and the turn is wrong or late; the bite's note has no note-off in
+the header's "at most one message per generation" rule, so notes hang. The remake: a real game
+first - the finger steers for as long as it is down and the snake keeps the last direction after
+the lift (no three-generation credit), the touch cell through `N(x,y)`, the food placed by a
+seeded walk that does not repeat the same short game (the sweep refuses `math.random`; a
+generation counter into the LCG is enough), death shown (a flash) and restarted after a pause,
+note-on at the bite with a note-off a generation later, the death note the same way. To be
+briefed when it reaches the top of the queue.
