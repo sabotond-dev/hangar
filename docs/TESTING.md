@@ -6657,14 +6657,14 @@ set, the delete icon on a set and none on a locked single, the lock glyph, the l
 `aria-pressed` with `aria-current` on the one, the plate's marquee / Tab / deferred-click source,
 the route's six Ctrl keys and `editor.escape()`; the schema's `locked`), 15 the clipboard
 (`autoName`'s lowest free number per kind, copy as clones, the paste at the focus cell, the
-down-right cell, the first free origin in reading order - and `placementFor` on the pure function
-- the cut under `cut`, a pair pasted with its layout kept, refused with `PASTE_NO_SPACE` /
+down-right cell, the first free origin in reading order - and `placementFor` on the pure function -
+the cut under `cut`, a pair pasted with its layout kept, refused with `PASTE_NO_SPACE` /
 `PASTE_AT_CAP` (no digit in either), duplicate on a set by the same rule with Undo leaving
 nothing selected and Redo the copies, Play landing nothing, `clipboard.ts`'s two homes and a
 foreign value read as empty), 16 multi-edit (`mixed` in the state - cc, channel, min, note - a
 typed channel writing two under one entry re-selecting the set on Undo, a refusal on any member
-refusing the whole edit with its line - the second fader one column wide, both turned horizontal
-- the four setters over two faders, the kind-specific setters refusing over a fader and a button,
+refusing the whole edit with its line - the second fader one column wide, both turned horizontal -
+the four setters over two faders, the kind-specific setters refusing over a fader and a button,
 the name single-selection only, a note over two buttons, a cc ceiling read off every pad,
 `regionRow` / `regionTail` byte-identical with `locked` on; the shape half: SELECTED ELEMENTS /
 FADER, the count, the lede, no name field or units chip, the Mixed placeholder on min and none on
