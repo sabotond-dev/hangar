@@ -31,7 +31,9 @@
 // button set Note and Toggle, a knob set Relative, recovered from the draft; the
 // eighth, change 11, an XY pad's Touches - the count, its helper, both refusals; the
 // ninth, change 13A, the selection walk - Shift+click, the marquee, Ctrl+C / V / X, a
-// channel typed over two, a lock refusing a drag.) THE PUT-BACK HALF LEFT AT
+// channel typed over two, a lock refusing a drag; the tenth, change 13B, the geometry
+// walk - align left, space out, a quarter turn, Alt+click's fill, the double-click
+// rename, a sticky channel and its reset.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -1385,5 +1387,169 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("surface-handle")).toHaveCount(8);
 
     expect(consoleErrors, "no console error on the selection walk").toEqual([]);
+  });
+
+  test("the geometry walk (change 13B): two buttons align on their left edges and three space out horizontally with the outer two fixed, the whole surface rotates a quarter turn clockwise, Alt+click fills the free area around a cell with a fader, a double-click renames it in place with Escape cancelling and Enter committing as one Undo, and a new button takes the channel the last one was given until Reset defaults", async ({
+    page,
+  }) => {
+    // Chromium only, at the harness's 1280 x 720 like the selection walk.
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+    const status = page.getByTestId("surface-status");
+    const count = page.getByTestId("surface-count");
+    const pitchUnits = 571 / 9;
+    const body = (index: number) =>
+      page.getByTestId("surface-region").nth(index).locator("rect.body");
+    const at = async (col: number, row: number) => {
+      const box = await plate.boundingBox();
+      if (box === null) throw new Error("the plate has no box");
+      const pitch = box.width / 9;
+      return { x: (col + 0.5) * pitch, y: (row + 0.5) * pitch };
+    };
+
+    // B, three clicks, V: three buttons down the diagonal.
+    await plate.focus();
+    await page.keyboard.press("b");
+    await clickCell(plate, 0, 0);
+    await clickCell(plate, 2, 3);
+    await clickCell(plate, 6, 6);
+    await page.keyboard.press("v");
+    await expect(count).toHaveText("3 elements");
+
+    // ALIGN LEFT: Button 1 and Button 2 selected, the Arrange row's first
+    // box; Button 2 moves to column 0, its size kept, one entry.
+    await clickCell(plate, 0, 0);
+    await plate.click({ position: await at(2, 3), modifiers: ["Shift"] });
+    await expect(page.getByTestId("inspector-count")).toHaveText("2 elements");
+    await expect(page.getByTestId("arrange")).toBeVisible();
+    await expect(page.getByTestId("arrange-space-x")).toBeDisabled();
+    await page.getByTestId("arrange-left").click();
+    await expect(status).toHaveText("Aligned 2 elements.");
+    expect(Number(await body(1).getAttribute("x"))).toBeCloseTo(0, 3);
+    expect(Number(await body(1).getAttribute("width"))).toBeCloseTo(
+      2 * pitchUnits,
+      3,
+    );
+    await expect(sandbox).toHaveAttribute("data-depth", "4");
+
+    // SPACE OUT HORIZONTALLY: Button 3 added, the outer two fixed at columns
+    // 0 and 6, the middle one lands at column 3.
+    await plate.click({ position: await at(6, 6), modifiers: ["Shift"] });
+    await expect(page.getByTestId("arrange-space-x")).toBeEnabled();
+    await page.getByTestId("arrange-space-x").click();
+    await expect(status).toHaveText("Spaced out 3 elements.");
+    expect(Number(await body(1).getAttribute("x"))).toBeCloseTo(
+      3 * pitchUnits,
+      3,
+    );
+    expect(Number(await body(0).getAttribute("x"))).toBeCloseTo(0, 3);
+    expect(Number(await body(2).getAttribute("x"))).toBeCloseTo(
+      6 * pitchUnits,
+      3,
+    );
+    await expect(sandbox).toHaveAttribute("data-depth", "5");
+
+    // ROTATE: the whole surface a quarter turn clockwise - Button 1 from the
+    // top-left to the top-right, Button 3 from (6, 6) to (1, 6); the set
+    // still selected; one Undo back and Redo forward.
+    await page.getByTestId("turn-surface").click();
+    await expect(status).toHaveText(
+      "Rotated the surface a quarter turn clockwise.",
+    );
+    expect(Number(await body(0).getAttribute("x"))).toBeCloseTo(
+      7 * pitchUnits,
+      3,
+    );
+    expect(Number(await body(0).getAttribute("y"))).toBeCloseTo(0, 3);
+    expect(Number(await body(2).getAttribute("x"))).toBeCloseTo(
+      1 * pitchUnits,
+      3,
+    );
+    expect(Number(await body(2).getAttribute("y"))).toBeCloseTo(
+      6 * pitchUnits,
+      3,
+    );
+    await expect(page.getByTestId("surface-member")).toHaveCount(3);
+    await expect(sandbox).toHaveAttribute("data-depth", "6");
+    await page.getByTestId("undo").click();
+    expect(Number(await body(0).getAttribute("x"))).toBeCloseTo(0, 3);
+    await page.getByTestId("redo").click();
+    expect(Number(await body(0).getAttribute("x"))).toBeCloseTo(
+      7 * pitchUnits,
+      3,
+    );
+
+    // ALT+CLICK FILLS: F armed, the palette's helper names the fill, and
+    // Alt+click at (0, 0) grows the fader to the largest free area holding
+    // the cell - columns 0..3 by rows 0..5, 24 cells - vertical.
+    await plate.focus();
+    await page.keyboard.press("f");
+    await expect(page.getByTestId("palette-fill-helper")).toBeVisible();
+    await plate.click({ position: await at(0, 0), modifiers: ["Alt"] });
+    await page.keyboard.press("v");
+    await expect(count).toHaveText("4 elements");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    await expect(page.getByTestId("inspector-units")).toHaveText("4 × 6 units");
+    await expect(page.getByTestId("field-orientation")).toHaveValue("vertical");
+    await expect(page.getByTestId("palette-fill-helper")).toHaveCount(0);
+
+    // DOUBLE-CLICK RENAMES: the field opens over the fader with its name
+    // selected; Escape keeps the old name and the selection; Enter commits
+    // Cutoff as one entry, and Undo takes it back.
+    await plate.dblclick({ position: await at(1, 1) });
+    const field = page.getByTestId("surface-rename");
+    await expect(field).toBeVisible();
+    await expect(field).toBeFocused();
+    await field.fill("Nope");
+    await field.press("Escape");
+    await expect(field).toHaveCount(0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+    await plate.dblclick({ position: await at(1, 1) });
+    await field.fill("Cutoff");
+    const depthBefore = Number(await sandbox.getAttribute("data-depth"));
+    await field.press("Enter");
+    await expect(field).toHaveCount(0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Cutoff");
+    await expect(page.getByTestId("element-row").nth(3)).toContainText(
+      "Cutoff",
+    );
+    await expect(sandbox).toHaveAttribute(
+      "data-depth",
+      String(depthBefore + 1),
+    );
+    await page.getByTestId("undo").click();
+    await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+
+    // STICKY DEFAULTS: Button 1 alone on channel 7; the next button placed
+    // takes channel 7; Reset defaults with nothing selected says so, and the
+    // button after it is back on channel 1.
+    await clickCell(plate, 7, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    const channel = page.getByTestId("field-channel");
+    await channel.fill("7");
+    await channel.press("Enter");
+    await plate.focus();
+    await page.keyboard.press("b");
+    await clickCell(plate, 5, 7);
+    await page.keyboard.press("v");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 4");
+    await expect(channel).toHaveValue("7");
+    await plate.focus();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("reset-defaults")).toBeVisible();
+    await page.getByTestId("reset-defaults").click();
+    await expect(page.getByTestId("inspector-notice")).toHaveText(
+      "Defaults reset. The next new element starts from the built-in settings.",
+    );
+    await page.keyboard.press("b");
+    await clickCell(plate, 7, 7);
+    await page.keyboard.press("v");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 5");
+    await expect(channel).toHaveValue("1");
+    await expect(count).toHaveText("6 elements");
+
+    expect(consoleErrors, "no console error on the geometry walk").toEqual([]);
   });
 });
