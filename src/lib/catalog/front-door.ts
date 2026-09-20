@@ -119,7 +119,14 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
   },
   {
     id: "radar-points",
-    why: "The hand-authored radar the user asked for, built as a second card under plan 11-14's answer new-entry so the RADAR preset at ring position 5 stays exactly as it is. It cannot take that position or an eighth-plus-one: front-door.spec.ts requires preview === 'padsim' of every row entry, and 11-14-HANDOVER.md measured that the rule is live for a reason its own comment does not give - Coverflow.svelte builds an engine for every ring entry, so a 'lua' row would put the 271 KB Lua VM on the front page's first paint, which e2e/tuning.e2e.ts forbids in words. Beyond that, the front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+    why: "The hand-authored radar the user asked for, built as a second card under plan 11-14's answer new-entry so the RADAR preset, then at ring position 5, stayed exactly as it was (the preset left the row at change 12b, when RADAR itself became a Lua card). It cannot take a row position: front-door.spec.ts requires preview === 'padsim' of every row entry, and 11-14-HANDOVER.md measured that the rule is live for a reason its own comment does not give - Coverflow.svelte builds an engine for every ring entry, so a 'lua' row would put the 271 KB Lua VM on the front page's first paint, which e2e/tuning.e2e.ts forbids in words. Beyond that, the front door is a curated row; new configurations join it deliberately, not by arriving in the catalog.",
+  },
+  {
+    // The ported RADAR preset held ring position 5 until change 12b (2026-09-18,
+    // BENCH-2026-09-16.txt section 12): the user's answer "2" rebuilt it as a
+    // hand-authored Lua card with Sync / Division and took it off the row.
+    id: "radar",
+    why: "Hand-authored Lua since change 12b - the ported RADAR preset rebuilt by hand so it can step on the DAW's MIDI clock - and the row is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. The user's word was to take it off the row, so the row is one shorter; the front door is a curated row and it rejoins deliberately or not at all.",
   },
   {
     // TRACKPAD's recipe with a comet trail (2026-09-17, BENCH-2026-09-16.txt
@@ -136,7 +143,9 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
  * consequence, not by decree. The order once placed the three quiet pads on 2,
  * 4 and 6 so no two sat side by side on the ring (Phase 4 D-20); the ring is
  * gone and none of that is asserted, but nothing in the Bible says what a
- * rail's order should be, so the order is kept rather than re-derived.
+ * rail's order should be, so the order is kept rather than re-derived. SEVEN
+ * since change 12b (2026-09-18): RADAR, once position 5, left when it became a
+ * Lua card; the six others keep their relative order.
  */
 export const FRONT_DOOR: readonly FrontDoorEntry[] = [
   {
@@ -179,13 +188,6 @@ export const FRONT_DOOR: readonly FrontDoorEntry[] = [
     // Byte-equal to PadPreset.quiet on the vendored shelf; the spec asserts it.
     quiet:
       "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
-  },
-  {
-    id: "radar",
-    name: "Radar",
-    description:
-      "Rings roll out from the centre, and the pad sends your finger's position to your computer.",
-    motion: "animated",
   },
   {
     id: "faders",
