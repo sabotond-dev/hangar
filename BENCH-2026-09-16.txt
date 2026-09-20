@@ -2139,6 +2139,212 @@ the rest as Init placeholders; the element / event lists from `@intechstudio/gri
 `C:/Users/sabot/Documents/Claude/grid-editor` read for what it requires. The download is the
 browser's own (a Blob and an `<a download>`), which lands in the Downloads folder on every OS.
 
+**Done - change 13B, 2026-09-20 (the geometry tools, the names, the remembered defaults).** Five
+source commits, no push, no device, no deploy: `e5ffe7a` feat(sandbox) - the model; `8b05a70`
+feat(sandbox) - the plate, the inspector, the palette, the transforms row, the route; `fee54ef`
+test(sandbox) - the e2e walk and the gate's quick constant; `a9707ae` fix(sandbox) - the word
+"sticky" reworded to "remembered" under `src/` (the gate's CSS term caught Tailwind emitting
+`.sticky` off the bare word in comments and a test title, CODE-STYLE section 8; the docs keep
+the readings' word); `e7dc6a4` docs - two dash-led lines in TESTING.md's 13A section that read as
+a Markdown list and failed the gate's lint term since `715c509`; then this paragraph with
+`docs/TESTING.md`'s "2026-09-20 change 13B" and the gate records `gate/change-13b.*` (before, at
+`715c509`, on a clean worktree `../hangar-gate-13b` with its own `npm ci`, removed after the
+records were copied) and `gate/change-13b-after.*` (at `e7dc6a4`). The runbook is untouched. Every
+command below is an editor method, so 13C's menu and cheat-sheet call what the buttons call.
+
+**Align and distribute (suggestion 3).** `editor.alignSelected(to)` with `to` one of `left`,
+`right`, `top`, `bottom`, `centre-x`, `centre-y`, and `editor.distributeSelected(axis)` with
+`horizontal` or `vertical`; the arithmetic is `geometry.ts`'s `alignBoxes` and `distributeBoxes`
+(pure, on boxes). ALIGN: every member to the set's bounding box's edge, sizes kept; a centre puts
+the member's middle on the box's, and a half-cell centre FLOORS toward the left or the top.
+DISTRIBUTE: the members in the order of their near edge (ties by the other axis), the free cells
+between the first's near edge and the last's far edge shared as equal gaps, the REMAINDER to the
+first gaps one cell each, the outer two never moving (three at 0 / 2 / 7 two wide, two wide, one
+wide: gaps 2 then 1, the middle at 4). Each is one entry under `align` / `distribute` through
+`applyEdits` (13A's pattern): refused whole with the first line where a member would overlap
+(`overlapLine`, the bystander named) or leave the plate; a locked member refuses with 13A's
+`lockedMoveLine` BEFORE anything else is read; the same boxes are no entry (`nothing`); the set
+is re-selected on Undo. Spacing with the members wider than the span is refused with its own
+line, `DISTRIBUTE_NO_ROOM` (no number, no exclamation mark); under two selected, or three for
+spacing, or in Play, `nothing`. THE UI: an Arrange section at the top of the inspector over a set
+(`arrange`, `role="group"`): eight 44px icon boxes with straight-line glyphs (an edge and two bars;
+a centre line through two bars; three bars) and accessible names `Align left edges` / `Align right
+edges` / `Align top edges` / `Align bottom edges` / `Center horizontally` / `Center vertically` /
+`Space out horizontally` / `Space out vertically`, the two spacings DISABLED under three members
+(chosen over a click that does nothing), the helper `ARRANGE_HELPER` describing each; the status
+line reads `Aligned N elements.` / `Spaced out N elements.` (`alignedLine` / `spacedLine`). The
+test ids are `arrange-left` / `-right` / `-top` / `-bottom` / `-centre-x` / `-centre-y` /
+`-space-x` / `-space-y` - NOT `align-*`: Tailwind's scanner reads a test id as a token and
+`align-top` / `align-bottom` are its `vertical-align` utilities (D-21's 44 would have moved).
+Keyboard: none here - the cheat-sheet is 13C's; the names above are the commands'.
+
+**Flip and rotate (suggestion 4).** `editor.transformSurface(kind)` with `flip-horizontal`,
+`flip-vertical` or `rotate`; the box arithmetic is `geometry.ts transformBox` on the 9 x 9:
+`col' = 9 - col - w`, `row' = 9 - row - h`, and a quarter turn clockwise sends the cell (c, r) to
+(8 - r, c), so a box's origin is (9 - row - h, col) and its sides swap. Every region moves - a
+LOCKED one too, because a surface transform is not an element edit (the row's helper says so) -
+the kinds are unchanged, a fader's orientation FLIPS on a turn (a 2 x 6 vertical becomes a 6 x 2
+horizontal; spec 18 holds four turns and two of either flip to the identity, orientation
+included), and the result is re-validated whole (each region through `validate`, the map) and
+refused with the first line if it fails (it cannot for a valid surface: a square plate and the
+orientation following the turn keep every minimum). One entry under `transform`, the selection
+kept; `nothing` in Play or on an empty surface. THE UI: a row of its own under the toolbar,
+`SurfaceTransforms.svelte` (`surface-transforms`) - three 44px straight-line icon boxes
+`flip-horizontal` / `flip-vertical` / `turn-surface` (not `rotate-*`, the same Tailwind reason)
+named `Flip left to right` / `Flip top to bottom` / `Rotate a quarter turn clockwise`, the helper
+`TRANSFORM_HELPER` beside them, all three off in Play (described by the mode line) and on an empty
+surface; the status line reads `Flipped the surface left to right.` / `... top to bottom.` /
+`Rotated the surface a quarter turn clockwise.`. NOT in `SurfaceActions.svelte`: that file is the
+export control (the brief's "wherever Undo / Redo / Save copy live" is the route's toolbar row,
+which is at 353px of 372 at the compact band - three more boxes would wrap it), so the row is new.
+
+**Fill-to-fit (suggestion 5).** THE READING: a plain click places the default size as at 10A;
+**Alt+click (Option+click on a Mac) places the armed kind grown to fill the free area around the
+cell**; the palette's helper says so while a kind is armed (`palette-fill-helper`, described from
+the armed row: "A click places the element at its default size. Alt+click (Option+click on a
+Mac) fills the free area around the cell."); Alt+Enter on the plate is the same at the focus
+cell. THE ALGORITHM, `geometry.ts largestFreeBox(cell, map, square)`: the TRUE maximal-area
+rectangle of free cells containing the cell - every rectangle that holds it is enumerated (at
+most 2,025 on a 9 x 9) and the one with the MOST CELLS wins, on a tie the
+SQUARER (the smaller |w - h|), then the HIGHER, then the FURTHER LEFT; a knob takes the largest free
+SQUARE holding the cell (`square`); a held cell is undefined. Pinned in spec 19 on a fixture with
+obstacles (a 2 x 6 fader at the top-left, a 2 x 2 button at (4, 0), a 1 x 1 blank at (3, 4)): the
+cell (5, 4) fills columns 4..8 by rows 2..8 (35 cells, beating the 7 x 4 strip below the blank);
+the square around (7, 7) is 5 x 5 at (4, 3) - a 6 x 6 would hold the blank, and of the two 5 x 5
+that hold the cell the higher wins; the cell (2, 2) takes the 7 x 2 band under the button (14,
+beating the 1 x 9 column); an empty plate's corner cell is the whole plate. The editor
+(`clickCell(col, row, shift, fill)`, `mark(fill)`, `fillBox(kind, cell)`): the kind's MINIMUM
+refuses a hole too small with rule 3's line (a knob on a 2 x 2 hole: "A knob needs at least 3 x 3
+cells..."); a held cell FALLS BACK to the default size, which the overlap refuses; and A FADER
+TURNS ALONG THE LONGER SIDE - horizontal when the rectangle is wider than tall, vertical otherwise
+(an addition to the brief, recorded below as a question). While Alt is held over the plate the
+proposed bounds show the fill instead of the default size (`altHeld`, off the state's cell map).
+A hotkey stays armed as at 10A; the click's outcome and its name are `place`'s.
+
+**Names (suggestion 7).** Every creation path takes `autoName(kind, regions)` - the kind's label
+and the lowest free number: the starter (`Fader 1`), a hotkey or palette placement, a fill
+placement, a duplicate and a paste (spec 19 walks all five and the gap refilled after a delete);
+THE TEMPLATE'S TWO KEEP THE PDF'S NAMES `Filter` and `Hold` (a named starting point, not an add;
+recorded as a question). THE INLINE RENAME: a double-click on an element with the selector opens a
+field over it (`surface-rename`: absolutely positioned in the plate's own percentages from the
+region's box, the display face, uppercase like the name it replaces, square by preflight's input
+rule; its text selected on open), Enter commits, Escape cancels, blur commits;
+`editor.renameElement(id, name)` trims, refuses an empty or unchanged name, and is ONE entry under
+`rename` sealed at once (a second rename is a second entry; the inspector's field keeps its
+coalescing key); the selection is not moved; never in Play. THE FIELD'S KEYS AND POINTER STAY ITS
+OWN (`stopPropagation` on keydown and pointerdown), so Escape in it clears no selection, Delete in
+it deletes nothing, and the window's listener ignores it as it ignores every input; a double-click
+inside the field is the field's. A11Y: the inspector's name field stays the keyboard route (no F2;
+a question below); the field is labelled `Element name`.
+
+**Remembered defaults (suggestion 8; "sticky" in the readings).** THE STORE:
+`hangar.sandbox-defaults.v1`, the eighth owned key (`schema.ts`: `StoreName` gains
+`sandbox-defaults`, `SANDBOX_DEFAULTS_KEY`, `OWNED_KEYS` eight - `local.spec.ts` test 1's pin
+moves 7 -> 8), holding `{ schema: 1, kinds: { fader?: {...}, button?: {...}, knob?: {...}, xy?:
+{...} } }` - one `KindDefaults` record per kind that has any: `channel`, `min`, `max`, `mode`,
+`speed`, `spring`, `springValue`, `latch`, `output`, `group`, `touches`, `note` (a button's note
+number while its output is a note - the region's `cc` then), every one optional and validated
+field by field (`isKindDefaults`, the region's own ranges and word lists; `isSandboxDefaults`
+refuses another version, an unknown kind, a bad field, a non-object `kinds`); a corrupt or foreign
+envelope reads as the one empty value `NO_DEFAULTS` and is replaced by the next write.
+`store/sandbox-defaults.ts` reads, writes and removes (the store an argument, no-ops on undefined).
+THE FIELDS THAT ARE REMEMBERED, per kind (`editor.ts REMEMBERED_FIELDS`): a fader's channel, min,
+max, mode, speed, spring, spring value; an XY pad's channel, min, max, mode, speed, touches; a
+knob's channel, min, max, mode; a button's channel, min, max, toggle, output, group, note; a blank
+nothing. NOT remembered: the controller (`freeController` as before), the colour (the palette's
+cycle, as the brief said), the orientation (not in the readings' list; a question), the name, the
+geometry, the lock. WHEN: whenever a field is edited on ONE element - a typed MIDI field, an
+option, the toggle (`applyPatches` with one edit under `midi` / `option` / `latch`) - the kind's
+record is REPLACED by that region's remembered fields as they stand (`rememberKind`; a field the
+region lacks is absent, so a later region takes the model's own) and the route is told
+(`EditorOptions.ondefaults`) and writes the store; a MULTI-EDIT REMEMBERS NOTHING (the brief's
+default); nor does a rename, a recolour, a move, a lock or the orientation. HOW A NEW ELEMENT
+TAKES THEM (`withKindDefaults`, in `newRegion` after the kind's shape): only the kind's own
+fields, only a mode the kind offers; a button on Note takes the remembered note as its
+controller; an XY pad's controllers are kept under the ceiling its remembered touch count allows
+(`cc <= ccCeiling(touches) - 1`, `cc2 = cc + 1`). A paste and a duplicate keep the ORIGINAL's
+settings, not the defaults (13A's rule, spec 20 holds it). RESET: `editor.resetDefaults()` -
+every kind back to the model's own, told to the route (an empty envelope REMOVES the key), NOT an
+entry (Undo does not take it back; the helper says so). WHERE: the inspector's no-selection panel,
+a `New elements` section after Appearance - the helper `DEFAULTS_HELPER` ("A new element takes
+the settings you last gave its kind: channel, range, mode and the rest. Its color still follows
+the palette."), the outlined `Reset defaults` (`reset-defaults`, one click, no confirmation,
+disabled in Play with the other fields), `RESET_DEFAULTS_HELPER` ("Reset returns every kind to its
+built-in settings. It changes the stored defaults, not the surface, so Undo doesn’t take it
+back."); the panel's notice reads `DEFAULTS_RESET_LINE` ("Defaults reset. The next new element
+starts from the built-in settings.") until the next change - the notice renders with or without
+a selection now (it was under `{#if any}`). The schema of a region is unchanged.
+
+**Copy added (26, `copy.ts`):** `ARRANGE`, `ARRANGE_HELPER`, `ALIGN_LEFT`, `ALIGN_RIGHT`,
+`ALIGN_TOP`, `ALIGN_BOTTOM`, `ALIGN_CENTRE_X`, `ALIGN_CENTRE_Y`, `DISTRIBUTE_X`, `DISTRIBUTE_Y`,
+`alignedLine`, `spacedLine`, `DISTRIBUTE_NO_ROOM`, `TRANSFORM_HELPER`, `FLIP_HORIZONTAL`,
+`FLIP_VERTICAL`, `ROTATE`, `FLIPPED_HORIZONTAL`, `FLIPPED_VERTICAL`, `ROTATED`,
+`PALETTE_FILL_HELPER`, `NEW_ELEMENTS`, `DEFAULTS_HELPER`, `RESET_DEFAULTS`,
+`RESET_DEFAULTS_HELPER`, `DEFAULTS_RESET_LINE` (D-05's register: sentence case, the action then
+the result, no exclamation mark; "Center" as `Color` is spelled). **Test ids** (327 -> 332 by the
+census, which counts literal attributes): `arrange`, `reset-defaults`, `palette-fill-helper`,
+`surface-rename`, `surface-transforms` literal; the eight `arrange-*` and `flip-horizontal` /
+`flip-vertical` / `turn-surface` ride through an array's `data-testid={id}` like `field-locked`
+through the check snippet; every existing id kept. **The Bible's register:** no `border-radius`
+anywhere new (the plate's spec forbids even the token in `SurfaceEditor.svelte`, so the rename
+field is square by preflight's `input { border-radius: 0 }` - radius.e2e.ts's header; the icon
+boxes declare `0`; every glyph is `<line>`s, no `<path>`, no `rx`); the allowlist stays empty.
+
+**Counts, carried + delta:** quick 95 / 1006 + 1 todo -> **95 / 1010 + 1 todo** (+4:
+`sandbox-ui` 16 -> 20), green twice at `--maxWorkers=2` (run A at the interface tree, run B at
+`e7dc6a4` on the gate's build) and once more in the first after-run at `fee54ef`; check 661 -> **663**
+(`sandbox-defaults.ts`, `SurfaceTransforms.svelte`); lint clean (after `e7dc6a4`); e2e 92 / 107 ->
+**93 / 108**; utilities **44** -> **44** (0 appeared, 0 disappeared - after the reword; the first
+after-run at `fee54ef` read 45 with `sticky` appeared); catalog **27**; testids 327 -> **332**;
+copy exports +26; OG, the four fixtures, the refuse-list unmoved; `src/` 11 modified / 2 added /
+0 deleted / 0 renamed. **The gate's terms** (`--before change-13b` at `715c509`; `--after
+change-13b --against change-13b --check 663` at `e7dc6a4`): **the wire set `852b8c14...`, the full
+`2932fc5a...` and the sandbox set `3bdb5974...` equal - byte-identical, every catalog string and
+all 475 Sandbox fixture strings** (no Lua moved: no fixture was rotated, and nothing 13B adds is a
+row column); the census `0df9e009...` -> `7cdbc682...` (2,914 -> 2,973 literals); the copy
+exports `eea5099f...` -> `5e3df867...`; the testids `ed13451f...` -> `62f8f758...`; the scoped
+CSS `68eedc24...` -> `8ef5e915...` and the raw `4e8f13ba...` -> `d81eb2c0...` (the Sandbox's own rules,
+named in TESTING.md); the titles `6c609832...` -> `e664ad7d...` (1,007 -> 1,011 vitest incl. todo;
+107 -> 108 playwright); the JS `c32244aa...` -> `06754f71...` (71 files); comment lines: every header at
+the rule by `comment-lines.mjs --todo`. The script exits 1 at the census by design; the before's
+quick term read `quick exit 1` (the pipe, as 13A); the first after's (at `fee54ef`, the build
+fresh) 95 / 1010, exit 0; the second after's (at `e7dc6a4`) the recorded ordering hole - the
+quick term runs before the build term and `a9707ae` touched the route, so layer B refused the
+stale build (JSON 1009 / 1 / 1 todo) - and run B on that record's build read 95 / 1010, exit 0.
+
+**Chunks** (a fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000 after
+each; 5173 untouched): at `fee54ef` c4 by its five files **21 passed** (the ten Sandbox titles
+among them) and c5 by its four files **11 passed**; at `e7dc6a4` c4 **21 passed** and c5 **11 passed**.
+One hole: the first run of `sandbox.e2e.ts` alone (at `8b05a70`'s tree, free memory 0.51 GB)
+lost its server after one document - every title `ERR_CONNECTION_REFUSED`, wrangler's log ending
+at `GET /sandbox/ 200` with no crash line; the same file on a fresh server read **10 passed** in
+20.5 s. c1, c2 and c3 not run: no install, session, browse or tuning title reads the Sandbox.
+
+**Questions for the user.** (a) Plain click = default size, Alt+click = fill, as decided; say if
+fill should be the default (or a tool of its own). (b) A filled fader turns along the longer side
+(horizontal when wider than tall); say if it should stay vertical. (c) The template's two keep
+`Filter` and `Hold`; say if they should be `Fader 1` / `Button 1`. (d) Orientation and colour are
+not remembered (the readings' list); say if orientation should be. (e) The three transforms sit
+in a row of their own under the toolbar, not beside Save copy; say if you want them in the
+toolbar (it wraps at 1024) or in the inspector. (f) The two spacing boxes are disabled under
+three members; say if they should click to a line instead. (g) A half-cell centre floors toward
+the left / top and the spacing remainder goes to the first gaps; say if you want the other side.
+(h) The inline rename has no keyboard trigger (F2 would be three lines) - the inspector's field
+is the keyboard route as briefed. (i) Reset defaults is disabled in Play like every field; say
+if it should stay live. (j) A locked member refuses align / distribute whole with its line (13A's
+rule) rather than being skipped. (k) The source says "remembered" where the readings say
+"sticky" (Tailwind); the interface says neither - `New elements`. (l) 13A's and 1 to 12b's
+questions still stand.
+
+**Departures from the brief:** the transforms are not under `SurfaceActions.svelte` (the export
+control) but a new `SurfaceTransforms.svelte`; the arrange ids are `arrange-*` and the turn
+`turn-surface` for Tailwind's sake; a filled fader's orientation follows its shape; `onclick`
+takes a fourth argument (`alt`) and `onmark` a `fill` flag - test 2's and 14's pins moved with the
+wiring, 9's with the no-selection sections; `local.spec.ts`'s `OWNED_KEYS` pin at eight; the word
+"sticky" is not in `src/`; TESTING.md's 13A section lost two line-leading dashes (its words are
+the same) so lint passes; the runbook untouched; STATE / ROADMAP / REQUIREMENTS untouched; CAT-04
+stays `[ ]`; not deployed.
+
 14. SNAKE is broken - remake it (2026-09-20, lowest priority, queued last)
 --------------------------------------------------------------------------------
 

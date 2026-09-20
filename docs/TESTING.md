@@ -6724,3 +6724,128 @@ title that names a Sandbox surface, `:1672`, passed), then `browse.e2e.ts` alone
 **13 passed / `:343` red** (the fill-before-hydration shape, recorded since change 3), then
 **`:343` alone 1 passed** on a fresh server. c1 and c3 not run: no install, session or tuning
 title reads the Sandbox.
+
+## 2026-09-20 change 13B - the Sandbox's geometry tools, names and remembered defaults
+
+`BENCH-2026-09-16.txt` section 13, part B of three: align and distribute, flip and rotate, the
+fill-to-fit placement, auto-numbered names with the plate's inline rename, and the remembered
+("sticky" in the readings) defaults per kind. Five source commits and one docs commit, no push,
+no device, no deploy: `e5ffe7a` feat(sandbox) - the model (geometry.ts's `largestFreeBox`,
+`alignBoxes`, `distributeBoxes`, `transformBox`; editor.ts's `alignSelected`,
+`distributeSelected`, `transformSurface`, `clickCell`'s `fill`, `mark(fill)`, `fillBox`,
+`renameElement`, `resetDefaults`, `REMEMBERED_FIELDS`, `rememberKind`, `withKindDefaults`;
+schema.ts's `KindDefaults` / `SandboxDefaults` / `NO_DEFAULTS` / `isKindDefaults` /
+`isSandboxDefaults` under the eighth owned key `hangar.sandbox-defaults.v1`;
+store/sandbox-defaults.ts; history.ts's `align` / `distribute` / `transform`; copy.ts's
+twenty-six strings; `sandbox-ui.spec` 16 -> 20; `local.spec` test 1's `OWNED_KEYS` pin at
+eight); `8b05a70` feat(sandbox) - the plate, the inspector, the palette, `SurfaceTransforms.svelte`
+new, the route; `fee54ef` test(sandbox) - the e2e walk and the gate's quick constant at 1010;
+`a9707ae` fix(sandbox) - "sticky" reworded to "remembered" under `src/` (the first after-run's
+CSS term: utilities 44 -> 45, `sticky` appeared off the bare word in comments and a test title -
+CODE-STYLE section 8); `e7dc6a4` docs - two dash-led lines in this file's 13A section read as a
+Markdown list and failed `prettier --check .` since `715c509` (the dash moved to the line before,
+the words unchanged); then this section, the Done paragraph "13B" under section 13 and the gate
+records `gate/change-13b.*` (before, at `715c509`, on a clean worktree `../hangar-gate-13b` with
+its own `npm ci`, removed after the records were copied) and `gate/change-13b-after.*` (at
+`e7dc6a4`). The runbook is untouched.
+
+**What moved in the suites.** `sandbox-ui.spec.ts` 16 -> 20: 17 align and distribute (the six
+alignments on the pure function - left / right / top / bottom and the two centres flooring a
+half cell toward the left or the top, sizes kept - the spacing sharing the free cells as equal
+gaps with the remainder to the first gaps and the outer two fixed, two members returned as they
+are and no room undefined; through the editor one entry under `align` / `distribute` re-selecting
+the set on Undo, already-aligned `nothing`, refused whole with the overlap line naming a bystander
+and the surface the same object, a locked member refused with 13A's line before anything else,
+`DISTRIBUTE_NO_ROOM` on three 3-wide blanks with no number or exclamation mark, `nothing` under two
+/ three / in Play; the shape half: the inspector's `arrange` group with its eight ids and names,
+the spacings disabled under three and live at three, no row on a single, the route's `onalign` /
+`ondistribute`), 18 flip and rotate (`transformBox` on a 2 x 6 - column 7 mirrored, row 3
+flipped, a 6 x 2 at (3, 0) turned, the far corner to (0, 8), four turns the identity; through the
+editor a fader, a button, a knob and a LOCKED pad all moving, two flips and two flips the identity,
+a turn putting the fader horizontal and the kinds unchanged, four turns the identity with the
+orientation, one entry under `transform` keeping the selection, Undo and Redo, `nothing` empty and
+in Play; the shape half: `SurfaceTransforms.svelte`'s three ids and names, its helper, all three
+disabled and described when told, straight lines only, no radius, the route mounting it
+`disabled={play || empty}`), 19 fill-to-fit and names (`largestFreeBox` on the obstacle fixture:
+(5, 4) -> 5 x 7 at (4, 2), the square around (7, 7) -> 5 x 5 at (4, 3) with the higher of two
+winning, (2, 2) -> the 7 x 2 band, an empty plate's corner -> the whole plate, a held cell
+undefined; through the editor a vertical 5 x 7 fader named Fader 2, the 7 x 2 band turning a fader
+horizontal, a knob refused on a 2 x 2 hole with rule 3's line, the 9 x 3 strip horizontal, a held
+cell falling back to the default and refused, Alt+Enter at the focus cell against a plain Enter;
+`autoName` on the starter, a hotkey placement, a duplicate, a paste, a fill placement and a gap
+refilled, the template's Filter / Hold; `renameElement` one sealed entry, a second a second entry,
+trimmed, Undo back, refused empty / unchanged / unknown / in Play; the shape half: the plate's
+`const alt = event.altKey` into `onclick(at.col, at.row, shift, alt)`, `onmark(event.altKey)`,
+`function ondblclick`, `surface-rename` labelled `ELEMENT_NAME`, the field's `stopPropagation` on
+keys and pointer, a double-click inside the field ignored, `largestFreeBox` for the proposed
+bounds, no `border-radius` token; the palette's `palette-fill-helper` while armed and not after
+`cancel`; the route's three wires), 20 remembered defaults (a fader's channel / min / mode / speed
+/ spring / spring value remembered and told, max absent, the next fader taking them with the next
+free controller, the palette's second colour and the default orientation; a multi-edit, a rename,
+a recolour, a nudge, a lock and the orientation remembering nothing; a button's note C4 / toggle /
+group 2 and the next button on the same note, the note dropped on CC; a pad's touches 4 and
+`withKindDefaults` keeping a pad's controllers under the ceiling at five touches; only the kind's
+own fields and only an offered mode; a blank remembering nothing; the reset told, `NO_DEFAULTS` by
+identity, no entry; a paste keeping the original's settings; the store written and read equal,
+six corrupt envelopes read as empty, `isSandboxDefaults`, the reset removing the key, an undefined
+store's three no-ops, the key's name and ownership; the shape half: the no-selection panel's
+`New elements` with `reset-defaults` and both helpers, disabled in Play, gone with a selection,
+the route's `readSandboxDefaults` / `onresetdefaults` / `resetSandboxDefaults` /
+`writeSandboxDefaults`). Test 2's pin moves with the wiring (`onclick(at.col, at.row, shift,
+alt)`), 9's with the no-selection sections (Appearance, then New elements), 14's
+(`onclick(m.at.col, m.at.row, false, false)`). `local.spec.ts` test 1: `OWNED_KEYS` eight, the
+new key last. `e2e/sandbox.e2e.ts` 9 -> 10 titles: the geometry walk (three buttons down the
+diagonal, two aligned left with the Arrange row's first box - `Aligned 2 elements.`, Button 2 at
+column 0 with its width kept, one entry - three spaced out horizontally with the middle at column
+3 and the spacing box disabled under three, the surface turned a quarter clockwise - Button 1 to
+(7, 0), Button 3 to (1, 6), the set kept, Undo and Redo - F then Alt+click at (0, 0) filling a
+4 x 6 vertical fader with the palette's helper shown while armed and gone after V, a double-click
+opening the field with Escape keeping Fader 1 and the selection and Enter committing Cutoff as
+one entry undone by Undo, Button 1 on channel 7 making Button 4 take channel 7, Reset defaults
+with nothing selected saying so and Button 5 back on channel 1, no console error).
+
+**Counts, carried + delta:** quick 95 / 1006 + 1 todo -> **95 / 1010 + 1 todo** (+0 / +4),
+green twice at `--maxWorkers=2` through `check-counts.mjs 95 1010` (run A at the interface tree,
+run B at `e7dc6a4` on the gate's build) and once more in the first after-run at `fee54ef`; check 661 ->
+**663** (`sandbox-defaults.ts`, `SurfaceTransforms.svelte`; 0 / 0); lint clean (after `e7dc6a4`);
+e2e 92 / 107 -> **93 / 108** (+1 / +1); utilities **44** -> **44** (0 appeared, 0 disappeared -
+the first after-run at `fee54ef` read 45, `sticky` appeared); catalog **27**; testids 327 ->
+**332** (`arrange`, `reset-defaults`, `palette-fill-helper`, `surface-rename`,
+`surface-transforms`; the eight `arrange-*` and `flip-horizontal` / `flip-vertical` /
+`turn-surface` ride through an array's `data-testid={id}` like `field-locked`); copy exports +26
+(`ARRANGE`, `ARRANGE_HELPER`, `ALIGN_LEFT`, `ALIGN_RIGHT`, `ALIGN_TOP`, `ALIGN_BOTTOM`,
+`ALIGN_CENTRE_X`, `ALIGN_CENTRE_Y`, `DISTRIBUTE_X`, `DISTRIBUTE_Y`, `alignedLine`, `spacedLine`,
+`DISTRIBUTE_NO_ROOM`, `TRANSFORM_HELPER`, `FLIP_HORIZONTAL`, `FLIP_VERTICAL`, `ROTATE`,
+`FLIPPED_HORIZONTAL`, `FLIPPED_VERTICAL`, `ROTATED`, `PALETTE_FILL_HELPER`, `NEW_ELEMENTS`,
+`DEFAULTS_HELPER`, `RESET_DEFAULTS`, `RESET_DEFAULTS_HELPER`, `DEFAULTS_RESET_LINE`); OG 27 files /
+159,169 B / `9becd682…`, the four fixtures and the refuse-list unmoved; `src/` 11 modified / 2
+added / 0 deleted / 0 renamed against `715c509`.
+
+**The gate's terms** (`--before change-13b` at `715c509` on the worktree; `--after change-13b
+--against change-13b --check 663` at `e7dc6a4`): **the wire set `852b8c14…`, the full
+`2932fc5a…` and the sandbox set `3bdb5974…` all equal - every catalog string and all 475 Sandbox
+fixture strings byte-identical** (no Lua moved; no fixture was rotated; nothing 13B adds is a row
+column); the census `0df9e009…` -> `7cdbc682…` (2,914 -> 2,973 literals, 197 -> 199
+files); the copy exports `eea5099f…` -> `5e3df867…`; the testids `ed13451f…` ->
+`62f8f758…` (327 -> 332); the SCOPED CSS `68eedc24…` -> `8ef5e915…` and the raw
+`4e8f13ba…` -> `d81eb2c0…` (the Sandbox's own rules: `.rename` in SurfaceEditor; `.helper.first`,
+`.arrange`, `.icon`, `.glyph` in RegionInspector; `SurfaceTransforms.svelte`'s five); utilities
+44 -> 44; the titles `6c609832…` -> `e664ad7d…` (1,007 -> 1,011 vitest incl. todo; 107 -> 108
+playwright); the JS `c32244aa…` -> `06754f71…` (71 files); the comment-lines record 9 files moved, 2 added, every
+header at the ten-line rule by `comment-lines.mjs --todo`. The script exits 1 at the census by
+design; the later terms are compared from the two records. The before's quick term read `quick
+exit 1` (the pipe, as 13A); the first after's (at `fee54ef`, the build fresh) 95 / 1010, exit 0;
+the second after's (at `e7dc6a4`) the recorded ordering hole - the script's quick term runs
+before its build term and `a9707ae` touched the route, so `radius.spec.ts` layer B refused the
+stale build (its JSON: 1009 passed / 1 failed / 1 todo) - and run B on that record's build read
+95 / 1010, exit 0.
+
+**Chunks** (a fresh detached wrangler dev on 4173 per invocation, stopped through PowerShell,
+HTTP 000 after each; 5173 untouched): at `fee54ef` c4 by its five files **21 passed** (the ten
+Sandbox titles among them) and c5 by its four files **11 passed** (radius's title walks the
+Sandbox); at `e7dc6a4` (the build stamped there) c4 **21 passed** and c5 **11 passed**. One hole,
+recorded: the first run of `sandbox.e2e.ts` alone at `8b05a70`'s tree (free memory 0.51 GB) lost
+its server after one document - every title `ERR_CONNECTION_REFUSED`, wrangler's log ending at
+`GET /sandbox/ 200 OK` with no crash line - and the same file on a fresh server read **10
+passed** in 20.5 s. c1, c2 and c3 not run: no install, session, browse or tuning title reads the
+Sandbox.

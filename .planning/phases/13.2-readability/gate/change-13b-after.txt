@@ -1,0 +1,181 @@
+# 13.2 gate --after change-13b --against change-13b --check 663
+HEAD e7dc6a4 (e7dc6a47f60ccd2cd07e4aabd62bb0e8aa77165d); dirty (src e2e scripts docs) 0; free memory 1.44 GB; 2026-09-20T22:34:43Z
+before-record HEAD 715c50956263236916416b4daffeac036d8e726f
+
+## the wire
+2775 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 852b8c14ed4b39c1a86e55f7c7e441b74f12f8106143ce70bbb89b5d0ad70f4d
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 2932fc5a3cfe3d5476989dee8777763b14c8c583d9ef00307d3607675dd91ab4
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+199 files; 2973 distinct literals (7013 occurrences); 7 copy modules; 332 data-testids
+literal census sha256 7cdbc682377be4999f1ddc989310cec096fbd47415dfac600ac485595d72b3ce
+copy exports   sha256 5e3df867151423e3d89d641bbf8173b987a9cddb993e00e674be90ad13fef3dc
+data-testids   sha256 62f8f75862d6dd20ea1555fa0d550854d1e3fb3852f94e6f385a6f72dc314fd2
+- 1 -> 2	"${}-helper"
+- 8 -> 9	"Enter"
+- 8 -> 9	"Escape"
+- 13 -> 14	"blank"
+- 3 -> 4	"boolean"
+- 1 -> 5	"bottom"
+- 96 -> 100	"button"
+- 29 -> 33	"channel"
+- 9 -> 12	"done"
+- 25 -> 27	"fader"
+- 1 -> 3	"glyph"
+- 6 -> 8	"group"
+- 13 -> 16	"helper type-helper"
+- 6 -> 14	"horizontal"
+- 1 -> 3	"icon"
+- 24 -> 25	"idle"
+- 17 -> 20	"knob"
+- 2 -> 4	"latch"
+- 9 -> 13	"max"
+- 3 -> 4	"midi"
+- 9 -> 13	"min"
+- 36 -> 40	"mode"
+- 48 -> 53	"note"
+- 3 -> 7	"nothing"
+- 10 -> 11	"off"
+- 8 -> 9	"option"
+- 7 -> 8	"outlined"
+- 52 -> 56	"play"
+- 1 -> 2	"reason type-helper"
+- 48 -> 53	"refused"
+- 2 -> 4	"rename"
+- 3 -> 4	"sandbox-mode-line"
+- 19 -> 21	"speed"
+- 11 -> 12	"spring"
+- 6 -> 7	"springValue"
+- 16 -> 17	"text"
+- 4 -> 8	"top"
+- 68 -> 70	"true"
+- 9 -> 14	"vertical"
+- 31 -> 32	"xy"
++ 0 -> 1	"${}-arrange-helper"
++ 0 -> 1	"${}-defaults-helper"
++ 0 -> 1	"${}-fill"
++ 0 -> 1	"A click places the element at its default size. Alt+click (Option+click on a Mac) fills the free area around the cell."
++ 0 -> 1	"A new element takes the settings you last gave its kind: channel, range, mode and the rest. Its color still follows the palette."
++ 0 -> 1	"Align bottom edges"
++ 0 -> 1	"Align left edges"
++ 0 -> 1	"Align right edges"
++ 0 -> 1	"Align the selected elements on an edge or a center line, or space them out with equal gaps. When spacing out, the outer two stay where they are."
++ 0 -> 1	"Align top edges"
++ 0 -> 1	"Aligned ${}."
++ 0 -> 2	"Alt"
++ 0 -> 1	"Arrange"
++ 0 -> 1	"Center horizontally"
++ 0 -> 1	"Center vertically"
++ 0 -> 1	"Defaults reset. The next new element starts from the built-in settings."
++ 0 -> 1	"Flip left to right"
++ 0 -> 1	"Flip or rotate the whole surface. Every element moves with it, locked ones too: a transform is not an element edit."
++ 0 -> 1	"Flip top to bottom"
++ 0 -> 1	"Flipped the surface left to right."
++ 0 -> 1	"Flipped the surface top to bottom."
++ 0 -> 1	"New elements"
++ 0 -> 1	"Reset defaults"
++ 0 -> 1	"Reset returns every kind to its built-in settings. It changes the stored defaults, not the surface, so Undo doesn’t take it back."
++ 0 -> 1	"Rotate a quarter turn clockwise"
++ 0 -> 1	"Rotated the surface a quarter turn clockwise."
++ 0 -> 1	"Space out horizontally"
++ 0 -> 1	"Space out vertically"
++ 0 -> 1	"Spaced out ${}."
++ 0 -> 1	"There’s no room to space these out. Move the outer elements further apart first."
++ 0 -> 3	"align"
++ 0 -> 2	"arrange"
++ 0 -> 1	"arrange-bottom"
++ 0 -> 1	"arrange-centre-x"
++ 0 -> 1	"arrange-centre-y"
++ 0 -> 1	"arrange-left"
++ 0 -> 1	"arrange-right"
++ 0 -> 1	"arrange-space-x"
++ 0 -> 1	"arrange-space-y"
++ 0 -> 1	"arrange-top"
++ 0 -> 4	"centre-x"
++ 0 -> 4	"centre-y"
++ 0 -> 3	"distribute"
++ 0 -> 5	"flip-horizontal"
++ 0 -> 5	"flip-vertical"
++ 0 -> 1	"helper first type-helper"
++ 0 -> 4	"left"
++ 0 -> 1	"output"
++ 0 -> 1	"palette-fill-helper"
++ 0 -> 1	"reset-defaults"
++ 0 -> 4	"right"
++ 0 -> 4	"rotate"
++ 0 -> 2	"sandbox-defaults"
++ 0 -> 1	"surface-rename"
++ 0 -> 1	"surface-transforms"
++ 0 -> 1	"touches"
++ 0 -> 2	"transform"
++ 0 -> 1	"transforms"
++ 0 -> 1	"turn-surface"
+
+## the comment lines
+200 files; 50757 lines, 32849 code, 13868 comment, 4040 blank, 4216 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/sandbox/copy.ts | 284 | 331 | 83 | 91 | 14 | 14 |
+| src/lib/sandbox/editor.ts | 1341 | 1600 | 201 | 252 | 13 | 13 |
+| src/lib/sandbox/geometry.ts | 506 | 663 | 95 | 124 | 13 | 13 |
+| src/lib/sandbox/history.ts | 131 | 134 | 27 | 27 | 12 | 12 |
+| src/lib/store/sandbox-defaults.ts (new) | - | 41 | - | 12 | - | 9 |
+| src/lib/store/schema.ts | 379 | 456 | 108 | 119 | 15 | 15 |
+| src/lib/ui/sandbox/Palette.svelte | 179 | 190 | 19 | 20 | 13 | 13 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 912 | 1109 | 54 | 65 | 14 | 14 |
+| src/lib/ui/sandbox/SurfaceEditor.svelte | 1285 | 1401 | 129 | 144 | 15 | 15 |
+| src/lib/ui/sandbox/SurfaceTransforms.svelte (new) | - | 151 | - | 17 | - | 10 |
+| src/routes/sandbox/[draftId]/+page.svelte | 1115 | 1185 | 90 | 95 | 15 | 15 |
+| **totals (198 -> 200 files)** | 49628 | 50757 | 13708 | 13868 | 4197 | 4216 |
+
+11 file(s) moved
+
+## check and lint
+check: 1789943718924 COMPLETED 663 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: no Vitest summary lines found on stdin. A run that printed no summary proves nothing, so this is a failure, not a pass.
+quick exit 1
+
+## the build
+build exit 0; stamp e7dc6a4
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 3bf1ef05986f7fce1577fffeaa0f2da2847ba613 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: d81eb2c0d12d450cd38c7d3dde41f6350c49ca7a726fda22e74c09aaa4be8843 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 d81eb2c0d12d450cd38c7d3dde41f6350c49ca7a726fda22e74c09aaa4be8843
+SCOPED CSS sha256 8ef5e91564ebc712daff6eb408d0ce9e9547cb86c6fcec18457477c578714e58
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 06754f714b7573c185cf46f13288fcf76f7d3b6a852b69b6a8324580361606d7 (71 files)
+
+## the titles
+TITLES sha256 e664ad7d1da00bc3d2ad23ca0625314751d4160d9cceafe394f71f2518b2413d (1011 vitest titles incl. todo, 108 playwright runs)
+
+## src/ against the before-record's HEAD 715c50956263236916416b4daffeac036d8e726f
+git diff --name-status: 11 modified, 2 added, 0 deleted, 0 renamed
+  A	src/lib/store/sandbox-defaults.ts
+  A	src/lib/ui/sandbox/SurfaceTransforms.svelte
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-13b
+wire: equal (set 852b8c14ed4b39c1a86e55f7c7e441b74f12f8106143ce70bbb89b5d0ad70f4d, full 2932fc5a3cfe3d5476989dee8777763b14c8c583d9ef00307d3607675dd91ab4)
+sandbox set: equal (3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159)
+FAIL: the literal census (0df9e009f812e4b8b54da9db1f9ef5faf0de32032209035f8e01d1852e800b1d -> 7cdbc682377be4999f1ddc989310cec096fbd47415dfac600ac485595d72b3ce; the -/+ lines above name every literal whose count moved)
