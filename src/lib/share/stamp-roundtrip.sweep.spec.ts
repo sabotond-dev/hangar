@@ -208,7 +208,12 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // an index vector, so no captured link's decode moves; what leaves this
     // pass is its 512-state cross-product, found the same way as every
     // re-count in this file - by running the sweep.
-    expect(entries.length, "there are compiler-driven entries").toBe(8);
+    //
+    // SEVEN since change 12b (2026-09-18): RADAR is a Lua card under the
+    // preset's id, so its BOTOR-format stamps leave this pass (they land
+    // unreadable under the Lua route, stamp.spec.ts) and its `w` stamps join
+    // the Lua pass below - found the same way, by running the sweep.
+    expect(entries.length, "there are compiler-driven entries").toBe(7);
 
     const expectedA = entries.reduce(
       (n, entry) => n + sizeOf(nonColour(stampKnobs(entry))),
@@ -381,8 +386,12 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // total goes 93 to 101, `exempted` 30 to 33, `guarded` 63 to 64 and the
     // new `wide` is 4. It still reconciles: 64 + 4 + 33 is 101. The member list
     // is still "4 19".
+    //
+    // RE-COUNTED 2026-09-18 (change 12b, section 12): RADAR rebuilt as a Lua
+    // card - five knobs, one colour - so `exempted` goes 33 to 34; the
+    // member list is still "4 19".
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(33);
+    expect(exempted, "the colour knobs, exempt by format").toBe(34);
 
     // PASS A. Every narrow non-colour knob cross-producted, colour and wide
     // knobs at their defaults, through the real encoder and the real decoder.

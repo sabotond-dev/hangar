@@ -141,7 +141,13 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // 907 of 908 and it had no colour knob, so no margin this sweep guards
     // moves with it; the preset itself is still costed byte-exact by
     // presets.spec.ts test 4.
-    expect(entries.length, "the eight compiler-driven racks").toBe(8);
+    //
+    // SEVEN since change 12b (2026-09-18, BENCH-2026-09-16.txt section 12):
+    // RADAR is a hand-authored Lua card under the preset's id, so its rack
+    // (colour x speed x send, lattice-scoped) leaves Pass A here and is costed
+    // over its whole 5 x 8 x 12 x 2 x 3 cross-product by the Lua sweep; the
+    // preset itself is still costed byte-exact by presets.spec.ts test 4.
+    expect(entries.length, "the seven compiler-driven racks").toBe(7);
 
     // The two expectations, derived from `racked()` INDEPENDENTLY of the loops
     // below. That independence is the whole of the non-vacuity guard: drop a
