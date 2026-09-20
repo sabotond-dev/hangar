@@ -825,7 +825,7 @@ test.describe("the Sandbox, with no hardware attached", () => {
       "title",
       "Nothing to paste yet. Copy or cut an element first.",
     );
-    await expect(page.getByTestId("menu-select-all")).toBeEnabled();
+    await expect(page.getByTestId("menu-select-every")).toBeEnabled();
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
 

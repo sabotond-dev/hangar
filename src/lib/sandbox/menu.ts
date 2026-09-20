@@ -50,15 +50,15 @@ export type MenuAction =
   | "delete"
   | "lock"
   | "rename"
-  | "select-all"
-  | "align-left"
-  | "align-right"
-  | "align-top"
-  | "align-bottom"
-  | "align-centre-x"
-  | "align-centre-y"
-  | "distribute-horizontal"
-  | "distribute-vertical";
+  | "select-every"
+  | "arrange-left"
+  | "arrange-right"
+  | "arrange-top"
+  | "arrange-bottom"
+  | "arrange-centre-x"
+  | "arrange-centre-y"
+  | "space-horizontal"
+  | "space-vertical";
 
 export type MenuItem = {
   /** The item's id: its test id's tail and, for a leaf, its action. */
@@ -76,17 +76,17 @@ export type MenuItem = {
 
 /** The alignments and the spacings as they read in the submenus (13B's names, the commands' own). */
 const ALIGNMENTS: readonly { id: MenuAction; label: string }[] = [
-  { id: "align-left", label: ALIGN_LEFT },
-  { id: "align-right", label: ALIGN_RIGHT },
-  { id: "align-top", label: ALIGN_TOP },
-  { id: "align-bottom", label: ALIGN_BOTTOM },
-  { id: "align-centre-x", label: ALIGN_CENTRE_X },
-  { id: "align-centre-y", label: ALIGN_CENTRE_Y },
+  { id: "arrange-left", label: ALIGN_LEFT },
+  { id: "arrange-right", label: ALIGN_RIGHT },
+  { id: "arrange-top", label: ALIGN_TOP },
+  { id: "arrange-bottom", label: ALIGN_BOTTOM },
+  { id: "arrange-centre-x", label: ALIGN_CENTRE_X },
+  { id: "arrange-centre-y", label: ALIGN_CENTRE_Y },
 ];
 
 const SPACINGS: readonly { id: MenuAction; label: string }[] = [
-  { id: "distribute-horizontal", label: DISTRIBUTE_X },
-  { id: "distribute-vertical", label: DISTRIBUTE_Y },
+  { id: "space-horizontal", label: DISTRIBUTE_X },
+  { id: "space-vertical", label: DISTRIBUTE_Y },
 ];
 
 /**
@@ -162,7 +162,7 @@ export function menuItems(
       submenu: SPACINGS.map((s) => item(s.id, s.label, undefined, spaceReason)),
     },
     item(
-      "select-all",
+      "select-every",
       MENU_SELECT_ALL,
       "Mod+A",
       anyUnlocked ? undefined : MENU_NOTHING_TO_SELECT,

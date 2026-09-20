@@ -3523,17 +3523,17 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "rename",
       "align",
       "distribute",
-      "select-all",
+      "select-every",
     ];
     const ALIGNS = [
-      "align-left",
-      "align-right",
-      "align-top",
-      "align-bottom",
-      "align-centre-x",
-      "align-centre-y",
+      "arrange-left",
+      "arrange-right",
+      "arrange-top",
+      "arrange-bottom",
+      "arrange-centre-x",
+      "arrange-centre-y",
     ];
-    const SPACINGS = ["distribute-horizontal", "distribute-vertical"];
+    const SPACINGS = ["space-horizontal", "space-vertical"];
     // THE EMPTY PLATE: every item present, the selection-bound ones disabled
     // with the one reason, Paste without a clipboard, Select all with nothing.
     let items = menuItems(editor.state(), false);
@@ -3543,7 +3543,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     }
     expect(byId(items, "paste").disabled).toBe(NOTHING_TO_PASTE);
     expect(byId(items, "rename").disabled).toBe(MENU_RENAME_ONE);
-    expect(byId(items, "select-all").disabled).toBe(MENU_NOTHING_TO_SELECT);
+    expect(byId(items, "select-every").disabled).toBe(MENU_NOTHING_TO_SELECT);
     expect(byId(items, "align").submenu?.map((s) => s.id)).toEqual(ALIGNS);
     expect(byId(items, "distribute").submenu?.map((s) => s.id)).toEqual(
       SPACINGS,
@@ -3567,7 +3567,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       rename: null,
       align: null,
       distribute: null,
-      "select-all": "Mod+A",
+      "select-every": "Mod+A",
     });
     // A SINGLE, with a clipboard: everything but the two submenus runs.
     editor.choose("button");
@@ -3692,7 +3692,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "duplicate",
       "delete",
       "lock",
-      "select-all",
+      "select-every",
       ...ALIGNS,
       ...SPACINGS,
     ]) {

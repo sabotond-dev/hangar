@@ -514,31 +514,31 @@
       case "lock":
         toggleLock();
         break;
-      case "select-all":
+      case "select-every":
         editor.selectAll();
         break;
-      case "align-left":
+      case "arrange-left":
         align("left");
         break;
-      case "align-right":
+      case "arrange-right":
         align("right");
         break;
-      case "align-top":
+      case "arrange-top":
         align("top");
         break;
-      case "align-bottom":
+      case "arrange-bottom":
         align("bottom");
         break;
-      case "align-centre-x":
+      case "arrange-centre-x":
         align("centre-x");
         break;
-      case "align-centre-y":
+      case "arrange-centre-y":
         align("centre-y");
         break;
-      case "distribute-horizontal":
+      case "space-horizontal":
         distribute("horizontal");
         break;
-      case "distribute-vertical":
+      case "space-vertical":
         distribute("vertical");
         break;
       case "rename":
