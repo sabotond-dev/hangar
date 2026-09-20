@@ -347,8 +347,10 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // re-derived from the same knob tables the loops read - are what catch a
     // shrinkage this floor is too coarse to see, which is why the floor may be
     // a literal at all.
+    // 24,438 since change 12b (2026-09-18): RADAR's 2,688 preset states left
+    // the compiler passes for the Lua sweep's 2,880, so the floor is 24,000.
     expect(costed, "the two passes are not trivial").toBeGreaterThanOrEqual(
-      25000,
+      24000,
     );
 
     // Every colourless preset's Pass A is BYTE-IDENTICAL to the enumeration

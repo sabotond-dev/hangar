@@ -271,7 +271,9 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     expect(
       examined,
       "the compiler cross-product is not trivial",
-    ).toBeGreaterThan(25000);
+      // 24,438 since change 12b (2026-09-18): RADAR's 2,688 preset states
+      // left for the Lua pass, so the floor is 24,000.
+    ).toBeGreaterThan(24000);
     // BOTOR's own stamps stay short: a loaded instrument is about twenty
     // characters, and a URL fragment nobody can read is not shareable.
     expect(longest, `the longest compiler payload is ${longest}`).toBeLessThan(
