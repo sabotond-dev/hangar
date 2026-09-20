@@ -7,7 +7,9 @@
   single only; Channel, Min and Max shared; a button's Output and Note; not with a blank),
   Appearance through Swatch.svelte, then the pinned Duplicate / Delete. Over a set a field whose
   values differ reads MIXED and a value writes every member as one entry, refused whole inline; a
-  set has an Arrange row (13B); with nothing selected, New elements with Reset defaults (13B). In Play every field is read-only.
+  set has an Arrange row (13B); with nothing selected, Shared controllers when two elements
+  share one (13C) then New elements with Reset defaults (13B); under the swatch the recent
+  colours strip (13C). In Play every field is read-only.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -36,6 +38,8 @@
     CC_NUMBER_Y,
     CHANNEL,
     COLOUR_LABEL,
+    CONFLICTS,
+    CONFLICTS_HELPER,
     DEFAULTS_HELPER,
     DELETE_ELEMENT,
     DISTRIBUTE_X,
@@ -73,6 +77,8 @@
     OUTPUT_CC,
     OUTPUT_NOTE,
     PLAY_LOCKS_FIELDS,
+    RECENT_COLOURS,
+    RECENT_COLOURS_HELPER,
     RESET_DEFAULTS,
     RESET_DEFAULTS_HELPER,
     SELECTED_ELEMENT,
@@ -89,11 +95,16 @@
     TOUCHES,
     TOUCHES_HELPER,
     TYPE,
+    conflictLine,
     deleteElements,
     elementsLine,
     groupWord,
+    recentColourName,
+    titledWithKeys,
     unitsChip,
   } from "$lib/sandbox/copy";
+  import type { Conflict } from "$lib/sandbox/conflicts";
+  import { modWord } from "$lib/sandbox/shortcuts";
   import {
     DEFAULT_COLOUR,
     type EditorState,
@@ -108,6 +119,7 @@
     ORIENTATIONS,
     SPEEDS,
     TOUCHES_MAX,
+    colourByte,
     groupOf,
     isRelative,
     lockedOf,
@@ -153,6 +165,9 @@
     onduplicate,
     ondelete,
     notice,
+    recentColours = [],
+    conflicts = [],
+    mac = false,
   }: {
     view: EditorState;
     onrename: (name: string) => void;
@@ -186,6 +201,12 @@
     ondelete: () => void;
     /** A duplicate refused, a store that declined, the defaults reset - the panel's one notice. */
     notice?: string;
+    /** The recent colours (change 13C), newest first; a chip clicked is oncolour. */
+    recentColours?: readonly (readonly [number, number, number])[];
+    /** The shared-controller pairs (change 13C, conflicts.ts), listed with nothing selected. */
+    conflicts?: readonly Conflict[];
+    /** Cmd in the pinned pair's titles. */
+    mac?: boolean;
   } = $props();
 
   const uid = $props.id();
@@ -201,6 +222,7 @@
   const lockedId = `${uid}-locked`;
   const lockId = `${uid}-lock`;
   const arrangeHelperId = `${uid}-arrange-helper`;
+  const recentHelperId = `${uid}-recent-helper`;
   const defaultsHelperId = `${uid}-defaults-helper`;
 
   /** A glyph is straight lines on a 20 x 20 box: [x1, y1, x2, y2] each (no curve, no radius). */
@@ -366,6 +388,12 @@
     out.push({ title: APPEARANCE, content: appearance });
     return out;
   });
+  /** The sections shown: with nothing selected and two elements on one controller (13C), Shared controllers first. */
+  const shown = $derived(
+    !any && conflicts.length > 0
+      ? [{ title: CONFLICTS, content: conflictsSection }, ...sections]
+      : sections,
+  );
 </script>
 
 {#snippet headline()}
@@ -711,6 +739,36 @@
     {#if colourMixed}
       <p class="helper type-helper" data-testid="colour-mixed">{MIXED}</p>
     {/if}
+    {#if recentColours.length > 0}
+      <!-- The recent colours (change 13C): the last eight applied, newest first; a chip is the swatch's own oncolour, so a set takes it whole. -->
+      <div
+        class="recent"
+        role="group"
+        aria-label={RECENT_COLOURS}
+        aria-describedby={recentHelperId}
+        data-testid="recent-colours"
+      >
+        {#each recentColours as colour (colour.join(","))}
+          {@const rgb = colour.map(colourByte)}
+          <button
+            class="chip-colour"
+            type="button"
+            data-testid="recent-colour"
+            data-colour={colour.join(",")}
+            aria-label={recentColourName(rgb[0], rgb[1], rgb[2])}
+            title={recentColourName(rgb[0], rgb[1], rgb[2])}
+            disabled={play}
+            style:background="rgb({rgb[0]}
+            {rgb[1]}
+            {rgb[2]})"
+            onclick={() => oncolour([colour[0], colour[1], colour[2]])}
+          ></button>
+        {/each}
+      </div>
+      <p class="helper type-helper" id={recentHelperId}>
+        {RECENT_COLOURS_HELPER}
+      </p>
+    {/if}
   {/if}
   <!-- The surface's brightness (change 5): under Appearance whether or not an element is selected, its helper saying whose it is; read-only in Play like every field. -->
   <BrightnessField
@@ -754,6 +812,16 @@
   <p class="helper type-helper" id={arrangeHelperId}>{ARRANGE_HELPER}</p>
 {/snippet}
 
+{#snippet conflictsSection()}
+  <!-- The shared-controller pass (change 13C): one line per pair, a warning and never a refusal. -->
+  <p class="helper first type-helper">{CONFLICTS_HELPER}</p>
+  {#each conflicts as c (`${c.aId}:${c.bId}:${c.cc}`)}
+    <p class="warning type-helper" data-testid="conflict-line">
+      {conflictLine(c.a, c.b, c.cc, c.channel)}
+    </p>
+  {/each}
+{/snippet}
+
 {#snippet defaults()}
   <!-- The remembered defaults (change 13B): what a new element starts from, and the one-click reset - not an entry, so its helper says Undo does not take it back. -->
   <p class="helper first type-helper">{DEFAULTS_HELPER}</p>
@@ -778,6 +846,7 @@
       data-testid="duplicate-element"
       disabled={play}
       aria-describedby={lock}
+      title={titledWithKeys(DUPLICATE, `${modWord(mac)}+D`)}
       onclick={onduplicate}>{DUPLICATE}</button
     >
     <button
@@ -786,6 +855,10 @@
       data-testid="delete-element"
       disabled={play}
       aria-describedby={lock}
+      title={titledWithKeys(
+        multi ? deleteElements(members.length) : DELETE_ELEMENT,
+        "Delete",
+      )}
       onclick={ondelete}
       >{multi ? deleteElements(members.length) : DELETE_ELEMENT}</button
     >
@@ -800,7 +873,7 @@
     {headline}
     aside={region === undefined ? undefined : chip}
     lede={!any ? NO_SELECTION_LEDE : multi ? MULTI_LEDE : undefined}
-    {sections}
+    sections={shown}
     lead={!any ? undefined : identity}
     actions={!any ? undefined : actions}
   >
@@ -1080,6 +1153,32 @@
 
   .swatch.locked {
     pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* The recent colours (13C): up to eight 44px squares in their colour under a boundary hairline, wrapping in the narrow panel. */
+  .recent {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-block-start: 12px;
+  }
+
+  .chip-colour {
+    inline-size: 44px;
+    block-size: 44px;
+    padding: 0;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    cursor: pointer;
+  }
+
+  .chip-colour:hover:not(:disabled) {
+    border-color: var(--color-action);
+  }
+
+  .chip-colour:disabled {
+    cursor: default;
     opacity: 0.6;
   }
 

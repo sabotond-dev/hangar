@@ -7,8 +7,10 @@
   the surface, the set, mode, focus, history and the remembered defaults; this route keeps the one
   EditorState in raw state and owns the stores (the draft, the defaults, the clipboard's session), the
   landing, the preview, the frame and the window's key listener (the hotkeys, V / Escape, Delete,
-  Ctrl/Cmd + C X V D A L - never in a text field). The landing is land.ts's under the pinned minifier
-  with SLOTS 5 to install.observeConfig; no number about the budget is shown; Play runs the surface's own strings.
+  Ctrl/Cmd + C X V D A L, ? for the shortcut sheet - never in a text field), the plate's menu, the
+  view toggles, the recent colours, the Play monitor and the Grid Editor profile file (13C). The landing
+  is land.ts's under the pinned minifier with SLOTS 5 to install.observeConfig; no number about the
+  budget is shown; Play runs the surface's own strings.
   Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -57,15 +59,28 @@
     copyName,
     cutLine,
     duplicatedLine,
+    elementsLine,
     exportedLine,
     lockedLine,
     pastedLine,
     renameSurfaceName,
     savedLine,
     spacedLine,
+    titledWithKeys,
     unlockedLine,
   } from "$lib/sandbox/copy";
   import { readClipboard, writeClipboard } from "$lib/sandbox/clipboard";
+  import { conflictedIds, findConflicts } from "$lib/sandbox/conflicts";
+  import { menuItems, type MenuAction } from "$lib/sandbox/menu";
+  import { isMacPlatform, modWord, platformOf } from "$lib/sandbox/shortcuts";
+  import {
+    EXPORT_PROFILE_MEASURING,
+    EXPORT_PROFILE_OVER,
+    importedLine,
+    profileExportedLine,
+    surfaceDescription,
+  } from "$lib/share/profile-copy";
+  import { midiLogOf } from "$lib/sim/monitor";
   import {
     mintSurfaceId,
     readSurfaceDraft,
@@ -98,16 +113,37 @@
     resetSandboxDefaults,
     writeSandboxDefaults,
   } from "$lib/store/sandbox-defaults";
-  import type { SandboxDefaults } from "$lib/store/schema";
-  import { downloadExport, exportFile } from "$lib/store/transfer";
+  import {
+    readRecentColours,
+    rememberColour,
+    writeRecentColours,
+  } from "$lib/store/sandbox-colours";
+  import { readSandboxView, writeSandboxView } from "$lib/store/sandbox-view";
+  import {
+    DEFAULT_VIEW,
+    NO_COLOURS,
+    type RecentColours,
+    type SandboxDefaults,
+    type SandboxView,
+    type Surface,
+  } from "$lib/store/schema";
+  import {
+    downloadExport,
+    downloadText,
+    exportFile,
+  } from "$lib/store/transfer";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
   import Palette from "$lib/ui/sandbox/Palette.svelte";
+  import PlayMonitor from "$lib/ui/sandbox/PlayMonitor.svelte";
+  import ProfileActions from "$lib/ui/sandbox/ProfileActions.svelte";
   import RegionInspector from "$lib/ui/sandbox/RegionInspector.svelte";
   import DestinationZone from "$lib/ui/DestinationZone.svelte";
+  import ShortcutSheet from "$lib/ui/sandbox/ShortcutSheet.svelte";
   import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
   import SurfaceEditor from "$lib/ui/sandbox/SurfaceEditor.svelte";
   import SurfaceTransforms from "$lib/ui/sandbox/SurfaceTransforms.svelte";
+  import ViewToggles from "$lib/ui/sandbox/ViewToggles.svelte";
   import Rail from "$lib/ui/shell/Rail.svelte";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
   import type { PageData } from "./$types";
@@ -119,7 +155,12 @@
   const SAVE_DEBOUNCE_MS = 250;
   const MEASURE_DEBOUNCE_MS = 120;
   const CONFIRM_MS = 4000;
+  /** A colour joins the recent strip once the swatch has rested this long (a drag through the picker is one colour). */
+  const RECENT_DEBOUNCE_MS = 300;
   const PREVIEW_ID = "sandbox-preview";
+
+  /** A surface imported from a profile (13C), handed to the next open() of its id when the store refused the draft. */
+  let pendingImport: Surface | undefined;
 
   // ---------------------------------------------------------------------------
   // The model and its rendered state.
@@ -135,6 +176,15 @@
   let saved = $state<string | undefined>(undefined);
   let unavailable = $state(false);
   let renaming = $state(false);
+  /** Change 13C: the shortcut sheet, the view toggles, the recent colours, the clipboard's state for the menu, the profile's line, the platform. */
+  let sheetOpen = $state(false);
+  let viewPrefs = $state.raw<SandboxView>(DEFAULT_VIEW);
+  let recent = $state.raw<RecentColours>(NO_COLOURS);
+  let clipboardHeld = $state(false);
+  let profileOutcome = $state<string | undefined>(undefined);
+  let mac = $state(false);
+  /** The control that opened the sheet, so Close returns focus to it. */
+  let sheetOpener: HTMLElement | undefined;
 
   // Plain bindings, outside the reactive graph (04-RESEARCH, Pitfall 3).
   let host: SimHost | undefined;
@@ -145,6 +195,8 @@
   let measureTimer: ReturnType<typeof setTimeout> | undefined;
   let confirmTimer: ReturnType<typeof setTimeout> | undefined;
   let exportTimer: ReturnType<typeof setTimeout> | undefined;
+  let profileTimer: ReturnType<typeof setTimeout> | undefined;
+  let recentTimer: ReturnType<typeof setTimeout> | undefined;
   let measureGeneration = 0;
   let previewGeneration = 0;
   let landSurface: typeof import("$lib/sandbox/land").landSurface | undefined;
@@ -175,6 +227,22 @@
   );
   const mode = $derived<Mode>(view?.mode ?? "edit");
   const play = $derived(mode === "play");
+  /** The plate's menu for the state (13C, menu.ts), the shared-controller pairs and their members' ids (conflicts.ts). */
+  const menu = $derived(
+    view === undefined ? [] : menuItems(view, clipboardHeld),
+  );
+  const conflicts = $derived(
+    view === undefined ? [] : findConflicts(view.surface.regions),
+  );
+  const conflictIds = $derived(conflictedIds(conflicts));
+  /** Why Export for Grid Editor cannot run now: the landing still measuring, or over the budget. */
+  const exportReason = $derived(
+    landing === undefined
+      ? EXPORT_PROFILE_MEASURING
+      : landing.refusal !== undefined
+        ? EXPORT_PROFILE_OVER
+        : undefined,
+  );
 
   /** Every change: the rendered state, the draft, the landing. */
   function onchange(state: EditorState): void {
@@ -351,6 +419,7 @@
     const content = editor?.copySelection();
     if (content === undefined) return;
     writeClipboard(sessionStore(), content);
+    clipboardHeld = true;
     plateNotice = copiedLine(content.regions.length);
   }
 
@@ -360,7 +429,10 @@
     const content = editor.copySelection();
     if (content === undefined) return;
     const outcome = editor.remove("cut");
-    if (outcome.kind === "done") writeClipboard(sessionStore(), content);
+    if (outcome.kind === "done") {
+      writeClipboard(sessionStore(), content);
+      clipboardHeld = true;
+    }
     tell(outcome, cutLine);
   }
 
@@ -418,6 +490,168 @@
     plateNotice = outcome.locked
       ? lockedLine(outcome.count)
       : unlockedLine(outcome.count);
+  }
+
+  /** The plate's menu (13C): every item is one of the commands above; Rename is the plate's own. */
+  function menuAction(action: MenuAction): void {
+    if (editor === undefined) return;
+    switch (action) {
+      case "cut":
+        cut();
+        break;
+      case "copy":
+        copy();
+        break;
+      case "paste":
+        paste();
+        break;
+      case "duplicate":
+        duplicate();
+        break;
+      case "delete":
+        remove();
+        break;
+      case "lock":
+        toggleLock();
+        break;
+      case "select-all":
+        editor.selectAll();
+        break;
+      case "align-left":
+        align("left");
+        break;
+      case "align-right":
+        align("right");
+        break;
+      case "align-top":
+        align("top");
+        break;
+      case "align-bottom":
+        align("bottom");
+        break;
+      case "align-centre-x":
+        align("centre-x");
+        break;
+      case "align-centre-y":
+        align("centre-y");
+        break;
+      case "distribute-horizontal":
+        distribute("horizontal");
+        break;
+      case "distribute-vertical":
+        distribute("vertical");
+        break;
+      case "rename":
+        break;
+    }
+  }
+
+  /** A view toggle (13C): kept per viewer, never in the draft. */
+  function toggleView(which: "numbers" | "names", on: boolean): void {
+    viewPrefs = { ...viewPrefs, [which]: on };
+    writeSandboxView(local(), viewPrefs);
+  }
+
+  /** The swatch's colour on the set (the editor's setColour), and the recent strip once the picker rests. */
+  function colour(next: readonly [number, number, number]): void {
+    editor?.setColour(next);
+    if (recentTimer !== undefined) clearTimeout(recentTimer);
+    recentTimer = setTimeout(() => {
+      recentTimer = undefined;
+      const remembered = rememberColour(recent, next);
+      if (remembered === recent) return;
+      recent = remembered;
+      writeRecentColours(local(), recent);
+    }, RECENT_DEBOUNCE_MS);
+  }
+
+  /** The shortcut sheet (13C): opened by ? or the toolbar's box, closed by Escape, Close or the scrim; focus returns to the opener. */
+  function openSheet(opener?: HTMLElement): void {
+    sheetOpener =
+      opener ??
+      (document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : undefined);
+    sheetOpen = true;
+  }
+
+  function closeSheet(): void {
+    sheetOpen = false;
+    sheetOpener?.focus();
+    sheetOpener = undefined;
+  }
+
+  function sayProfile(line: string): void {
+    profileOutcome = line;
+    if (profileTimer !== undefined) clearTimeout(profileTimer);
+    profileTimer = setTimeout(() => {
+      profileTimer = undefined;
+      profileOutcome = undefined;
+    }, CONFIRM_MS);
+  }
+
+  /**
+   * Export for Grid Editor (13C): the landing's five strings - exactly what Store writes - as the
+   * Editor's own profile file, the element count line as its description, and the surface's
+   * Export-as-a-file envelope riding under the `hangar` key so Import a profile can open it.
+   */
+  async function exportProfile(): Promise<void> {
+    if (editor === undefined || landing === undefined) return;
+    if (landing.refusal !== undefined) return;
+    const surface = editor.surface;
+    const strings = landing.config;
+    const { buildProfile, profileFileName, serialiseProfile } = await import(
+      "$lib/share/profile"
+    );
+    if (!mounted) return;
+    const at = new Date().toISOString();
+    const profile = buildProfile({
+      id: crypto.randomUUID(),
+      name: surface.name,
+      description: surfaceDescription(elementsLine(surface.regions.length)),
+      strings,
+      at,
+      hangar: exportFile(
+        {
+          schema: 1,
+          id: surface.id,
+          name: surface.name,
+          kind: "sandbox",
+          source: surface.id,
+          surface,
+          createdAt: at,
+          editedAt: at,
+        },
+        at,
+      ),
+    });
+    const fileName = downloadText(
+      profileFileName(surface.name),
+      serialiseProfile(profile),
+    );
+    sayProfile(profileExportedLine(fileName));
+  }
+
+  /**
+   * Import a profile (13C): a profile HANGAR exported opens as a NEW surface under a fresh id -
+   * the draft written first, the surface held for open() in case the store refused - and a
+   * profile made elsewhere is refused with its line.
+   */
+  async function importProfile(text: string): Promise<void> {
+    const { readProfile } = await import("$lib/share/profile");
+    if (!mounted) return;
+    const at = new Date().toISOString();
+    const found = readProfile(text, at);
+    if (found.kind === "refused") {
+      sayProfile(found.reason);
+      return;
+    }
+    const id = mintSurfaceId();
+    const surface: Surface = { ...found.surface, id };
+    pendingImport = surface;
+    saveSurfaceDraft(local(), surface, at);
+    await goto(resolve("/sandbox/[draftId]", { draftId: id }));
+    sayProfile(importedLine(surface.name));
   }
 
   /** Save copy (section 11; library.ts): a NEW named copy, never a write over the draft. */
@@ -501,6 +735,19 @@
     ) {
       return;
     }
+    // The sheet (13C) is modal: Escape closes it and every other key waits.
+    if (sheetOpen) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSheet();
+      }
+      return;
+    }
+    if (event.key === "?" && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+      openSheet();
+      return;
+    }
     const key = event.key.toLowerCase();
     if (event.ctrlKey || event.metaKey) {
       if (key === "z" && !event.shiftKey) {
@@ -571,7 +818,10 @@
   function open(id: string): void {
     closePreview();
     const store = local();
-    const stored = readSurfaceDraft(store, id) ?? fromCopy(store, id);
+    const imported = pendingImport?.id === id ? pendingImport : undefined;
+    pendingImport = undefined;
+    const stored =
+      readSurfaceDraft(store, id) ?? imported ?? fromCopy(store, id);
     const surface = stored ?? emptySurface(id, DEFAULT_SURFACE_NAME);
     editor = new SandboxEditor(surface, {
       onchange,
@@ -588,6 +838,11 @@
     mounted = true;
     host = new SimHost(motionDeps());
     window.addEventListener("keydown", onWindowKeyDown);
+    // Change 13C: the platform's words, the clipboard's state, the view toggles and the recent colours.
+    mac = isMacPlatform(platformOf(navigator));
+    clipboardHeld = readClipboard(sessionStore()) !== undefined;
+    viewPrefs = readSandboxView(local());
+    recent = readRecentColours(local());
   });
 
   onDestroy(() => {
@@ -601,6 +856,8 @@
     if (measureTimer !== undefined) clearTimeout(measureTimer);
     if (confirmTimer !== undefined) clearTimeout(confirmTimer);
     if (exportTimer !== undefined) clearTimeout(exportTimer);
+    if (profileTimer !== undefined) clearTimeout(profileTimer);
+    if (recentTimer !== undefined) clearTimeout(recentTimer);
     // The landing is this page's: the store forgets it with the page.
     install.observeConfig(undefined);
     host?.destroy();
@@ -692,7 +949,7 @@
       ongroup={(group) => editor?.setGroup(group)}
       ontouches={(touches) => void editor?.setTouches(touches)}
       onlocked={(locked) => editor?.setLocked(locked)}
-      oncolour={(colour) => editor?.setColour(colour)}
+      oncolour={colour}
       onbrightness={(next) => editor?.setBrightness(next)}
       onalign={align}
       ondistribute={distribute}
@@ -700,6 +957,9 @@
       onduplicate={duplicate}
       ondelete={remove}
       {notice}
+      recentColours={recent.colours}
+      {conflicts}
+      {mac}
     />
   {/if}
 {/snippet}
@@ -808,6 +1068,7 @@
           type="button"
           data-testid="undo"
           disabled={play || !view.canUndo}
+          title={titledWithKeys(UNDO, `${modWord(mac)}+Z`)}
           aria-describedby={play ? "sandbox-mode-line" : undefined}
           onclick={() => editor?.undo()}>{UNDO}</button
         >
@@ -816,6 +1077,7 @@
           type="button"
           data-testid="redo"
           disabled={play || !view.canRedo}
+          title={titledWithKeys(REDO, `${modWord(mac)}+Y`)}
           aria-describedby={play ? "sandbox-mode-line" : undefined}
           onclick={() => editor?.redo()}>{REDO}</button
         >
@@ -845,6 +1107,22 @@
       ontransform={transform}
     />
 
+    <!-- Change 13C: the view toggles with the sheet's box, and the Grid Editor profile's two controls. -->
+    <div class="view-row">
+      <ViewToggles
+        numbers={viewPrefs.numbers}
+        names={viewPrefs.names}
+        ontoggle={toggleView}
+        onshortcuts={() => openSheet()}
+      />
+      <ProfileActions
+        {exportReason}
+        outcome={profileOutcome}
+        onexport={() => void exportProfile()}
+        onimport={(text) => void importProfile(text)}
+      />
+    </div>
+
     <div class="centre">
       <SurfaceEditor
         {view}
@@ -857,6 +1135,12 @@
         ondelete={remove}
         onselectnext={(step) => void editor?.selectNext(step)}
         onrename={(id, next) => void editor?.renameElement(id, next)}
+        onfocuscell={(cell) => editor?.setFocus(cell)}
+        menuItems={menu}
+        onmenu={menuAction}
+        {mac}
+        show={viewPrefs}
+        conflicts={conflictIds}
         notice={plateNotice}
         onresize={(box) => editor?.resizeSelectedTo(box)}
         onmoveto={(cell) => editor?.moveSelectedTo(cell)}
@@ -866,6 +1150,11 @@
         {onfinger}
         preview={play ? preview : undefined}
       />
+
+      <!-- The MIDI monitor in Play (13C): the newest twelve messages the preview engine sent. -->
+      {#if play}
+        <PlayMonitor source={() => midiLogOf(engine)} />
+      {/if}
 
       <!-- The empty state (section 8): the real plate above, the instruction, one starter, one template. -->
       {#if empty && !play}
@@ -890,6 +1179,10 @@
       {/if}
     </div>
   </div>
+{/if}
+
+{#if sheetOpen}
+  <ShortcutSheet {mac} onclose={closeSheet} />
 {/if}
 
 <style>
@@ -1108,6 +1401,15 @@
 
   .outlined.wide {
     inline-size: 100%;
+  }
+
+  /* The view row (13C): the toggles left, the profile's two boxes right, wrapping when the column is narrow. */
+  .view-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
   .centre {

@@ -47,7 +47,15 @@
   import { mapAxis } from "$lib/sim/touch";
   import { brightnessOf } from "$lib/catalog/brightness";
   import type { LocalStore } from "$lib/store/local";
+  import {
+    EXPORT_PROFILE,
+    EXPORT_PROFILE_HELPER,
+    EXPORT_PROFILE_MEASURING,
+    PROFILE_EXPORTED,
+    configDescription,
+  } from "$lib/share/profile-copy";
   import { readCopy, saveCopy } from "$lib/store/library";
+  import type { PlaygroundRecord } from "$lib/store/schema";
   import { touchRecent } from "$lib/store/recent";
   import { ogAlt } from "$lib/tune/copy";
   import {
@@ -193,6 +201,14 @@
     | undefined = $state(undefined);
   let shareStamp: string | undefined = $state(undefined);
   let saved = $state(false);
+  /** Export for Grid Editor's confirmation (change 13C), for CONFIRM_MS. */
+  let exportedProfile = $state(false);
+  let exportTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Why the export cannot run now: the tuner still measuring, or a string over the budget. */
+  const exportReason = $derived(
+    overBudgetReason ??
+      (configStrings === undefined ? EXPORT_PROFILE_MEASURING : undefined),
+  );
 
   // Plain bindings, deliberately outside the reactive graph (04-RESEARCH, Pitfall 3).
   let host: SimHost | undefined;
@@ -347,6 +363,7 @@
     mounted = false;
     generation += 1;
     if (saveTimer !== undefined) clearTimeout(saveTimer);
+    if (exportTimer !== undefined) clearTimeout(exportTimer);
     host?.destroy();
     host = undefined;
     engine = undefined;
@@ -431,6 +448,58 @@
     saveTimer = setTimeout(() => {
       saveTimer = undefined;
       saved = false;
+    }, CONFIRM_MS);
+  }
+
+  /**
+   * Export for Grid Editor (change 13C): the tuner's five strings - exactly what Store writes -
+   * as the Editor's own profile file, the card's sentence as its description, and the same
+   * playground record Save a copy writes riding under the `hangar` key so the file names its
+   * source. Every module arrives by dynamic import on the click, as the codec does.
+   */
+  async function exportProfile(): Promise<void> {
+    if (listed === undefined || configStrings === undefined) return;
+    const strings = configStrings;
+    const entry = listed;
+    const [profileLib, transfer, stamp, catalog] = await Promise.all([
+      import("$lib/share/profile"),
+      import("$lib/store/transfer"),
+      import("$lib/share/stamp"),
+      import("$lib/catalog"),
+    ]);
+    if (!mounted) return;
+    const at = new Date().toISOString();
+    const record: PlaygroundRecord = {
+      schema: 1,
+      id: `copy:${entry.id}:${Date.now().toString(36)}`,
+      name: entry.name,
+      kind: "playground",
+      source: entry.id,
+      knobIndices: Object.values(knobIndices),
+      ...(brightness === 255 ? {} : { brightness }),
+      createdAt: at,
+      editedAt: at,
+    };
+    const profile = profileLib.buildProfile({
+      id: crypto.randomUUID(),
+      name: entry.name,
+      description: configDescription(entry.description),
+      strings,
+      at,
+      hangar: transfer.exportFile(record, at, (id) => {
+        const found = catalog.byId(id);
+        return found === undefined ? undefined : stamp.stampKnobs(found);
+      }),
+    });
+    transfer.downloadText(
+      profileLib.profileFileName(entry.name),
+      profileLib.serialiseProfile(profile),
+    );
+    exportedProfile = true;
+    if (exportTimer !== undefined) clearTimeout(exportTimer);
+    exportTimer = setTimeout(() => {
+      exportTimer = undefined;
+      exportedProfile = false;
     }, CONFIRM_MS);
   }
 
@@ -528,7 +597,7 @@
   </Rail>
 {/snippet}
 
-<!-- The inspector's pinned pair: Save copy, and the share stamp as Share snapshot. -->
+<!-- The inspector's pinned actions: Save copy, the share stamp as Share snapshot, and Export for Grid Editor (13C). -->
 {#snippet actions()}
   <button
     class="inspector-action"
@@ -545,6 +614,16 @@
       label={SHARE_SNAPSHOT}
       oncopied={() => region?.announceCopied()}
     />
+    <button
+      class="inspector-action"
+      type="button"
+      data-testid="export-profile"
+      disabled={exportReason !== undefined}
+      title={exportReason ?? EXPORT_PROFILE_HELPER}
+      onclick={() => void exportProfile()}
+    >
+      {exportedProfile ? PROFILE_EXPORTED : EXPORT_PROFILE}
+    </button>
   {/if}
 {/snippet}
 

@@ -18,6 +18,7 @@
     PALETTE_FILL_HELPER,
     PLAY_LOCKS_PALETTE,
     paletteAddName,
+    titledWithKeys,
   } from "$lib/sandbox/copy";
   import { GEOMETRY_COPY } from "$lib/sandbox/geometry";
   import { ELEMENT_KINDS, type ElementKind } from "$lib/sandbox/model";
@@ -79,6 +80,7 @@
           aria-label={paletteAddName(KIND_LABELS[kind])}
           aria-pressed={armed === kind}
           aria-keyshortcuts={HOTKEYS[kind]}
+          title={titledWithKeys(KIND_LABELS[kind], HOTKEYS[kind].toUpperCase())}
           disabled={reason !== undefined}
           aria-describedby={reason !== undefined
             ? reasonId

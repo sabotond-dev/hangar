@@ -4,10 +4,12 @@
   the selection - each member's outline, the set's one outline round its bounding
   box, the eight drag handles on an unlocked single, the delete icon (on a set it
   deletes the set) - the marquee, the proposed bounds, the focus cell and the
-  status line, and the inline rename (13B: a double-click opens a field over the
-  element). Props: view, onclick (the ONE placement and selection call, fired from
-  pointerdown with Shift and Alt - Alt fills; no drag is ever required), onmarquee,
-  onmove, onmark (Enter; Alt+Enter fills), oncancel, ondelete, onselectnext, onrename,
+  status line, the inline rename (13B: a double-click opens a field over the
+  element), the menu (13C: a right-click, Shift+F10 or the Menu key opens ContextMenu over
+  the cell), the view toggles' effect and the shared-controller marks. Props: view, onclick
+  (the ONE placement and selection call, fired from pointerdown with Shift and Alt - Alt
+  fills; no drag is ever required), onmarquee, onmove, onmark (Enter; Alt+Enter fills), oncancel,
+  ondelete, onselectnext, onrename, onfocuscell, menuItems / onmenu / mac, show, conflicts,
   onresize / onmoveto / onnudge / onresizeby / oncommit, notice, onfinger and preview (Play). Every number is layout.ts's.
   Decided at 13-16 / 13.1-03 (13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 
@@ -34,17 +36,21 @@
     type EditorState,
   } from "$lib/sandbox/editor";
   import { largestFreeBox, type Problem } from "$lib/sandbox/geometry";
+  import type { MenuAction, MenuItem } from "$lib/sandbox/menu";
   import {
     SURFACE_SIZE,
     boundingBox,
     cellIndex,
     colourByte,
     lockedOf,
+    outputOf,
     springOf,
     springPosition,
     toDisplay,
     type Region,
   } from "$lib/sandbox/model";
+  import { noteName } from "$lib/tune/view";
+  import ContextMenu from "./ContextMenu.svelte";
   import {
     SANDBOX_DELETE_HIT,
     SANDBOX_DELETE_ICON,
@@ -79,6 +85,12 @@
     ondelete,
     onselectnext,
     onrename,
+    onfocuscell,
+    menuItems,
+    onmenu,
+    mac = false,
+    show = { numbers: true, names: true },
+    conflicts,
     onresize,
     onmoveto,
     onnudge,
@@ -105,6 +117,17 @@
     onselectnext?: (step: 1 | -1) => void;
     /** The inline rename's commit (change 13B): editor.renameElement; the inspector's name field is the keyboard route. */
     onrename?: (id: string, name: string) => void;
+    /** A right-click on an empty cell (change 13C): the focus cell moves there, so a paste from the menu lands on it. */
+    onfocuscell?: (cell: Cell) => void;
+    /** The menu's items for the state (menu.ts), and the route's dispatch of a chosen action; rename is the plate's own. */
+    menuItems?: readonly MenuItem[];
+    onmenu?: (action: MenuAction) => void;
+    /** Cmd and Option in the menu's key hints. */
+    mac?: boolean;
+    /** The view toggles (change 13C): whether the controller numbers and the names are drawn. */
+    show?: { readonly numbers: boolean; readonly names: boolean };
+    /** The ids of every element on a shared controller (conflicts.ts): each gets a mark. */
+    conflicts?: ReadonlySet<string>;
     /** A command's outcome for the status line (the clipboard's, the lock's; change 13A), shown until the next change. */
     notice?: string;
     /** A handle drag's box on release; the route wires editor.resizeSelectedTo and the problem shows in the status line. Optional so the spec's render needs no drag. */
@@ -157,6 +180,20 @@
   const restOf = (r: Region): number =>
     springOf(r) ? springPosition(r) / 127 : REST_VALUE;
 
+  /** The controller numeral a kind shows (change 13C's toggle): a button's note by name, an XY pad's pair, a blank none. */
+  function numeralOf(r: Region): string | undefined {
+    switch (r.kind) {
+      case "blank":
+        return undefined;
+      case "button":
+        return outputOf(r) === "note" ? noteName(r.cc) : String(r.cc);
+      case "xy":
+        return `${r.cc} ${r.cc2 ?? 0}`;
+      default:
+        return String(r.cc);
+    }
+  }
+
   let plate = $state<HTMLDivElement | null>(null);
   /** The cell under the pointer, for the proposed bounds only. */
   let hover = $state<Cell | undefined>(undefined);
@@ -174,6 +211,8 @@
   let altHeld = $state(false);
   /** The inline rename in progress (change 13B), or undefined. */
   let renaming = $state<Renaming | undefined>(undefined);
+  /** The menu (change 13C): where it is open, as fractions of the plate, or undefined. */
+  let menuAt = $state<{ x: number; y: number } | undefined>(undefined);
   /** The last drag's refusal, shown until the next pointer or key or until the surface moves under it. Raw, so the identity check in `status` is against the editor's own reference. */
   let refused = $state.raw<
     { message: string; surface: EditorState["surface"] } | undefined
@@ -522,6 +561,15 @@
     altHeld = false;
   }
 
+  /** The inline rename opened over a region (the double-click's and the menu's Rename). */
+  function openRename(holder: Region): void {
+    renaming = {
+      id: holder.id,
+      name: holder.name,
+      box: { col: holder.col, row: holder.row, w: holder.w, h: holder.h },
+    };
+  }
+
   /**
    * The inline rename (change 13B): a double-click on an element with the selector opens a field
    * over it; Enter commits, Escape cancels, blur commits; never in Play. A double-click inside the
@@ -535,11 +583,66 @@
     const holder = at === undefined ? undefined : holderAt(at);
     if (holder === undefined) return;
     event.preventDefault();
-    renaming = {
-      id: holder.id,
-      name: holder.name,
-      box: { col: holder.col, row: holder.row, w: holder.w, h: holder.h },
+    openRename(holder);
+  }
+
+  /**
+   * The menu (change 13C): a right-click opens it at the pointer - on an element outside the
+   * set the element is selected alone first (the click's own rule), on an empty cell the
+   * selection stays and the focus cell moves there; never in Play, where the browser's own
+   * menu is left alone. Shift+F10 and the Menu key open it over the selection's corner, or the
+   * focus cell.
+   */
+  function oncontextmenu(event: MouseEvent): void {
+    if (play || menuItems === undefined) return;
+    event.preventDefault();
+    if (plate === null) return;
+    const at = cellOf(event);
+    if (at === undefined) return;
+    refused = undefined;
+    plate.focus({ preventScroll: true });
+    const holder = view.placement.kind === "idle" ? holderAt(at) : undefined;
+    if (holder !== undefined && !view.selection.includes(holder.id)) {
+      onclick(at.col, at.row, false, false);
+    } else if (holder === undefined) {
+      onfocuscell?.(at);
+    }
+    const rect = plate.getBoundingClientRect();
+    menuAt = {
+      x: (event.clientX - rect.left) / rect.width,
+      y: (event.clientY - rect.top) / rect.height,
     };
+  }
+
+  function openMenuByKey(): void {
+    if (play || menuItems === undefined) return;
+    const origin = group ?? {
+      col: view.focus.col,
+      row: view.focus.row,
+      w: 1,
+      h: 1,
+    };
+    menuAt = {
+      x: (origin.col + 0.5) / SURFACE_SIZE,
+      y: (origin.row + 0.5) / SURFACE_SIZE,
+    };
+  }
+
+  /** The menu closes and the plate takes focus back. */
+  function closeMenu(): void {
+    menuAt = undefined;
+    plate?.focus({ preventScroll: true });
+  }
+
+  /** A menu item chosen: Rename is the plate's own inline field; everything else is the route's. */
+  function onMenuAction(action: MenuAction): void {
+    closeMenu();
+    if (action === "rename") {
+      const r = view.selected;
+      if (r !== undefined && onrename !== undefined) openRename(r);
+      return;
+    }
+    onmenu?.(action);
   }
 
   /** The field's keys stay its own: Enter commits, Escape cancels, nothing reaches the plate's handler. */
@@ -576,6 +679,14 @@
       return;
     }
     refused = undefined;
+    if (
+      event.key === "ContextMenu" ||
+      (event.key === "F10" && event.shiftKey)
+    ) {
+      event.preventDefault();
+      openMenuByKey();
+      return;
+    }
     const arrow = ARROWS[event.key];
     if (arrow !== undefined) {
       // With the selector and a selection the arrows move the set, and with Shift resize a single
@@ -659,6 +770,7 @@
     onpointercancel={onpointerup}
     {onpointerleave}
     {ondblclick}
+    {oncontextmenu}
     {onkeydown}
     {onkeyup}
     onfocus={() => (focused = true)}
@@ -668,6 +780,17 @@
       <div class="preview" data-testid="surface-preview">
         {@render preview()}
       </div>
+    {/if}
+    {#if menuAt !== undefined && menuItems !== undefined}
+      <!-- The menu (change 13C): over the plate where the pointer was, or over the selection. -->
+      <ContextMenu
+        items={menuItems}
+        x={menuAt.x}
+        y={menuAt.y}
+        {mac}
+        onaction={onMenuAction}
+        onclose={closeMenu}
+      />
     {/if}
     {#if renaming !== undefined}
       <!-- The inline rename (change 13B): a field over the element, sized by its box in the plate's own percentages; its pointer and keys stay its own. -->
@@ -708,10 +831,14 @@
         {@const selected = view.selection.includes(r.id)}
         {@const locked = lockedOf(r)}
         {@const f = frame(r)}
+        {@const conflicted = conflicts?.has(r.id) === true}
+        {@const numeral = show.numbers ? numeralOf(r) : undefined}
         <g
           class="region"
           class:selected
           class:locked
+          class:no-numbers={!show.numbers}
+          class:no-names={!show.names}
           data-region={r.id}
           data-kind={r.kind}
           data-testid="surface-region"
@@ -906,6 +1033,46 @@
               y={chipCy + 4}
               font-size={LABEL}>OFF</text
             >
+          {/if}
+          {#if numeral !== undefined && r.kind !== "fader"}
+            <!-- The controller numeral (change 13C's toggle) on the kinds that had none: bottom-left, inside the region. -->
+            <text
+              class="numeral cc"
+              data-testid="surface-cc"
+              x={f.left + 6}
+              y={f.bottom - 6}
+              font-size={LABEL}
+              style:fill>{numeral}</text
+            >
+          {/if}
+          {#if conflicted}
+            <!-- The shared-controller mark (change 13C): a triangle of straight lines and its bar, top-left inside the region. -->
+            <g
+              class="conflict"
+              data-testid="surface-conflict"
+              aria-hidden="true"
+            >
+              <polygon
+                class="conflict-shape"
+                points="{f.left + 4 + LOCK / 2},{f.top + 4} {f.left +
+                  4 +
+                  LOCK},{f.top + 4 + LOCK} {f.left + 4},{f.top + 4 + LOCK}"
+              />
+              <line
+                class="conflict-bar"
+                x1={f.left + 4 + LOCK / 2}
+                y1={f.top + 4 + LOCK * 0.35}
+                x2={f.left + 4 + LOCK / 2}
+                y2={f.top + 4 + LOCK * 0.7}
+              />
+              <line
+                class="conflict-bar"
+                x1={f.left + 4 + LOCK / 2}
+                y1={f.top + 4 + LOCK * 0.8}
+                x2={f.left + 4 + LOCK / 2}
+                y2={f.top + 4 + LOCK * 0.92}
+              />
+            </g>
           {/if}
           {#if locked}
             <!-- The lock glyph (change 13A): a padlock of straight lines inside the top-right corner - the body a square, the shackle a square arch. -->
@@ -1201,6 +1368,25 @@
   .region .numeral {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+
+  /* The view toggles (change 13C): the numerals and the names leave the picture, nothing else moves. */
+  .region.no-numbers .numeral,
+  .region.no-names .name {
+    display: none;
+  }
+
+  /* The shared-controller mark: the ink (never the error red - a warning, not a refusal), a triangle and its bar, straight lines only. */
+  .conflict-shape {
+    fill: var(--color-ink);
+    pointer-events: none;
+  }
+
+  .conflict-bar {
+    stroke: var(--color-workspace);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
 
