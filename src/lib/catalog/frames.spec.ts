@@ -207,11 +207,13 @@ describe("catalog golden frames", () => {
     // src/lib/catalog/divergence.ts. `compared` and `excused` are both counted,
     // so a record that grew to excuse everything cannot pass as a cross-check.
     const ported = CATALOG.filter((e) => e.source.kind === "preset");
-    // Eight since plan 12-10: the `tpad` preset left the catalog when the
-    // hand-authored TRACKPAD replaced it as the card. The golden fixture still
-    // records nine, because golden-frames.spec.ts regenerates from the
-    // VENDORED shelf; the ninth row is simply not cross-checked here.
-    expect(ported.length, "there are ported entries to cross-check").toBe(8);
+    // Seven since change 12b: the `tpad` preset left the catalog at plan 12-10
+    // when the hand-authored TRACKPAD replaced it as the card, and `radar` at
+    // change 12b (2026-09-18) when the hand-authored RADAR took its id. The
+    // golden fixture still records nine, because golden-frames.spec.ts
+    // regenerates from the VENDORED shelf; those two rows are simply not
+    // cross-checked here.
+    expect(ported.length, "there are ported entries to cross-check").toBe(7);
     expect(golden.ticks, "the two fixtures sample the same ticks").toEqual([
       ...TICKS,
     ]);

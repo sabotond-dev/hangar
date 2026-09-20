@@ -10,11 +10,12 @@
 // (Phase 3 D-04, held by src/lib/fidelity/vendored-diff.spec.ts), so it will
 // never be corrected at source - which makes it the case that must go on
 // proving the transform fires against SHIPPED data. It is read through
-// byId("radar") for exactly that reason.
+// portedEntry("radar") for exactly that reason: the shelf's preset card, since
+// change 12b's hand-authored RADAR holds byId("radar") with the house apostrophe.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { describe, expect, it } from "vitest";
-import { byId } from "$lib/catalog";
+import { portedEntry } from "$lib/catalog";
 import { typographic } from "./typographic";
 
 /** U+2019 RIGHT SINGLE QUOTATION MARK, named rather than pasted. */
@@ -83,9 +84,13 @@ describe("the display apostrophe (src/lib/browse/typographic.ts)", () => {
     );
   });
 
-  it("curls Radar's vendored sentence, which is read from the shipped catalog", () => {
-    const radar = byId("radar");
-    if (radar === undefined) throw new Error("the catalog has no radar entry");
+  it("curls Radar's vendored sentence, which is read from the shelf preset", () => {
+    // The shelf card, not byId: since change 12b (2026-09-18) `byId("radar")`
+    // is the hand-authored RADAR, whose sentence is authored with the house
+    // apostrophe already; the preset card that carries the shelf's ASCII one
+    // is built by portedEntry, exactly as the catalog held it until then.
+    const radar = portedEntry("radar");
+    if (radar === undefined) throw new Error("the shelf has no radar preset");
 
     // The source of truth, unedited. If this ever stops containing a straight
     // apostrophe, somebody has edited vendored copy and this test is the alarm.

@@ -514,10 +514,12 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
         }
       }
     }
+    // Five lattice colour knobs since change 12b (2026-09-18): RADAR's colour
+    // is a Lua palette knob now, not the compiler's 4,096-position lattice.
     expect(
       checked,
       "no lattice colour knob was found on the shelf, so the count of zero below means nothing",
-    ).toBe(6 * 3 * COLOUR_RAIL_STEPS);
+    ).toBe(5 * 3 * COLOUR_RAIL_STEPS);
     expect(
       unaffordable,
       `the guard now FIRES on the shelf. 10-08 measured ninepads at ${NINEPADS_WORST} of 908 - ${NINEPADS_FREE} free - against a lattice worth six characters per copy and at most ${WORST_COPIES} copies, so twelve against ${NINEPADS_FREE}. If this is no longer zero, either the minifier got worse or a card got dearer, and docs/PIN-POLICY.md item 4 is the document that says so`,

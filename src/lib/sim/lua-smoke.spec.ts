@@ -27,6 +27,7 @@ import {
   TOUCH_LIBRARY,
   TOUCH_LIBRARY_TIMER,
 } from "../catalog/library";
+import { presetById } from "../catalog/presets";
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, previewIndices, renderLua } from "./lua-pad-sim";
@@ -143,9 +144,16 @@ async function smoke(entry: CatalogEntry): Promise<SmokeRun> {
         for (let hw = 0; hw < CELLS; hw += 1) {
           for (const layer of [0, 1, 2] as const) {
             const record = sim.layer(hw, layer);
+            // Shape 0 is the decay - a one-shot whose brightness IS its phase,
+            // so a keeper under it replaces the countdown and the cell strobes.
+            // Shape 3 is the firmware's sine, a periodic look that wraps by
+            // design: the compiler's own rings-from-centre walks it at 254
+            // under a keeper on every RADAR card, and RADAR carries that call
+            // verbatim since change 12b (2026-09-18), so the shape is read.
             if (
               record.timeout >= KEEPER_FLOOR &&
-              record.fre >= DECAY_RATE_FLOOR
+              record.fre >= DECAY_RATE_FLOOR &&
+              record.sha === 0
             ) {
               strobe = {
                 hw,
@@ -10315,6 +10323,252 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         "\n",
     );
     expect(report.length).toBe(2);
+  }, 120000);
+
+  it("runs RADAR as the compiled preset and on the DAW's clock: Internal renders the shelf preset's frame byte for byte with and without a finger and sends the first finger's raw CC pair as the preset does, External freezes the ring from the Setup and the Timer moves nothing, Start puts the ring at the centre on the first clock, a step every Division clocks, Stop halts, Continue resumes, the finger still sends, and the preview holds Internal", async () => {
+    // Change 12b (2026-09-18, BENCH-2026-09-16.txt section 12): the ported
+    // RADAR preset rebuilt by hand under its own id. The proof of the rebuild
+    // is the shelf preset itself, run natively in a PadSim over the same
+    // ticks and the same finger, compared frame for frame.
+    const entry = entryById("radar");
+    const cc = knobValueOf(entry, "send");
+    const speed = knobValueOf(entry, "speed");
+    const speedKnob = entry.knobs.find((knob) => knob.id === "speed");
+    const syncKnob = entry.knobs.find((knob) => knob.id === "sync");
+    const divisionKnob = entry.knobs.find((knob) => knob.id === "division");
+    if (!speedKnob || !syncKnob || !divisionKnob)
+      throw new Error("radar: speed, sync and division knobs expected");
+    const shelf = presetById("radar");
+    if (!shelf) throw new Error("the shelf lost the radar preset");
+    expect(shelf.state.look.speed, "the preset's default detent").toBe(speed);
+    expect(speedKnob.values.map(Number), "the preset's eight detents").toEqual([
+      1, 2, 3, 4, 6, 8, 12, 16,
+    ]);
+    const pha = (sim: PadSim, cell: number): number =>
+      sim.layer(hwOfCell(cell), 2).pha;
+    const frameOf = (bytes: Uint8Array): string =>
+      Buffer.from(bytes).toString("hex");
+    const report: string[] = [];
+
+    // INTERNAL, beside the compiled preset. The same ticks, the same finger on
+    // LED (4,4) then (6,2), the same lift; every frame equal.
+    {
+      const native = new PadSim(shelf.state);
+      const { host, sim } = await openSynced(entry, {});
+      try {
+        expect(host.rxMode, "Internal leaves MIDIRTM unrouted").toBe(0);
+        expect(sim.layer(hwOfCell(40), 2).fre, "the walk at 256-@SPEED").toBe(
+          256 - speed,
+        );
+        expect(pha(sim, 40), "the centre starts at phase 0").toBe(0);
+        expect(pha(sim, 41), "ring 1 east at 45").toBe(45);
+        const ticks = [0, 1, 37, 64, 101, 128, 300];
+        let at = 0;
+        for (const tick of ticks) {
+          host.run(tick - at);
+          native.run(tick - at);
+          at = tick;
+          expect(
+            frameOf(host.frame),
+            `tick ${tick}: the Lua card renders the preset's frame`,
+          ).toBe(frameOf(native.frame));
+        }
+        expect(host.midi, "nothing sent with no finger").toHaveLength(0);
+        // The first finger: press dead on LED (4,4), move to (6,2), lift. The
+        // wire is the compiler's xy emitter: the RAW pair on press and on every
+        // move, X on @CC and Y on @CC+1, channel 0, nothing on the lift.
+        const x0 = ledCentre(4, "x");
+        const y0 = ledCentre(4, "y");
+        const x1 = ledCentre(6, "x");
+        const y1 = ledCentre(2, "y");
+        host.touchDown(0, x0, y0);
+        native.touchDown(0, x0, y0);
+        host.run(1);
+        native.run(1);
+        expect(wire(host.midi, 0), "the press sends the raw pair").toEqual([
+          `0:176:${cc}:${x0}`,
+          `0:176:${cc + 1}:${y0}`,
+        ]);
+        expect(
+          frameOf(host.frame),
+          "under a finger the Lua card renders the preset's frame",
+        ).toBe(frameOf(native.frame));
+        host.touchMove(0, x1, y1);
+        native.touchMove(0, x1, y1);
+        host.run(1);
+        native.run(1);
+        expect(wire(host.midi, 2), "the move sends the raw pair").toEqual([
+          `0:176:${cc}:${x1}`,
+          `0:176:${cc + 1}:${y1}`,
+        ]);
+        // A second finger while the first is held: the preset's `fingers:
+        // "first"` - nothing on the wire from it.
+        host.touchDown(1, x0, y0);
+        native.touchDown(1, x0, y0);
+        host.run(1);
+        native.run(1);
+        expect(host.midi, "the second finger sends nothing").toHaveLength(4);
+        host.touchUp(1, x0, y0);
+        native.touchUp(1, x0, y0);
+        host.touchUp(0, x1, y1);
+        native.touchUp(0, x1, y1);
+        host.run(1);
+        native.run(1);
+        expect(host.midi, "the lift sends nothing").toHaveLength(4);
+        expect(
+          frameOf(host.frame),
+          "after the lift the Lua card renders the preset's frame",
+        ).toBe(frameOf(native.frame));
+        host.run(60);
+        native.run(60);
+        expect(
+          frameOf(host.frame),
+          "sixty ticks on, the comet's decay agrees byte for byte",
+        ).toBe(frameOf(native.frame));
+        // After the release a new first finger claims the stream again.
+        host.touchDown(2, x1, y1);
+        host.run(1);
+        expect(wire(host.midi, 4), "the next finger claims the pair").toEqual([
+          `0:176:${cc}:${x1}`,
+          `0:176:${cc + 1}:${y1}`,
+        ]);
+        host.touchUp(2, x1, y1);
+        host.run(1);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          `  Internal: frames equal to the shelf preset's PadSim at ticks ${ticks.join(", ")}, under the finger, after the lift and sixty ticks on; the press and the move sent CC ${cc} / ${cc + 1} raw on channel 0, the second finger and the lift nothing, the next finger claimed the pair`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // EXTERNAL: the Setup freezes the walk (fre 0), the ring waits at the
+    // centre; the clock steps it eight times a ring; the finger is unaffected.
+    {
+      const { host, sim } = await openSynced(entry, { sync: 1 });
+      try {
+        expect(host.rxMode, "External asks grxm(2,3)").toBe(3);
+        expect(sim.layer(hwOfCell(40), 2).fre, "the walk is frozen").toBe(0);
+        expect(pha(sim, 40)).toBe(0);
+        expect(pha(sim, 41)).toBe(45);
+        host.run(300);
+        expect(pha(sim, 40), "300 Timer ticks move nothing").toBe(0);
+        expect(pha(sim, 41)).toBe(45);
+        expect(host.selfNumber("k"), "no step yet").toBe(0);
+        for (let n = 0; n < 12; n += 1)
+          expect(host.rtm(CLOCK), "the handler exists").toBe(true);
+        expect(pha(sim, 40), "clocks before Start move nothing").toBe(0);
+        expect(host.selfNumber("k")).toBe(0);
+        // Start: the step lives in the Setup, so the very first clock steps -
+        // step 0 is the rest picture, the ring at the centre.
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(
+          host.selfNumber("k"),
+          "the first clock after Start is step 0",
+        ).toBe(1);
+        expect(pha(sim, 40), "step 0 is the rest picture").toBe(0);
+        expect(pha(sim, 41)).toBe(45);
+        for (let n = 0; n < 6; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "the seventh clock is step 1").toBe(2);
+        expect(pha(sim, 40), "the centre walked 32").toBe(224);
+        expect(pha(sim, 41), "ring 1 east walked 32").toBe(13);
+        expect(sim.layer(hwOfCell(40), 2).fre, "glp leaves the rate at 0").toBe(
+          0,
+        );
+        const before = host.midi.length;
+        host.run(200);
+        expect(pha(sim, 40), "200 Timer ticks move nothing").toBe(224);
+        expect(host.midi.length, "nor send").toBe(before);
+        // The finger under External: the same pair, the mode changes nothing.
+        const x0 = ledCentre(4, "x");
+        const y0 = ledCentre(4, "y");
+        host.touchDown(0, x0, y0);
+        host.run(1);
+        host.touchUp(0, x0, y0);
+        host.run(1);
+        expect(
+          wire(host.midi, before),
+          "the finger still sends its pair",
+        ).toEqual([`0:176:${cc}:${x0}`, `0:176:${cc + 1}:${y0}`]);
+        // Stop halts: clocks and active sensing move nothing.
+        host.rtm(STOP);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        host.rtm(SENSING);
+        for (let n = 0; n < 12; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "Stop halts the ring").toBe(2);
+        expect(pha(sim, 40), "where it stopped").toBe(224);
+        // Continue keeps the count: seven clocks were counted since Start
+        // (q = 7), so the sixth clock on is q = 12 and lands step 2.
+        host.rtm(CONTINUE);
+        expect(host.selfNumber("q"), "Continue keeps the clock count").toBe(7);
+        for (let n = 0; n < 5; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "five clocks on: not yet stepped").toBe(2);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "step 2").toBe(3);
+        expect(pha(sim, 40), "the centre walked 64").toBe(192);
+        // Eight steps a ring: six more steps walk k through 3..7 and 0, and
+        // the picture back to rest; `s.k` reads k+1 with k taken %8, so 1.
+        for (let n = 0; n < 6 * 6; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "eight steps a ring").toBe(1);
+        expect(pha(sim, 40), "step 0 again: the rest picture").toBe(0);
+        expect(pha(sim, 41)).toBe(45);
+        // Start again: the ring is back at the centre on the clock.
+        for (let n = 0; n < 6 * 3; n += 1) host.rtm(CLOCK);
+        expect(pha(sim, 40), "three steps in").toBe(160);
+        host.rtm(START);
+        expect(host.selfNumber("k"), "Start resets the step").toBe(0);
+        host.rtm(CLOCK);
+        expect(pha(sim, 40), "and the clock puts the ring at the centre").toBe(
+          0,
+        );
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        report.push(
+          "  External at the 16th: the walk frozen from the Setup, 300 and 200 Timer ticks moved nothing, step 0 on the first clock after Start (the step is a Setup local, so no first-period caveat), the centre at 224 on the seventh, the finger's pair unchanged, Stop held it at 224, Continue went on from clock 7 to 192 on the sixth, eight steps wrapped to the rest picture, Start put the ring back at the centre",
+        );
+      } finally {
+        host.close();
+      }
+    }
+
+    // Division 12 and 3: twelve and three clocks a step.
+    for (const [division, clocks] of [
+      [0, 12],
+      [2, 3],
+    ] as const) {
+      const { host, sim } = await openSynced(entry, { sync: 1, division });
+      try {
+        host.rtm(START);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("k")).toBe(1);
+        for (let n = 0; n < clocks; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), `${clocks} clocks a step`).toBe(2);
+        expect(pha(sim, 40)).toBe(224);
+        for (let n = 0; n < clocks - 1; n += 1) host.rtm(CLOCK);
+        expect(host.selfNumber("k"), "one short of the next").toBe(2);
+        host.rtm(CLOCK);
+        expect(host.selfNumber("k")).toBe(3);
+        report.push(
+          `  Division ${clocks} clocks a step: steps at clocks 1, ${1 + clocks}, ${1 + 2 * clocks} after Start`,
+        );
+      } finally {
+        host.close();
+      }
+    }
+    expect(
+      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+    ).toEqual(["Internal", "External"]);
+    expect(
+      divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
+    ).toEqual(["8th", "16th", "32nd"]);
+    expect(previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync).toBe(0);
+    process.stdout.write(
+      "\nRADAR as the compiled preset and on the DAW's clock (change 12b, 2026-09-18):\n" +
+        report.join("\n") +
+        "\n",
+    );
+    expect(report.length).toBe(4);
   }, 120000);
 });
 

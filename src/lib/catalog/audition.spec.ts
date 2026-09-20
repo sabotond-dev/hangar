@@ -106,8 +106,12 @@ const flat = doc.replace(/\s+/g, " ");
  * three more cards - row 35 Steps, row 36 Radar points, row 37 Ghost - Sync and
  * Division each; the cost rows move 414 / 258 / 6 -> 720 / 359 / 8, 592 / 286 / 5 ->
  * 891 / 378 / 7 and 486 / 405 / 5 -> 725 / 480 / 7; every earlier row untouched.
+ *
+ * 37 -> 38 on 2026-09-18 (section 12, change 12b): RADAR rebuilt by hand under its
+ * own id with Sync and Division - row 38 Radar; a new cost row 758 / 50 / 5 and a
+ * dated paragraph after the table; row 28's "eight preset cards" left as written.
  */
-const ROW_COUNT = 37;
+const ROW_COUNT = 38;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

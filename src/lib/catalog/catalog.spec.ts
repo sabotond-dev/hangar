@@ -58,10 +58,14 @@ const presetIds = PRESETS.map((p) => p.id);
  * Trackpad": the hand-authored TRACKPAD (`trackpad`) is the one trackpad card
  * and the `tpad` preset left the catalog. It did NOT leave the shelf -
  * presets.spec.ts still holds all nine against the vendored nine - so the
- * ported entries are the vendored ids minus exactly this one, and a second
- * name here would be a second decision somebody has to make in a plan.
+ * ported entries are the vendored ids minus exactly these, and a further
+ * name here is a decision somebody has made in a plan. The second, `radar`,
+ * is change 12b's (2026-09-18, BENCH-2026-09-16.txt section 12, the user's
+ * answer "2"): the hand-authored entries/radar.ts took the preset's id so no
+ * shared link dies, and the preset stays on the shelf for the suites that run
+ * the compiled card.
  */
-const SHELF_NOT_CARDED: readonly string[] = ["tpad"];
+const SHELF_NOT_CARDED: readonly string[] = ["tpad", "radar"];
 const cardedPresetIds = presetIds.filter(
   (id) => !SHELF_NOT_CARDED.includes(id),
 );
@@ -195,13 +199,17 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     ).toBeLessThan(compared);
   });
 
-  it("carries eight of the nine shelf presets, each exactly once, and names the ninth", () => {
+  it("carries seven of the nine shelf presets, each exactly once, and names the other two", () => {
     expect(PRESETS.length, "the vendored shelf").toBe(9);
     for (const id of SHELF_NOT_CARDED) {
       expect(presetIds, `${id} is a real shelf preset`).toContain(id);
-      expect(byId(id), `${id} is not a catalog card`).toBeUndefined();
+      // tpad is no card at all; radar is a Lua card under the preset's id.
+      expect(
+        byId(id)?.source.kind,
+        `${id} is not a PRESET catalog card`,
+      ).not.toBe("preset");
     }
-    expect(cardedPresetIds.length, "eight carded").toBe(8);
+    expect(cardedPresetIds.length, "seven carded").toBe(7);
     const carried = presetEntries.map((e) =>
       e.source.kind === "preset" ? e.source.presetId : "",
     );
@@ -214,6 +222,10 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     expect(PRESETS.length, "the vendored PRESETS array is still nine").toBe(9);
     for (const entry of CATALOG) {
       if (entry.source.kind === "preset") continue;
+      // A hand-authored entry may hold a shelf id ONLY when the shelf card is
+      // declared not carded above (radar, change 12b: the rebuild keeps the
+      // address); any other collision is the shelf being extended.
+      if (SHELF_NOT_CARDED.includes(entry.id)) continue;
       expect(
         presetIds.includes(entry.id),
         `${entry.id}: a non-preset entry must not take a shelf preset's id`,

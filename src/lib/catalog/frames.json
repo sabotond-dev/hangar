@@ -98,38 +98,6 @@
         "animating": true
       }
     ],
-    "radar": [
-      {
-        "tick": 0,
-        "sha256": "b6a217ec5f1d32b1f974ea198d8a47fad07e88aa875e874fdbc322f0400e2f60",
-        "nonZeroBytes": 126,
-        "animating": true
-      },
-      {
-        "tick": 37,
-        "sha256": "65fb77d7ac5d26ab319ea7e011a65742eff880a26c5b3944acf524145dd78814",
-        "nonZeroBytes": 157,
-        "animating": true
-      },
-      {
-        "tick": 101,
-        "sha256": "69c25ba36f92151da86ce0022551de99a5bc5e90024d6c8ce1028bf97d98ed68",
-        "nonZeroBytes": 134,
-        "animating": true
-      },
-      {
-        "tick": 500,
-        "sha256": "9b3bfcedcdfe454e0c9916be6a8ea99bf482dc5696b29f70f5914b38266f9813",
-        "nonZeroBytes": 142,
-        "animating": true
-      },
-      {
-        "tick": 1009,
-        "sha256": "33df3d3981ae686359ab17a59a6290feb67b82b234446e1cd73968787310afda",
-        "nonZeroBytes": 146,
-        "animating": true
-      }
-    ],
     "joystick": [
       {
         "tick": 0,
@@ -863,6 +831,38 @@
         "tick": 1009,
         "sha256": "e359325e557e4cf3ab0972ffbdcb10c51624ab4c41a0b1b31867cc7bd124e695",
         "nonZeroBytes": 0,
+        "animating": true
+      }
+    ],
+    "radar": [
+      {
+        "tick": 0,
+        "sha256": "b6a217ec5f1d32b1f974ea198d8a47fad07e88aa875e874fdbc322f0400e2f60",
+        "nonZeroBytes": 126,
+        "animating": true
+      },
+      {
+        "tick": 37,
+        "sha256": "65fb77d7ac5d26ab319ea7e011a65742eff880a26c5b3944acf524145dd78814",
+        "nonZeroBytes": 157,
+        "animating": true
+      },
+      {
+        "tick": 101,
+        "sha256": "69c25ba36f92151da86ce0022551de99a5bc5e90024d6c8ce1028bf97d98ed68",
+        "nonZeroBytes": 134,
+        "animating": true
+      },
+      {
+        "tick": 500,
+        "sha256": "9b3bfcedcdfe454e0c9916be6a8ea99bf482dc5696b29f70f5914b38266f9813",
+        "nonZeroBytes": 142,
+        "animating": true
+      },
+      {
+        "tick": 1009,
+        "sha256": "33df3d3981ae686359ab17a59a6290feb67b82b234446e1cd73968787310afda",
+        "nonZeroBytes": 146,
         "animating": true
       }
     ]

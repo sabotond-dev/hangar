@@ -157,6 +157,25 @@ const DECLARED_EXCEPTIONS: readonly DeclaredException[] = [
       " TRACKPAD COMET carries the same Setup byte for byte (2026-09-17, " +
       "BENCH-2026-09-16.txt section 4), so the row is declared for it too.",
   })),
+  {
+    // RADAR (change 12b, 2026-09-18, BENCH-2026-09-16.txt section 12): the
+    // ported preset rebuilt by hand, its compiled callback carried verbatim.
+    entry: "radar",
+    event: "setup",
+    rule: "ended",
+    branch: F("if ", V, EQ, "3 ", OR, " ", V, GE, "5"),
+    reason:
+      "The vendored compiler's first-finger release, reached only inside " +
+      "`if i==s.f then` AFTER the claim " +
+      F("if(", V, EQ, "4 ", OR, " ", V, EQ, "9)and not s.f") +
+      " and the send on 1 / 4 / >8 in the same pass. A code 9 is therefore " +
+      "claimed as the first finger, its pair sent, and released, all in " +
+      "one call - which is what makes a fast tap send exactly one pair and " +
+      "leave no finger claimed. Adding `and e<9` here would leave `s.f` " +
+      "held after a tap, so the next finger could never claim the stream. " +
+      "The text is `_pad.ts`'s xy emitter as it compiles on every preset " +
+      "card, carried byte for byte into a hand-authored entry by change 12b.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -444,7 +463,9 @@ describe("the fast-tap guard", () => {
     // because of the pass around it. Tests 1 and 2 print all three.
     // 4 -> 7: TRACKPAD COMET's three (2026-09-17), TRACKPAD's rows mapped
     // onto the second id because the Setup is the same string.
-    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(7);
+    // 7 -> 8: RADAR's one (change 12b, 2026-09-18) - the compiler's xy
+    // emitter's first-finger release, carried verbatim into the Lua card.
+    expect(DECLARED_EXCEPTIONS.length, "the declared false positives").toBe(8);
     expect(
       DECLARED_EXCEPTIONS.filter((row) => row.entry === "trackpad").length,
       "trackpad's rows: two ended, one started",

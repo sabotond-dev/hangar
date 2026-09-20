@@ -86,12 +86,14 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
 
   it("two thousand draws per compiler-driven entry, every one inside 908", () => {
     const entries = compilerEntries();
-    // Eight since plan 12-10: the `tpad` preset is on the shelf but not in
-    // the catalog (the hand-authored TRACKPAD replaced it as the card), and
-    // SURPRISE ME draws over catalog cards. Its 512-state cross-product was
-    // never the one that could land over budget - it has no colour knob and
-    // tops out at 907 - so the property below loses no witness.
-    expect(entries.length, "no compiler-driven entry was read").toBe(8);
+    // Seven since change 12b: the `tpad` preset is on the shelf but not in
+    // the catalog (the hand-authored TRACKPAD replaced it as the card, plan
+    // 12-10), and so is `radar` since 2026-09-18 (the hand-authored RADAR took
+    // its id); SURPRISE ME draws over catalog cards. tpad's 512-state
+    // cross-product was never the one that could land over budget - it has no
+    // colour knob and tops out at 907 - and RADAR's is drawn as a Lua entry
+    // below, so the property loses no witness.
+    expect(entries.length, "no compiler-driven entry was read").toBe(7);
 
     let draws = 0;
     let distinct = 0;
@@ -413,7 +415,6 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       excluded,
       "the excluded set moved - a knob was added, renamed or re-labelled onto or off the wire; update 13-10-SUMMARY.md's list with it",
     ).toEqual([
-      "radar: send",
       "joystick: send",
       "ninepads: channel",
       "faders: send, channel",
@@ -433,6 +434,9 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "pomodoro: channel",
       "wheels: cc, channel",
       "radar-points: channel",
+      // Last since change 12b (2026-09-18): RADAR is the last Lua entry in
+      // CATALOG now; the same knob, the same id, a Lua palette rack.
+      "radar: send",
     ]);
     expect(entries, "twenty entries carry a MIDI destination").toBe(20);
     expect(

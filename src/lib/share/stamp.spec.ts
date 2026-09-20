@@ -27,7 +27,13 @@ import {
   STAMP_PREFIX,
   encodeStamp,
 } from "../../vendor/botor/_pad";
-import { CATALOG, byId, type CatalogEntry, type LuaKnob } from "../catalog";
+import {
+  CATALOG,
+  byId,
+  portedEntry,
+  type CatalogEntry,
+  type LuaKnob,
+} from "../catalog";
 import { baseStateFor } from "../tune/state";
 import WILD_STAMPS from "./fixtures/wild-stamps.json" with { type: "json" };
 import {
@@ -374,6 +380,50 @@ describe("the stamp: the entry-consistency check", () => {
     expect(
       decodeFor(orbit, "paurora"),
       "a preset stamp under a Lua entry must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+
+    // RADAR, change 12b (2026-09-18, BENCH-2026-09-16.txt section 12): the
+    // ported preset rebuilt as a Lua card under the SAME id, so every link
+    // shared while it was a preset card - its base-card `pradar` and any tuned
+    // BOTOR stamp of its three knobs - now arrives under the Lua route. Both
+    // land unreadable and open the card at its defaults: never restored with a
+    // rack it does not have, never older (a shape it never had). The shelf
+    // preset still encodes them, through portedEntry, so the assertion reads
+    // real stamps rather than typed ones.
+    const radar = entry("radar");
+    expect(radar.preview, "RADAR is a Lua card since change 12b").toBe("lua");
+    const shelfRadar = portedEntry("radar");
+    if (!shelfRadar || shelfRadar.source.kind !== "preset")
+      throw new Error("the shelf lost the radar preset");
+    expect(
+      encodeStamp(baseStateFor(shelfRadar)),
+      "the shelf card's own base-card link",
+    ).toBe("pradar");
+    expect(
+      decodeFor(radar, "pradar"),
+      "an old RADAR base-card link under the Lua card must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+    const oldTuned = encodeFor(shelfRadar, tunedOf(shelfRadar));
+    if (typeof oldTuned !== "string") throw new Error("radar did not encode");
+    expect(
+      HANGAR_FORMAT_LETTERS,
+      "a BOTOR payload, not a HANGAR format letter",
+    ).not.toContain(oldTuned[0]);
+    expect(
+      decodeFor(radar, oldTuned),
+      "an old tuned RADAR link under the Lua card must be unreadable",
+    ).toEqual({ kind: "unreadable" });
+    // And the Lua card's own tuned stamp, which the old preset card could not
+    // have read either: the two routes stay symmetric under one id.
+    const newTuned = encodeFor(radar, tunedOf(radar));
+    if (typeof newTuned !== "string") throw new Error("radar did not encode");
+    expect(
+      newTuned[0],
+      "the Lua card emits format w (it has a colour knob)",
+    ).toBe(HANGAR_FORMAT_LUA_COLOUR);
+    expect(
+      decodeFor(shelfRadar, newTuned),
+      "the Lua card's stamp under the shelf preset must be unreadable",
     ).toEqual({ kind: "unreadable" });
   });
 });

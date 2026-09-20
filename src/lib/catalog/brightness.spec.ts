@@ -334,8 +334,10 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
         }
       }
     }
-    expect(PRESET_ENTRIES.length, "the eight presets").toBe(8);
-    expect(presetStateCount).toBeGreaterThan(8 * 2);
+    // Seven since change 12b (2026-09-18): RADAR is a Lua entry now, its ring
+    // colour a palette knob the Lua walk above already covers.
+    expect(PRESET_ENTRIES.length, "the seven presets").toBe(7);
+    expect(presetStateCount).toBeGreaterThan(7 * 2);
     expect(presetSites).toBeGreaterThan(0);
     process.stdout.write(
       `\nBRIGHTNESS COVERAGE: ${LUA_ENTRIES.length} Lua entries x ${luaStates} states, ${luaSites} colour arguments (${Object.entries(

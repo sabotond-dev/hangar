@@ -118,17 +118,6 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "padsim",
   },
   {
-    id: "radar",
-    name: "Radar",
-    description:
-      "Rings roll out from the centre, and the pad sends your finger's position to your computer.",
-    motion: "animated",
-    tags: ["modulation", "generative", "expressive"],
-    featured: false,
-    restsBlack: false,
-    preview: "padsim",
-  },
-  {
     id: "joystick",
     name: "Joystick",
     description:
@@ -464,6 +453,25 @@ export const LISTING: readonly ListingEntry[] = [
     tags: ["pointing", "precise", "still"],
     featured: false,
     restsBlack: true,
+    preview: "lua",
+  },
+  {
+    id: "radar",
+    name: "Radar",
+    description:
+      "Rings roll out from the centre, and the pad sends your finger’s position to your computer.",
+    // ANIMATED, read off frames.json: the firmware's phase walk on layer 2,
+    // the compiled preset's own loop carried into a hand-authored card at
+    // change 12b (2026-09-18, BENCH-2026-09-16.txt section 12) so the ring can
+    // step on the DAW's clock. The tags and the fact are the ported card's,
+    // unchanged; the sentence is the preset's with the house apostrophe (a
+    // hand-authored string is held to copy.spec.ts's punctuation), and
+    // `preview` moved, so the card now loads the Lua VM on first
+    // intersection like every hand-authored entry.
+    motion: "animated",
+    tags: ["modulation", "generative", "expressive"],
+    featured: false,
+    restsBlack: false,
     preview: "lua",
   },
 ];

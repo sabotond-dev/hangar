@@ -18,6 +18,7 @@ import { ORBIT } from "./entries/orbit";
 import { POMODORO } from "./entries/pomodoro";
 import { PORTED } from "./entries/ported";
 import { QUADRANT } from "./entries/quadrant";
+import { RADAR } from "./entries/radar";
 import { RADAR_POINTS } from "./entries/radar-points";
 import { SNAKE } from "./entries/snake";
 import { SONAR } from "./entries/sonar";
@@ -47,13 +48,15 @@ export type {
 // Hand-authored Lua entries are appended here as they are authored: Phase 8's
 // seven first (EUCLID, the first of them, is ORBIT since change 8, 2026-09-18), then Phase 9's twenty in the order their waves land, then
 // TRACKPAD COMET (2026-09-17, BENCH-2026-09-16.txt section 4) after TRACKPAD,
-// whose recipe it carries.
+// whose recipe it carries, then RADAR (change 12b, 2026-09-18, section 12), the
+// ported preset rebuilt by hand for the clock idiom.
 //
-// PORTED is EIGHT of the nine shelf presets since plan 12-10: the `tpad`
-// preset left the catalog when TRACKPAD, the last entry below, replaced it
-// as the one trackpad card under the user's answer "selectable tuning
-// options under Trackpad". The preset itself stays on the shelf in
-// ./presets.ts as the compiler's over-budget fixture; see entries/ported.ts.
+// PORTED is SEVEN of the nine shelf presets since change 12b: the `tpad`
+// preset left the catalog at plan 12-10 when TRACKPAD replaced it as the one
+// trackpad card under the user's answer "selectable tuning options under
+// Trackpad", and `radar` left at change 12b when the hand-authored RADAR, the
+// last entry below, took its id. Both presets stay on the shelf in ./presets.ts
+// (tpad as the compiler's over-budget fixture); see entries/ported.ts.
 export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   ...PORTED,
   ORBIT,
@@ -75,6 +78,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   RADAR_POINTS,
   TRACKPAD,
   TRACKPAD_COMET,
+  RADAR,
 ]);
 
 export { ORBIT } from "./entries/orbit";
@@ -96,6 +100,7 @@ export { WHEELS } from "./entries/wheels";
 export { RADAR_POINTS } from "./entries/radar-points";
 export { TRACKPAD } from "./entries/trackpad";
 export { TRACKPAD_COMET } from "./entries/trackpad-comet";
+export { RADAR } from "./entries/radar";
 export { portedEntry } from "./entries/ported";
 
 /** The one lookup. Returns undefined for an id no entry claims. */
