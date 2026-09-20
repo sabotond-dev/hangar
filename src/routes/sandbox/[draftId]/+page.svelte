@@ -633,6 +633,7 @@
       onoutput={(output) => editor?.setOutput(output)}
       ongroup={(group) => editor?.setGroup(group)}
       ontouches={(touches) => void editor?.setTouches(touches)}
+      onlocked={(locked) => editor?.setLocked(locked)}
       oncolour={(colour) => editor?.setColour(colour)}
       onbrightness={(next) => editor?.setBrightness(next)}
       onduplicate={duplicate}

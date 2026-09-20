@@ -1,14 +1,13 @@
 <!--
-  SELECTED ELEMENT: PDF page 3's right column in Inspector.svelte's panel - the
-  eyebrow and the name, the units chip, Element name, the type as a plain label
-  (change 10A) and Orientation on a fader, Behavior (change 10B: a fader's Mode /
-  Speed / Spring, an XY pad's Mode / Speed and its Touches (change 11), a button's
-  Toggle / Group, a knob's Mode), MIDI output (the controllers, the channel, Min and Max; a button's Output
-  and its Note; not on a blank), Appearance through Swatch.svelte, then the pinned
-  Duplicate / Delete element. Props: view, the callbacks, notice. Every typed edit
-  goes through the editor and the previous valid value survives a refusal (the
-  refused text stays with aria-invalid until a keystroke validates; blur and Enter
-  are oncommit); every select and checkbox is one entry. The grid reflows at NUMERIC_GRID_REFLOW (D-21). In Play every field is read-only with PLAY_LOCKS_FIELDS.
+  SELECTED ELEMENT(S): PDF page 3's right column in Inspector.svelte's panel - the eyebrow and
+  the name (a count over a set, change 13A), the units chip, Element name (single only), the type
+  as a plain label and Orientation on faders, Locked (a checkbox; the plate refuses a locked
+  element's move, resize and delete), Behavior (Mode / Speed / Spring, Touches, Toggle / Group,
+  a knob's Mode - only when every selected element is that kind), MIDI output (the controllers
+  single only; Channel, Min and Max shared; a button's Output and Note; not with a blank),
+  Appearance through Swatch.svelte, then the pinned Duplicate / Delete. Over a set a field whose
+  values differ reads MIXED (a placeholder, a blank option, a mixed checkbox) and a value typed or
+  chosen writes every member as one entry; a refusal on any member refuses the whole edit inline. In Play every field is read-only.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -38,14 +37,18 @@
     KIND_LABELS,
     KNOB_MODE_WORDS,
     KNOB_RELATIVE_HELPER,
+    LOCKED,
+    LOCKED_HELPER,
     MAX,
     MIDI_OUTPUT,
     MIN,
     MIN_MAX_HELPER,
+    MIXED,
     MODE,
     MODE_ABSOLUTE,
     MODE_HELPER,
     MODE_RELATIVE,
+    MULTI_LEDE,
     NOTE_HELPER,
     NOTE_NUMBER,
     NO_SELECTION_EYEBROW,
@@ -59,6 +62,7 @@
     OUTPUT_NOTE,
     PLAY_LOCKS_FIELDS,
     SELECTED_ELEMENT,
+    SELECTED_ELEMENTS,
     SPEED,
     SPEED_FULL,
     SPEED_HALF,
@@ -71,6 +75,8 @@
     TOUCHES,
     TOUCHES_HELPER,
     TYPE,
+    deleteElements,
+    elementsLine,
     groupWord,
     unitsChip,
   } from "$lib/sandbox/copy";
@@ -89,6 +95,7 @@
     TOUCHES_MAX,
     groupOf,
     isRelative,
+    lockedOf,
     modeOf,
     orientationOf,
     outputOf,
@@ -97,6 +104,7 @@
     touchesOf,
     type ButtonOutput,
     type Orientation,
+    type Region,
     type RegionMode,
     type Speed,
   } from "$lib/sandbox/model";
@@ -121,6 +129,7 @@
     onoutput,
     ongroup,
     ontouches,
+    onlocked,
     oncolour,
     onbrightness,
     onduplicate,
@@ -144,6 +153,8 @@
     ongroup?: (group: number) => void;
     /** An XY pad's touch count, 1..5 (change 11); the editor refuses a count the controllers cannot carry. */
     ontouches?: (touches: number) => void;
+    /** The lock (change 13A): the set locked or unlocked, one entry. */
+    onlocked?: (locked: boolean) => void;
     /** Three RGB444 levels from the picker. */
     oncolour: (colour: readonly [number, number, number]) => void;
     /** The whole surface's brightness, 1..255 (change 5); 255 to reset. */
@@ -164,6 +175,7 @@
   const outputId = `${uid}-output`;
   const groupId = `${uid}-group`;
   const touchesId = `${uid}-touches`;
+  const lockedId = `${uid}-locked`;
   const lockId = `${uid}-lock`;
   const orientationProblemId = `${uid}-orientation-problem`;
   const touchesProblemId = `${uid}-touches-problem`;
@@ -181,17 +193,36 @@
     note: "note",
   };
 
+  /** The set (change 13A): `region` is the one element while the set has one; `any` and `multi` size it. */
+  const members = $derived(view.selectedRegions);
+  const any = $derived(members.length > 0);
+  const multi = $derived(members.length > 1);
   const region = $derived(view.selected);
+  /** The kind every member is, or undefined over a mixed set: the kind-specific fields hang off it. */
+  const sharedKind = $derived(
+    any && members.every((r) => r.kind === members[0].kind)
+      ? members[0].kind
+      : undefined,
+  );
+  /** A reading every member agrees on, or undefined - MIXED - when they differ. */
+  function shared<T>(read: (r: Region) => T): T | undefined {
+    if (members.length === 0) return undefined;
+    const first = read(members[0]);
+    return members.every((r) => read(r) === first) ? first : undefined;
+  }
   const play = $derived(view.mode === "play");
   const lock = $derived(play ? lockId : undefined);
   /** The surface's brightness (change 5): one field, shown with or without a selection. */
   const brightness = $derived(brightnessOf(view.surface.brightness));
 
-  /** The swatch's one knob: the region's colour at its lattice position. */
+  /** The swatch's one knob: the first member's colour at its lattice position (a set that differs says so beneath). */
   const colourKnobs = $derived(
-    region === undefined
-      ? []
-      : [colourKnobView(region.colour, DEFAULT_COLOUR, COLOUR_LABEL)],
+    any
+      ? [colourKnobView(members[0].colour, DEFAULT_COLOUR, COLOUR_LABEL)]
+      : [],
+  );
+  const colourMixed = $derived(
+    multi && shared((r) => r.colour.join(",")) === undefined,
   );
   const noHeld: ReadonlySet<string> = new Set();
 
@@ -218,14 +249,13 @@
 
   const sections = $derived.by((): InspectorSection[] => {
     // No selection: the surface's own Appearance (the brightness) and nothing else.
-    if (region === undefined)
-      return [{ title: APPEARANCE, content: appearance }];
+    if (!any) return [{ title: APPEARANCE, content: appearance }];
     const out: InspectorSection[] = [];
-    // Every sending kind has a Behavior since change 10B; a blank has none.
-    if (region.kind !== "blank")
+    // Every sending kind has a Behavior since change 10B; a blank has none, and a set has one only when every member is one kind.
+    if (sharedKind !== undefined && sharedKind !== "blank")
       out.push({ title: BEHAVIOR, content: behavior });
-    // A blank sends nothing: no MIDI output section (change 10A).
-    if (region.kind !== "blank")
+    // A blank sends nothing: no MIDI output section (change 10A), and none with a blank in the set.
+    if (!members.some((r) => r.kind === "blank"))
       out.push({ title: MIDI_OUTPUT, content: midi });
     out.push({ title: APPEARANCE, content: appearance });
     return out;
@@ -233,10 +263,12 @@
 </script>
 
 {#snippet headline()}
-  {#if region === undefined}
-    {NO_SELECTION_HEADLINE}
-  {:else}
+  {#if region !== undefined}
     <span data-testid="inspector-name">{region.name}</span>
+  {:else if multi}
+    <span data-testid="inspector-count">{elementsLine(members.length)}</span>
+  {:else}
+    {NO_SELECTION_HEADLINE}
   {/if}
 {/snippet}
 
@@ -250,6 +282,7 @@
 
 {#snippet numeric(field: NumericField, label: string)}
   {@const problem = view.fields[field]}
+  {@const mixed = view.mixed.includes(field) && problem === undefined}
   <div class="field" class:invalid={problem !== undefined}>
     <label class="label type-helper" for={fieldId(field)}>{label}</label>
     <input
@@ -265,6 +298,8 @@
       aria-readonly={play}
       aria-invalid={problem !== undefined}
       aria-describedby={problem !== undefined ? messageId(field) : lock}
+      placeholder={mixed ? MIXED : undefined}
+      data-mixed={mixed || undefined}
       oninput={(event) => onnumber(field, event.currentTarget.value)}
       onblur={oncommit}
       {onkeydown}
@@ -285,16 +320,20 @@
   id: string,
   testid: string,
   label: string,
-  checked: boolean,
+  checked: boolean | undefined,
   onchange: (checked: boolean) => void,
 )}
+  <!-- A checkbox whose members differ (change 13A) is neither: mixed for assistive technology, indeterminate on screen. -->
   <div class="check">
     <input
       class="checkbox"
       {id}
       type="checkbox"
       data-testid={testid}
-      {checked}
+      checked={checked === true}
+      indeterminate={checked === undefined}
+      aria-checked={checked === undefined ? "mixed" : undefined}
+      data-mixed={checked === undefined || undefined}
       disabled={play}
       aria-describedby={lock}
       onchange={(event) => onchange(event.currentTarget.checked)}
@@ -303,8 +342,18 @@
   </div>
 {/snippet}
 
+{#snippet mixedOption(mixed: boolean)}
+  <!-- The blank option a select shows while its members differ (change 13A); choosing any other applies to all. -->
+  {#if mixed}
+    <option value="" disabled>{MIXED}</option>
+  {/if}
+{/snippet}
+
 {#snippet behavior()}
-  {#if region !== undefined && (region.kind === "fader" || region.kind === "xy")}
+  {#if sharedKind === "fader" || sharedKind === "xy"}
+    {@const mode = shared(modeOf)}
+    {@const speed = shared(speedOf)}
+    {@const relative = members.some(isRelative)}
     <!-- Mode and, under Relative, Speed (answers 7c); a fader's Spring and its value (answer 8). -->
     <div class="grid" class:two={twoColumns}>
       <div class="field">
@@ -313,34 +362,36 @@
           class="input select"
           id={modeId}
           data-testid="field-mode"
-          value={modeOf(region)}
+          value={mode ?? ""}
           disabled={play}
           aria-describedby={lock}
           onchange={(event) =>
             onmode?.(event.currentTarget.value as RegionMode)}
         >
-          {#each CONTINUOUS_MODES as mode (mode)}
-            <option value={mode} selected={mode === modeOf(region)}
-              >{mode === "absolute" ? MODE_ABSOLUTE : MODE_RELATIVE}</option
+          {@render mixedOption(mode === undefined)}
+          {#each CONTINUOUS_MODES as m (m)}
+            <option value={m} selected={m === mode}
+              >{m === "absolute" ? MODE_ABSOLUTE : MODE_RELATIVE}</option
             >
           {/each}
         </select>
       </div>
-      {#if isRelative(region)}
+      {#if relative}
         <div class="field">
           <label class="label type-helper" for={speedId}>{SPEED}</label>
           <select
             class="input select"
             id={speedId}
             data-testid="field-speed"
-            value={speedOf(region)}
+            value={speed ?? ""}
             disabled={play}
             aria-describedby={lock}
             onchange={(event) => onspeed?.(event.currentTarget.value as Speed)}
           >
-            {#each SPEEDS as speed (speed)}
-              <option value={speed} selected={speed === speedOf(region)}
-                >{speed === "half" ? SPEED_HALF : SPEED_FULL}</option
+            {@render mixedOption(speed === undefined)}
+            {#each SPEEDS as s (s)}
+              <option value={s} selected={s === speed}
+                >{s === "half" ? SPEED_HALF : SPEED_FULL}</option
               >
             {/each}
           </select>
@@ -348,9 +399,10 @@
       {/if}
     </div>
     <p class="helper type-helper">
-      {isRelative(region) ? SPEED_HELPER : MODE_HELPER}
+      {relative ? SPEED_HELPER : MODE_HELPER}
     </p>
-    {#if region.kind === "xy"}
+    {#if sharedKind === "xy"}
+      {@const touches = shared(touchesOf)}
       <!-- Touches (change 11, answers 1a and 2a): 1 to 5; a refused count snaps the select back to the model's and shows its line. -->
       <div class="grid" class:two={twoColumns}>
         <div class="field">
@@ -359,7 +411,7 @@
             class="input select"
             id={touchesId}
             data-testid="field-touches"
-            value={String(touchesOf(region))}
+            value={touches === undefined ? "" : String(touches)}
             disabled={play}
             aria-describedby={view.touchesProblem !== undefined
               ? touchesProblemId
@@ -367,13 +419,13 @@
             onchange={(event) => {
               const select = event.currentTarget;
               ontouches?.(Number.parseInt(select.value, 10));
-              select.value = String(touchesOf(view.selected ?? region));
+              const now = shared(touchesOf);
+              select.value = now === undefined ? "" : String(now);
             }}
           >
+            {@render mixedOption(touches === undefined)}
             {#each Array.from({ length: TOUCHES_MAX }, (_, i) => i + 1) as n (n)}
-              <option value={String(n)} selected={touchesOf(region) === n}
-                >{n}</option
-              >
+              <option value={String(n)} selected={touches === n}>{n}</option>
             {/each}
           </select>
         </div>
@@ -389,24 +441,26 @@
       {/if}
       <p class="helper type-helper">{TOUCHES_HELPER}</p>
     {/if}
-    {#if region.kind === "fader"}
-      {@render check(springId, "field-spring", SPRING, springOf(region), (on) =>
+    {#if sharedKind === "fader"}
+      {@const spring = shared(springOf)}
+      {@render check(springId, "field-spring", SPRING, spring, (on) =>
         onspring?.(on),
       )}
-      {#if springOf(region)}
+      {#if spring === true}
         <div class="grid" class:two={twoColumns}>
           {@render numeric("springValue", SPRING_VALUE)}
         </div>
       {/if}
       <p class="helper type-helper">{SPRING_HELPER}</p>
     {/if}
-  {:else if region !== undefined && region.kind === "button"}
+  {:else if sharedKind === "button"}
+    {@const group = shared(groupOf)}
     <!-- Toggle (the schema's latch) and the radio group (answer 9b). -->
     {@render check(
       toggleId,
       "field-toggle",
       TOGGLE,
-      region.latch === true,
+      shared((r) => r.latch === true),
       (on) => onlatch(on),
     )}
     <p class="helper type-helper">{TOGGLE_HELPER}</p>
@@ -417,17 +471,16 @@
           class="input select"
           id={groupId}
           data-testid="field-group"
-          value={String(groupOf(region))}
+          value={group === undefined ? "" : String(group)}
           disabled={play}
           aria-describedby={lock}
           onchange={(event) =>
             ongroup?.(Number.parseInt(event.currentTarget.value, 10))}
         >
-          <option value="0" selected={groupOf(region) === 0}
-            >{GROUP_NONE}</option
-          >
+          {@render mixedOption(group === undefined)}
+          <option value="0" selected={group === 0}>{GROUP_NONE}</option>
           {#each Array.from({ length: GROUP_MAX }, (_, i) => i + 1) as n (n)}
-            <option value={String(n)} selected={groupOf(region) === n}
+            <option value={String(n)} selected={group === n}
               >{groupWord(n)}</option
             >
           {/each}
@@ -435,7 +488,8 @@
       </div>
     </div>
     <p class="helper type-helper">{GROUP_HELPER}</p>
-  {:else if region !== undefined && region.kind === "knob"}
+  {:else if sharedKind === "knob"}
+    {@const mode = shared(modeOf)}
     <!-- The knob's four modes (answer 11d). -->
     <div class="grid" class:two={twoColumns}>
       <div class="field">
@@ -444,64 +498,70 @@
           class="input select"
           id={modeId}
           data-testid="field-mode"
-          value={modeOf(region)}
+          value={mode ?? ""}
           disabled={play}
           aria-describedby={lock}
           onchange={(event) =>
             onmode?.(event.currentTarget.value as RegionMode)}
         >
-          {#each KNOB_MODES as mode (mode)}
-            <option value={mode} selected={mode === modeOf(region)}
-              >{KNOB_MODE_WORDS[mode as keyof typeof KNOB_MODE_WORDS]}</option
+          {@render mixedOption(mode === undefined)}
+          {#each KNOB_MODES as m (m)}
+            <option value={m} selected={m === mode}
+              >{KNOB_MODE_WORDS[m as keyof typeof KNOB_MODE_WORDS]}</option
             >
           {/each}
         </select>
       </div>
     </div>
-    {#if isRelative(region)}
+    {#if members.some(isRelative)}
       <p class="helper type-helper">{KNOB_RELATIVE_HELPER}</p>
     {/if}
   {/if}
 {/snippet}
 
 {#snippet midi()}
-  {#if region !== undefined}
-    {#if region.kind === "button"}
-      <!-- Output first (answer 10): CC or Note; the number field follows the choice. -->
-      <div class="grid" class:two={twoColumns}>
-        <div class="field">
-          <label class="label type-helper" for={outputId}>{OUTPUT}</label>
-          <select
-            class="input select"
-            id={outputId}
-            data-testid="field-output"
-            value={outputOf(region)}
-            disabled={play}
-            aria-describedby={lock}
-            onchange={(event) =>
-              onoutput?.(event.currentTarget.value as ButtonOutput)}
-          >
-            {#each BUTTON_OUTPUTS as output (output)}
-              <option value={output} selected={output === outputOf(region)}
-                >{output === "cc" ? OUTPUT_CC : OUTPUT_NOTE}</option
-              >
-            {/each}
-          </select>
-        </div>
-        {#if outputOf(region) === "note"}
-          {@render numeric("note", NOTE_NUMBER)}
-        {:else}
-          {@render numeric("cc", CC_NUMBER)}
-        {/if}
-        {@render numeric("channel", CHANNEL)}
-        {@render numeric("min", MIN)}
-        {@render numeric("max", MAX)}
+  {#if sharedKind === "button"}
+    {@const output = shared(outputOf)}
+    <!-- Output first (answer 10): CC or Note; the number field follows the choice - over a set, only when every member is on Note (the controller is each one's own). -->
+    <div class="grid" class:two={twoColumns}>
+      <div class="field">
+        <label class="label type-helper" for={outputId}>{OUTPUT}</label>
+        <select
+          class="input select"
+          id={outputId}
+          data-testid="field-output"
+          value={output ?? ""}
+          disabled={play}
+          aria-describedby={lock}
+          onchange={(event) =>
+            onoutput?.(event.currentTarget.value as ButtonOutput)}
+        >
+          {@render mixedOption(output === undefined)}
+          {#each BUTTON_OUTPUTS as o (o)}
+            <option value={o} selected={o === output}
+              >{o === "cc" ? OUTPUT_CC : OUTPUT_NOTE}</option
+            >
+          {/each}
+        </select>
       </div>
-      <p class="helper type-helper">
-        {outputOf(region) === "note" ? NOTE_HELPER : BUTTON_MIN_MAX_HELPER}
-      </p>
-    {:else}
-      <div class="grid" class:two={twoColumns}>
+      {#if output === "note"}
+        {@render numeric("note", NOTE_NUMBER)}
+      {:else if region !== undefined}
+        {@render numeric("cc", CC_NUMBER)}
+      {/if}
+      {@render numeric("channel", CHANNEL)}
+      {@render numeric("min", MIN)}
+      {@render numeric("max", MAX)}
+    </div>
+    <p class="helper type-helper">
+      {output === "note" ? NOTE_HELPER : BUTTON_MIN_MAX_HELPER}
+    </p>
+  {:else if any}
+    {@const relativeKnob = members.some(
+      (r) => r.kind === "knob" && isRelative(r),
+    )}
+    <div class="grid" class:two={twoColumns}>
+      {#if region !== undefined}
         {@render numeric(
           "cc",
           region.kind === "xy" ? `${CC_NUMBER} (X)` : CC_NUMBER,
@@ -509,25 +569,28 @@
         {#if region.kind === "xy"}
           {@render numeric("cc2", CC_NUMBER_Y)}
         {/if}
-        {@render numeric("channel", CHANNEL)}
-        <!-- Min and Max (answer 6a) - not under a knob's relative modes, where a detent is a step. -->
-        {#if !(region.kind === "knob" && isRelative(region))}
-          {@render numeric("min", MIN)}
-          {@render numeric("max", MAX)}
-        {/if}
-      </div>
-      {#if !(region.kind === "knob" && isRelative(region))}
-        <p class="helper type-helper">{MIN_MAX_HELPER}</p>
       {/if}
+      {@render numeric("channel", CHANNEL)}
+      <!-- Min and Max (answer 6a) - not under a knob's relative modes, where a detent is a step. -->
+      {#if !relativeKnob}
+        {@render numeric("min", MIN)}
+        {@render numeric("max", MAX)}
+      {/if}
+    </div>
+    {#if !relativeKnob}
+      <p class="helper type-helper">{MIN_MAX_HELPER}</p>
     {/if}
   {/if}
 {/snippet}
 
 {#snippet appearance()}
-  {#if region !== undefined}
+  {#if any}
     <div class="swatch" class:locked={play} data-testid="region-swatch">
       <Swatch
-        entry={{ id: `sandbox-${region.id}`, name: region.name }}
+        entry={{
+          id: `sandbox-${members[0].id}`,
+          name: region?.name ?? elementsLine(members.length),
+        }}
         knobs={colourKnobs}
         held={noHeld}
         onchange={(_id, position) => {
@@ -539,6 +602,9 @@
         onhold={() => undefined}
       />
     </div>
+    {#if colourMixed}
+      <p class="helper type-helper" data-testid="colour-mixed">{MIXED}</p>
+    {/if}
   {/if}
   <!-- The surface's brightness (change 5): under Appearance whether or not an element is selected, its helper saying whose it is; read-only in Play like every field. -->
   <BrightnessField
@@ -553,7 +619,7 @@
 {/snippet}
 
 {#snippet actions()}
-  {#if region !== undefined}
+  {#if any}
     <button
       class="outlined"
       type="button"
@@ -568,24 +634,25 @@
       data-testid="delete-element"
       disabled={play}
       aria-describedby={lock}
-      onclick={ondelete}>{DELETE_ELEMENT}</button
+      onclick={ondelete}
+      >{multi ? deleteElements(members.length) : DELETE_ELEMENT}</button
     >
   {/if}
 {/snippet}
 
 <div class="region-inspector" bind:this={body} data-testid="region-inspector">
   <Inspector
-    eyebrow={region === undefined
+    eyebrow={!any
       ? NO_SELECTION_EYEBROW
-      : `${SELECTED_ELEMENT} / ${KIND_LABELS[region.kind].toUpperCase()}`}
+      : `${multi ? SELECTED_ELEMENTS : SELECTED_ELEMENT} / ${(sharedKind === undefined ? MIXED : KIND_LABELS[sharedKind]).toUpperCase()}`}
     {headline}
     aside={region === undefined ? undefined : chip}
-    lede={region === undefined ? NO_SELECTION_LEDE : undefined}
+    lede={!any ? NO_SELECTION_LEDE : multi ? MULTI_LEDE : undefined}
     {sections}
-    lead={region === undefined ? undefined : identity}
-    actions={region === undefined ? undefined : actions}
+    lead={!any ? undefined : identity}
+    actions={!any ? undefined : actions}
   >
-    {#if region !== undefined}
+    {#if any}
       {#if play}
         <p class="lock type-helper" id={lockId} data-testid="fields-locked">
           {PLAY_LOCKS_FIELDS}
@@ -601,35 +668,41 @@
 </div>
 
 {#snippet identity()}
-  {#if region !== undefined}
-    <!-- Identity (section 8): the name and the type, above the first section. -->
+  {#if any}
+    {@const orientation = shared(orientationOf)}
+    <!-- Identity (section 8): the name (one element only), the type, Orientation on faders, Locked - above the first section. -->
     <div class="identity">
-      <div class="field">
-        <label class="label type-helper" for={nameId}>{ELEMENT_NAME}</label>
-        <input
-          class="input"
-          id={nameId}
-          type="text"
-          autocomplete="off"
-          data-testid="field-name"
-          value={region.name}
-          readonly={play}
-          aria-readonly={play}
-          aria-describedby={lock}
-          oninput={(event) => onrename(event.currentTarget.value)}
-          onblur={oncommit}
-          {onkeydown}
-        />
-      </div>
+      {#if region !== undefined}
+        <div class="field">
+          <label class="label type-helper" for={nameId}>{ELEMENT_NAME}</label>
+          <input
+            class="input"
+            id={nameId}
+            type="text"
+            autocomplete="off"
+            data-testid="field-name"
+            value={region.name}
+            readonly={play}
+            aria-readonly={play}
+            aria-describedby={lock}
+            oninput={(event) => onrename(event.currentTarget.value)}
+            onblur={oncommit}
+            {onkeydown}
+          />
+        </div>
+      {/if}
       <div class="grid" class:two={twoColumns}>
-        <!-- The type is a fact, not a field: a kind never changes once placed (change 10A). -->
+        <!-- The type is a fact, not a field: a kind never changes once placed (change 10A); over a mixed set it reads Mixed. -->
         <div class="field">
           <span class="label type-helper">{TYPE}</span>
-          <span class="value" data-testid="field-kind" data-kind={region.kind}
-            >{KIND_LABELS[region.kind]}</span
+          <span
+            class="value"
+            data-testid="field-kind"
+            data-kind={sharedKind ?? "mixed"}
+            >{sharedKind === undefined ? MIXED : KIND_LABELS[sharedKind]}</span
           >
         </div>
-        {#if region.kind === "fader"}
+        {#if sharedKind === "fader"}
           <div class="field">
             <label class="label type-helper" for={orientationId}
               >{ORIENTATION}</label
@@ -638,7 +711,7 @@
               class="input select"
               id={orientationId}
               data-testid="field-orientation"
-              value={orientationOf(region)}
+              value={orientation ?? ""}
               disabled={play}
               aria-describedby={view.orientationProblem !== undefined
                 ? orientationProblemId
@@ -646,11 +719,10 @@
               onchange={(event) =>
                 onorientation(event.currentTarget.value as Orientation)}
             >
-              {#each ORIENTATIONS as orientation (orientation)}
-                <option
-                  value={orientation}
-                  selected={orientation === orientationOf(region)}
-                  >{orientation === "vertical"
+              {@render mixedOption(orientation === undefined)}
+              {#each ORIENTATIONS as o (o)}
+                <option value={o} selected={o === orientation}
+                  >{o === "vertical"
                     ? ORIENTATION_VERTICAL
                     : ORIENTATION_HORIZONTAL}</option
                 >
@@ -668,12 +740,19 @@
           {view.orientationProblem}
         </p>
       {/if}
+      <!-- Locked (change 13A, suggestion 6): the padlock as a checkbox; Ctrl+L on the plate is the same toggle. -->
+      {@render check(lockedId, "field-locked", LOCKED, shared(lockedOf), (on) =>
+        onlocked?.(on),
+      )}
+      <p class="helper type-helper">{LOCKED_HELPER}</p>
       <!-- Rule 6's warnings (geometry.ts), under the identity now that the geometry block is the plate's. -->
-      {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
-        <p class="warning type-helper" data-testid="adjacency-warning">
-          {warning.message}
-        </p>
-      {/each}
+      {#if region !== undefined}
+        {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
+          <p class="warning type-helper" data-testid="adjacency-warning">
+            {warning.message}
+          </p>
+        {/each}
+      {/if}
     </div>
   {/if}
 {/snippet}
@@ -750,6 +829,13 @@
   .input:read-only,
   .input:disabled {
     color: var(--color-ink-quiet);
+  }
+
+  /* The Mixed placeholder over a set: the quiet ink, the sans face (it is a word, not a number). */
+  .input::placeholder {
+    font-family: var(--font-sans);
+    color: var(--color-ink-quiet);
+    opacity: 1;
   }
 
   /* The type, read only: a line at the field's height, the ink, no box. */

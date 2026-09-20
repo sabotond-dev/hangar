@@ -27,7 +27,9 @@ import {
   KNOB_MODE_WORDS,
   KNOB_RELATIVE_HELPER,
   LIST_EMPTY,
+  LOCKED_HELPER,
   MODE_HELPER,
+  MULTI_LEDE,
   NOTE_RANGE,
   NOTHING_TO_PASTE,
   PASTE_AT_CAP,
@@ -1162,7 +1164,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(source).toContain("onchange={(next) => onbrightness?.(next)}");
     expect(source).toContain("onreset={() => onbrightness?.(255)}");
     expect(source, "no selection lists Appearance alone").toMatch(
-      /if [(]region === undefined[)]\s*return \[\{ title: APPEARANCE, content: appearance \}\];/,
+      /if [(]!any[)] return \[\{ title: APPEARANCE, content: appearance \}\];/,
     );
     const route = code(ROUTE);
     expect(route).toContain(
@@ -1812,7 +1814,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "ontouches={(touches) => void editor?.setTouches(touches)}",
     );
     expect(code(`${UI}/RegionInspector.svelte`)).toContain(
-      "select.value = String(touchesOf(",
+      "const now = shared(touchesOf);",
     );
     // THE SCHEMA: the field reads at 1..5; 6, a fraction, and a count whose
     // last finger's pair passes 127 are refused whole; a button's is not read
@@ -2576,5 +2578,85 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     const locked = { ...byId(editor, f1.id), locked: true };
     expect(regionRow(locked)).toEqual(regionRow(byId(editor, f1.id)));
     expect(regionTail(locked)).toEqual(regionTail(byId(editor, f1.id)));
+
+    // THE SHAPE HALF. The inspector over the two faders: the eyebrow says
+    // SELECTED ELEMENTS / FADER, the headline the count, the lede, no name
+    // field, the Mixed placeholder on cc... no, cc is single-only: on min
+    // (the two differ) and none on max (they agree), the Mode select on both
+    // with no blank option (they agree), the delete reading the count, the
+    // Locked checkbox unmixed; over a fader and a button the type reads
+    // Mixed, no Behavior, and channel / min / max stay; a mixed spring is a
+    // mixed checkbox; a mixed orientation a blank option; a mixed colour says so.
+    editor.select(f1.id);
+    editor.toggleSelect(f2.id);
+    editor.editNumber("min", "20");
+    editor.commitField();
+    editor.select(f1.id);
+    editor.editNumber("min", "10");
+    editor.commitField();
+    editor.setSpring(false);
+    editor.setColour([15, 0, 0]);
+    editor.toggleSelect(f2.id);
+    let panel = inspector(editor);
+    expect(panel).toContain("SELECTED ELEMENTS / FADER");
+    expect(panel).toContain('data-testid="inspector-count">2 elements<');
+    expect(panel).toContain(MULTI_LEDE);
+    expect(panel).not.toContain('data-testid="field-name"');
+    expect(panel).not.toContain('data-testid="field-cc"');
+    expect(panel).not.toContain('data-testid="inspector-units"');
+    expect(panel).toMatch(
+      /data-testid="field-min"[^>]*value=""[^>]*placeholder="Mixed"[^>]*data-mixed="true"/,
+    );
+    expect(panel).toMatch(/data-testid="field-max"[^>]*value="100"/);
+    expect(panel).not.toMatch(/data-testid="field-max"[^>]*placeholder/);
+    expect(panel).toContain('data-testid="field-mode"');
+    expect(panel).not.toContain('<option value="" disabled');
+    expect(panel).toMatch(
+      /data-testid="field-spring"[^>]*aria-checked="mixed"[^>]*data-mixed="true"/,
+    );
+    expect(panel).toContain('data-testid="colour-mixed"');
+    expect(panel).toMatch(/data-testid="field-locked"[^>]*\/>/);
+    expect(panel).not.toMatch(/data-testid="field-locked"[^>]*aria-checked/);
+    expect(panel).toContain(">Delete 2 elements<");
+    expect(panel).toContain(LOCKED_HELPER);
+    // A mixed orientation: the blank option, selected and disabled.
+    editor.select(f2.id);
+    editor.resizeSelectedTo({ col: 3, row: 0, w: 2, h: 6 });
+    editor.setOrientation("horizontal");
+    editor.toggleSelect(f1.id);
+    panel = inspector(editor);
+    expect(panel).toMatch(
+      /data-testid="field-orientation"[^>]*>(?:<!--[^>]*-->)*<option value="" disabled="" selected="">Mixed<\/option>/,
+    );
+    // A fader and a button: the type reads Mixed, no Behavior, the shared MIDI fields stay.
+    editor.select(f1.id);
+    editor.toggleSelect(button.id);
+    panel = inspector(editor);
+    expect(panel).toContain("SELECTED ELEMENTS / MIXED");
+    expect(panel).toMatch(
+      /data-testid="field-kind" data-kind="mixed"[^>]*>Mixed</,
+    );
+    expect(panel).not.toContain(">Behavior<");
+    expect(panel).toContain('data-testid="field-channel"');
+    expect(panel).toContain('data-testid="field-min"');
+    expect(panel).not.toContain('data-testid="field-orientation"');
+    // A single: the eyebrow and the name as before, Locked unchecked, then checked.
+    editor.select(f1.id);
+    panel = inspector(editor);
+    expect(panel).toContain("SELECTED ELEMENT / FADER");
+    expect(panel).toContain('data-testid="inspector-name">Fader 1<');
+    expect(panel).not.toMatch(/data-testid="field-locked"[^>]*checked/);
+    editor.toggleLock();
+    panel = inspector(editor);
+    expect(panel).toMatch(/data-testid="field-locked"[^>]*checked/);
+    expect(panel).toContain(">Delete element<");
+    // The route wires the lock.
+    expect(code(ROUTE)).toContain(
+      "onlocked={(locked) => editor?.setLocked(locked)}",
+    );
+    expect(
+      code(`${UI}/RegionInspector.svelte`),
+      "no rounded corner",
+    ).not.toMatch(/border-radius:\s*[1-9]/);
   });
 });
