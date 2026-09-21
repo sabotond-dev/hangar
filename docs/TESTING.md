@@ -7272,3 +7272,87 @@ two props, its three circles untouched at :785 / :812 / :827) as the brief allow
 each; 5173 untouched; the build stamped `b07c9c4`): c3 by its two files **22 passed** at `176e6ba` (its first run at `b07c9c4` read 20 passed with the two walks red on the tests themselves - the phone walk measured the stepper's input at 42px between the field's two hairlines, the widget walk called check() on a radio hidden inside its label - and its second at `9d30644` 21 passed on the walk's stale arms expectation, each fixed in the test commit named above); c5 by its four files **11 passed** at `176e6ba` (radius's title on both engines measuring the picker's three circles and none of a knob's; 11 at `b07c9c4` and at `9d30644` too); c1 by its two files **33 passed** at `9d30644` (its first run at `b07c9c4` read 31 passed with the two store-then-change titles red on five stale rail calls, fixed in `9d30644`; not rerun at `176e6ba`, which touched tuning.e2e.ts alone). c2 and c4 not run: no browse, catalog, fidelity, first-experience, library or sandbox title reads the workspace's rows, and the Sandbox's swatch row and brightness field - the same components - are walked by radius's title in c5. c2 and c4 not run: no browse,
 catalog, fidelity, first-experience, library or sandbox title reads the workspace's rows (the
 Sandbox's swatch row and brightness field are the same components, walked by radius's title in c5).
+
+## 2026-09-21 change 16b - the tuning rack on one strict grid: label | control | reset | lock on every row, every control filling its column at 44, the boxes on two fixed columns
+
+`BENCH-2026-09-16.txt` section 16's tail (the user's screenshot of ARC's rack at the compact band
+and the verdict; the brief's grid, no discretion on the geometry). One source commit before the
+docs, no push, no device, no deploy: `a65a95f` feat(tune) - `Knob.svelte`, `Swatch.svelte`,
+`MidiField.svelte`, `BrightnessField.svelte` on the grid (`var(--tune-label-w, 96px) minmax(0, 1fr)
+44px 44px`, 8px gaps, 44 rows, the two box columns always present, the label above the control
+under 380px of container); `Stepper.svelte` filling its column at 44 with a `readonly` prop and a
+commit on every blur; the brightness field the stepper shape; `shell/Inspector.svelte` carrying
+`--tune-label-w` on its body, the section rhythm (8 under the word, 24 round the divider, the first
+head 16 under the lede) and the pinned actions as `repeat(auto-fit, minmax(168px, 1fr))` at 8px;
+`TuningRegion.svelte`'s action row the same; `CopyLink.svelte` filling its cell; then this section,
+the Done paragraph "16b" under section 16, and the gate records `gate/change-16b.*` (before, at
+`26bdab3`, on a clean worktree `../hangar-gate-16b` with its own `npm ci`, removed after) and
+`gate/change-16b-after.*` (at `a65a95f`).
+
+**What moved in the suites.** `tune-ui.spec.ts` 14 -> 14: the rows test (title: "stacks under
+380px") reads, in all four row components, the `.row` rule's four-column template, `column-gap:
+8px`, `min-block-size: 44px`, the `.control` rule's `inline-size: 100%` and `min-block-size: 44px`,
+the `@container (width < 380px)` switch and, after it, the stacked template `minmax(0, 1fr) 44px
+44px`; the chip test reads `.chip` at `inline-size: 100%` / `block-size: 44px` and `.square` at
+42 x 42; the changed-field test reads the row's `class:changed class:bare={!caption}`.
+`instrument.spec.ts`: `MONO_USES` five across five files, `MONO_COUNT` 5 (the brightness field's
+typed value rides through `Stepper.svelte`). The e2e: `e2e/rack-grid.e2e.ts` NEW, chromium, two
+titles (ARC's rack at 1440 x 900 and at 1280 x 720): the seven rows by test id in order; every
+control's x and x + width within 1px of the first row's and 44 tall; every reset box at one x, 44
+x 44, 8px past its control; every lock at one x 8px past the reset box, ending at the row's right
+edge, and only on the four knob rows; the pitch between neighbouring controls inside a section one
+value (45 one-line at 1440, 74 stacked at 1280; measured on the controls, not the rows' tops,
+because the hairline sits on the row below - inside a swatch row's box, on a knob row's root);
+the three action cells equal and 44; nothing sideways on `knob-rack`, `tuning-region`,
+`shell-inspector`, `shell-inspector-body`. `tuning-webkit.e2e.ts`: its stacking numbers read 385 /
+336 / 380 (comments only; the assertions were already the layout's).
+
+**The numbers, measured on the deployed bytes** (`shots.mjs` in the scratchpad, vite preview on
+4174): 1440 x 900 - the inspector 437, its body 385, one line, the control column 1137..1310
+(173), the reset box at 1318, the lock at 1370, the pitch 45; 1280 x 720 - the inspector 388
+(FINDING: `+layout.svelte`'s inline `--inspector-min` / `--inspector-max` beat the compact band's
+media query, so the compact clamp of 300 never applies; not fixed, the shell's), the body 336,
+stacked, the control 922..1150 (224), the reset at 1158, the lock at 1210, the pitch 74; 393 x 852
+
+- the body 341, stacked, the control 30..263 (233), the reset at 271, the lock at 323. On ARC,
+  ORBIT (15 rows), CHORUS (no locks: every lock cell empty), MORPH and the Sandbox's inspector with a
+  fader selected (its swatch row and brightness field on the same columns) alike.
+
+**Counts, carried + delta:** quick 96 / 1028 + 1 todo -> **96 / 1028 + 1 todo** (+0 / +0), green
+twice at `--maxWorkers=2` (run A `vitest run --project server --maxWorkers=2` on the tree before
+the commit - 96 files, 1028 passed, 1 todo, exit 0; run B the gate's quick term at `a65a95f` -
+`check-counts` observed 96 files, 1028 passed, 1 todo, exit 0); check 677 -> **677**; lint clean;
+e2e 96 / 111 -> **98 / 113** (+2 / +2); utilities **44 -> 44** (0 disappeared, 0 appeared);
+catalog **27**; testids 351 -> **350** (-1 `brightness-field-input` as a literal: it rides through
+`Stepper.svelte`'s `{testid}-input` with the same value; no id renamed); copy exports equal; OG 27
+files / 159,169 B / `9becd682…` and the four fixtures unmoved; `src/` 10 modified, 0 added, 0
+deleted, 0 renamed against `26bdab3`.
+
+**The gate's terms** (`--before change-16b` at `26bdab3`; `--after change-16b --against change-16b
+--check 677` at `a65a95f`): **the wire set `654e202e…`, the full `1c4acf19…` and the sandbox set
+`3bdb5974…` ALL EQUAL** - no Lua moved, no row column, no runtime part; the census `cd28c1e3…` ->
+`d22fbc7e…` (3163 -> 3163 literals, 7494 -> 7490 occurrences: `brightness-field-input` 1 -> 0,
+`.word` 0 -> 1, `ArrowDown` / `ArrowUp` / `Enter` / `input` / `numeric` / `text` / `off` down one
+each with the brightness field's own input, `brightness-field` 1 -> 2, `words` 5 -> 6, `undefined`
+68 -> 69); the copy exports `d73d361a…` equal; the testids `f29b0454…` -> `f057796d…` (351 ->
+350); the SCOPED CSS `a373572a…` -> `763cc8d4…` and the raw `0c4948f8…` -> `2baa3fb9…` (the rules
+named in the Done paragraph); utilities 44 -> 44 (`block grid outline ring sr-only` named by markup
+intact); the titles `5e64e0ca…` -> `05122e0b…` (1029 vitest titles incl. todo; 111 -> 113
+playwright runs); the JS `db4331c6…` -> `c3035823…` (73 files); comment lines: 213 files, every
+touched header at the ten-line rule (`comment-lines.mjs --todo` prints nothing for the eight
+files). The script exits 1 at the census by design; the name-status term reads 10 modified; the
+refuse-list stat names `Knob.svelte` (130 + / 42 -; no circle in it since change 16). The before
+record was taken twice on the worktree: the first read "no Vitest summary lines" at the quick term
+beside the preview server and an e2e chunk running in the main tree (1.2 GB free), was deleted
+before any copy, and the second - alone - is the record.
+
+**Chunks** (a fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000
+after each; 5173 untouched; the build stamped `a65a95f`'s tree): c3 by three files
+(`tuning.e2e.ts`, `tuning-webkit.e2e.ts`, `rack-grid.e2e.ts`) **24 passed** (its first run read 2
+failed / 22 passed with the two new titles red on the test itself - the pitch measured on the
+rows' tops, which the hairline moves by one - and a second run of the file alone red on the actions
+locator counting the pinned three as well; both fixed before the source commit); c5 by its four
+files **11 passed** (radius's three circles, none a knob's); c1 by its two files **33 passed**
+(the brightness walk in `install.e2e.ts` typing into the stepper's field); c4 by its five files
+**23 passed** (the Sandbox's brightness walk and its history's boundary). c2 not run: no browse
+title reads the rack.

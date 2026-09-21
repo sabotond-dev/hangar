@@ -3362,3 +3362,140 @@ edge to edge at one height (44 px): the colour chip, the stepper, the segmented 
 boxes sharing the width equally), the select, the brightness field; one gap, one hairline
 rhythm; section heads with one spacing; the action buttons in a grid of equal cells. Then the
 result is checked against a screenshot before it lands.
+
+**Done - change 16b, 2026-09-21 (the rack on one strict grid; the user asleep, nothing asked).**
+One source commit before the docs, no push, no device, no deploy: `a65a95f` feat(tune) - the six
+row components on the grid, the inspector's rhythm and its pinned actions, the share control's
+width, the two specs, `e2e/rack-grid.e2e.ts` new, `tuning-webkit.e2e.ts`'s numbers; then this
+paragraph with `docs/TESTING.md`'s "2026-09-21 change 16b" and the gate records `gate/change-16b.*`
+(before, at `26bdab3`, on a clean worktree `../hangar-gate-16b` with its own `npm ci`, removed
+after the records were copied; its first run read no quick summary with the preview server and a
+chunk beside it and was re-recorded alone) and `gate/change-16b-after.*` (at `a65a95f`).
+
+**The grid, per breakpoint.** EVERY ROW (Knob.svelte, Swatch.svelte, MidiField.svelte,
+BrightnessField.svelte) is `grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px
+44px`, areas `label control reset lock`, `column-gap: 8px`, `min-block-size: 44px`, the label
+centred and wrapping at spaces only (`overflow-wrap: normal` - the first cut broke BRIGHTNESS as
+BRIGHTNE / SS), the two box columns always drawn (a knob with no lock - CHORUS's every row, the
+MIDI rows, the brightness row, the Sandbox's swatch row - keeps an empty 44 cell; the reset box
+disabled at the default), the changed rule in a 4px start padding. THE CONTROL fills its column
+(`.control` a grid, `inline-size: 100%`, `min-block-size: 44px`) and every skin is 44 tall and
+border-box: the chip a 42 x 42 square of the stored value inside the chip's hairline at its left
+edge (reads as 44) with a hairline after it, the readout 12px on, the text clipped never widening;
+the stepper `44px minmax(0, 1fr) 44px`, the value 12px in, the unit 11px quiet 8px from the box,
+the ladder under the field; the segmented control equal cells (`repeat(var(--segment-cols),
+minmax(0, 1fr))` once the words and the column are measured - four words 2 x 2 never 3 + 1, three
+that cannot share a line 2 + 1, QUADRANT's fill three lines; `repeat(auto-fit, minmax(chars *
+0.5em + 8px, 1fr))` for the server's render; 3px cell padding so None / Ctrl / Alt / Shift holds
+four cells of 43 at 1440); the select full width, the arrow inside its 36px end padding; the
+brightness field the stepper shape (Stepper.svelte with rank value - 1 over 255 rungs, the boxes
+and the arrows stepping by one, the mark alone, read-only under Play holding every step).
+`--tune-label-w` is 96px at EVERY breakpoint, set once on Inspector.svelte's `.body` (the rack's
+root in the playground, the probe and the Sandbox): the brief's 136 / 112 do not fit - the
+inspector's body is 385 at 1440 (438 less 26 + 26) and a one-line row is 4 + label + 8 + control +
+8 + 44 + 8 + 44, so 136 leaves 130 for a control whose stepper needs 44 + a field holding `250
+points` (GHOST, 83) + 44 = 171; 96 leaves 173 and holds the longest label word (CROSSFADER /
+CONTROLLER 98, BRIGHTNESS 94.5) within 2px. THE SWITCH: under 380px of container the label takes a
+line of its own (`grid-template-columns: minmax(0, 1fr) 44px 44px`, areas `label label label` /
+`control reset lock`, 4px between, 6px block padding) and the control still fills its column with
+the boxes at the row's end. Measured: 1440 x 900 body 385 - one line, every control x 1137..1310
+(173), the reset box at 1318, the lock at 1370, the pitch 45 (44 + the hairline); 1280 x 720 body
+336 - stacked, the control 922..1150 (224), the reset at 1158, the lock at 1210, the pitch 74; 393
+x 852 body 341 - stacked, the control 30..263, the reset at 271, the lock at 323. FINDING, not
+fixed: the compact band's inspector renders at 388 (the wide clamp), not layout.ts's 300 -
+`+layout.svelte` sets `--inspector-min` / `--inspector-max` inline and the band's media query
+cannot override an inline style; the rack fits either way. So the switch is at the band: one line
+at 1440 and above (and in the compact band from 1421, where the body reaches 380), stacked from
+1024 to 1420 and on the phone, one line again where the inspector sits under the surface (768 to
+1023, the body 716+). ROW RHYTHM: one hairline between rows (the rack's, the rows block's, the
+swatch block's), no other gap; the section word 8px above its rows, 24 under the divider, the
+divider 24 under the last row, the first head 16 under the lede (the body's 8 + the head's 8). THE
+ACTION BUTTONS: Randomize / Reset settings / Undo randomize and the pinned Save copy / Share
+snapshot / Export for Grid Editor (and the Sandbox's Duplicate / Delete element) are
+`repeat(auto-fit, minmax(168px, 1fr))` at 8px, every button 44 (`block-size: 44px` on the region's;
+the route's `min-block-size`); 168 not 160 because Export for Grid Editor is 182 on one line and a
+164 cell wrapped it at 1280 - so 2 + 1 equal cells at 1440 (188 each) and a column of three under
+a body of 344 (1280, the phone); CopyLink's control fills its cell (`inline-size: 100%`, was
+fit-content). The picker's palette row (Knob.svelte with `caption={false}`) is `bare`: no label
+cell, the swatches from the block's start 8px apart, the two empty cells at its end.
+
+**Screenshots** (the scratchpad, not the tree; vite preview on 4174, never 5173, stopped by port
+after): before - `shots/before/before-{arc,orbit,chorus,morph,sandbox}-{1440x900,1280x720,393x852}.png`
+at `26bdab3`: at 1440 the chips right-aligned at two widths (Azure 95, Amber 93), the brightness
+field 160 at the column's end, the segmented 133, the select 177 wide at another x, the MIDI
+steppers full width, the reset boxes at three different distances, the actions 2 + 1 with Share
+snapshot narrower; at 1280 and 393 the stacked rows with the controls at five widths hugging the
+left and the boxes floating right - the user's screenshot. After - `shots/after/after-*.png` at
+`a65a95f`: every control one column, one x, one right edge, 44 tall; the boxes on two lines; one
+pitch per section; and `shots/after6x/*` for the segmented edge cases (STAGE's None / Ctrl / Alt /
+Shift four across and F13 / 1 / F1 / Keypad 1 two by two, WHEELS' spring two by two, QUADRANT's
+fill three lines, CULL's legend four across, JOYSTICK's bend 2 + 1), `shots/picker/*` for the opened
+picker (SNAKE's palette row from the left; AURORA's rails). What I saw on the first after cut and
+fixed before committing: BRIGHTNE / SS (the label broke mid-word at 80), the export button wrapped
+to two lines at 1280 and 393, MODIFIER 3 + 1 and SPRING SPEED 3 + 1 (the auto-fit floor from a
+character estimate, then a 44 floor, then the 1px overlap - three cuts before the counted columns).
+
+**Proved.** `e2e/rack-grid.e2e.ts` new (chromium, two titles): ARC's rack at 1440 x 900 and 1280 x
+720 - the seven rows in order, every control's x and x + width within 1px of the first row's and
+44 tall, every reset box at one x and 44 x 44 and 8px past its control, every lock at one x 8px
+past the reset box and ending at the row's edge, the lock rows the four knob rows, the pitch
+between neighbouring controls in a section one value (45 at 1440, 74 at 1280 - measured on the
+controls because the hairline sits on the row below, inside a swatch row's box and on a knob row's
+root), the three action cells equal and 44, nothing sideways on four ids. `tune-ui.spec.ts`: the
+rows test reads the four-column rule, the 8px gap, the 44 floor, the control's width and floor,
+the 380 switch with the two box columns kept in the stacked rule, in all four files; the chip
+`inline-size: 100%` / `block-size: 44px` and the square 42; the marker keyed on `class:changed
+class:bare={!caption}`. `instrument.spec.ts`: five mono uses across five files (the brightness
+field's rides through Stepper.svelte). `tuning-webkit.e2e.ts` reads 385 / 336 / 380. Counts
+carried + delta: quick 96 / 1028 + 1 todo -> **96 / 1028 + 1 todo** (run A `vitest run --project
+server --maxWorkers=2` on the tree before the commit, 96 files, 1028 passed, 1 todo, exit 0; run B
+the gate's quick term at `a65a95f`, `check-counts` 96 / 1028 / 1 todo, exit 0); check 677 -> **677**;
+lint clean; e2e 96 / 111 -> **98 / 113** (+2 titles, +2 runs, one file); utilities **44 -> 44** (0
+disappeared, 0 appeared; `measured`, `bare`, `stretch` spell none); catalog **27**; testids 351 ->
+**350** (-1: the literal `brightness-field-input` rides through Stepper.svelte's `{testid}-input`,
+the value unchanged for the e2e; `brightness-field-stepper` / `-down` / `-up` exist in the DOM
+through the same template); copy exports equal (`d73d361a…`); OG 27 files / 159,169 B / `9becd682…`
+and the four fixtures unmoved; `src/` 10 modified, 0 added, 0 deleted, 0 renamed against `26bdab3`.
+**The gate's terms** (`--before change-16b` at `26bdab3`; `--after change-16b --against change-16b
+--check 677` at `a65a95f`): **the wire set `654e202e…`, the full `1c4acf19…` and the sandbox set
+`3bdb5974…` ALL EQUAL**; the census `cd28c1e3…` -> `d22fbc7e…` (3163 -> 3163 literals, 7494 ->
+7490 occurrences: `brightness-field-input` 1 -> 0, `.word` 0 -> 1, the three key names and
+`input` / `numeric` / `text` down one each with the brightness field's own input); the copy exports
+equal; the testids `f29b0454…` -> `f057796d…` (351 -> 350); the SCOPED CSS `a373572a…` ->
+`763cc8d4…` and the raw `0c4948f8…` -> `2baa3fb9…` (Knob.svelte's row / control / options /
+measured / option / word / swatches / select rules, Swatch.svelte's row / control / chip / square /
+readout, MidiField.svelte's and BrightnessField.svelte's row / control, Stepper.svelte's stepper /
+box / field / input / unit / ladder, TuningRegion.svelte's actions / action, Inspector.svelte's
+body / group-title / divider / actions, CopyLink.svelte's share / control); utilities 44 -> 44; the
+titles `5e64e0ca…` -> `05122e0b…` (1029 vitest titles incl. todo; 111 -> 113 playwright runs); the
+JS `db4331c6…` -> `c3035823…` (73 files); comment lines: every touched header at the ten-line rule
+(`comment-lines.mjs --todo` prints nothing for the eight files). The script exits 1 at the census
+by design; the name-status term reads 10 modified; the refuse-list stat names `Knob.svelte` (130 +
+/ 42 -, the grid; its circles none since change 16). **Chunks** (a fresh detached wrangler dev on
+4173 each, stopped through PowerShell, HTTP 000 after each; 5173 untouched; the build stamped
+`a65a95f`'s tree): c3 by three files (`tuning`, `tuning-webkit`, `rack-grid`) **24 passed** (its
+first run read 22 passed with the two new titles red on the test itself - the pitch measured on
+the rows' tops, which the hairline moves - and a second run of the file alone red on the actions
+locator counting the pinned three; both fixed before the commit); c5 by its four files **11
+passed**; c1 by its two files **33 passed** (the brightness walk in `install.e2e.ts` on the
+stepper shape); c4 by its five files **23 passed** (the Sandbox's brightness walk, its history).
+c2 not run: no browse title reads the rack.
+
+**Departures from the brief:** `--tune-label-w` 96 at every breakpoint, not 136 / 112 / 96 (the
+arithmetic above: 136 and 112 leave no control column at 385 and 336); the row's start padding 4,
+not 8 (the same arithmetic - the changed rule is 2px inside it); the stepper's unit 11px and 8px
+from the box, not 12 (`250 points`); the segmented cells 3px of padding, not 12, and counted
+columns instead of a bare `repeat(n, 1fr)` (which spilled Pentatonic, Keypad 1, Colour and fill
+and 640 ms over their cells at 173 and 224 - the count keeps every cell equal and every word
+whole); the action cells' floor 168, not 160 (Export for Grid Editor at 1280); the chip's square
+42 inside the chip's hairline, not a 44 with its own; Knob.svelte gained a `$effect` with a
+ResizeObserver (the columns follow the column's width; TuningRegion.svelte still carries none);
+Stepper.svelte commits the shown text on blur even when nothing was typed (so the Sandbox's
+history boundary always hears Enter and blur); the brightness field lost its own input and the
+`brightness-field-input` literal (the census); `Inspector.svelte` (shell) and `CopyLink.svelte`
+moved for the rhythm and the equal cells; `e2e/rack-grid.e2e.ts` is `.e2e.ts` (the Playwright
+match), not `.spec.ts`; the gate's before record was taken twice on the worktree (the first with
+no quick summary beside the preview server and a chunk, deleted before the copy); the compact
+inspector's 388 is a finding left alone (`+layout.svelte`, the shell); STATE / ROADMAP /
+REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed; the worktree removed, the main
+`node_modules` intact (262 entries).

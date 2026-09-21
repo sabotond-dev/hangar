@@ -1,0 +1,90 @@
+# 13.2 gate --after change-16b --against change-16b --check 677
+HEAD a65a95f (a65a95f56e43616efb6c80a111916cbd4d9efd46); dirty (src e2e scripts docs) 0; free memory 2.34 GB; 2026-09-21T15:06:19Z
+before-record HEAD 26bdab3a47eb101fe105b949e92f9b4395552ebd
+
+## the wire
+2775 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+212 files; 3163 distinct literals (7490 occurrences); 8 copy modules; 350 data-testids
+literal census sha256 d22fbc7e8323d7e00f2f7169be6898e1253da3efb921b80ca7fa8dce84eda39f
+copy exports   sha256 d73d361aee7352d345221bf85c04d6dad1504b8ca0e2de2098bd81b373512706
+data-testids   sha256 f057796d34c6db9aee53a579a74c6cba448904c1dada3cde861a544bf0df987c
+- 6 -> 5	"ArrowDown"
+- 5 -> 4	"ArrowUp"
+- 12 -> 11	"Enter"
+- 1 -> 2	"brightness-field"
+- 1 -> 0	"brightness-field-input"
+- 3 -> 2	"input"
+- 3 -> 2	"numeric"
+- 11 -> 10	"off"
+- 19 -> 18	"text"
+- 68 -> 69	"undefined"
+- 5 -> 6	"words"
++ 0 -> 1	".word"
+
+## the comment lines
+213 files; 53556 lines, 35359 code, 13948 comment, 4249 blank, 4270 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/ui/BrightnessField.svelte | 347 | 309 | 27 | 29 | 12 | 14 |
+| src/lib/ui/Knob.svelte | 510 | 598 | 59 | 80 | 14 | 14 |
+| src/lib/ui/MidiField.svelte | 326 | 327 | 33 | 35 | 14 | 15 |
+| src/lib/ui/Stepper.svelte | 313 | 331 | 32 | 36 | 12 | 14 |
+| src/lib/ui/Swatch.svelte | 404 | 411 | 44 | 46 | 13 | 14 |
+| src/lib/ui/TuningRegion.svelte | 749 | 751 | 117 | 117 | 14 | 14 |
+| src/lib/ui/shell/Inspector.svelte | 166 | 180 | 27 | 36 | 14 | 14 |
+| **totals (213 -> 213 files)** | 53464 | 53556 | 13908 | 13948 | 4264 | 4270 |
+
+7 file(s) moved
+
+## check and lint
+check: 1790003215974 COMPLETED 677 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 96 files, 1028 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp a65a95f
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 2baa3fb91d0e67a53feaa6cca1c83f6d6e671332f70435e555bf55b2615d77ab (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 2baa3fb91d0e67a53feaa6cca1c83f6d6e671332f70435e555bf55b2615d77ab
+SCOPED CSS sha256 763cc8d4a81c2fd4ba643e8377b2be916b7e02a039e32bb9e437f4ec5189f30c
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 c3035823008c4978fe6ab4e5ad3f0737a0f146dc21675deb5faa9cc1443c8557 (73 files)
+
+## the titles
+TITLES sha256 05122e0bc17f4e16428eff51a00b9ff55b8b64d38a5a7db4590f365c30915fc7 (1029 vitest titles incl. todo, 113 playwright runs)
+
+## src/ against the before-record's HEAD 26bdab3a47eb101fe105b949e92f9b4395552ebd
+git diff --name-status: 10 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte:  src/lib/ui/Knob.svelte | 172 +++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 130 insertions(+), 42 deletions(-)
+
+## comparison against change-16b
+wire: equal (set 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1, full 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a)
+sandbox set: equal (3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159)
+FAIL: the literal census (cd28c1e333e8fd2a2fbb4916be6bac4232c228bd03d4b4ca9a8c83ac0af5a75e -> d22fbc7e8323d7e00f2f7169be6898e1253da3efb921b80ca7fa8dce84eda39f; the -/+ lines above name every literal whose count moved)
