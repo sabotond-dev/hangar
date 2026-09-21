@@ -3499,3 +3499,15 @@ no quick summary beside the preview server and a chunk, deleted before the copy)
 inspector's 388 is a finding left alone (`+layout.svelte`, the shell); STATE / ROADMAP /
 REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed; the worktree removed, the main
 `node_modules` intact (262 entries).
+
+Change 16c, recorded 2026-09-21 on the 16b screenshots: the playground rack is on the grid, but
+the Sandbox's inspector is now two registers in one panel - Identity, Behavior and MIDI output
+still the 10B shape (a sentence-case label above a full-width field, helper prose between the
+rows, native selects and checkboxes) while Appearance below them is the new four-column grid.
+The whole Sandbox inspector goes onto the same grid as the playground rack: every field a
+`label | control | reset | lock`-shaped row (the lock column empty in the Sandbox except for the
+element's own Locked toggle, which becomes a lock box on the name row), the same 44 px controls
+(typed fields as steppers where the value has rungs, the min / max / CC / channel / note fields as
+plain typed fields at 44, selects and segmented controls as the rack's, checkboxes as segmented
+On / Off), helpers as titles and sr-only text, the section heads as the rack's, the two action
+buttons as equal cells. Proved by screenshots the same way.
