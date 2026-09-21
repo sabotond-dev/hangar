@@ -3348,3 +3348,17 @@ sync reads pass the knob's id (not on the brief's list; the word split needed it
 its D-21 numbers unread by the region; the brightness field has no step boxes (a free range, not a
 ladder); the picker's palette row inside an opened block is right-aligned; STATE / ROADMAP /
 REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed; the worktree removed.
+
+> [screenshot: ARC's rack after change 16 - the controls at five different widths and x positions,
+> the reset and lock boxes floating, the chips of varying width, the three action buttons wrapped
+> 2 + 1]
+> the aesthetic of this panel is atrocious. look at the state of this
+
+Recorded 2026-09-21, change 16b: the rack is put on one strict grid. Every row is the same
+four-column grid - label | control | reset | lock - with the label column a fixed width, the
+control column filling the rest, the reset and lock columns fixed 44 px and ALWAYS present (an
+empty cell where a knob has none, so nothing floats); every control fills the control column
+edge to edge at one height (44 px): the colour chip, the stepper, the segmented control (its
+boxes sharing the width equally), the select, the brightness field; one gap, one hairline
+rhythm; section heads with one spacing; the action buttons in a grid of equal cells. Then the
+result is checked against a screenshot before it lands.
