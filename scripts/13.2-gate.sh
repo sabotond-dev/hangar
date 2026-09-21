@@ -31,7 +31,7 @@ cd "$(dirname "$0")/.." || exit 2
 
 GATE=".planning/phases/13.2-readability/gate"
 QUICK_FILES=96
-QUICK_TESTS=1026
+QUICK_TESTS=1027
 FIXTURES="src/lib/catalog/frames.json src/lib/fidelity/golden-frames.json src/lib/fidelity/preset-baseline.json src/lib/transport/fixtures/synthetic-zona.json"
 REFUSED_PATHS="src/vendor src/lib/fidelity/upstream-manifest.json src/lib/ui/Knob.svelte src/lib/ui/ColourPicker.svelte"
 

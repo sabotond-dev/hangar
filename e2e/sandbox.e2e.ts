@@ -36,7 +36,9 @@
 // rename, a sticky channel and its reset; the eleventh, change 13C, the
 // surfaces walk - the menu, the sheet, the profile file out and back, the
 // shared-controller mark, the names toggle, a recent colour's chip, the Play
-// monitor.) THE PUT-BACK HALF LEFT AT
+// monitor; the twelfth, change 15, the tool rail - its column at 1280 x 720 in
+// two stacks, one at 900 tall, a strip above the inspector on a phone, Save
+// copy on the plate's status line.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -777,6 +779,99 @@ test.describe("the Sandbox, with no hardware attached", () => {
     expect(consoleErrors, "no console error on the round trip").toEqual([]);
   });
 
+  test("the tool rail (change 15): at 1280 x 720 the twelve icon-only boxes stand in the shell's tools column between the plate and the inspector in two stacks, every one a 44 square inside the viewport, one stack at 900 tall, and at a phone width the rail is a strip above the inspector; a press on Save copy writes the plate's status line", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const rail = page.getByTestId("tool-rail");
+    const column = page.getByTestId("shell-tools-column");
+    const inspector = page.getByTestId("shell-inspector-column");
+    await expect(rail).toBeVisible();
+    const ids = [
+      "undo",
+      "redo",
+      "save-copy",
+      "export-surface",
+      "export-profile",
+      "import-profile",
+      "flip-horizontal",
+      "flip-vertical",
+      "turn-surface",
+      "view-numbers",
+      "view-names",
+      "shortcuts-open",
+    ];
+    // A box's own rectangle: the file input is visually hidden, its label is the box.
+    const boxOfId = async (id: string) => {
+      const el = page.getByTestId(id);
+      const box =
+        id === "import-profile"
+          ? await el.locator("xpath=..").boundingBox()
+          : await el.boundingBox();
+      if (box === null) throw new Error(`${id} has no box`);
+      return box;
+    };
+    const rect = async (locator: Locator) => {
+      const box = await locator.boundingBox();
+      if (box === null) throw new Error("no box");
+      return box;
+    };
+    const plateBox = await rect(plate);
+    let columnBox = await rect(column);
+    let inspectorBox = await rect(inspector);
+    // The column between the plate and the inspector, the inspector on its right.
+    expect(columnBox.x).toBeGreaterThanOrEqual(plateBox.x + plateBox.width);
+    expect(columnBox.x + columnBox.width).toBeLessThanOrEqual(
+      inspectorBox.x + 1,
+    );
+    const xs = new Set<number>();
+    for (const id of ids) {
+      const box = await boxOfId(id);
+      expect(box.width, id).toBe(44);
+      expect(box.height, id).toBe(44);
+      expect(box.x, id).toBeGreaterThanOrEqual(columnBox.x);
+      expect(box.x + box.width, id).toBeLessThanOrEqual(
+        columnBox.x + columnBox.width,
+      );
+      expect(box.y, id).toBeGreaterThanOrEqual(0);
+      expect(box.y + box.height, `${id} inside 720`).toBeLessThanOrEqual(720);
+      xs.add(Math.round(box.x));
+    }
+    // Two stacks at 720 tall (the row is shorter than twelve boxes in one).
+    expect(xs.size).toBe(2);
+    // The rail's order is the document's: Undo first, the ? box last.
+    const undoBox = await boxOfId("undo");
+    const helpBox = await boxOfId("shortcuts-open");
+    expect(undoBox.y).toBeLessThan(helpBox.y);
+    // One stack at 900 tall.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const tall = new Set<number>();
+    for (const id of ids) tall.add(Math.round((await boxOfId(id)).x));
+    expect(tall.size).toBe(1);
+    // A press on Save copy: the plate's status line carries the outcome.
+    await page.getByTestId("save-copy").click();
+    await expect(page.getByTestId("surface-status")).toContainText(
+      "saved to My configs.",
+    );
+    // The phone: the rail is a strip - wider than tall - above the inspector.
+    await page.setViewportSize({ width: 390, height: 844 });
+    const strip = await rect(rail);
+    expect(strip.width).toBeGreaterThan(strip.height);
+    columnBox = await rect(column);
+    inspectorBox = await rect(inspector);
+    expect(columnBox.y + columnBox.height).toBeLessThanOrEqual(
+      inspectorBox.y + 1,
+    );
+    expect(columnBox.width).toBe(390);
+    const phoneUndo = await boxOfId("undo");
+    const phoneHelp = await boxOfId("shortcuts-open");
+    expect(phoneUndo.width).toBe(44);
+    expect(phoneHelp.x).toBeGreaterThanOrEqual(phoneUndo.x + 44);
+    expect(consoleErrors).toEqual([]);
+  });
+
   test("the surfaces walk (change 13C): a right-click on an element opens the menu and Duplicate lands a copy, Paste is disabled with its reason on the empty plate, ? opens the shortcut sheet and Escape closes it, Export for Grid Editor downloads a profile whose JSON is type ZONA with the five strings and the surface under hangar, Import a profile opens it as a new draft, two elements on one CC show the mark and the line, a press in Play writes a monitor line, the names toggle hides the names, and a recent colour's chip recolours the selection", async ({
     page,
   }) => {
@@ -851,9 +946,7 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await exportButton.click();
     const download = await downloading;
     expect(download.suggestedFilename()).toBe("My performance.json");
-    await expect(page.getByTestId("profile-outcome")).toHaveText(
-      "Exported as My performance.json.",
-    );
+    await expect(status).toHaveText("Exported as My performance.json.");
     const exportedPath = await download.path();
     if (exportedPath === null) throw new Error("the download has no path");
     const exportedText = readFileSync(exportedPath, "utf8");
@@ -893,7 +986,7 @@ test.describe("the Sandbox, with no hardware attached", () => {
     await expect(page).toHaveURL(SURFACE_ADDRESS);
     await expect.poll(() => page.url()).not.toBe(before);
     await expect(count).toHaveText("3 elements");
-    await expect(page.getByTestId("profile-outcome")).toHaveText(
+    await expect(status).toHaveText(
       "Imported My performance as a new surface.",
     );
 
@@ -1055,7 +1148,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await page.getByTestId("export-surface").click();
     const download = await downloading;
     expect(download.suggestedFilename()).toBe("loop.hangar.json");
-    await expect(page.getByTestId("export-outcome")).toHaveText(
+    await expect(page.getByTestId("surface-status")).toHaveText(
       "Exported as loop.hangar.json.",
     );
     const exportedPath = await download.path();
