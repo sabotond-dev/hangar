@@ -1,21 +1,19 @@
 <!--
   SELECTED ELEMENT(S): PDF page 3's right column in Inspector.svelte's panel - the eyebrow and
-  the name (a count over a set, change 13A), the units chip, Element name (single only), the type
-  as a plain label and Orientation on faders, Locked (a checkbox; the plate refuses a locked
-  element's move, resize and delete), Behavior (Mode / Speed / Spring, Touches, Toggle / Group,
-  a knob's Mode - only when every selected element is that kind), MIDI output (the controllers
-  single only; Channel, Min and Max shared; a button's Output and Note; not with a blank),
-  Appearance through Swatch.svelte, then the pinned Duplicate / Delete. Over a set a field whose
-  values differ reads MIXED and a value writes every member as one entry, refused whole inline; a
-  set has an Arrange row (13B); with nothing selected, Shared controllers when two elements
-  share one (13C) then New elements with Reset defaults (13B); under the swatch the recent
-  colours strip (13C). In Play every field is read-only.
+  the name (a count over a set, change 13A), the units chip, then four titled sections on the
+  rack's grid (change 16c): Identity (the name with the lock box in its lock column, the type as
+  a fact, Orientation on faders), Behavior (Mode, Speed, Spring and its value; Touches; Toggle and
+  Group; a knob's Mode), MIDI output (Output and Note on a button; CC, Channel, Min, Max),
+  Appearance (Swatch.svelte, BrightnessField.svelte), then the pinned Duplicate / Delete. Every
+  field is one row - label | control | reset | lock - its control filling the column at 44: a text
+  field, a fact, a segmented control of two words, a select past two, Stepper.svelte over a range;
+  a helper is the label's title and a description; a set's differing field reads MIXED and has an
+  Arrange row (13B); no selection lists Shared controllers (13C) and New elements; Play locks all.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onMount } from "svelte";
   import { brightnessOf } from "$lib/catalog/brightness";
   import {
     COLOUR_KNOB_ID,
@@ -49,6 +47,7 @@
     GROUP,
     GROUP_HELPER,
     GROUP_NONE,
+    IDENTITY,
     KIND_LABELS,
     KNOB_MODE_WORDS,
     KNOB_RELATIVE_HELPER,
@@ -90,6 +89,8 @@
     SPRING,
     SPRING_HELPER,
     SPRING_VALUE,
+    SWITCH_OFF,
+    SWITCH_ON,
     TOGGLE,
     TOGGLE_HELPER,
     TOUCHES,
@@ -113,21 +114,30 @@
   import type { Alignment, Axis } from "$lib/sandbox/geometry";
   import {
     BUTTON_OUTPUTS,
+    CC_MAX,
+    CC_MIN,
+    CHANNEL_MAX,
+    CHANNEL_MIN,
     CONTINUOUS_MODES,
     GROUP_MAX,
     KNOB_MODES,
     ORIENTATIONS,
     SPEEDS,
     TOUCHES_MAX,
+    VALUE_MAX,
+    VALUE_MIN,
     colourByte,
     groupOf,
     isRelative,
     lockedOf,
+    maxOf,
+    minOf,
     modeOf,
     orientationOf,
     outputOf,
     speedOf,
     springOf,
+    springValueOf,
     touchesOf,
     type ButtonOutput,
     type Orientation,
@@ -140,7 +150,7 @@
   import Inspector, {
     type InspectorSection,
   } from "$lib/ui/shell/Inspector.svelte";
-  import { NUMERIC_GRID_REFLOW } from "$lib/ui/shell/layout";
+  import Stepper from "$lib/ui/Stepper.svelte";
   import Swatch from "$lib/ui/Swatch.svelte";
 
   let {
@@ -171,7 +181,7 @@
   }: {
     view: EditorState;
     onrename: (name: string) => void;
-    /** Every keystroke of a typed field, validated by the editor. */
+    /** Every keystroke of a typed field, validated by the editor; a step box or an arrow is one keystroke of the next value. */
     onnumber: (field: NumericField, text: string) => void;
     /** Blur or Enter: the history's coalescing boundary. */
     oncommit: () => void;
@@ -219,7 +229,7 @@
   const outputId = `${uid}-output`;
   const groupId = `${uid}-group`;
   const touchesId = `${uid}-touches`;
-  const lockedId = `${uid}-locked`;
+  const lockedHelperId = `${uid}-locked-helper`;
   const lockId = `${uid}-lock`;
   const arrangeHelperId = `${uid}-arrange-helper`;
   const recentHelperId = `${uid}-recent-helper`;
@@ -303,6 +313,7 @@
   const touchesProblemId = `${uid}-touches-problem`;
   const fieldId = (field: NumericField) => `${uid}-${field}`;
   const messageId = (field: NumericField) => `${uid}-${field}-message`;
+  const helperId = (field: NumericField) => `${uid}-${field}-helper`;
 
   /** The test id per typed field: the model's name, kebab where it is two words. */
   const FIELD_IDS: Readonly<Record<NumericField, string>> = {
@@ -314,6 +325,56 @@
     springValue: "spring-value",
     note: "note",
   };
+
+  /** Each typed field's closed range: the stepper's boxes and arrows walk it by one (the model refuses outside it). */
+  const RANGES: Readonly<Record<NumericField, readonly [number, number]>> = {
+    cc: [CC_MIN, CC_MAX],
+    cc2: [CC_MIN, CC_MAX],
+    channel: [CHANNEL_MIN, CHANNEL_MAX],
+    min: [VALUE_MIN, VALUE_MAX],
+    max: [VALUE_MIN, VALUE_MAX],
+    springValue: [VALUE_MIN, VALUE_MAX],
+    note: [CC_MIN, CC_MAX],
+  };
+
+  /** A segmented control's or a select's words: the model's value and the copy's word. */
+  type Word = { readonly value: string; readonly label: string };
+  const ORIENTATION_WORDS: readonly Word[] = ORIENTATIONS.map((o) => ({
+    value: o,
+    label: o === "vertical" ? ORIENTATION_VERTICAL : ORIENTATION_HORIZONTAL,
+  }));
+  const MODE_WORDS: readonly Word[] = CONTINUOUS_MODES.map((m) => ({
+    value: m,
+    label: m === "absolute" ? MODE_ABSOLUTE : MODE_RELATIVE,
+  }));
+  const SPEED_WORDS: readonly Word[] = SPEEDS.map((s) => ({
+    value: s,
+    label: s === "half" ? SPEED_HALF : SPEED_FULL,
+  }));
+  const OUTPUT_WORDS: readonly Word[] = BUTTON_OUTPUTS.map((o) => ({
+    value: o,
+    label: o === "cc" ? OUTPUT_CC : OUTPUT_NOTE,
+  }));
+  /** A checkbox's two states as two words (change 16c): Spring, Toggle. */
+  const SWITCH_WORDS: readonly Word[] = [
+    { value: "false", label: SWITCH_OFF },
+    { value: "true", label: SWITCH_ON },
+  ];
+  const KNOB_MODE_LIST: readonly Word[] = KNOB_MODES.map((m) => ({
+    value: m,
+    label: KNOB_MODE_WORDS[m as keyof typeof KNOB_MODE_WORDS],
+  }));
+  const TOUCHES_LIST: readonly Word[] = Array.from(
+    { length: TOUCHES_MAX },
+    (_, i) => ({ value: String(i + 1), label: String(i + 1) }),
+  );
+  const GROUP_LIST: readonly Word[] = [
+    { value: "0", label: GROUP_NONE },
+    ...Array.from({ length: GROUP_MAX }, (_, i) => ({
+      value: String(i + 1),
+      label: groupWord(i + 1),
+    })),
+  ];
 
   /** The set (change 13A): `region` is the one element while the set has one; `any` and `multi` size it. */
   const members = $derived(view.selectedRegions);
@@ -348,19 +409,44 @@
   );
   const noHeld: ReadonlySet<string> = new Set();
 
-  /* D-21: the 2 x 2 grid is two columns from NUMERIC_GRID_REFLOW and one below. */
-  let body = $state<HTMLElement | null>(null);
-  let twoColumns = $state(true);
-  onMount(() => {
-    if (body === null || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        twoColumns = entry.contentRect.width >= NUMERIC_GRID_REFLOW;
-      }
-    });
-    observer.observe(body);
-    return () => observer.disconnect();
-  });
+  /** The ids a control is described by, joined; undefined with none. */
+  const describedBy = (...ids: (string | undefined)[]): string | undefined =>
+    ids.filter((id) => id !== undefined).join(" ") || undefined;
+
+  /** The first member's own value for a typed field - the rung the boxes step from; a refused text steps from the model, as MidiField does. */
+  function modelValue(field: NumericField): number | undefined {
+    const first = members[0];
+    if (first === undefined) return undefined;
+    switch (field) {
+      case "cc":
+      case "note":
+        return first.cc;
+      case "cc2":
+        return first.cc2;
+      case "channel":
+        return first.channel;
+      case "min":
+        return minOf(first);
+      case "max":
+        return maxOf(first);
+      case "springValue":
+        return springValueOf(first);
+    }
+  }
+  const rankOf = (field: NumericField): number =>
+    (modelValue(field) ?? RANGES[field][0]) - RANGES[field][0];
+  const countOf = (field: NumericField): number =>
+    RANGES[field][1] - RANGES[field][0] + 1;
+  /** A step box or an arrow: the next value in the range, typed for the editor as a keystroke; the field's blur or Enter is the boundary. */
+  function stepTo(field: NumericField, rank: number): void {
+    const [lo, hi] = RANGES[field];
+    onnumber(field, String(Math.min(hi, Math.max(lo, lo + rank))));
+  }
+  /** The stepper's text: a keystroke goes to the editor; Enter and blur are the history's boundary. */
+  function typed(field: NumericField, text: string, committed: boolean): void {
+    if (committed) oncommit();
+    else onnumber(field, text);
+  }
 
   function onkeydown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
@@ -379,6 +465,8 @@
     const out: InspectorSection[] = [];
     // A set: the Arrange row first (13B) - the spacings need three.
     if (multi) out.push({ title: ARRANGE, content: arrange });
+    // Identity (section 8): the name, the type and the lock, Orientation on faders (change 16c: a titled section on the grid).
+    out.push({ title: IDENTITY, content: identity });
     // Every sending kind has a Behavior since change 10B; a blank has none, and a set has one only when every member is one kind.
     if (sharedKind !== undefined && sharedKind !== "blank")
       out.push({ title: BEHAVIOR, content: behavior });
@@ -414,30 +502,51 @@
   {/if}
 {/snippet}
 
-{#snippet numeric(field: NumericField, label: string)}
+<!-- A typed field on the grid: Stepper.svelte over the field's range, the model's text shown, a refusal's line under the row. A helper is the label's title and, rendered once, a description; `sharedHelper` names a description another row rendered (Max reads Min's). -->
+{#snippet numeric(
+  field: NumericField,
+  label: string,
+  helper: string | undefined,
+  sharedHelper: string | undefined,
+)}
   {@const problem = view.fields[field]}
   {@const mixed = view.mixed.includes(field) && problem === undefined}
+  {@const ownHelper =
+    helper !== undefined && sharedHelper === undefined
+      ? helperId(field)
+      : undefined}
   <div class="field" class:invalid={problem !== undefined}>
-    <label class="label type-helper" for={fieldId(field)}>{label}</label>
-    <input
-      class="input numerals"
-      id={fieldId(field)}
-      type="text"
-      inputmode={field === "note" ? "text" : "numeric"}
-      autocomplete="off"
-      data-testid="field-{FIELD_IDS[field]}"
-      data-field={field}
-      value={view.texts[field]}
-      readonly={play}
-      aria-readonly={play}
-      aria-invalid={problem !== undefined}
-      aria-describedby={problem !== undefined ? messageId(field) : lock}
-      placeholder={mixed ? MIXED : undefined}
-      data-mixed={mixed || undefined}
-      oninput={(event) => onnumber(field, event.currentTarget.value)}
-      onblur={oncommit}
-      {onkeydown}
-    />
+    <div class="row">
+      <label class="label type-micro" for={fieldId(field)} title={helper}
+        >{label}</label
+      >
+      {#if ownHelper !== undefined}
+        <span class="sr-only" id={ownHelper}>{helper}</span>
+      {/if}
+      <div class="control">
+        <Stepper
+          id={fieldId(field)}
+          testid="field-{FIELD_IDS[field]}"
+          inputTestid="field-{FIELD_IDS[field]}"
+          value={view.texts[field]}
+          rank={rankOf(field)}
+          count={countOf(field)}
+          invalid={problem !== undefined}
+          describedBy={describedBy(
+            problem !== undefined ? messageId(field) : undefined,
+            ownHelper ?? sharedHelper,
+            lock,
+          )}
+          hint={false}
+          inputmode={field === "note" ? "text" : "numeric"}
+          readonly={play}
+          placeholder={mixed ? MIXED : undefined}
+          {mixed}
+          ontext={(text, committed) => typed(field, text, committed)}
+          onrank={(rank) => stepTo(field, rank)}
+        />
+      </div>
+    </div>
     {#if problem !== undefined}
       <p
         class="message type-helper"
@@ -450,341 +559,456 @@
   </div>
 {/snippet}
 
-{#snippet check(
+<!-- A worded field of two: the rack's segmented control - real radios in labels under a radiogroup, joined boxes of equal width, the chosen one on the action colour by edge and word. Over a set that differs (change 13A) none is chosen and the group says so. -->
+{#snippet segmented(
   id: string,
   testid: string,
   label: string,
-  checked: boolean | undefined,
-  onchange: (checked: boolean) => void,
+  helper: string | undefined,
+  words: readonly Word[],
+  value: string | undefined,
+  onpick: (value: string) => void,
+  problem: { id: string; testid: string; text: string } | undefined,
 )}
-  <!-- A checkbox whose members differ (change 13A) is neither: mixed for assistive technology, indeterminate on screen. -->
-  <div class="check">
-    <input
-      class="checkbox"
-      {id}
-      type="checkbox"
-      data-testid={testid}
-      checked={checked === true}
-      indeterminate={checked === undefined}
-      aria-checked={checked === undefined ? "mixed" : undefined}
-      data-mixed={checked === undefined || undefined}
-      disabled={play}
-      aria-describedby={lock}
-      onchange={(event) => onchange(event.currentTarget.checked)}
-    />
-    <label class="label type-helper" for={id}>{label}</label>
+  {@const labelId = `${id}-label`}
+  {@const helpId = helper === undefined ? undefined : `${id}-helper`}
+  <div class="field">
+    <div class="row">
+      <span class="label type-micro" id={labelId} title={helper}>{label}</span>
+      {#if helper !== undefined}
+        <span class="sr-only" id={helpId}>{helper}</span>
+      {/if}
+      <div
+        class="control options"
+        role="radiogroup"
+        aria-labelledby={labelId}
+        aria-describedby={describedBy(
+          problem === undefined ? undefined : problem.id,
+          helpId,
+          lock,
+        )}
+        data-testid={testid}
+        data-value={value ?? ""}
+        data-mixed={value === undefined || undefined}
+        aria-disabled={play || undefined}
+        style:--segment-cols={words.length}
+      >
+        {#each words as word (word.value)}
+          <label class="option" class:selected={word.value === value}>
+            <input
+              class="sr-only"
+              type="radio"
+              name={id}
+              value={word.value}
+              checked={word.value === value}
+              disabled={play}
+              onchange={() => onpick(word.value)}
+            />
+            <span class="word">{word.label}</span>
+          </label>
+        {/each}
+      </div>
+    </div>
+    {#if problem !== undefined}
+      <p
+        class="message type-helper"
+        id={problem.id}
+        data-testid={problem.testid}
+      >
+        {problem.text}
+      </p>
+    {/if}
   </div>
 {/snippet}
 
-{#snippet mixedOption(mixed: boolean)}
-  <!-- The blank option a select shows while its members differ (change 13A); choosing any other applies to all. -->
-  {#if mixed}
-    <option value="" disabled>{MIXED}</option>
+<!-- A worded field past two: the rack's select. The blank option a select shows while its members differ (change 13A); choosing any other applies to all. `onpick` is handed the element so Touches can snap it back after a refusal. -->
+{#snippet selectRow(
+  id: string,
+  testid: string,
+  label: string,
+  helper: string | undefined,
+  words: readonly Word[],
+  value: string | undefined,
+  onpick: (value: string, select: HTMLSelectElement) => void,
+  problem: { id: string; testid: string; text: string } | undefined,
+)}
+  {@const helpId = helper === undefined ? undefined : `${id}-helper`}
+  <div class="field">
+    <div class="row">
+      <label class="label type-micro" for={id} title={helper}>{label}</label>
+      {#if helper !== undefined}
+        <span class="sr-only" id={helpId}>{helper}</span>
+      {/if}
+      <div class="control select-wrap">
+        <select
+          class="select"
+          {id}
+          data-testid={testid}
+          value={value ?? ""}
+          disabled={play}
+          aria-describedby={describedBy(
+            problem === undefined ? undefined : problem.id,
+            helpId,
+            lock,
+          )}
+          onchange={(event) =>
+            onpick(event.currentTarget.value, event.currentTarget)}
+        >
+          {#if value === undefined}
+            <option value="" disabled>{MIXED}</option>
+          {/if}
+          {#each words as word (word.value)}
+            <option value={word.value} selected={word.value === value}
+              >{word.label}</option
+            >
+          {/each}
+        </select>
+      </div>
+    </div>
+    {#if problem !== undefined}
+      <p
+        class="message type-helper"
+        id={problem.id}
+        data-testid={problem.testid}
+      >
+        {problem.text}
+      </p>
+    {/if}
+  </div>
+{/snippet}
+
+<!-- The lock (change 13A, suggestion 6), as the rack's lock box in the lock column of the first identity row (change 16c): pressed when every member is locked, mixed when they differ; Ctrl+L on the plate is the same toggle. -->
+{#snippet lockBox()}
+  {@const locked = shared(lockedOf)}
+  <button
+    class="box lock"
+    type="button"
+    data-testid="field-locked"
+    aria-pressed={locked === undefined ? "mixed" : locked}
+    aria-label={LOCKED}
+    title={LOCKED_HELPER}
+    disabled={play}
+    aria-describedby={describedBy(lockedHelperId, lock)}
+    onclick={() => onlocked?.(locked !== true)}
+  >
+    <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
+      <line x1="5" y1="10" x2="15" y2="10" />
+      <line x1="15" y1="10" x2="15" y2="17" />
+      <line x1="15" y1="17" x2="5" y2="17" />
+      <line x1="5" y1="17" x2="5" y2="10" />
+      <line x1="7" y1="10" x2="7" y2="5" />
+      <line x1="7" y1="5" x2="13" y2="5" />
+      <line x1="13" y1="5" x2="13" y2={locked === true ? 10 : 7} />
+    </svg>
+  </button>
+  <span class="sr-only" id={lockedHelperId}>{LOCKED_HELPER}</span>
+{/snippet}
+
+{#snippet identity()}
+  {@const orientation = shared(orientationOf)}
+  <div class="rows">
+    {#if region !== undefined}
+      <!-- The name (one element only), with the lock box in the row's lock column. -->
+      <div class="field">
+        <div class="row">
+          <label class="label type-micro" for={nameId}>{ELEMENT_NAME}</label>
+          <div class="control">
+            <input
+              class="text"
+              id={nameId}
+              type="text"
+              autocomplete="off"
+              data-testid="field-name"
+              value={region.name}
+              readonly={play}
+              aria-readonly={play}
+              aria-describedby={lock}
+              oninput={(event) => onrename(event.currentTarget.value)}
+              onblur={oncommit}
+              {onkeydown}
+            />
+          </div>
+          {@render lockBox()}
+        </div>
+      </div>
+    {/if}
+    <!-- The type is a fact, not a field: a kind never changes once placed (change 10A); over a mixed set it reads Mixed, and a set (no name row) carries the lock here. -->
+    <div class="field">
+      <div class="row">
+        <span class="label type-micro">{TYPE}</span>
+        <div class="control">
+          <span
+            class="fact"
+            data-testid="field-kind"
+            data-kind={sharedKind ?? "mixed"}
+            >{sharedKind === undefined ? MIXED : KIND_LABELS[sharedKind]}</span
+          >
+        </div>
+        {#if region === undefined}
+          {@render lockBox()}
+        {/if}
+      </div>
+    </div>
+    {#if sharedKind === "fader"}
+      {@render segmented(
+        orientationId,
+        "field-orientation",
+        ORIENTATION,
+        undefined,
+        ORIENTATION_WORDS,
+        orientation,
+        (value) => onorientation(value as Orientation),
+        view.orientationProblem === undefined
+          ? undefined
+          : {
+              id: orientationProblemId,
+              testid: "orientation-problem",
+              text: view.orientationProblem,
+            },
+      )}
+    {/if}
+  </div>
+  <!-- Rule 6's warnings (geometry.ts), under the identity now that the geometry block is the plate's. -->
+  {#if region !== undefined}
+    {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
+      <p class="warning type-helper" data-testid="adjacency-warning">
+        {warning.message}
+      </p>
+    {/each}
   {/if}
 {/snippet}
 
 {#snippet behavior()}
-  {#if sharedKind === "fader" || sharedKind === "xy"}
-    {@const mode = shared(modeOf)}
-    {@const speed = shared(speedOf)}
-    {@const relative = members.some(isRelative)}
-    <!-- Mode and, under Relative, Speed (answers 7c); a fader's Spring and its value (answer 8). -->
-    <div class="grid" class:two={twoColumns}>
-      <div class="field">
-        <label class="label type-helper" for={modeId}>{MODE}</label>
-        <select
-          class="input select"
-          id={modeId}
-          data-testid="field-mode"
-          value={mode ?? ""}
-          disabled={play}
-          aria-describedby={lock}
-          onchange={(event) =>
-            onmode?.(event.currentTarget.value as RegionMode)}
-        >
-          {@render mixedOption(mode === undefined)}
-          {#each CONTINUOUS_MODES as m (m)}
-            <option value={m} selected={m === mode}
-              >{m === "absolute" ? MODE_ABSOLUTE : MODE_RELATIVE}</option
-            >
-          {/each}
-        </select>
-      </div>
-      {#if relative}
-        <div class="field">
-          <label class="label type-helper" for={speedId}>{SPEED}</label>
-          <select
-            class="input select"
-            id={speedId}
-            data-testid="field-speed"
-            value={speed ?? ""}
-            disabled={play}
-            aria-describedby={lock}
-            onchange={(event) => onspeed?.(event.currentTarget.value as Speed)}
-          >
-            {@render mixedOption(speed === undefined)}
-            {#each SPEEDS as s (s)}
-              <option value={s} selected={s === speed}
-                >{s === "half" ? SPEED_HALF : SPEED_FULL}</option
-              >
-            {/each}
-          </select>
-        </div>
-      {/if}
-    </div>
-    <p class="helper type-helper">
-      {relative ? SPEED_HELPER : MODE_HELPER}
-    </p>
-    {#if sharedKind === "xy"}
-      {@const touches = shared(touchesOf)}
-      <!-- Touches (change 11, answers 1a and 2a): 1 to 5; a refused count snaps the select back to the model's and shows its line. -->
-      <div class="grid" class:two={twoColumns}>
-        <div class="field">
-          <label class="label type-helper" for={touchesId}>{TOUCHES}</label>
-          <select
-            class="input select"
-            id={touchesId}
-            data-testid="field-touches"
-            value={touches === undefined ? "" : String(touches)}
-            disabled={play}
-            aria-describedby={view.touchesProblem !== undefined
-              ? touchesProblemId
-              : lock}
-            onchange={(event) => {
-              const select = event.currentTarget;
-              ontouches?.(Number.parseInt(select.value, 10));
-              const now = shared(touchesOf);
-              select.value = now === undefined ? "" : String(now);
-            }}
-          >
-            {@render mixedOption(touches === undefined)}
-            {#each Array.from({ length: TOUCHES_MAX }, (_, i) => i + 1) as n (n)}
-              <option value={String(n)} selected={touches === n}>{n}</option>
-            {/each}
-          </select>
-        </div>
-      </div>
-      {#if view.touchesProblem !== undefined}
-        <p
-          class="message type-helper"
-          id={touchesProblemId}
-          data-testid="touches-problem"
-        >
-          {view.touchesProblem}
-        </p>
-      {/if}
-      <p class="helper type-helper">{TOUCHES_HELPER}</p>
-    {/if}
-    {#if sharedKind === "fader"}
-      {@const spring = shared(springOf)}
-      {@render check(springId, "field-spring", SPRING, spring, (on) =>
-        onspring?.(on),
+  <div class="rows">
+    {#if sharedKind === "fader" || sharedKind === "xy"}
+      {@const mode = shared(modeOf)}
+      {@const speed = shared(speedOf)}
+      {@const relative = members.some(isRelative)}
+      <!-- Mode and, under Relative, Speed (answers 7c); a fader's Spring and its value (answer 8). -->
+      {@render segmented(
+        modeId,
+        "field-mode",
+        MODE,
+        MODE_HELPER,
+        MODE_WORDS,
+        mode,
+        (value) => onmode?.(value as RegionMode),
+        undefined,
       )}
-      {#if spring === true}
-        <div class="grid" class:two={twoColumns}>
-          {@render numeric("springValue", SPRING_VALUE)}
-        </div>
+      {#if relative}
+        {@render segmented(
+          speedId,
+          "field-speed",
+          SPEED,
+          SPEED_HELPER,
+          SPEED_WORDS,
+          speed,
+          (value) => onspeed?.(value as Speed),
+          undefined,
+        )}
       {/if}
-      <p class="helper type-helper">{SPRING_HELPER}</p>
+      {#if sharedKind === "xy"}
+        {@const touches = shared(touchesOf)}
+        <!-- Touches (change 11, answers 1a and 2a): 1 to 5; a refused count snaps the select back to the model's and shows its line. -->
+        {@render selectRow(
+          touchesId,
+          "field-touches",
+          TOUCHES,
+          TOUCHES_HELPER,
+          TOUCHES_LIST,
+          touches === undefined ? undefined : String(touches),
+          (value, select) => {
+            ontouches?.(Number.parseInt(value, 10));
+            const now = shared(touchesOf);
+            select.value = now === undefined ? "" : String(now);
+          },
+          view.touchesProblem === undefined
+            ? undefined
+            : {
+                id: touchesProblemId,
+                testid: "touches-problem",
+                text: view.touchesProblem,
+              },
+        )}
+      {/if}
+      {#if sharedKind === "fader"}
+        {@const spring = shared(springOf)}
+        {@render segmented(
+          springId,
+          "field-spring",
+          SPRING,
+          SPRING_HELPER,
+          SWITCH_WORDS,
+          spring === undefined ? undefined : String(spring),
+          (value) => onspring?.(value === "true"),
+          undefined,
+        )}
+        {#if spring === true}
+          {@render numeric("springValue", SPRING_VALUE, undefined, undefined)}
+        {/if}
+      {/if}
+    {:else if sharedKind === "button"}
+      {@const group = shared(groupOf)}
+      {@const latch = shared((r) => r.latch === true)}
+      <!-- Toggle (the schema's latch) and the radio group (answer 9b). -->
+      {@render segmented(
+        toggleId,
+        "field-toggle",
+        TOGGLE,
+        TOGGLE_HELPER,
+        SWITCH_WORDS,
+        latch === undefined ? undefined : String(latch),
+        (value) => onlatch(value === "true"),
+        undefined,
+      )}
+      {@render selectRow(
+        groupId,
+        "field-group",
+        GROUP,
+        GROUP_HELPER,
+        GROUP_LIST,
+        group === undefined ? undefined : String(group),
+        (value) => ongroup?.(Number.parseInt(value, 10)),
+        undefined,
+      )}
+    {:else if sharedKind === "knob"}
+      {@const mode = shared(modeOf)}
+      <!-- The knob's four modes (answer 11d), a select; under a relative mode the helper says Min and Max do not apply. -->
+      {@render selectRow(
+        modeId,
+        "field-mode",
+        MODE,
+        members.some(isRelative) ? KNOB_RELATIVE_HELPER : undefined,
+        KNOB_MODE_LIST,
+        mode,
+        (value) => onmode?.(value as RegionMode),
+        undefined,
+      )}
     {/if}
-  {:else if sharedKind === "button"}
-    {@const group = shared(groupOf)}
-    <!-- Toggle (the schema's latch) and the radio group (answer 9b). -->
-    {@render check(
-      toggleId,
-      "field-toggle",
-      TOGGLE,
-      shared((r) => r.latch === true),
-      (on) => onlatch(on),
-    )}
-    <p class="helper type-helper">{TOGGLE_HELPER}</p>
-    <div class="grid" class:two={twoColumns}>
-      <div class="field">
-        <label class="label type-helper" for={groupId}>{GROUP}</label>
-        <select
-          class="input select"
-          id={groupId}
-          data-testid="field-group"
-          value={group === undefined ? "" : String(group)}
-          disabled={play}
-          aria-describedby={lock}
-          onchange={(event) =>
-            ongroup?.(Number.parseInt(event.currentTarget.value, 10))}
-        >
-          {@render mixedOption(group === undefined)}
-          <option value="0" selected={group === 0}>{GROUP_NONE}</option>
-          {#each Array.from({ length: GROUP_MAX }, (_, i) => i + 1) as n (n)}
-            <option value={String(n)} selected={group === n}
-              >{groupWord(n)}</option
-            >
-          {/each}
-        </select>
-      </div>
-    </div>
-    <p class="helper type-helper">{GROUP_HELPER}</p>
-  {:else if sharedKind === "knob"}
-    {@const mode = shared(modeOf)}
-    <!-- The knob's four modes (answer 11d). -->
-    <div class="grid" class:two={twoColumns}>
-      <div class="field">
-        <label class="label type-helper" for={modeId}>{MODE}</label>
-        <select
-          class="input select"
-          id={modeId}
-          data-testid="field-mode"
-          value={mode ?? ""}
-          disabled={play}
-          aria-describedby={lock}
-          onchange={(event) =>
-            onmode?.(event.currentTarget.value as RegionMode)}
-        >
-          {@render mixedOption(mode === undefined)}
-          {#each KNOB_MODES as m (m)}
-            <option value={m} selected={m === mode}
-              >{KNOB_MODE_WORDS[m as keyof typeof KNOB_MODE_WORDS]}</option
-            >
-          {/each}
-        </select>
-      </div>
-    </div>
-    {#if members.some(isRelative)}
-      <p class="helper type-helper">{KNOB_RELATIVE_HELPER}</p>
-    {/if}
-  {/if}
+  </div>
 {/snippet}
 
 {#snippet midi()}
-  {#if sharedKind === "button"}
-    {@const output = shared(outputOf)}
-    <!-- Output first (answer 10): CC or Note; the number field follows the choice - over a set, only when every member is on Note (the controller is each one's own). -->
-    <div class="grid" class:two={twoColumns}>
-      <div class="field">
-        <label class="label type-helper" for={outputId}>{OUTPUT}</label>
-        <select
-          class="input select"
-          id={outputId}
-          data-testid="field-output"
-          value={output ?? ""}
-          disabled={play}
-          aria-describedby={lock}
-          onchange={(event) =>
-            onoutput?.(event.currentTarget.value as ButtonOutput)}
-        >
-          {@render mixedOption(output === undefined)}
-          {#each BUTTON_OUTPUTS as o (o)}
-            <option value={o} selected={o === output}
-              >{o === "cc" ? OUTPUT_CC : OUTPUT_NOTE}</option
-            >
-          {/each}
-        </select>
-      </div>
+  <div class="rows">
+    {#if sharedKind === "button"}
+      {@const output = shared(outputOf)}
+      <!-- Output first (answer 10): CC or Note; the number field follows the choice - over a set, only when every member is on Note (the controller is each one's own). -->
+      {@render segmented(
+        outputId,
+        "field-output",
+        OUTPUT,
+        undefined,
+        OUTPUT_WORDS,
+        output,
+        (value) => onoutput?.(value as ButtonOutput),
+        undefined,
+      )}
       {#if output === "note"}
-        {@render numeric("note", NOTE_NUMBER)}
+        {@render numeric("note", NOTE_NUMBER, NOTE_HELPER, undefined)}
       {:else if region !== undefined}
-        {@render numeric("cc", CC_NUMBER)}
+        {@render numeric("cc", CC_NUMBER, undefined, undefined)}
       {/if}
-      {@render numeric("channel", CHANNEL)}
-      {@render numeric("min", MIN)}
-      {@render numeric("max", MAX)}
-    </div>
-    <p class="helper type-helper">
-      {output === "note" ? NOTE_HELPER : BUTTON_MIN_MAX_HELPER}
-    </p>
-  {:else if any}
-    {@const relativeKnob = members.some(
-      (r) => r.kind === "knob" && isRelative(r),
-    )}
-    <div class="grid" class:two={twoColumns}>
+      {@render numeric("channel", CHANNEL, undefined, undefined)}
+      {@render numeric("min", MIN, BUTTON_MIN_MAX_HELPER, undefined)}
+      {@render numeric("max", MAX, BUTTON_MIN_MAX_HELPER, helperId("min"))}
+    {:else if any}
+      {@const relativeKnob = members.some(
+        (r) => r.kind === "knob" && isRelative(r),
+      )}
       {#if region !== undefined}
         {@render numeric(
           "cc",
           region.kind === "xy" ? `${CC_NUMBER} (X)` : CC_NUMBER,
+          undefined,
+          undefined,
         )}
         {#if region.kind === "xy"}
-          {@render numeric("cc2", CC_NUMBER_Y)}
+          {@render numeric("cc2", CC_NUMBER_Y, undefined, undefined)}
         {/if}
       {/if}
-      {@render numeric("channel", CHANNEL)}
+      {@render numeric("channel", CHANNEL, undefined, undefined)}
       <!-- Min and Max (answer 6a) - not under a knob's relative modes, where a detent is a step. -->
       {#if !relativeKnob}
-        {@render numeric("min", MIN)}
-        {@render numeric("max", MAX)}
+        {@render numeric("min", MIN, MIN_MAX_HELPER, undefined)}
+        {@render numeric("max", MAX, MIN_MAX_HELPER, helperId("min"))}
       {/if}
-    </div>
-    {#if !relativeKnob}
-      <p class="helper type-helper">{MIN_MAX_HELPER}</p>
     {/if}
-  {/if}
+  </div>
 {/snippet}
 
 {#snippet appearance()}
-  {#if any}
-    <div class="swatch" class:locked={play} data-testid="region-swatch">
-      <Swatch
-        entry={{
-          id: `sandbox-${members[0].id}`,
-          name: region?.name ?? elementsLine(members.length),
-        }}
-        knobs={colourKnobs}
-        held={noHeld}
-        lock={false}
-        onchange={(_id, position) => {
-          if (!play) oncolour(levelsOf(position));
-        }}
-        onreset={(id) => {
-          if (!play && id === COLOUR_KNOB_ID) oncolour(DEFAULT_COLOUR);
-        }}
-        onhold={() => undefined}
-      />
-    </div>
-    {#if colourMixed}
-      <p class="helper type-helper" data-testid="colour-mixed">{MIXED}</p>
-    {/if}
-    {#if recentColours.length > 0}
-      <!-- The recent colours (change 13C): the last eight applied, newest first; a chip is the swatch's own oncolour, so a set takes it whole. -->
-      <div
-        class="recent"
-        role="group"
-        aria-label={RECENT_COLOURS}
-        aria-describedby={recentHelperId}
-        data-testid="recent-colours"
-      >
-        {#each recentColours as colour (colour.join(","))}
-          {@const rgb = colour.map(colourByte)}
-          <button
-            class="chip-colour"
-            type="button"
-            data-testid="recent-colour"
-            data-colour={colour.join(",")}
-            aria-label={recentColourName(rgb[0], rgb[1], rgb[2])}
-            title={recentColourName(rgb[0], rgb[1], rgb[2])}
-            disabled={play}
-            style:background="rgb({rgb[0]}
-            {rgb[1]}
-            {rgb[2]})"
-            onclick={() => oncolour([colour[0], colour[1], colour[2]])}
-          ></button>
-        {/each}
+  <div class="rows">
+    {#if any}
+      <div class="swatch" class:locked={play} data-testid="region-swatch">
+        <Swatch
+          entry={{
+            id: `sandbox-${members[0].id}`,
+            name: region?.name ?? elementsLine(members.length),
+          }}
+          knobs={colourKnobs}
+          held={noHeld}
+          lock={false}
+          onchange={(_id, position) => {
+            if (!play) oncolour(levelsOf(position));
+          }}
+          onreset={(id) => {
+            if (!play && id === COLOUR_KNOB_ID) oncolour(DEFAULT_COLOUR);
+          }}
+          onhold={() => undefined}
+        />
+        {#if colourMixed}
+          <p class="message quiet type-helper" data-testid="colour-mixed">
+            {MIXED}
+          </p>
+        {/if}
       </div>
-      <p class="helper type-helper" id={recentHelperId}>
-        {RECENT_COLOURS_HELPER}
-      </p>
+      {#if recentColours.length > 0}
+        <!-- The recent colours (change 13C): the last eight applied, newest first; a chip is the swatch's own oncolour, so a set takes it whole. -->
+        <div
+          class="recent"
+          role="group"
+          aria-label={RECENT_COLOURS}
+          title={RECENT_COLOURS_HELPER}
+          aria-describedby={recentHelperId}
+          data-testid="recent-colours"
+        >
+          {#each recentColours as colour (colour.join(","))}
+            {@const rgb = colour.map(colourByte)}
+            <button
+              class="chip-colour"
+              type="button"
+              data-testid="recent-colour"
+              data-colour={colour.join(",")}
+              aria-label={recentColourName(rgb[0], rgb[1], rgb[2])}
+              title={recentColourName(rgb[0], rgb[1], rgb[2])}
+              disabled={play}
+              style:background="rgb({rgb[0]}
+              {rgb[1]}
+              {rgb[2]})"
+              onclick={() => oncolour([colour[0], colour[1], colour[2]])}
+            ></button>
+          {/each}
+          <span class="sr-only" id={recentHelperId}
+            >{RECENT_COLOURS_HELPER}</span
+          >
+        </div>
+      {/if}
     {/if}
-  {/if}
-  <!-- The surface's brightness (change 5): under Appearance whether or not an element is selected, its helper saying whose it is; read-only in Play like every field. -->
-  <BrightnessField
-    value={brightness}
-    readonly={play}
-    describedBy={lock}
-    helper={BRIGHTNESS_SURFACE_HELPER}
-    onchange={(next) => onbrightness?.(next)}
-    onreset={() => onbrightness?.(255)}
-    {oncommit}
-  />
+    <!-- The surface's brightness (change 5): under Appearance whether or not an element is selected, its helper saying whose it is; read-only in Play like every field. -->
+    <BrightnessField
+      value={brightness}
+      readonly={play}
+      describedBy={lock}
+      helper={BRIGHTNESS_SURFACE_HELPER}
+      onchange={(next) => onbrightness?.(next)}
+      onreset={() => onbrightness?.(255)}
+      {oncommit}
+    />
+  </div>
 {/snippet}
 
 {#snippet arrange()}
-  <!-- Eight 44px icon boxes (change 13B): the six alignments, the two spacings - disabled under three members - each named, described by the helper. -->
+  <!-- Eight 44px icon boxes (change 13B), four to a line: the six alignments, the two spacings - disabled under three members - each named, described by the helper. -->
   <div class="arrange" role="group" aria-label={ARRANGE} data-testid="arrange">
     {#each ARRANGEMENTS as a (a.id)}
       <button
@@ -842,7 +1066,7 @@
 {#snippet actions()}
   {#if any}
     <button
-      class="outlined"
+      class="outlined action"
       type="button"
       data-testid="duplicate-element"
       disabled={play}
@@ -851,7 +1075,7 @@
       onclick={onduplicate}>{DUPLICATE}</button
     >
     <button
-      class="outlined"
+      class="outlined action"
       type="button"
       data-testid="delete-element"
       disabled={play}
@@ -866,7 +1090,7 @@
   {/if}
 {/snippet}
 
-<div class="region-inspector" bind:this={body} data-testid="region-inspector">
+<div class="region-inspector" data-testid="region-inspector">
   <Inspector
     eyebrow={!any
       ? NO_SELECTION_EYEBROW
@@ -875,11 +1099,10 @@
     aside={region === undefined ? undefined : chip}
     lede={!any ? NO_SELECTION_LEDE : multi ? MULTI_LEDE : undefined}
     sections={shown}
-    lead={!any ? undefined : identity}
     actions={!any ? undefined : actions}
   >
     {#if play}
-      <p class="lock type-helper" id={lockId} data-testid="fields-locked">
+      <p class="hold type-helper" id={lockId} data-testid="fields-locked">
         {PLAY_LOCKS_FIELDS}
       </p>
     {/if}
@@ -891,96 +1114,6 @@
     {/if}
   </Inspector>
 </div>
-
-{#snippet identity()}
-  {#if any}
-    {@const orientation = shared(orientationOf)}
-    <!-- Identity (section 8): the name (one element only), the type, Orientation on faders, Locked - above the first section. -->
-    <div class="identity">
-      {#if region !== undefined}
-        <div class="field">
-          <label class="label type-helper" for={nameId}>{ELEMENT_NAME}</label>
-          <input
-            class="input"
-            id={nameId}
-            type="text"
-            autocomplete="off"
-            data-testid="field-name"
-            value={region.name}
-            readonly={play}
-            aria-readonly={play}
-            aria-describedby={lock}
-            oninput={(event) => onrename(event.currentTarget.value)}
-            onblur={oncommit}
-            {onkeydown}
-          />
-        </div>
-      {/if}
-      <div class="grid" class:two={twoColumns}>
-        <!-- The type is a fact, not a field: a kind never changes once placed (change 10A); over a mixed set it reads Mixed. -->
-        <div class="field">
-          <span class="label type-helper">{TYPE}</span>
-          <span
-            class="value"
-            data-testid="field-kind"
-            data-kind={sharedKind ?? "mixed"}
-            >{sharedKind === undefined ? MIXED : KIND_LABELS[sharedKind]}</span
-          >
-        </div>
-        {#if sharedKind === "fader"}
-          <div class="field">
-            <label class="label type-helper" for={orientationId}
-              >{ORIENTATION}</label
-            >
-            <select
-              class="input select"
-              id={orientationId}
-              data-testid="field-orientation"
-              value={orientation ?? ""}
-              disabled={play}
-              aria-describedby={view.orientationProblem !== undefined
-                ? orientationProblemId
-                : lock}
-              onchange={(event) =>
-                onorientation(event.currentTarget.value as Orientation)}
-            >
-              {@render mixedOption(orientation === undefined)}
-              {#each ORIENTATIONS as o (o)}
-                <option value={o} selected={o === orientation}
-                  >{o === "vertical"
-                    ? ORIENTATION_VERTICAL
-                    : ORIENTATION_HORIZONTAL}</option
-                >
-              {/each}
-            </select>
-          </div>
-        {/if}
-      </div>
-      {#if view.orientationProblem !== undefined}
-        <p
-          class="message type-helper"
-          id={orientationProblemId}
-          data-testid="orientation-problem"
-        >
-          {view.orientationProblem}
-        </p>
-      {/if}
-      <!-- Locked (change 13A, suggestion 6): the padlock as a checkbox; Ctrl+L on the plate is the same toggle. -->
-      {@render check(lockedId, "field-locked", LOCKED, shared(lockedOf), (on) =>
-        onlocked?.(on),
-      )}
-      <p class="helper type-helper">{LOCKED_HELPER}</p>
-      <!-- Rule 6's warnings (geometry.ts), under the identity now that the geometry block is the plate's. -->
-      {#if region !== undefined}
-        {#each view.warnings.filter((w) => w.a === region.name || w.b === region.name) as warning (warning.a + warning.b)}
-          <p class="warning type-helper" data-testid="adjacency-warning">
-            {warning.message}
-          </p>
-        {/each}
-      {/if}
-    </div>
-  {/if}
-{/snippet}
 
 <style>
   .region-inspector {
@@ -997,95 +1130,283 @@
     white-space: nowrap;
   }
 
-  .identity {
+  /* A section's rows (TuningRegion.svelte's shape): a hairline between them; each row queries its own root. */
+  .rows {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-block-end: 20px;
-  }
-
-  /* D-21: one column, and two from NUMERIC_GRID_REFLOW, measured. */
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px 22px;
-  }
-
-  .grid.two {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* A grid under a helper or a check: the section's own rhythm between the rows. */
-  .helper + .grid,
-  .check + .grid {
-    margin-block-start: 12px;
-  }
-
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
     min-inline-size: 0;
   }
 
-  .label {
-    color: var(--color-ink-quiet);
+  .rows > :global(* + *) {
+    border-block-start: 1px solid var(--color-divider);
   }
 
-  /* The PDF's field: 38 tall beneath the 44px floor, a boundary hairline, square (the user-agent radius zeroed for layer C); 16px so iOS does not zoom. */
-  .input {
+  /* The root is the container its row queries (Knob.svelte's shape). */
+  .field {
+    container-type: inline-size;
+    min-inline-size: 0;
+  }
+
+  /* Knob.svelte's grid (change 16b): label | control | reset | lock, 8px between, 44px tall; the reset cell empty on every row (the Sandbox has no per-field default), the lock cell filled on the first identity row only. */
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
+    grid-template-areas: "label control reset lock";
+    column-gap: 8px;
+    align-items: center;
+    min-block-size: 44px;
+    padding-inline-start: 4px;
+  }
+
+  /* Knob.svelte's switch: under 380px of container the label takes a line of its own, the control still fills its column, the boxes keep their columns. */
+  @container (width < 380px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr) 44px 44px;
+      grid-template-areas:
+        "label label label"
+        "control reset lock";
+      row-gap: 4px;
+      padding-block: 6px;
+    }
+  }
+
+  /* The eyebrow face, quiet; ink while the row is hovered or holds focus. */
+  .label {
+    grid-area: label;
+    display: block;
+    min-inline-size: 0;
+    color: var(--color-ink-quiet);
+    overflow-wrap: normal;
+    transition: color 140ms ease-out;
+  }
+
+  .row:hover .label,
+  .row:focus-within .label {
+    color: var(--color-ink);
+  }
+
+  /* The control column: whatever the shape, it fills the column edge to edge, 44px tall. */
+  .control {
+    grid-area: control;
+    display: grid;
     box-sizing: border-box;
     inline-size: 100%;
+    min-inline-size: 0;
     min-block-size: 44px;
+  }
+
+  /* The name: a typed field at 44, the house face at the field's 15px, a boundary hairline, 12px in; square (the user-agent radius zeroed for layer C). */
+  .text {
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-inline-size: 0;
+    block-size: 44px;
     padding-inline: 12px;
     border: 1px solid var(--color-boundary);
     border-radius: 0;
     background: var(--color-workspace);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 15px;
+    line-height: 1.45;
     color: var(--color-ink);
   }
 
-  .input.numerals {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
+  .text:hover:not(:read-only) {
+    border-color: var(--color-ink-quiet);
   }
 
-  .input:read-only,
-  .input:disabled {
+  .text:read-only {
     color: var(--color-ink-quiet);
   }
 
-  /* The Mixed placeholder over a set: the quiet ink, the sans face (it is a word, not a number). */
-  .input::placeholder {
-    font-family: var(--font-sans);
-    color: var(--color-ink-quiet);
-    opacity: 1;
-  }
-
-  /* The type, read only: a line at the field's height, the ink, no box. */
-  .value {
+  /* The type, a fact: the kind word on the field's line and at its inset, in the ink, no boundary - not editable, and not a broken field. */
+  .fact {
     display: flex;
     align-items: center;
-    min-block-size: 44px;
+    box-sizing: border-box;
+    min-inline-size: 0;
+    block-size: 44px;
+    padding-inline: 12px;
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 15px;
+    line-height: 1.45;
     color: var(--color-ink);
   }
 
-  /* The field that refused a keystroke: the error ink on its boundary only. */
-  .invalid .input {
-    border-color: var(--color-error-ink);
+  /*
+    The segmented control (Knob.svelte's rules): real radios in labels under a radiogroup, drawn as
+    joined boxes of EQUAL width - each a boundary hairline, the shared edges collapsed - the chosen
+    one outlined and worded in the action colour, never a fill alone. Every Sandbox word row has
+    two words, so the columns are counted from the words, never measured.
+  */
+  .options {
+    grid-template-columns: repeat(var(--segment-cols, 2), minmax(0, 1fr));
+    padding-block-start: 1px;
+    padding-inline-start: 1px;
+    font-size: 13px;
+    font-weight: 600;
+    -webkit-touch-callout: none;
+    user-select: none;
   }
 
+  .option {
+    position: relative;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    min-inline-size: 0;
+    min-block-size: 44px;
+    padding-inline: 3px;
+    margin-block-start: -1px;
+    margin-inline-start: -1px;
+    border: 1px solid var(--color-boundary);
+    cursor: pointer;
+    transition: border-color 140ms ease-out;
+  }
+
+  .option:hover {
+    border-color: var(--color-ink-quiet);
+  }
+
+  .option.selected {
+    z-index: 1;
+    border-color: var(--color-action);
+  }
+
+  /* The radio is visually hidden, so the site's ring is drawn on the option. */
+  .option:has(:focus-visible) {
+    z-index: 1;
+    outline: 2px solid var(--color-action);
+    outline-offset: 2px;
+  }
+
+  /* Under Play the radios are disabled: the words quiet, no hand. */
+  .option:has(:disabled) {
+    cursor: default;
+  }
+
+  .word {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+    color: var(--color-ink-quiet);
+    transition: color 140ms ease-out;
+  }
+
+  .option:hover .word {
+    color: var(--color-ink);
+  }
+
+  .option.selected .word {
+    color: var(--color-action);
+  }
+
+  /* The select (Knob.svelte's): a boundary hairline, the field's 15px, the column's width at 44px, appearance none so no engine rounds it; the arrow inside the end padding. */
+  .select-wrap {
+    position: relative;
+  }
+
+  .select-wrap::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: 16px;
+    inset-block-start: 50%;
+    inline-size: 8px;
+    block-size: 8px;
+    border-inline-end: 1px solid var(--color-ink-quiet);
+    border-block-end: 1px solid var(--color-ink-quiet);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  .select {
+    appearance: none;
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: 44px;
+    min-block-size: 44px;
+    padding-inline: 12px 36px;
+    border: 1px solid var(--color-boundary);
+    border-radius: 0;
+    background: var(--color-workspace);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .select:hover:not(:disabled) {
+    border-color: var(--color-ink-quiet);
+  }
+
+  .select:disabled {
+    color: var(--color-ink-quiet);
+    cursor: default;
+  }
+
+  .select option {
+    color: var(--color-ink);
+    background: var(--color-panel);
+  }
+
+  /* The lock box (Knob.svelte's): the tool rail's 44px square with a straight-line glyph, the shackle seated when locked; the Quiet tier, borderless. */
+  .box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    inline-size: 44px;
+    min-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-ink-quiet);
+    cursor: pointer;
+    transition: color 140ms ease-out;
+  }
+
+  .lock {
+    grid-area: lock;
+  }
+
+  .box:hover:not(:disabled),
+  .lock[aria-pressed="true"] {
+    color: var(--color-ink);
+  }
+
+  .box:disabled {
+    cursor: default;
+  }
+
+  .glyph {
+    inline-size: 20px;
+    block-size: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  /* The field that refused a keystroke: the error ink on its line under the row - never on a button (X-01); the Stepper carries the boundary. */
   .message {
-    margin: 0;
+    margin: 4px 0 8px 8px;
     color: var(--color-error-ink);
+  }
+
+  /* The set's colours differ: the word under the swatch row, quiet. */
+  .message.quiet {
+    color: var(--color-ink-quiet);
   }
 
   .helper,
   .warning,
-  .lock,
+  .hold,
   .notice {
     margin: 12px 0 0;
     color: var(--color-ink-quiet);
@@ -1096,10 +1417,10 @@
     margin-block: 0 12px;
   }
 
-  /* The Arrange row (13B): eight square icon boxes, wrapping in the narrow panel. */
+  /* The Arrange row (13B): eight square icon boxes, four to a line (the alignments, then the centres and the spacings) - a body of 385 held 7 + 1 (change 16c). */
   .arrange {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, 44px);
     gap: 8px;
   }
 
@@ -1127,29 +1448,9 @@
     cursor: default;
   }
 
-  .glyph {
-    inline-size: 20px;
-    block-size: 20px;
-  }
-
   .glyph line {
     stroke: currentColor;
     stroke-width: 2;
-  }
-
-  .check {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-block-size: 44px;
-  }
-
-  .checkbox {
-    inline-size: 20px;
-    block-size: 20px;
-    margin: 0;
-    border-radius: 0;
-    accent-color: var(--color-action);
   }
 
   .swatch.locked {
@@ -1157,12 +1458,13 @@
     opacity: 0.6;
   }
 
-  /* The recent colours (13C): up to eight 44px squares in their colour under a boundary hairline, wrapping in the narrow panel. */
+  /* The recent colours (13C): up to eight 44px squares in their colour, 8px apart, a row of the section between its hairlines. */
   .recent {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-block-start: 12px;
+    padding-block: 8px;
+    padding-inline-start: 4px;
   }
 
   .chip-colour {
@@ -1183,8 +1485,10 @@
     opacity: 0.6;
   }
 
-  /* The pinned pair: outlined, the boundary token, square, 44px. */
+  /* The outlined button: the boundary token, square, 44px; the pinned pair fills its equal cell (Inspector.svelte's grid, change 16b). */
   .outlined {
+    box-sizing: border-box;
+    block-size: 44px;
     min-block-size: 44px;
     min-inline-size: 44px;
     padding-inline: 12px;
@@ -1197,6 +1501,10 @@
     cursor: pointer;
   }
 
+  .action {
+    inline-size: 100%;
+  }
+
   .outlined:hover:not(:disabled) {
     border-color: var(--color-action);
   }
@@ -1204,5 +1512,14 @@
   .outlined:disabled {
     color: var(--color-ink-quiet);
     cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .label,
+    .option,
+    .word,
+    .box {
+      transition: none;
+    }
   }
 </style>

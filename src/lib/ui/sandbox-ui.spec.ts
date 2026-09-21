@@ -1456,7 +1456,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       /<span[^>]*data-testid="field-kind"[^>]*data-kind="fader"[^>]*>Fader</,
     );
     expect(panel).not.toMatch(/<select[^>]*field-kind/);
-    expect(panel).toMatch(/<select[^>]*data-testid="field-orientation"/);
+    expect(panel).toMatch(
+      /role="radiogroup"[^>]*data-testid="field-orientation"/,
+    );
     expect(panel).toContain('data-testid="field-cc"');
     expect(panel).toContain('data-testid="inspector-units"');
     expect(panel).toContain('data-testid="delete-element"');
@@ -1779,7 +1781,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(panel).toMatch(/data-testid="field-max"[^>]*value="0"/);
     expect(panel).toContain(SPRING_HELPER);
     expect(panel).toContain("A Min above the Max inverts the direction.");
-    expect(panel).toMatch(/data-testid="field-spring"[^>]*checked/);
+    expect(panel, "Spring is a segmented switch, On chosen").toMatch(
+      /data-testid="field-spring" data-value="true"/,
+    );
     const plain = fresh().editor;
     plain.choose("fader");
     plain.clickCell(0, 0);
@@ -2745,9 +2749,10 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // field, the Mixed placeholder on cc... no, cc is single-only: on min
     // (the two differ) and none on max (they agree), the Mode select on both
     // with no blank option (they agree), the delete reading the count, the
-    // Locked checkbox unmixed; over a fader and a button the type reads
-    // Mixed, no Behavior, and channel / min / max stay; a mixed spring is a
-    // mixed checkbox; a mixed orientation a blank option; a mixed colour says so.
+    // lock box unpressed; over a fader and a button the type reads Mixed, no
+    // Behavior, and channel / min / max stay; a mixed spring is a switch with
+    // neither word chosen (change 16c); a mixed orientation the same; a mixed
+    // colour says so.
     editor.select(f1.id);
     editor.toggleSelect(f2.id);
     editor.editNumber("min", "20");
@@ -2772,23 +2777,26 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(panel).not.toMatch(/data-testid="field-max"[^>]*placeholder/);
     expect(panel).toContain('data-testid="field-mode"');
     expect(panel).not.toContain('<option value="" disabled');
-    expect(panel).toMatch(
-      /data-testid="field-spring"[^>]*aria-checked="mixed"[^>]*data-mixed="true"/,
+    expect(panel, "a mixed switch chooses neither word").toMatch(
+      /data-testid="field-spring" data-value="" data-mixed="true"/,
     );
+    expect(panel).not.toMatch(/name="[^"]*-spring"[^>]*checked/);
     expect(panel).toContain('data-testid="colour-mixed"');
-    expect(panel).toMatch(/data-testid="field-locked"[^>]*\/>/);
-    expect(panel).not.toMatch(/data-testid="field-locked"[^>]*aria-checked/);
+    expect(panel, "the lock box, unpressed on an unlocked pair").toMatch(
+      /data-testid="field-locked" aria-pressed="false"/,
+    );
     expect(panel).toContain(">Delete 2 elements<");
     expect(panel).toContain(LOCKED_HELPER);
-    // A mixed orientation: the blank option, selected and disabled.
+    // A mixed orientation: neither word chosen, the group marked mixed.
     editor.select(f2.id);
     editor.resizeSelectedTo({ col: 3, row: 0, w: 2, h: 6 });
     editor.setOrientation("horizontal");
     editor.toggleSelect(f1.id);
     panel = inspector(editor);
     expect(panel).toMatch(
-      /data-testid="field-orientation"[^>]*>(?:<!--[^>]*-->)*<option value="" disabled="" selected="">Mixed<\/option>/,
+      /data-testid="field-orientation" data-value="" data-mixed="true"/,
     );
+    expect(panel).not.toMatch(/name="[^"]*-orientation"[^>]*checked/);
     // A fader and a button: the type reads Mixed, no Behavior, the shared MIDI fields stay.
     editor.select(f1.id);
     editor.toggleSelect(button.id);
@@ -2806,10 +2814,10 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     panel = inspector(editor);
     expect(panel).toContain("SELECTED ELEMENT / FADER");
     expect(panel).toContain('data-testid="inspector-name">Fader 1<');
-    expect(panel).not.toMatch(/data-testid="field-locked"[^>]*checked/);
+    expect(panel).toMatch(/data-testid="field-locked" aria-pressed="false"/);
     editor.toggleLock();
     panel = inspector(editor);
-    expect(panel).toMatch(/data-testid="field-locked"[^>]*checked/);
+    expect(panel).toMatch(/data-testid="field-locked" aria-pressed="true"/);
     expect(panel).toContain(">Delete element<");
     // The route wires the lock.
     expect(code(ROUTE)).toContain(

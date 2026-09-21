@@ -7,8 +7,8 @@
   `onrank(rank)` asks for a rung by its place on the value-ordered ladder (the boxes, the arrows,
   Home and End). The boxes are out of the tab order: the field is the one stop, a spinbutton.
   Change 16b's shape: the control fills its column edge to edge at 44px - a 44 box, the field, a
-  44 box, 12px inside the field; `readonly` (the Sandbox under Play) holds every step. Square
-  (D-01); the field in the mono face (instrument.spec.ts's list). No corner, no colour but the tokens.
+  44 box, 12px inside; `readonly` (the Sandbox under Play) holds every step; the Sandbox's fields
+  (change 16c) keep their own input id and show MIXED as a placeholder. Square; the mono face.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -18,8 +18,11 @@
   let {
     id,
     testid,
+    inputTestid = `${testid}-input`,
     value,
     unit,
+    placeholder,
+    mixed = false,
     rank,
     count,
     invalid = false,
@@ -32,12 +35,18 @@
   }: {
     /** The input's id, the row's label points at it. */
     id: string;
-    /** The input's test id (`knob-speed-input`, `midi-field-cc-input`, `brightness-field-input`). */
+    /** The test id the boxes and the root derive from (`knob-speed`, `midi-field-cc`, `brightness-field`). */
     testid: string;
+    /** The input's own test id: `{testid}-input` unless the owner keeps an older one (the Sandbox's `field-cc`). */
+    inputTestid?: string;
     /** What the field shows between edits: the rung's readout, or the owner's refused text. */
     value: string;
     /** Printed after the value, never inside it. */
     unit?: string;
+    /** Shown while `value` is empty: the Sandbox's MIXED over a set whose members differ. */
+    placeholder?: string;
+    /** The set differs (change 13A): data-mixed for the suites, the placeholder as the value's text. */
+    mixed?: boolean;
     /** Where the rung sits on the value-ordered ladder, 0 the smallest value. */
     rank: number;
     /** How many rungs the ladder has. */
@@ -67,7 +76,13 @@
   let draft = $state<string | undefined>(undefined);
   const shown = $derived(draft ?? value);
   const last = $derived(Math.max(0, count - 1));
-  const valueText = $derived(unit ? `${value} ${unit}` : value);
+  const valueText = $derived(
+    value === "" && placeholder !== undefined
+      ? placeholder
+      : unit
+        ? `${value} ${unit}`
+        : value,
+  );
   /** The ladder is drawn up to 32 rungs; a longer one (ORBIT's 128 notes) shows its mark alone. */
   const LADDER_MAX = 32;
   const ticks = $derived(
@@ -148,8 +163,10 @@
       {inputmode}
       autocomplete="off"
       spellcheck="false"
-      data-testid="{testid}-input"
+      data-testid={inputTestid}
       value={shown}
+      {placeholder}
+      data-mixed={mixed || undefined}
       {readonly}
       aria-readonly={readonly}
       aria-valuemin="0"
@@ -289,6 +306,13 @@
 
   .input[readonly] {
     color: var(--color-ink-quiet);
+  }
+
+  /* The Mixed placeholder over a set: the quiet ink, the sans face (it is a word, not a number). */
+  .input::placeholder {
+    font-family: var(--font-sans);
+    color: var(--color-ink-quiet);
+    opacity: 1;
   }
 
   /* The unit, quiet, after the value, 8px from the box: "250 points" fits the wide band's 85px field. */

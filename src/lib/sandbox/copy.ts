@@ -122,7 +122,8 @@ export const NO_SELECTION_EYEBROW = "NO ELEMENT SELECTED";
 export const NO_SELECTION_HEADLINE = "Pick an element";
 export const NO_SELECTION_LEDE =
   "Select an element on the surface or in the list to shape it.";
-/** The inspector's kind selector (section 8's Identity: name and type). */
+/** The inspector's first section (section 8's Identity: name and type), titled since change 16c. */
+export const IDENTITY = "Identity";
 export const TYPE = "Type";
 export const ORIENTATION = "Orientation";
 export const ORIENTATION_VERTICAL = "Vertical";
@@ -130,6 +131,9 @@ export const ORIENTATION_HORIZONTAL = "Horizontal";
 export const BEHAVIOR = "Behavior";
 // LATCH (`Latch`) and LATCH_HELPER ARE RETIRED BY NAME, 2026-09-18 (change 10B, the user's
 // "rename latch to toggle mode"): the field is TOGGLE below; the schema keeps `latch`.
+/** The two words of a switch (change 16c): Spring and Toggle are segmented controls, never a checkbox. */
+export const SWITCH_OFF = "Off";
+export const SWITCH_ON = "On";
 /** The button's toggle (change 10B; the schema's `latch`). */
 export const TOGGLE = "Toggle";
 export const TOGGLE_HELPER =
@@ -228,7 +232,7 @@ export const deleteElements = (n: number): string =>
 export const selectedCountLine = (n: number): string =>
   `${elementsLine(n)} selected.`;
 
-/** Lock (suggestion 6): the checkbox, its helper, and the two refusals a locked element makes. */
+/** Lock (suggestion 6): the lock box (change 16c; a checkbox before), its helper, and the two refusals a locked element makes. */
 export const LOCKED = "Locked";
 export const LOCKED_HELPER =
   "A locked element stays where it is: it can’t be moved, resized or deleted. Its settings still change.";

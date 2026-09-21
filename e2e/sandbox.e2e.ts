@@ -1344,13 +1344,16 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await page.keyboard.press("v");
     await expect(sandbox).toHaveAttribute("data-depth", "1");
     expect(await page.getByTestId("field-speed").count()).toBe(0);
-    await page.getByTestId("field-mode").selectOption("relative");
+    // Mode, Speed, Spring and Output are segmented controls since change 16c:
+    // a word is clicked through its label (the radio is visually hidden), and
+    // the choice reads off the group's data-value.
+    await page.getByTestId("field-mode").getByText("Relative").click();
     await expect(page.getByTestId("field-speed")).toBeVisible();
     await expect(sandbox).toHaveAttribute("data-depth", "2");
-    await page.getByTestId("field-speed").selectOption("full");
+    await page.getByTestId("field-speed").getByText("Full").click();
     await expect(sandbox).toHaveAttribute("data-depth", "3");
     expect(await page.getByTestId("field-spring-value").count()).toBe(0);
-    await page.getByTestId("field-spring").check();
+    await page.getByTestId("field-spring").getByText("On").click();
     await expect(page.getByTestId("field-spring-value")).toHaveValue("64");
     await expect(sandbox).toHaveAttribute("data-depth", "4");
     await page.getByTestId("field-spring-value").fill("200");
@@ -1375,10 +1378,10 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
     expect(await page.getByTestId("field-latch").count()).toBe(0);
-    await page.getByTestId("field-toggle").check();
+    await page.getByTestId("field-toggle").getByText("On").click();
     await expect(sandbox).toHaveAttribute("data-depth", "9");
     expect(await page.getByTestId("field-note").count()).toBe(0);
-    await page.getByTestId("field-output").selectOption("note");
+    await page.getByTestId("field-output").getByText("Note").click();
     await expect(page.getByTestId("field-note")).toBeVisible();
     expect(await page.getByTestId("field-cc").count()).toBe(0);
     await page.getByTestId("field-note").fill("H3");
@@ -1417,14 +1420,26 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     const again = page.getByTestId("surface-plate");
     await clickCell(again, 0, 0);
     await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
-    await expect(page.getByTestId("field-mode")).toHaveValue("relative");
-    await expect(page.getByTestId("field-speed")).toHaveValue("full");
-    await expect(page.getByTestId("field-spring")).toBeChecked();
+    await expect(page.getByTestId("field-mode")).toHaveAttribute(
+      "data-value",
+      "relative",
+    );
+    await expect(page.getByTestId("field-speed")).toHaveAttribute(
+      "data-value",
+      "full",
+    );
+    await expect(page.getByTestId("field-spring")).toHaveAttribute(
+      "data-value",
+      "true",
+    );
     await expect(page.getByTestId("field-spring-value")).toHaveValue("100");
     await expect(page.getByTestId("field-min")).toHaveValue("127");
     await expect(page.getByTestId("field-max")).toHaveValue("0");
     await clickCell(again, 7, 0);
-    await expect(page.getByTestId("field-toggle")).toBeChecked();
+    await expect(page.getByTestId("field-toggle")).toHaveAttribute(
+      "data-value",
+      "true",
+    );
     await expect(page.getByTestId("field-note")).toHaveValue("C#3");
     await expect(page.getByTestId("field-group")).toHaveValue("3");
     await clickCell(again, 4, 5);
@@ -1636,16 +1651,19 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("field-min")).toHaveValue("0");
 
     // THE LOCK: Button 3 alone, Ctrl+L locks it - the glyph, no handle, the
-    // checkbox checked - a body drag to row 4 is refused with its line and
-    // the button stays, Delete is refused with its line; unchecked, the
-    // handles are back.
+    // lock box pressed (change 16c) - a body drag to row 4 is refused with
+    // its line and the button stays, Delete is refused with its line; the box
+    // clicked, the handles are back.
     await clickCell(plate, 6, 0);
     await expect(page.getByTestId("inspector-name")).toHaveText("Button 3");
     await page.keyboard.press("Control+l");
     await expect(status).toHaveText("Locked 1 element.");
     await expect(page.getByTestId("surface-lock")).toHaveCount(1);
     await expect(page.getByTestId("surface-handle")).toHaveCount(0);
-    await expect(page.getByTestId("field-locked")).toBeChecked();
+    await expect(page.getByTestId("field-locked")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     const grab = at(6, 0);
     const down = at(6, 4);
     await page.mouse.move(grab.x, grab.y);
@@ -1666,7 +1684,7 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
       "Button 3 is locked. Unlock it to delete it.",
     );
     await expect(count).toHaveText("3 elements");
-    await page.getByTestId("field-locked").uncheck();
+    await page.getByTestId("field-locked").click();
     await expect(page.getByTestId("surface-lock")).toHaveCount(0);
     await expect(page.getByTestId("surface-handle")).toHaveCount(8);
 
@@ -1776,7 +1794,10 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(count).toHaveText("4 elements");
     await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
     await expect(page.getByTestId("inspector-units")).toHaveText("4 × 6 units");
-    await expect(page.getByTestId("field-orientation")).toHaveValue("vertical");
+    await expect(page.getByTestId("field-orientation")).toHaveAttribute(
+      "data-value",
+      "vertical",
+    );
     await expect(page.getByTestId("palette-fill-helper")).toHaveCount(0);
 
     // DOUBLE-CLICK RENAMES: the field opens over the fader with its name

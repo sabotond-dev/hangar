@@ -6,6 +6,7 @@
 // where a knob has no lock: 8px past the reset box), the rows of a section are one pitch apart,
 // and nothing scrolls sideways. At 1440 the body is 385px and the rows are one line; at 1280 the
 // body is under 380px and the label takes a line of its own - the same grid, the same edges.
+// The Sandbox's inspector is on the same grid since change 16c: two more titles measure it by label.
 //
 // Chromium only: the geometry is CSS, and the phone width is tuning-webkit.e2e.ts's.
 //
@@ -16,6 +17,8 @@ type Box = { x: number; y: number; w: number; h: number; r: number };
 
 type Row = {
   id: string;
+  /** The row's label text, the Sandbox's key (its rows carry no test id of their own). */
+  label: string;
   row: Box;
   control: Box;
   reset: Box | null;
@@ -48,6 +51,7 @@ function rowsOf(page: Page): Promise<Row[]> {
           row.getAttribute("data-testid") ??
           row.parentElement?.getAttribute("data-testid") ??
           "",
+        label: (row.querySelector(".label")?.textContent ?? "").trim(),
         row: box(row),
         control: box(control),
         reset: reset ? box(reset) : null,
@@ -67,19 +71,22 @@ function overflowOf(page: Page, testId: string) {
   }, testId);
 }
 
-/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only. */
-function sectionsOf(page: Page): Promise<string[][]> {
-  return page.evaluate(() =>
-    Array.from(
-      document.querySelectorAll("[data-testid='shell-inspector-body'] .rows"),
-    ).map((rows) =>
-      Array.from(rows.querySelectorAll(".row")).map(
-        (row) =>
-          row.getAttribute("data-testid") ??
-          row.parentElement?.getAttribute("data-testid") ??
-          "",
+/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only; by test id, or by label. */
+function sectionsOf(page: Page, byLabel = false): Promise<string[][]> {
+  return page.evaluate(
+    (labels) =>
+      Array.from(
+        document.querySelectorAll("[data-testid='shell-inspector-body'] .rows"),
+      ).map((rows) =>
+        Array.from(rows.querySelectorAll(".row")).map((row) =>
+          labels
+            ? (row.querySelector(".label")?.textContent ?? "").trim()
+            : (row.getAttribute("data-testid") ??
+              row.parentElement?.getAttribute("data-testid") ??
+              ""),
+        ),
       ),
-    ),
+    byLabel,
   );
 }
 
@@ -250,6 +257,165 @@ test.describe("the rack's grid", () => {
         "shell-inspector",
         "shell-inspector-body",
       ]) {
+        const box = await overflowOf(page, id);
+        expect(box, `${id} is on the page`).not.toBeNull();
+        expect(
+          (box as { scrollWidth: number }).scrollWidth,
+          `${id} has something to scroll to sideways: ${JSON.stringify(box)}`,
+        ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
+      }
+    });
+  }
+});
+
+/** The Sandbox from its front door with one fader placed and selected (sandbox.e2e.ts's walk, in short). */
+async function openFader(page: Page): Promise<void> {
+  await page.goto("/sandbox/?new");
+  await expect(page.getByTestId("sandbox")).toBeVisible();
+  const plate = page.getByTestId("surface-plate");
+  await plate.focus();
+  await page.keyboard.press("f");
+  const box = await plate.boundingBox();
+  if (box === null) throw new Error("the plate has no box");
+  const pitch = box.width / 9;
+  await plate.click({ position: { x: 0.5 * pitch, y: 0.5 * pitch } });
+  await page.keyboard.press("v");
+  await expect(page.getByTestId("inspector-name")).toHaveText("Fader 1");
+}
+
+test.describe("the Sandbox inspector's grid", () => {
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 720],
+  ] as const) {
+    test(`on the Sandbox's inspector with a fader selected at ${width} x ${height} every control shares one left edge and one right edge at 44px tall, the lock box sits on the name row alone and a reset box on the colour and brightness rows alone, each in its column, the rows of a section are one pitch apart, the two action cells are equal, and nothing scrolls sideways`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await openFader(page);
+      const rows = await rowsOf(page);
+      // Identity: the name, the type, the orientation; Behavior: the mode, the spring; MIDI
+      // output: the four typed fields; Appearance: the colour, the brightness.
+      expect(rows.map((row) => row.label)).toEqual([
+        "Element name",
+        "Type",
+        "Orientation",
+        "Mode",
+        "Spring",
+        "CC number",
+        "Channel",
+        "Min",
+        "Max",
+        "Color",
+        "Brightness",
+      ]);
+
+      // THE CONTROL COLUMN: one left edge, one right edge, 44px tall, on every row - the text
+      // field, the fact, the segmented control, the steppers, the chip and the brightness field.
+      const first = rows[0];
+      for (const row of rows) {
+        expect(
+          near(row.control.x, first.control.x),
+          `${row.label}'s control starts at ${row.control.x}, the first row's at ${first.control.x}`,
+        ).toBe(true);
+        expect(
+          near(row.control.r, first.control.r),
+          `${row.label}'s control ends at ${row.control.r}, the first row's at ${first.control.r}`,
+        ).toBe(true);
+        expect(
+          near(row.control.h, 44),
+          `${row.label}'s control is ${row.control.h}px tall`,
+        ).toBe(true);
+      }
+
+      // THE TWO BOX COLUMNS: the Sandbox has no per-field default, so the reset cell is empty on
+      // every row but the two that had one - the colour (the palette's default) and the
+      // brightness (255) - and those two share one x; the lock box is the element's Locked
+      // toggle, on the name row.
+      expect(
+        rows.filter((row) => row.reset).map((row) => row.label),
+        "the colour and brightness rows alone carry a reset box",
+      ).toEqual(["Color", "Brightness"]);
+      expect(
+        near((rows[9].reset as Box).x, (rows[10].reset as Box).x),
+        "the two reset boxes share one x",
+      ).toBe(true);
+      expect(
+        rows.filter((row) => row.lock).map((row) => row.label),
+        "the name row alone carries the lock box",
+      ).toEqual(["Element name"]);
+      const reset = rows[10].reset as Box;
+      expect(
+        near(reset.x, first.control.r + 8),
+        `the reset box is at ${reset.x}`,
+      ).toBe(true);
+      expect(
+        near(reset.w, 44) && near(reset.h, 44),
+        "the reset box is 44 x 44",
+      ).toBe(true);
+      const lock = rows[0].lock as Box;
+      expect(
+        near(lock.x, first.control.r + 8 + 44 + 8),
+        `the lock box is at ${lock.x}, the control ends at ${first.control.r}`,
+      ).toBe(true);
+      expect(
+        near(lock.w, 44) && near(lock.h, 44),
+        "the lock box is 44 x 44",
+      ).toBe(true);
+      expect(
+        near(lock.r, rows[0].row.r),
+        "the lock box does not end at the row's edge",
+      ).toBe(true);
+
+      // THE PITCH: inside a section, every neighbouring pair of controls is one distance apart.
+      const byLabel = new Map(rows.map((row) => [row.label, row]));
+      const pitches: number[] = [];
+      for (const section of await sectionsOf(page, true)) {
+        for (let at = 1; at < section.length; at++) {
+          const above = byLabel.get(section[at - 1]) as Row;
+          const below = byLabel.get(section[at]) as Row;
+          pitches.push(below.control.y - above.control.y);
+        }
+      }
+      expect(pitches.length, "the sections' neighbouring pairs").toBe(7);
+      for (const pitch of pitches) {
+        expect(
+          near(pitch, pitches[0]),
+          `the pitches are ${pitches.join(", ")}`,
+        ).toBe(true);
+      }
+      if (width >= 1440) {
+        expect(
+          near(pitches[0], 45),
+          `a one-line pitch is ${pitches[0]}px`,
+        ).toBe(true);
+      } else {
+        expect(
+          pitches[0],
+          "a stacked pitch is taller than the control and its hairline",
+        ).toBeGreaterThan(45);
+      }
+
+      // THE PINNED PAIR: two equal cells, 44 tall.
+      const actions = page.locator(
+        "[data-testid='shell-inspector'] .actions > *",
+      );
+      const actionBoxes = await actions.evaluateAll((els) =>
+        els.map((el) => {
+          const b = el.getBoundingClientRect();
+          return { w: b.width, h: b.height };
+        }),
+      );
+      expect(actionBoxes.length).toBe(2);
+      expect(
+        near(actionBoxes[0].w, actionBoxes[1].w),
+        `the action cells are ${actionBoxes.map((b) => b.w).join(", ")} wide`,
+      ).toBe(true);
+      for (const box of actionBoxes)
+        expect(near(box.h, 44), `an action is ${box.h} tall`).toBe(true);
+
+      // Nothing scrolls sideways (D-11).
+      for (const id of ["sandbox", "shell-inspector", "shell-inspector-body"]) {
         const box = await overflowOf(page, id);
         expect(box, `${id} is on the page`).not.toBeNull();
         expect(

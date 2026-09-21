@@ -48,7 +48,7 @@
     oncommit?: () => void;
     /** Play locks the Sandbox's fields; the reason is the owner's, through describedBy. */
     readonly?: boolean;
-    /** A line beneath the field, the owner's. */
+    /** The owner's helper: the label's title and a screen reader's description, never a line in the flow (change 16c). */
     helper?: string;
     /** An id the input is described by beside its own message. */
     describedBy?: string;
@@ -136,7 +136,12 @@
   data-changed={changed}
 >
   <div class="row" class:changed>
-    <label class="label type-micro" for={inputId}>{BRIGHTNESS_LABEL}</label>
+    <label class="label type-micro" for={inputId} title={helper}
+      >{BRIGHTNESS_LABEL}</label
+    >
+    {#if helper !== undefined}
+      <span class="sr-only" id={helperId}>{helper}</span>
+    {/if}
     {#if changed}
       <span class="sr-only" data-testid="brightness-field-changed"
         >{FIELD_CHANGED}</span
@@ -183,9 +188,6 @@
     >
       {problem}
     </p>
-  {/if}
-  {#if helper !== undefined}
-    <p class="helper type-helper" id={helperId}>{helper}</p>
   {/if}
 </div>
 
@@ -255,11 +257,6 @@
   .message {
     margin: 4px 0 8px 8px;
     color: var(--color-error-ink);
-  }
-
-  .helper {
-    margin: 4px 0 8px 8px;
-    color: var(--color-ink-quiet);
   }
 
   /* The reset box: Knob.svelte's, the 44px floor on both axes, no corner. */
