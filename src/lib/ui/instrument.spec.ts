@@ -230,15 +230,15 @@ const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
   // CHANGE 16 (2026-09-21): Knob.svelte's two (the integer readout and the
   // forecast delta) left with its rail; the typed value lives in
   // Stepper.svelte's field, and the swatch chip's three channels are the
-  // same machine text, as is the brightness field's. Six uses across six files.
+  // same machine text. CHANGE 16b: the brightness field's typed value rides
+  // through Stepper.svelte too, so its own use left. Five uses across five files.
   ["Stepper.svelte", "change 16", "the typed value"],
   ["Swatch.svelte", "change 16", "the chip's three channels"],
-  ["BrightnessField.svelte", "change 16", "the typed brightness"],
-  ["ColourPicker.svelte", "10-10", "the RGB triple - the sixth"],
+  ["ColourPicker.svelte", "10-10", "the RGB triple - the fifth"],
 ];
 
-/** Six uses across six files. */
-const MONO_COUNT = 6;
+/** Five uses across five files. */
+const MONO_COUNT = 5;
 
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   // TWO ROWS LEFT AT 13.1-06 with the install column (13.1-CONTEXT D-06,

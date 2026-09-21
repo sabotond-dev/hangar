@@ -1,14 +1,14 @@
 <!--
-  One knob, one row (change 16, 2026-09-21): the label left in the micro face, the control right,
-  then the reset box and the lock box. Four skins, chosen by $lib/tune/view's widgetFor and never
-  re-derived here: `words` a segmented control of real radios in labels, `select` a real select,
-  `stepper` Stepper.svelte over the rungs (a typed value snaps to the nearest declared rung on
-  Enter or blur - view.ts's nearestRung; the boxes and the arrows walk them in value order), and
-  `swatch` the picker's palette row. The rule is TOTAL, so there is no unknown-widget branch. A
-  changed field is a 2px action rule down the row's start (section 7's marker), with FIELD_CHANGED
-  for a screen reader; the reset box is present on every row and disabled at the default. The lock
-  is a real <button aria-pressed> named Lock / Locked. No radius (D-01); no error ink; --font-mono
-  only through Stepper.svelte. The row stacks under 364px of its own container.
+  One knob, one row (change 16, 2026-09-21; change 16b's grid): label | control | reset | lock -
+  the label column --tune-label-w (Inspector.svelte's, per breakpoint), the control filling the rest
+  edge to edge at 44px, the two boxes fixed 44 and always present (an empty cell where the knob has
+  no lock); under 380px of container the label takes a line of its own. Four skins, chosen by
+  $lib/tune/view's widgetFor and never re-derived here: `words` a segmented control of real radios
+  in labels (equal cells; a second line of cells only when the words cannot share one), `select` a
+  real select, `stepper` Stepper.svelte over the rungs (a typed value snaps to the nearest declared
+  rung on Enter or blur - view.ts's nearestRung), `swatch` the picker's palette row (`bare`: no label
+  cell). A changed field is a 2px action rule in the row's start padding, with FIELD_CHANGED for a
+  screen reader; the reset box is disabled at the default; the lock a real <button aria-pressed>.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -78,6 +78,54 @@
     view.widget === "stepper" || view.widget === "select",
   );
 
+  /**
+   * The segmented row's columns: every word on one line of equal cells where the widest word
+   * fits the column so; where it cannot, the fewest rows and the same number of cells on each
+   * (four words as 2 x 2, never 3 + 1). The server renders an estimate from the character count
+   * (--segment-chars); once mounted the words and the column are measured, again when the face
+   * has loaded and whenever the column resizes.
+   */
+  const longestWord = $derived(
+    view.values.reduce((max, value) => Math.max(max, value.label.length), 1),
+  );
+  let optionsEl = $state<HTMLDivElement | undefined>(undefined);
+  let segmentCols = $state<number | undefined>(undefined);
+  /** The cell's padding and its two hairlines, beside the word. */
+  const CELL_EXTRA = 8;
+
+  $effect(() => {
+    const el = optionsEl;
+    if (el === undefined || view.widget !== "words") return;
+    const count = view.values.length;
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const widest = Math.max(
+        40,
+        ...Array.from(
+          el.querySelectorAll<HTMLElement>(".word"),
+          (word) => word.scrollWidth + CELL_EXTRA,
+        ),
+      );
+      // The cells overlap by a hairline and the grid starts 1px in, so k cells need k * (widest - 1) + 2.
+      const fit = Math.floor((el.clientWidth - 2) / (widest - 1));
+      let cols = Math.max(1, Math.min(count, fit));
+      if (cols < count) cols = Math.ceil(count / Math.ceil(count / cols));
+      if (cols !== segmentCols) segmentCols = cols;
+    };
+    measure();
+    void document.fonts.ready.then(measure);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(measure);
+    observer?.observe(el);
+    return () => {
+      cancelled = true;
+      observer?.disconnect();
+    };
+  });
+
   const controlId = $derived(`knob-${view.id}-control`);
   const labelId = $derived(`knob-${view.id}-label`);
   const homeId = $derived(`knob-${view.id}-home`);
@@ -121,7 +169,7 @@
   data-changed={changed}
   data-widget={view.widget}
 >
-  <div class="row" class:changed>
+  <div class="row" class:changed class:bare={!caption}>
     {#if labelled}
       <label class="label type-micro" for={controlId}>{view.label}</label>
     {:else}
@@ -173,6 +221,10 @@
         role="radiogroup"
         aria-labelledby={labelId}
         aria-describedby={homeId}
+        class:measured={segmentCols !== undefined}
+        style:--segment-chars={longestWord}
+        style:--segment-cols={segmentCols}
+        bind:this={optionsEl}
       >
         {#each view.values as value, at (at)}
           <label class="option" class:selected={at === view.index}>
@@ -250,19 +302,21 @@
   }
 
   /*
-    The row: label | control | reset | lock, 44px tall, the label column at most a third. Every
-    flexible track is minmax(0, ...): a track's automatic minimum is its content's min-content
-    width, which is how a rack once scrolled sideways on a phone (tuning-webkit.e2e.ts measures it).
+    The rack's grid (change 16b): label | control | reset | lock. The label column is one width
+    per breakpoint (--tune-label-w, Inspector.svelte's), the control column the rest, the two box
+    columns fixed 44 and always present, 8px between, 44px tall. Every flexible track is
+    minmax(0, ...): a track's automatic minimum is its content's min-content width, which is how a
+    rack once scrolled sideways on a phone (tuning-webkit.e2e.ts measures it).
   */
   .row {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) auto auto;
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
     grid-template-areas: "label control reset lock";
     column-gap: 8px;
     align-items: center;
     min-block-size: 44px;
-    padding-inline-start: 8px;
+    padding-inline-start: 4px;
   }
 
   /* Section 7's marker: a 2px rule in the action colour down the row's start while the field is off its default. */
@@ -275,19 +329,29 @@
     background: var(--color-action);
   }
 
-  /* Under 364px the label takes a line of its own and the control the row below it, the two boxes at its end. */
-  @container (width < 364px) {
+  /*
+    Under 380px of container (4 + 96 + 8 + a stepper of 44 + 84 + 44 + 8 + 88: the label, a field
+    holding "250 points", the two boxes) the label takes a line of its own; the control still fills
+    its column and the boxes keep their two columns at the row's end. The wide band's body is 385
+    and the compact band's under 380 at 1280, so the switch is at the band (tuning-webkit.e2e.ts).
+  */
+  @container (width < 380px) {
     .row {
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) 44px 44px;
       grid-template-areas:
         "label label label"
         "control reset lock";
       row-gap: 4px;
+      padding-block: 6px;
     }
+  }
 
-    .row .control {
-      justify-content: flex-start;
-    }
+  /* The picker's palette row has no label cell and no line of its own: the swatches from the block's start, the two empty cells at its end. */
+  .row.bare {
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    grid-template-areas: "control reset lock";
+    row-gap: 0;
+    padding-block: 0;
   }
 
   /* The eyebrow face, quiet; ink while the row is hovered or holds focus. */
@@ -296,7 +360,7 @@
     display: block;
     min-inline-size: 0;
     color: var(--color-ink-quiet);
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     transition: color 140ms ease-out;
   }
 
@@ -305,23 +369,39 @@
     color: var(--color-ink);
   }
 
+  /* The control column: whatever the skin, it fills the column edge to edge, 44px tall. */
   .control {
     grid-area: control;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+    display: grid;
+    box-sizing: border-box;
+    inline-size: 100%;
     min-inline-size: 0;
+    min-block-size: 44px;
   }
 
   /*
-    The segmented control: real radios in labels under a radiogroup, drawn as joined boxes - each a
-    boundary hairline, the shared edges collapsed - the chosen one outlined and worded in the
-    action colour (the selected value of a knob, reserved-list entry 8), never a fill alone.
+    The segmented control: real radios in labels under a radiogroup, drawn as joined boxes of
+    EQUAL width - each a boundary hairline, the shared edges collapsed - the chosen one outlined
+    and worded in the action colour (the selected value of a knob, reserved-list entry 8), never
+    a fill alone. Until measured, the cell's floor is estimated from the longest word
+    (--segment-chars); measured, the columns are counted (--segment-cols) and the cells share the
+    width equally - the brief's repeat(n, 1fr).
   */
   .options {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(calc(var(--segment-chars, 4) * 0.5em + 8px), 1fr)
+    );
+    padding-block-start: 1px;
+    padding-inline-start: 1px;
+    font-size: 13px;
+    font-weight: 600;
     -webkit-touch-callout: none;
     user-select: none;
+  }
+
+  .options.measured {
+    grid-template-columns: repeat(var(--segment-cols, 1), minmax(0, 1fr));
   }
 
   .option {
@@ -329,17 +409,14 @@
     display: grid;
     place-items: center;
     box-sizing: border-box;
-    min-inline-size: 44px;
+    min-inline-size: 0;
     min-block-size: 44px;
-    padding-inline: 12px;
+    padding-inline: 3px;
+    margin-block-start: -1px;
     margin-inline-start: -1px;
     border: 1px solid var(--color-boundary);
     cursor: pointer;
     transition: border-color 140ms ease-out;
-  }
-
-  .option:first-child {
-    margin-inline-start: 0;
   }
 
   .option:hover {
@@ -359,8 +436,10 @@
   }
 
   .word {
-    font-size: 13px;
-    font-weight: 600;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow: hidden;
+    white-space: nowrap;
     letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     transition: color 140ms ease-out;
@@ -374,10 +453,18 @@
     color: var(--color-action);
   }
 
-  /* The picker's palette row: the colour under glass, no padding, no shared edge. */
+  /* The picker's palette row: the colours under glass from the block's start, 8px apart, no shared edge, no fill. */
+  .options.swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+  }
+
   .options.swatches .option {
+    min-inline-size: 44px;
     padding-inline: 0;
-    margin-inline-start: 0;
+    margin: 0;
     border-color: transparent;
   }
 
@@ -398,10 +485,9 @@
     outline-offset: 2px;
   }
 
-  /* The select: a boundary hairline, the field's 15px, 44px tall, appearance none so no engine rounds it. */
+  /* The select: a boundary hairline, the field's 15px, the column's width at 44px, appearance none so no engine rounds it; the arrow inside the right padding. */
   .select-wrap {
     position: relative;
-    inline-size: 100%;
   }
 
   .select-wrap::after {
@@ -421,6 +507,7 @@
     appearance: none;
     box-sizing: border-box;
     inline-size: 100%;
+    block-size: 44px;
     min-block-size: 44px;
     padding-inline: 12px 36px;
     border: 1px solid var(--color-boundary);
@@ -454,6 +541,7 @@
     box-sizing: border-box;
     inline-size: 44px;
     min-inline-size: 44px;
+    block-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 1px solid transparent;

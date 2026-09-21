@@ -25,10 +25,10 @@
 // the link copies, and a shared link lands with install disabled for the right
 // reason.
 //
-// THE STACKING FACT (change 16). A knob row is one line - the label left, the
-// control right, the two boxes at the end - only where its own container is
-// 364px or wider: the inspector's body is 386 at 1440 and above, 248 at the
-// compact band (1280) and 341 on the phone (393). So at BOTH projects' own
+// THE STACKING FACT (change 16; change 16b's grid). A knob row is one line -
+// the label left, the control right, the two boxes at the end - only where
+// its own container is 380px or wider: the inspector's body is 385 at 1440
+// and above, 336 at the compact band (1280) and 341 on the phone (393). So at BOTH projects' own
 // widths the rows are STACKED (the label on a line of its own, the control
 // under it with the boxes at its end), and test 2 asserts exactly that, then
 // widens the viewport to 1440 and asserts the row went side by side, then
@@ -191,7 +191,7 @@ type RowLayout = {
 
 /**
  * The first STEPPER knob row, classified by where its control sits relative to
- * its label - which is the only thing Knob.svelte's 364px container query moves.
+ * its label - which is the only thing Knob.svelte's 380px container query moves.
  *
  * Two choices in here are load-bearing:
  *
@@ -330,7 +330,7 @@ test.describe("the whole site except install, on a phone engine", () => {
     }
 
     // At this project's own width - 393px on the phone, 1280px on the desktop's
-    // compact band - the row's container is under 364px, so the label takes a
+    // compact band - the row's container is under 380px, so the label takes a
     // line of its own and the control sits under it (change 16). See the
     // header: this is the stacking fact.
     const own = await rowLayout(page);
@@ -367,7 +367,7 @@ test.describe("the whole site except install, on a phone engine", () => {
       }
     }
 
-    // At 1440 the inspector's body is 386px and the row is one line: the
+    // At 1440 the inspector's body is 385px and the row is one line: the
     // control to the right of the label, overlapping it vertically.
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect

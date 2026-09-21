@@ -113,13 +113,13 @@
   .share {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
-  /* Phase 4's secondary treatment, sentence case since 13-19 (D-05); the hairline and no fill are src/app.css's .pill (A-41); the 44px floor is this control's. Enabled, so its label is --color-ink. */
+  /* Phase 4's secondary treatment, sentence case since 13-19 (D-05); the hairline and no fill are src/app.css's .pill (A-41); the 44px floor is this control's; the cell's width (change 16b). Enabled, so its label is --color-ink. */
   .control {
     appearance: none;
-    inline-size: fit-content;
+    inline-size: 100%;
     min-block-size: 44px;
     font-family: inherit;
     font-size: 13px;

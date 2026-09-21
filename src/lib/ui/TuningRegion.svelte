@@ -685,12 +685,12 @@
     border-block-start: 1px solid var(--color-divider);
   }
 
-  /* Page 5's outlined buttons, side by side after the last section; wrap, never scroll (D-11). */
+  /* Page 5's outlined buttons after the last section: equal cells 8px apart, the pinned actions' floor (Inspector.svelte), so the two rows wrap alike; wrap, never scroll (D-11). */
   .actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 16px;
-    margin-block-start: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+    gap: 8px;
+    margin-block-start: 24px;
   }
 
   /* Section 10.3's Secondary at 44px: a 1px outline, no fill; square (D-01). */
@@ -699,7 +699,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
     gap: 8px;
+    block-size: 44px;
     min-block-size: 44px;
     padding-inline: 16px;
     border: 1px solid var(--color-boundary);

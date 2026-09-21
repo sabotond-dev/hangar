@@ -132,32 +132,46 @@
     color: var(--color-ink-quiet);
   }
 
-  /* The only scroll container, and a containing block: an absolutely positioned descendant (TuningRegion's sr-only live region) would otherwise escape the clip and extend the document's overflow (13.1 deferred-items A.4). */
+  /*
+    The only scroll container, and a containing block: an absolutely positioned descendant
+    (TuningRegion's sr-only live region) would otherwise escape the clip and extend the document's
+    overflow (13.1 deferred-items A.4). The rack's root (change 16b): --tune-label-w is the label
+    column of every row inside - 96px at every breakpoint, the widest that leaves a one-line row
+    at 1440 (the body is 385: 4 + 96 + 8 + a stepper holding "250 points" + 8 + 88) and the width
+    the longest label word (CROSSFADER, 98) all but fits. The first section's head is 16px under
+    the lede.
+  */
   .body {
+    --tune-label-w: 96px;
     position: relative;
     overflow-y: auto;
     min-block-size: 0;
     padding-inline: 26px;
-    padding-block: 12px 20px;
+    padding-block: 8px 20px;
   }
 
+  /* The section word: 8px above its rows; 24px under the divider from the second section on (change 16b). */
   .group-title {
-    margin: 0 0 12px;
+    margin: 0 0 8px;
     color: var(--color-ink);
   }
 
-  /* Decorative separation between sections: the divider, never on a control. */
+  .divider + .group > .group-title {
+    margin-block-start: 24px;
+  }
+
+  /* Decorative separation between sections: the divider, never on a control; 24px under the last row. */
   .divider {
-    margin-block: 20px;
+    margin-block: 24px 0;
     border: 0;
     border-block-start: 1px solid var(--color-divider);
   }
 
-  /* The pinned pair, above a divider. */
+  /* The pinned actions, above a divider: equal cells, 8px apart (change 16b); the floor is what Export for Grid Editor needs on one line, so a body under 344 gives a column. */
   .actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+    gap: 8px;
     padding-inline: 26px;
     padding-block: 16px 24px;
     border-block-start: 1px solid var(--color-divider);

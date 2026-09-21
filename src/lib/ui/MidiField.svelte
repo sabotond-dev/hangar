@@ -1,13 +1,14 @@
 <!--
-  One typed MIDI field, one row (change 16): the label left, Stepper.svelte right over the knob's
-  closed list, the reset box at the end. Props: knob (the list, index and default are its), onchange
-  (the same call a knob row makes), onreset. Every keystroke maps back through view.ts's typedIndex -
-  an offered whole number moves the knob, an unoffered one is refused with the offered values named,
-  anything else with TYPE_A_NUMBER; a note field (ORBIT's ring notes) reads names and numbers through
-  noteNumber. The last good value survives a refusal (13-16's shape): the refused text stays with
-  aria-invalid until a keystroke validates or the knob moves from outside. X-08 kept: a Lua channel
-  shows the firmware's 0-based literal, LUA_CHANNEL_CUE its description and title. No lock: a MIDI
-  destination is never rolled. 44px, square; the error ink on a refused boundary and its line only.
+  One typed MIDI field, one row (change 16; change 16b's grid): Knob.svelte's label | control |
+  reset | lock, Stepper.svelte filling the control column over the knob's closed list, the reset
+  box, an empty lock cell (no lock: a MIDI destination is never rolled). Props: knob (the list,
+  index and default are its), onchange (the same call a knob row makes), onreset. Every keystroke
+  maps back through view.ts's typedIndex - an offered whole number moves the knob, an unoffered one
+  is refused with the offered values named, anything else with TYPE_A_NUMBER; a note field (ORBIT's
+  ring notes) reads names and numbers through noteNumber. The last good value survives a refusal
+  (13-16's shape): the refused text stays with aria-invalid until a keystroke validates or the knob
+  moves from outside. X-08 kept: a Lua channel shows the firmware's 0-based literal, LUA_CHANNEL_CUE
+  its description and title. 44px, square; the error ink on a refused boundary and its line only.
   Decided at 13.1-07 (13.1-CONTEXT D-09); see .planning/phases/13.1-bench-corrections-four/13.1-07-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -217,16 +218,16 @@
     min-inline-size: 0;
   }
 
-  /* Knob.svelte's row less the lock: label | control | reset, 44px, the 2px action rule while changed. */
+  /* Knob.svelte's grid (change 16b): label | control | reset | lock, the lock cell empty, 44px, the 2px action rule in the start padding while changed. */
   .row {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) auto;
-    grid-template-areas: "label control reset";
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
+    grid-template-areas: "label control reset lock";
     column-gap: 8px;
     align-items: center;
     min-block-size: 44px;
-    padding-inline-start: 8px;
+    padding-inline-start: 4px;
   }
 
   .row.changed::before {
@@ -238,17 +239,15 @@
     background: var(--color-action);
   }
 
-  @container (width < 364px) {
+  /* Knob.svelte's switch: under 380px of container the label takes a line of its own, the control still fills its column, the boxes keep their columns. */
+  @container (width < 380px) {
     .row {
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) 44px 44px;
       grid-template-areas:
-        "label label"
-        "control reset";
+        "label label label"
+        "control reset lock";
       row-gap: 4px;
-    }
-
-    .row .control {
-      justify-content: flex-start;
+      padding-block: 6px;
     }
   }
 
@@ -257,7 +256,7 @@
     display: block;
     min-inline-size: 0;
     color: var(--color-ink-quiet);
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     transition: color 140ms ease-out;
   }
 
@@ -268,10 +267,11 @@
 
   .control {
     grid-area: control;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+    display: grid;
+    box-sizing: border-box;
+    inline-size: 100%;
     min-inline-size: 0;
+    min-block-size: 44px;
   }
 
   /* The refusal, in the error ink, on its own line under the row - never on a button. */
@@ -289,6 +289,7 @@
     box-sizing: border-box;
     inline-size: 44px;
     min-inline-size: 44px;
+    block-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 1px solid transparent;

@@ -1,12 +1,13 @@
 <!--
-  The swatch rows (change 16): ONE ROW PER COLOUR KNOB - the label left, a chip right (the colour
-  as a 28px square of the stored RGB444 value beside its readout: the three channels for a lattice
-  knob, the hue word for a hand-authored palette), the reset box, the lock box - and ONE editor
-  block for all of them, inline under the row whose chip opened it (no dialog, no backdrop, no top
-  layer since 13.1-04; the chip's hidden verb reads Close while open). Props: entry, knobs, held,
-  lock, budget, onchange (by KNOB POSITION), onreset, onhold, onresult. ColourPicker.svelte is
-  handed the knob to open on and nothing else; its three circles stay. Escape inside closes and
-  puts focus on the row's chip because the focused element is leaving the DOM. Square (D-01).
+  The swatch rows (change 16; change 16b's grid): ONE ROW PER COLOUR KNOB on Knob.svelte's grid -
+  label | control | reset | lock - the chip filling the control column at 44px (a 44 square of the
+  stored RGB444 value at its left edge, then its readout: the three channels for a lattice knob,
+  the hue word for a hand-authored palette), and ONE editor block for all of them, inline under the
+  row whose chip opened it (no dialog, no backdrop, no top layer since 13.1-04; the chip's hidden
+  verb reads Close while open). Props: entry, knobs, held, lock, budget, onchange (by KNOB
+  POSITION), onreset, onhold, onresult. ColourPicker.svelte is handed the knob to open on and
+  nothing else; its three circles stay. Escape inside closes and puts focus on the row's chip
+  because the focused element is leaving the DOM. Square (D-01).
   Decided at 13-09 / 13.1-04 (13.1-CONTEXT D-08); see .planning/phases/13.1-bench-corrections-four/13.1-04-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -229,16 +230,16 @@
     border-block-start: 1px solid var(--color-divider);
   }
 
-  /* Knob.svelte's row: label | control | reset | lock, 44px, the 2px action rule while changed. */
+  /* Knob.svelte's grid (change 16b): label | control | reset | lock, 44px, the 2px action rule in the start padding while changed. */
   .row {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) auto auto;
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
     grid-template-areas: "label control reset lock";
     column-gap: 8px;
     align-items: center;
     min-block-size: 44px;
-    padding-inline-start: 8px;
+    padding-inline-start: 4px;
   }
 
   .row.changed::before {
@@ -250,17 +251,15 @@
     background: var(--color-action);
   }
 
-  @container (width < 364px) {
+  /* Knob.svelte's switch: under 380px of container the label takes a line of its own, the control still fills its column, the boxes keep their columns. */
+  @container (width < 380px) {
     .row {
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) 44px 44px;
       grid-template-areas:
         "label label label"
         "control reset lock";
       row-gap: 4px;
-    }
-
-    .row .control {
-      justify-content: flex-start;
+      padding-block: 6px;
     }
   }
 
@@ -269,7 +268,7 @@
     display: block;
     min-inline-size: 0;
     color: var(--color-ink-quiet);
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     transition: color 140ms ease-out;
   }
 
@@ -280,25 +279,30 @@
 
   .control {
     grid-area: control;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+    display: grid;
+    box-sizing: border-box;
+    inline-size: 100%;
     min-inline-size: 0;
+    min-block-size: 44px;
   }
 
-  /* The chip: a boundary hairline round the square and its readout, 44px tall; the action colour on its edge while its block is open. */
+  /* The chip: the column's width at 44px, a boundary hairline, the square at its left edge and the readout after it; the action colour on its edge while its block is open. */
   .chip {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    column-gap: 12px;
     box-sizing: border-box;
+    inline-size: 100%;
     min-inline-size: 44px;
+    block-size: 44px;
     min-block-size: 44px;
-    padding-inline: 8px 12px;
+    padding: 0 12px 0 0;
     border: 1px solid var(--color-boundary);
     border-radius: 0;
     background: var(--color-workspace);
     color: var(--color-ink);
+    text-align: start;
     cursor: pointer;
     transition: border-color 140ms ease-out;
   }
@@ -312,16 +316,18 @@
     border-color: var(--color-action);
   }
 
-  /* The one fill that is not a token: the stored RGB444 value, a 1:1 preview of the LEDs (A-09's carve-out). 28 x 28, square (D-01). */
+  /* The one fill that is not a token: the stored RGB444 value, a 1:1 preview of the LEDs (A-09's carve-out). The chip's inner height, 42 x 42 inside its hairline, so the square reads as 44 (D-01). */
   .square {
-    flex: 0 0 auto;
-    inline-size: 28px;
-    block-size: 28px;
-    border: 1px solid var(--color-boundary);
+    inline-size: 42px;
+    block-size: 42px;
+    border-inline-end: 1px solid var(--color-boundary);
   }
 
   /* The readout: the three channels in the mono face, or the palette's hue word in the micro face. */
   .readout {
+    min-inline-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.01em;
@@ -344,6 +350,7 @@
     box-sizing: border-box;
     inline-size: 44px;
     min-inline-size: 44px;
+    block-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 1px solid transparent;

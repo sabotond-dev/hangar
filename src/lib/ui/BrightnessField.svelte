@@ -1,12 +1,14 @@
 <!--
-  The brightness field (change 5, 2026-09-17; change 16's row): one typed whole number, 1..255, for
-  the whole light output - under Look in the workspace and in the Sandbox's inspector. A free range
-  instead of a knob's list, so no step boxes: a keystroke that is a whole number inside the range
-  reaches the owner through onchange, one outside is refused inline with BRIGHTNESS_RANGE and
-  anything else with TYPE_A_NUMBER; the last good value survives a refusal (the refused text stays
-  with aria-invalid until a keystroke validates or the value moves from outside); the arrows step
-  by one. Section 7's changed-field marker at any value but 255 and a per-field reset box named for
-  the field. Not a knob: no lock, never rolled. 44px, square; the mono face on the value.
+  The brightness field (change 5, 2026-09-17; change 16's row; change 16b's grid): one typed whole
+  number, 1..255, for the whole light output - under Look in the workspace and in the Sandbox's
+  inspector - on Knob.svelte's label | control | reset | lock grid (the lock cell empty: not a knob,
+  never rolled), Stepper.svelte filling the control column: its boxes and the arrows step by one
+  over the free range 1..255 (a rung per value, the ladder's mark alone). A keystroke that is a
+  whole number inside the range reaches the owner through onchange, one outside is refused inline
+  with BRIGHTNESS_RANGE and anything else with TYPE_A_NUMBER; the last good value survives a
+  refusal (the refused text stays with aria-invalid until a keystroke validates or the value moves
+  from outside); Enter and blur are oncommit. Section 7's changed-field marker at any value but 255
+  and a per-field reset box named for the field; read-only under the Sandbox's Play. 44px, square.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -25,6 +27,7 @@
     TYPE_A_NUMBER,
     fieldResetName,
   } from "$lib/tune/inspector-copy";
+  import Stepper from "./Stepper.svelte";
 
   let {
     value,
@@ -84,8 +87,12 @@
       .join(" ") || undefined,
   );
 
-  function typed(event: Event): void {
-    const text = (event.currentTarget as HTMLInputElement).value;
+  /** Every keystroke validates; Enter and blur are the owner's boundary. */
+  function typed(text: string, committed: boolean): void {
+    if (committed) {
+      oncommit?.();
+      return;
+    }
     const parsed = parseBrightness(text);
     if (!parsed.ok) {
       refused = text;
@@ -98,31 +105,18 @@
     onchange(parsed.value);
   }
 
-  /** The arrows step by one inside the range; a refused text is dropped for the owner's value first. */
-  function step(delta: number): void {
+  /** The boxes and the arrows: rank 0 is 1, rank 254 is 255; a refused text is dropped for the owner's value first. */
+  function pickRank(rank: number): void {
     if (readonly) return;
     const next = Math.min(
       BRIGHTNESS_FULL,
-      Math.max(BRIGHTNESS_MIN, value + delta),
+      Math.max(BRIGHTNESS_MIN, rank + BRIGHTNESS_MIN),
     );
     refused = undefined;
     problem = undefined;
     if (next !== value) {
       seen = next;
       onchange(next);
-    }
-  }
-
-  function onkeydown(event: KeyboardEvent): void {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      oncommit?.();
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      step(1);
-    } else if (event.key === "ArrowDown") {
-      event.preventDefault();
-      step(-1);
     }
   }
 
@@ -149,21 +143,18 @@
       >
     {/if}
     <div class="control">
-      <input
-        class="input"
+      <Stepper
         id={inputId}
-        type="text"
-        inputmode="numeric"
-        autocomplete="off"
-        data-testid="brightness-field-input"
+        testid="brightness-field"
         value={shown}
+        rank={value - BRIGHTNESS_MIN}
+        count={BRIGHTNESS_FULL - BRIGHTNESS_MIN + 1}
+        invalid={problem !== undefined}
+        describedBy={described}
+        hint={false}
         {readonly}
-        aria-readonly={readonly}
-        aria-invalid={problem !== undefined}
-        aria-describedby={described}
-        oninput={typed}
-        onblur={() => oncommit?.()}
-        {onkeydown}
+        ontext={typed}
+        onrank={pickRank}
       />
     </div>
     <button
@@ -205,16 +196,16 @@
     min-inline-size: 0;
   }
 
-  /* Knob.svelte's row less the lock: label | control | reset, 44px, the 2px action rule while changed. */
+  /* Knob.svelte's grid (change 16b): label | control | reset | lock, the lock cell empty, 44px, the 2px action rule in the start padding while changed. */
   .row {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) auto;
-    grid-template-areas: "label control reset";
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
+    grid-template-areas: "label control reset lock";
     column-gap: 8px;
     align-items: center;
     min-block-size: 44px;
-    padding-inline-start: 8px;
+    padding-inline-start: 4px;
   }
 
   .row.changed::before {
@@ -226,17 +217,15 @@
     background: var(--color-action);
   }
 
-  @container (width < 364px) {
+  /* Knob.svelte's switch: under 380px of container the label takes a line of its own, the control still fills its column, the boxes keep their columns. */
+  @container (width < 380px) {
     .row {
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) 44px 44px;
       grid-template-areas:
-        "label label"
-        "control reset";
+        "label label label"
+        "control reset lock";
       row-gap: 4px;
-    }
-
-    .row .control {
-      justify-content: flex-start;
+      padding-block: 6px;
     }
   }
 
@@ -245,7 +234,7 @@
     display: block;
     min-inline-size: 0;
     color: var(--color-ink-quiet);
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     transition: color 140ms ease-out;
   }
 
@@ -256,39 +245,11 @@
 
   .control {
     grid-area: control;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    min-inline-size: 0;
-  }
-
-  /* The field box at the 44px floor: a boundary hairline, square (D-01), the mono face, tabular; 16px so iOS does not zoom a focused field. */
-  .input {
+    display: grid;
     box-sizing: border-box;
     inline-size: 100%;
-    max-inline-size: 160px;
+    min-inline-size: 0;
     min-block-size: 44px;
-    padding-inline: 10px;
-    border: 1px solid var(--color-boundary);
-    border-radius: 0;
-    background: var(--color-workspace);
-    font-family: var(--font-mono);
-    font-size: 16px;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-ink);
-  }
-
-  .input:hover {
-    border-color: var(--color-ink-quiet);
-  }
-
-  .input[readonly] {
-    color: var(--color-ink-quiet);
-  }
-
-  /* The field that refused a keystroke: the error ink on its boundary only. */
-  .invalid .input {
-    border-color: var(--color-error-ink);
   }
 
   .message {
@@ -310,6 +271,7 @@
     box-sizing: border-box;
     inline-size: 44px;
     min-inline-size: 44px;
+    block-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 1px solid transparent;

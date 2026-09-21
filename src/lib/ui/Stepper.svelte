@@ -1,12 +1,14 @@
 <!--
   The stepper (change 16, 2026-09-21): one typed field with a step box either side and a ladder of
-  the rungs under the text - the shape Knob.svelte's numeric rows and MidiField.svelte share. It
-  owns the draft while a visitor types and nothing else: `ontext(text, committed)` hands every
-  keystroke up with `committed` false and Enter or blur with it true, and the owner answers by
-  re-rendering `value`; `onrank(rank)` asks for a rung by its place on the value-ordered ladder
-  (the boxes, the arrows, Home and End). The boxes are out of the tab order: the field is the one
-  stop, a spinbutton. 44px on every control, square (D-01); the field in the mono face
-  (instrument.spec.ts's list). No corner, no colour but the tokens.
+  the rungs under the text - the shape Knob.svelte's numeric rows, MidiField.svelte and
+  BrightnessField.svelte share. It owns the draft while a visitor types and nothing else:
+  `ontext(text, committed)` hands every keystroke up with `committed` false and Enter or blur with
+  it true (the text the field shows, typed or not), and the owner answers by re-rendering `value`;
+  `onrank(rank)` asks for a rung by its place on the value-ordered ladder (the boxes, the arrows,
+  Home and End). The boxes are out of the tab order: the field is the one stop, a spinbutton.
+  Change 16b's shape: the control fills its column edge to edge at 44px - a 44 box, the field, a
+  44 box, 12px inside the field; `readonly` (the Sandbox under Play) holds every step. Square
+  (D-01); the field in the mono face (instrument.spec.ts's list). No corner, no colour but the tokens.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -24,12 +26,13 @@
     describedBy,
     hint = true,
     inputmode = "numeric",
+    readonly = false,
     ontext,
     onrank,
   }: {
     /** The input's id, the row's label points at it. */
     id: string;
-    /** The input's test id (`knob-speed-input`, `midi-field-cc-input`). */
+    /** The input's test id (`knob-speed-input`, `midi-field-cc-input`, `brightness-field-input`). */
     testid: string;
     /** What the field shows between edits: the rung's readout, or the owner's refused text. */
     value: string;
@@ -46,6 +49,8 @@
     /** Describe the snap rule (a knob's field); a MIDI field says its own refusals instead. */
     hint?: boolean;
     inputmode?: "numeric" | "text";
+    /** The owner's field is read-only (the Sandbox under Play): the boxes and the arrows hold, the text cannot change. */
+    readonly?: boolean;
     /** Every keystroke with `committed` false; Enter and blur with it true. */
     ontext: (text: string, committed: boolean) => void;
     /** A rung by rank, already clamped to the ladder. */
@@ -76,14 +81,15 @@
     ontext(text, false);
   }
 
+  /** Enter or blur: what the field shows goes up as committed, so an owner's boundary (the Sandbox's history) always hears it. */
   function commit(): void {
-    if (draft === undefined) return;
-    const text = draft;
+    const text = draft ?? value;
     draft = undefined;
     ontext(text, true);
   }
 
   function step(delta: number): void {
+    if (readonly) return;
     draft = undefined;
     onrank(Math.min(last, Math.max(0, rank + delta)));
   }
@@ -104,11 +110,13 @@
         return;
       case "Home":
         event.preventDefault();
+        if (readonly) return;
         draft = undefined;
         onrank(0);
         return;
       case "End":
         event.preventDefault();
+        if (readonly) return;
         draft = undefined;
         onrank(last);
         return;
@@ -124,7 +132,7 @@
     aria-label={STEP_DOWN}
     title={STEP_DOWN}
     data-testid="{testid}-down"
-    disabled={rank <= 0}
+    disabled={readonly || rank <= 0}
     onclick={() => step(-1)}
   >
     <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
@@ -142,6 +150,8 @@
       spellcheck="false"
       data-testid="{testid}-input"
       value={shown}
+      {readonly}
+      aria-readonly={readonly}
       aria-valuemin="0"
       aria-valuemax={last}
       aria-valuenow={rank}
@@ -177,7 +187,7 @@
     aria-label={STEP_UP}
     title={STEP_UP}
     data-testid="{testid}-up"
-    disabled={rank >= last}
+    disabled={readonly || rank >= last}
     onclick={() => step(1)}
   >
     <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
@@ -191,12 +201,13 @@
 </div>
 
 <style>
-  /* A box, the field, a box: 44px each in height, the boxes 44 wide, the field the rest. */
+  /* A box, the field, a box: the column's width edge to edge and 44px tall (change 16b), the boxes 44 wide, the field the rest. */
   .stepper {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) 44px;
+    box-sizing: border-box;
     inline-size: 100%;
-    min-inline-size: 160px;
+    block-size: 44px;
   }
 
   /* The step box: the tool rail's shape - a boundary hairline, square, the glyph in straight lines. */
@@ -205,7 +216,9 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    inline-size: 44px;
     min-inline-size: 44px;
+    block-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 1px solid var(--color-boundary);
@@ -239,6 +252,7 @@
     align-items: center;
     box-sizing: border-box;
     min-inline-size: 0;
+    block-size: 44px;
     min-block-size: 44px;
     border-block: 1px solid var(--color-boundary);
     background: var(--color-workspace);
@@ -253,13 +267,13 @@
     border-color: var(--color-error-ink);
   }
 
-  /* The value in the mono face, tabular, 16px so iOS does not zoom a focused field. */
+  /* The value in the mono face, tabular, 16px so iOS does not zoom a focused field; 12px in from the box, as every control. */
   .input {
     box-sizing: border-box;
     inline-size: 100%;
     min-inline-size: 0;
-    min-block-size: 42px;
-    padding-inline: 10px 4px;
+    block-size: 42px;
+    padding-inline: 12px 4px;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -273,11 +287,15 @@
     outline-offset: -2px;
   }
 
-  /* The unit, quiet, after the value. */
+  .input[readonly] {
+    color: var(--color-ink-quiet);
+  }
+
+  /* The unit, quiet, after the value, 8px from the box: "250 points" fits the wide band's 85px field. */
   .unit {
     flex: 0 0 auto;
-    padding-inline-end: 10px;
-    font-size: 12px;
+    padding-inline-end: 8px;
+    font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
@@ -287,7 +305,7 @@
   /* The ladder: a hairline along the field's foot with a 1px tick per rung, the rung the field is at 2px in the action colour. */
   .ladder {
     position: absolute;
-    inset-inline: 8px;
+    inset-inline: 12px;
     inset-block-end: 3px;
     block-size: 4px;
     border-block-end: 1px solid var(--color-divider);

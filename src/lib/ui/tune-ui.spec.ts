@@ -647,11 +647,17 @@ describe("the tuning UI's structural rules", () => {
       occurrences(closedBody, 'aria-pressed="false"'),
       "each row carries its lock",
     ).toBe(2);
-    // The square is 28 x 28 and square-cornered (D-01).
+    // The square is the chip's inner height, 42 x 42 inside its hairline (change 16b: a 44 square at the chip's left edge), and square-cornered (D-01); the chip fills its column at 44.
     const square = rulesOf(swatch).find((r) => r.selector.trim() === ".square");
-    expect(square?.body).toContain("inline-size: 28px");
-    expect(square?.body).toContain("block-size: 28px");
+    expect(square?.body).toContain("inline-size: 42px");
+    expect(square?.body).toContain("block-size: 42px");
     expect(square?.body).not.toContain("border-radius");
+    expect(chip?.body, "the chip does not fill its column").toContain(
+      "inline-size: 100%",
+    );
+    expect(chip?.body, "the chip is not 44px tall").toContain(
+      "block-size: 44px",
+    );
   });
 
   it("SURPRISE ME is a real disabled button when every knob is held, and its reason is 53 characters", () => {
@@ -1839,7 +1845,7 @@ describe("the tuning UI's structural rules", () => {
       "the changed test is not the one comparison section 7 asks for",
     ).toContain("view.index !== view.default");
     expect(knob, "the marker is not keyed on changed").toContain(
-      '<div class="row" class:changed>',
+      '<div class="row" class:changed class:bare={!caption}>',
     );
     expect(knob, "the marker carries no accessible sentence").toMatch(
       /[{]#if changed[}]\s*<span class="sr-only" data-testid="knob-[{]view[.]id[}]-changed"/,
@@ -2046,7 +2052,7 @@ describe("the tuning UI's structural rules", () => {
     }
   });
 
-  it("the rows, rendered (change 16): a stepper shows the rung with its unit and its rank on the ladder, a segmented row is real radios in joined boxes, a select lists every rung, a swatch chip reads its channels, and every row stacks under 364px of its own container", () => {
+  it("the rows, rendered (change 16): a stepper shows the rung with its unit and its rank on the ladder, a segmented row is real radios in joined boxes, a select lists every rung, a swatch chip reads its channels, and every row stacks under 380px of its own container", () => {
     // svelte/server renders each skin from a KnobView the panel would build;
     // the behaviour a browser owns (the arrows, a typed value snapping, the
     // chip opening the block) is pressed in e2e/tuning.e2e.ts.
@@ -2189,9 +2195,16 @@ describe("the tuning UI's structural rules", () => {
       "the chosen segment is a fill",
     ).not.toContain("background");
 
-    // EVERY ROW COMPONENT STACKS UNDER 364px OF ITS OWN CONTAINER: the root
-    // is the container, the row queries it, so the rack, the picker and the
-    // Sandbox need none. The label takes the micro face on every row.
+    // EVERY ROW COMPONENT IS ON ONE GRID (change 16b) - label | control |
+    // reset | lock, the label column --tune-label-w, the control column the
+    // rest, the two box columns fixed 44 and always present - AND STACKS UNDER
+    // 380px OF ITS OWN CONTAINER: the root is the container, the row queries
+    // it, so the rack, the picker and the Sandbox need none; stacked, the
+    // control still fills its column and the boxes keep their two columns.
+    // The label takes the micro face on every row.
+    const GRID =
+      "grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;";
+    const STACKED = "grid-template-columns: minmax(0, 1fr) 44px 44px;";
     for (const name of [
       "Knob.svelte",
       "MidiField.svelte",
@@ -2199,12 +2212,35 @@ describe("the tuning UI's structural rules", () => {
       "BrightnessField.svelte",
     ]) {
       const source = code(componentPath(name));
+      const rules = rulesOf(source);
+      const row = rules.find((r) => r.selector.trim() === ".row");
+      expect(row?.body, `${name}'s row is not the four-column grid`).toContain(
+        GRID,
+      );
+      expect(row?.body, `${name}'s columns are not 8px apart`).toContain(
+        "column-gap: 8px;",
+      );
+      expect(row?.body, `${name}'s row is not 44px`).toContain(
+        "min-block-size: 44px;",
+      );
+      const control = rules.find((r) => r.selector.trim() === ".control");
+      expect(
+        control?.body,
+        `${name}'s control does not fill its column`,
+      ).toContain("inline-size: 100%;");
+      expect(control?.body, `${name}'s control is under 44px`).toContain(
+        "min-block-size: 44px;",
+      );
       expect(source, `${name} is not its row's container`).toContain(
         "container-type: inline-size",
       );
-      expect(source, `${name} does not stack under 364px`).toContain(
-        "@container (width < 364px)",
+      expect(source, `${name} does not stack under 380px`).toContain(
+        "@container (width < 380px)",
       );
+      expect(
+        source.slice(source.indexOf("@container (width < 380px)")),
+        `${name}'s stacked row does not keep the two box columns`,
+      ).toContain(STACKED);
       expect(source, `${name}'s label is not the micro face`).toContain(
         'class="label type-micro"',
       );
