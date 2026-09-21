@@ -80,8 +80,6 @@
     COLOUR_CHEAP_STEPS,
     COLOUR_UNAFFORDABLE,
     COLOUR_WHICH,
-    KNOB_HELD,
-    KNOB_HOLD,
     colourRailName,
   } from "$lib/tune/copy";
   import {
@@ -107,8 +105,6 @@
     budget,
     onchange,
     onreset,
-    onhold,
-    onforecast,
     onresult,
     selectedId,
   }: {
@@ -134,19 +130,6 @@
     onchange: (id: string, position: number) => void;
     /** One colour knob back to the colour its card ships with. */
     onreset: (id: string) => void;
-    /** One lock, toggled, for the knob the rails are editing. */
-    onhold: (id: string) => void;
-    /**
-     * A swatch was hovered or focused, by knob and KNOB POSITION.
-     *
-     * Forwarded to the shipped swatch row and NOT offered on a rail, which is
-     * deferred-items.md item 4 and is answered there rather than here: a rail's
-     * detents sit under an invisible range input by construction, so there is
-     * no hover the platform delivers and no keyboard candidate at all, and a
-     * pointer-only forecast is exactly what the contract's hidden expansion
-     * exists to forbid.
-     */
-    onforecast?: (id: string, position: number | undefined) => void;
     /**
      * Hands the result pad's element to whoever owns the page's SimHost.
      *
@@ -319,16 +302,6 @@
         {/each}
       </span>
     {/if}
-
-    <button
-      class="lock"
-      type="button"
-      data-testid="colour-hold"
-      aria-pressed={isHeld}
-      onclick={() => onhold(selected.id)}
-    >
-      {isHeld ? KNOB_HELD : KNOB_HOLD}
-    </button>
   </div>
 
   <div class="body">
@@ -434,18 +407,17 @@
     {:else}
       <!--
         A hand-authored palette, shown as the shipped swatch row rather than as
-        a fourth thing. `lock={false}` because this block already carries one
-        for the selected knob and two locks on one knob is not a layout choice.
+        a fourth thing. `lock={false}`, `reset={false}`, `caption={false}`: the swatch row above carries all three.
       -->
       <div class="palette">
         <Knob
           view={{ ...selected, widget: "swatch" }}
           lock={false}
+          reset={false}
+          caption={false}
           held={isHeld}
           onchange={(index) => onchange(selected.id, index)}
           onreset={() => onreset(selected.id)}
-          onhold={() => onhold(selected.id)}
-          onforecast={(position) => onforecast?.(selected.id, position)}
         />
       </div>
     {/if}
@@ -653,33 +625,6 @@
 
   .join {
     color: var(--color-ink-quiet);
-  }
-
-  /*
-    The lock, for the knob the rails are editing. Knob.svelte's own rule: 13px
-    / 600 / 0.01em sentence case (13-19, D-05), quiet when free, full ink when
-    held, 44px on both axes, and a fixed 52px so Locked cannot move the row.
-  */
-  .lock {
-    appearance: none;
-    inline-size: 52px;
-    min-inline-size: 44px;
-    min-block-size: 44px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--color-ink-quiet);
-    cursor: pointer;
-    transition: color 140ms ease-out;
-  }
-
-  .lock[aria-pressed="true"],
-  .lock:hover {
-    color: var(--color-ink);
   }
 
   .body {
@@ -893,7 +838,6 @@
   @media (prefers-reduced-motion: reduce) {
     .option,
     .word,
-    .lock,
     .track-fill,
     .thumb {
       transition: none;

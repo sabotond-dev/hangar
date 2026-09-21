@@ -344,16 +344,24 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
       "the lattice is no longer worth six characters, which moves both the tick rule and the guard",
     ).toBe(6);
 
-    // THE SHAPE IS SHARED, NOT RE-DECLARED. The tick is the 2px round mark
-    // Knob.svelte already draws for a default position, one rung up the ink
-    // ladder - so it is a mark a visitor has already learnt.
+    // THE SHAPE IS SHARED, NOT RE-DECLARED. The tick is the 2px round mark the
+    // picker's own home mark draws for the default position, one rung up the
+    // ink ladder - so it is a mark a visitor has already learnt (Knob.svelte
+    // has no round mark since change 16: a stepper row carries no circle).
     const tick = ruleFor(code(PICKER), ".tick");
-    const home = ruleFor(code(KNOB), ".home");
+    const home = ruleFor(code(PICKER), ".home");
     expect(
       tick,
       "ColourPicker.svelte no longer has a .tick rule",
     ).toBeDefined();
-    expect(home, "Knob.svelte no longer has a .home rule").toBeDefined();
+    expect(
+      home,
+      "ColourPicker.svelte no longer has a .home rule",
+    ).toBeDefined();
+    expect(
+      code(KNOB),
+      "Knob.svelte draws a circle again - change 16 took its rail",
+    ).not.toContain("border-radius: 50%");
     const geometry = (body: string) =>
       body
         .split(";")

@@ -1,195 +1,66 @@
 <!--
-  One knob. Four skins. No div pretending to be a slider.
-
-  Twelve KnobKinds collapse to four row widgets, and the choice is made in
-  $lib/tune/view's widgetFor / railSkin and arrives here already made, on the
-  KnobView. This component NEVER re-derives it: two copies of the widget rule is
-  how a colour knob ends up a rail on one screen and a swatch row on another.
-  The rule is TOTAL - a colour whose values are not RGB, a scale whose semitone
-  set is not in the table, a note with more than eight options and every kind
-  with no table of its own all fall through to a rail - so no knob can fail to
-  render, and this file has no "unknown widget" branch because there is no such
-  thing.
-
-  THE CONTROL INVENTORY (Bible section 7, plan 13-09). Section 7 asks for
-  segmented buttons for a few alternatives, a select for a larger enumeration,
-  a slider with its value beside it, and a marker plus a per-field reset on a
-  changed field. This file already had the first and the third; 13-09 added the
-  second and the fourth:
-
-    words   1..4 worded options  - a role="radiogroup" of real radios in labels
-    select  5..8 worded options  - a real <select>, the platform's own keyboard
-    rail    everything else      - dots up to eight, a track with a read-only
-                                   right-aligned readout from nine (the PDF's
-                                   48% is read-only, and D-14 Q5 keeps typed
-                                   numerics in the Sandbox)
-
-  The 4/5 line is view.ts's SEGMENTED_MAX and it is a RENDERING change: no
-  knob's options moved. HOLD / HELD survive as the parameter lock section 7
-  permits; their labels change at 13-19, not here.
-
-  THE MARKER AND THE PER-FIELD RESET. `view.index !== view.default` is the
-  whole of "changed": a 6px ink square at the label's start (never accent -
-  the reserved list stays where tune-ui.spec.ts holds it) with a visually
-  hidden sentence, and a Reset button at the row's end named for the field,
-  present on every row and disabled while the field is at its default so the
-  row never reflows when it changes. RESET ALL survives above the rack under
-  the PDF's name, Reset settings, in TuningRegion.svelte. The three older reset
-  gestures below are untouched.
-
-  EVERY SKIN IS A REAL FORM CONTROL WITH A REAL LABEL (05-UI-SPEC, Knob
-  interaction contract). The rail is one <input type="range"> at opacity 0,
-  absolutely positioned over the painted dots or track and filling the 44px box,
-  so the platform gives arrows, Home, End and PageUp/PageDown for free and
-  aria-valuetext carries the readout. The select is a real <select> with a real
-  <label for>, so the platform's own listbox, typeahead and arrows apply. The
-  word row and the swatch row are real <input type="radio"> inside <label>s
-  under a role="radiogroup", so native roving focus makes each of them ONE tab
-  stop rather than n.
-
-  WHY THE RANGE INPUT'S FOCUS RING IS DRAWN ON ITS WRAPPER. The input is
-  invisible, so :focus-visible on the input itself would paint a ring nobody can
-  see. .rail:has(:focus-visible) puts the site's ring - 2px solid action,
-  outline-offset 4px - around the painted control. A knob is never focusable
-  without a visible ring. The select is visible and takes src/app.css's own
-  :focus-visible ring.
-
-  THE READOUT IS POSITIONAL, NEVER A LUA LITERAL. KnobValueView.label is already
-  total and already display-safe (a word, a swatch name, the raw integer, or
-  "Position 3 of 6"); model.ts resolved it. This file prints it and adds nothing.
-
-  RESET, THREE WAYS, AND ONE KEY DELIBERATELY ABSENT. Double-click on the
-  control area, Delete or Backspace on the focused control, or a 500 ms long
-  press on a coarse pointer. Escape is NOT handled here and must never be:
-  the workspace binds Escape to the flash confirmation (Z-10), and a knob that
-  swallowed it would break that.
-
-  --color-error-ink appears nowhere in this file. The ninth token is scoped to three
-  uses and all three of them are a meter's or a message's (05-UI-SPEC X-01); a
-  knob is never red.
-
-  NO CORNER ABOVE ZERO EXCEPT THREE TRUE CIRCLES (D-01, D-10, D-15). The dot
-  rail's 8x8 dot, the track's 12x12 thumb and the 2x2 home mark are circles on
-  square boxes and keep border-radius: 50%; src/lib/ui/radius-allowlist.ts's
-  CIRCLES names their lines and e2e/radius.e2e.ts measures their boxes square.
-  The five other radii this file carried (the track, the held bar, the swatch
-  option, the swatch and the lock) went at 13-09 with its allowlist row.
-  Nothing here became a square.
-
-  THE LOCK, AND ITS SECOND CHANNEL (10-UI-SPEC 11.5, T1). Every row ends in a
-  real <button aria-pressed> whose LABEL changes HOLD -> HELD, so the state is
-  in the accessible name and not only in the pressed state. The second,
-  non-colour channel is the default marker: a 2px --color-divider dot at the
-  default position when the knob is free, a 2px --color-boundary bar spanning the
-  SELECTED option when it is held. NO ACCENT IS SPENT ON EITHER, and none may
-  be - 10-UI-SPEC 7.2's reserved list stays at eight, and tune-ui.spec.ts
-  counts this file's --color-action declarations to keep it there.
-
-  THE FORECAST (10-UI-SPEC 11.3, T2). Hovering or focusing an option asks the
-  region what that choice WOULD cost and shows the answer twice: a signed
-  --font-mono delta beside the option, and the same fact as a sentence for
-  anything that is not an eye. This component computes nothing - it reports a
-  knob POSITION out and renders the two strings back - so the compiler stays on
-  the far side of D-18 and the delta cannot be built in two places.
-
-  NEVER ON TOUCH, gated twice: `pointerType === "touch"` per event, and
-  `@media (hover: hover)` for the paint. A tap fires pointerenter immediately
-  before it activates, and a compile in front of that gesture is exactly the
-  latency this component's long press and double-click are careful about.
+  One knob, one row (change 16, 2026-09-21): the label left in the micro face, the control right,
+  then the reset box and the lock box. Four skins, chosen by $lib/tune/view's widgetFor and never
+  re-derived here: `words` a segmented control of real radios in labels, `select` a real select,
+  `stepper` Stepper.svelte over the rungs (a typed value snaps to the nearest declared rung on
+  Enter or blur - view.ts's nearestRung; the boxes and the arrows walk them in value order), and
+  `swatch` the picker's palette row. The rule is TOTAL, so there is no unknown-widget branch. A
+  changed field is a 2px action rule down the row's start (section 7's marker), with FIELD_CHANGED
+  for a screen reader; the reset box is present on every row and disabled at the default. The lock
+  is a real <button aria-pressed> named Lock / Locked. No radius (D-01); no error ink; --font-mono
+  only through Stepper.svelte. The row stacks under 364px of its own container.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
 <script lang="ts">
-  import { onDestroy } from "svelte";
-  import { MediaQuery } from "svelte/reactivity";
   import { KNOB_HELD, KNOB_HOLD } from "$lib/tune/copy";
   import {
     FIELD_CHANGED,
     FIELD_RESET,
     fieldResetName,
   } from "$lib/tune/inspector-copy";
-  import { knobPosition, type KnobView } from "$lib/tune/view";
+  import {
+    knobPosition,
+    nearestRung,
+    noteNumber,
+    rankOf,
+    valueOrder,
+    type KnobView,
+  } from "$lib/tune/view";
+  import Stepper from "./Stepper.svelte";
 
   let {
     view,
-    stacked = false,
     lock = true,
+    reset = true,
+    caption = true,
     held = false,
-    forecastAt = undefined,
-    forecastLabel = undefined,
-    forecastSentence = undefined,
     onchange,
     onreset,
     onhold,
-    onforecast,
   }: {
-    /** The knob, with its widget and skin already chosen by $lib/tune/view. */
+    /** The knob, with its widget already chosen by $lib/tune/view. */
     view: KnobView;
-    /**
-     * Label above the control rather than beside it. The rack decides: a word
-     * row always stacks, a field in the 2 x 2 grid stacks, and the rack's
-     * @container rule below stacks every row under 220px whatever this says.
-     */
-    stacked?: boolean;
-    /**
-     * Render the HOLD / HELD toggle, or leave it to a parent that already has
-     * one for this knob.
-     *
-     * True everywhere but inside ColourPicker.svelte, which shows a
-     * hand-authored palette as this component's own swatch row and carries the
-     * lock for the selected colour knob in its own head row. Two locks on one
-     * knob is not a layout choice - `aria-pressed` would be announced twice
-     * for the same state - so the picker turns this one off rather than
-     * redrawing the row without it.
-     */
+    /** Render the lock box, or leave it to a parent (the picker's palette row has none). */
     lock?: boolean;
-    /**
-     * Locked out of the roll. EPHEMERAL: the region owns the set, it is never
-     * encoded into a stamp, and a held knob's link is byte-identical to the
-     * same knob's unheld one (SHARE-01 is untouched).
-     */
+    /** Render the reset box; the picker's palette row leaves it to the swatch row above. */
+    reset?: boolean;
+    /** Paint the label; the picker's palette row keeps it for a screen reader only, its head names the knob. */
+    caption?: boolean;
+    /** Locked out of the roll. EPHEMERAL: the region owns the set; a held knob's link is the same link. */
     held?: boolean;
-    /**
-     * The KNOB POSITION the forecast on screen belongs to (TUNE-02, T2), or
-     * undefined when nothing is forecast. A position and never a slot, for the
-     * reason `knobPosition` exists.
-     */
-    forecastAt?: number;
-    /** The signed delta, already written by copy's forecastDelta. Never here. */
-    forecastLabel?: string;
-    /** Its accessible twin, already written by copy's forecastExpansion. */
-    forecastSentence?: string;
-    /** A new index on this knob. Fired on every step of a drag. */
+    /** A new index on this knob. */
     onchange: (index: number) => void;
-    /** Back to the default index. All four gestures call exactly this. */
+    /** Back to the default index. */
     onreset: () => void;
-    /** The lock, toggled. The region owns what held means; this only says so. */
-    onhold: () => void;
-    /**
-     * An option was hovered or focused, by KNOB POSITION - or undefined when
-     * the pointer left and the focus went. Optional, so a rack that does not
-     * forecast is unchanged.
-     */
-    onforecast?: (position: number | undefined) => void;
+    /** The lock, toggled. The region owns what held means; this only says so. Absent with the lock. */
+    onhold?: () => void;
   } = $props();
 
-  /**
-   * The accessible name of the default position, said ONCE on the group through
-   * aria-describedby rather than repeated on every option (05-UI-SPEC,
-   * Accessibility Contract).
-   *
-   * This sentence is authored here rather than imported from $lib/tune/copy
-   * because it belongs to the Accessibility Contract, not the Copywriting
-   * Contract - copy.spec.ts asserts that file character-for-character against
-   * the copy table, and this string is not in it. Recorded as a finding in
-   * 05-08-SUMMARY.md.
-   */
+  /** The default's accessible name, said once on the control through aria-describedby. */
   const homeSentence = $derived(
     `Default is ${view.values[view.default]?.label ?? ""}.`,
   );
-
-  /** n. Every geometry below is a function of it. */
-  const count = $derived(view.values.length);
 
   /** The selected option's display form: the integer, the note, the word. */
   const valueText = $derived(view.values[view.index]?.label ?? "");
@@ -197,715 +68,298 @@
   /** Section 7's "changed field": one comparison, and the whole of it. */
   const changed = $derived(view.index !== view.default);
 
-  /** A dot rail paints one dot per POSITION; no per-value data reaches it. */
-  const slots = $derived(view.values.map((_, at) => at));
+  /** The rungs in value order, for the stepper's rank; the identity when the values are not numbers. */
+  const literals = $derived(view.literals ?? []);
+  const order = $derived(valueOrder(literals));
+  const rank = $derived(rankOf(order, view.index));
 
-  /** Percent along a detent track. A one-option knob sits at the start. */
-  const fillPercent = $derived(
-    count > 1 ? (view.index / (count - 1)) * 100 : 0,
+  /** The two skins that carry a real <label for>: the stepper and the select. */
+  const labelled = $derived(
+    view.widget === "stepper" || view.widget === "select",
   );
-  const homePercent = $derived(
-    count > 1 ? (view.default / (count - 1)) * 100 : 0,
-  );
 
-  /**
-   * WHERE THE DEFAULT MARKER SITS, and it is the lock's second channel.
-   *
-   * Free: the default position, as a dot. Held: the SELECTED position, as a
-   * bar spanning it. Two channels change together - the word on the toggle and
-   * the shape and place of this marker - so a held knob is legible without
-   * reading its button, and no accent is spent (10-UI-SPEC 7.2, 11.5).
-   */
-  const markerAt = $derived(held ? view.index : view.default);
-  const markerPercent = $derived(held ? fillPercent : homePercent);
-
-  /** The two skins that carry a real <label for>: the rail and the select. */
-  const labelled = $derived(view.widget === "rail" || view.widget === "select");
-
-  /** Stable, unique-per-knob ids for label, group and description wiring. */
   const controlId = $derived(`knob-${view.id}-control`);
   const labelId = $derived(`knob-${view.id}-label`);
   const homeId = $derived(`knob-${view.id}-home`);
 
-  /**
-   * 500 ms, on a coarse pointer only. A MediaQuery rather than a one-shot read
-   * so a device that changes pointer type mid-session needs no remount, which
-   * is the same guarantee src/lib/sim/host.ts makes for reduced motion.
-   */
-  const LONG_PRESS_MS = 500;
-  const coarse = new MediaQuery("(pointer: coarse)");
-
-  /** A timer handle, deliberately not a rune: nothing renders from it. */
-  let pressTimer: ReturnType<typeof setTimeout> | undefined;
-
-  function cancelPress() {
-    if (pressTimer !== undefined) {
-      clearTimeout(pressTimer);
-      pressTimer = undefined;
-    }
-  }
-
-  function beginPress() {
-    if (!coarse.current) return;
-    cancelPress();
-    pressTimer = setTimeout(() => {
-      pressTimer = undefined;
-      onreset();
-    }, LONG_PRESS_MS);
-  }
-
-  onDestroy(cancelPress);
-
-  /**
-   * Delete and Backspace reset the focused control. Escape is deliberately not
-   * handled - see the header - and no other key is touched, so every native
-   * binding the platform gives a range, a select or a radio group survives.
-   */
-  function resetKeys(event: KeyboardEvent) {
-    if (event.key === "Delete" || event.key === "Backspace") {
-      event.preventDefault();
-      onreset();
-    }
-  }
-
-  /**
-   * A slot on the control becomes a KNOB POSITION.
-   *
-   * Through `knobPosition` rather than by comparing `view.index` directly, for
-   * the reason that function's own comment gives: the identity is a
-   * measurement this component must not restate. Plan 10-08's two-swatch
-   * window made the two coordinate systems differ for one knob and one
-   * interval, and 10-10's picker removed it; the door stays.
-   */
+  /** A slot on the control becomes a KNOB POSITION, through the one named door. */
   function pick(slot: number) {
     if (slot !== knobPosition(view)) onchange(slot);
   }
 
-  /** A slot's knob position, without the "did it move" test `pick` makes. */
-  const positionOf = (slot: number) => slot;
-
-  /**
-   * THE FORECAST'S TWO TRIGGERS, AND THE ONE IT MUST NEVER HAVE (TUNE-02, T2).
-   *
-   * Hover and focus-visible. NEVER TOUCH: a tap on a touch screen fires
-   * pointerenter immediately before the activation, so an ungated hover would
-   * put a compile in front of the gesture this whole component is most careful
-   * about - the one that already carries a 500 ms long press and a
-   * double-click. Two gates rather than one, because they fail differently:
-   *
-   *   - `event.pointerType === "touch"` is the exact per-event answer and
-   *     catches a touch on a hybrid device that reports `hover: hover`
-   *   - the MediaQuery is the capability answer and catches a device that
-   *     synthesises a mouse pointer for a stylus or a screen reader cursor
-   *
-   * The style block carries the matching `@media (hover: hover)` gate for the
-   * delta's own appearance, so the two halves cannot be reasoned about
-   * separately: no capability, no handler AND no paint.
-   */
-  const hoverable = new MediaQuery("(hover: hover)");
-
-  function forecastEnter(event: PointerEvent, slot: number) {
-    if (event.pointerType === "touch") return;
-    if (!hoverable.current) return;
-    onforecast?.(positionOf(slot));
-  }
-
-  /**
-   * :focus-visible in JavaScript, asked of the element itself rather than
-   * guessed from the event: a mouse click on a radio focuses it without making
-   * the ring appear, and a forecast that fired there would flash a delta
-   * beside an option the visitor has just chosen anyway.
-   */
-  function forecastFocus(event: FocusEvent, slot: number) {
-    const target = event.currentTarget as Element | null;
-    if (!target?.matches(":focus-visible")) return;
-    onforecast?.(positionOf(slot));
-  }
-
-  const forecastOff = () => onforecast?.(undefined);
-
-  /** A change on the select: the option's value is the slot. */
+  /** The select's value is the slot. */
   function pickSelected(event: Event) {
     const target = event.currentTarget as HTMLSelectElement;
     pick(Number.parseInt(target.value, 10));
   }
+
+  /** A rank on the value-ordered ladder, back to the declared index. */
+  function pickRank(at: number) {
+    const index = order[Math.min(order.length - 1, Math.max(0, at))];
+    if (index !== undefined) pick(index);
+  }
+
+  /**
+   * The typed text, on Enter or blur only: a note name or a number, snapped to the nearest
+   * declared rung; text that is neither leaves the field on the rung it showed.
+   */
+  function typedText(text: string, committed: boolean) {
+    if (!committed) return;
+    const asNote = view.kind === "note" ? noteNumber(text) : undefined;
+    const at = nearestRung(
+      literals,
+      asNote === undefined ? text : String(asNote),
+    );
+    if (at !== undefined) pick(at);
+  }
 </script>
 
-<!--
-  The row carries the reset gestures because "double-click anywhere on the
-  control area" and "long press anywhere on it" are both area gestures, and the
-  painted dots, swatches and words are not one element. The keyboard equivalent
-  is on the controls themselves, so the interaction is complete without a
-  pointer.
-
-  The row therefore takes pointer handlers while staying a plain container, and
-  a11y_no_static_element_interactions is silenced below rather than answered
-  with a role. Giving this div a role would put a second, meaningless node in
-  the accessibility tree in front of the real labelled control inside it, and
-  giving it a tabindex would add a dead tab stop before every knob. Every
-  gesture it carries already has a keyboard equivalent on the control itself -
-  Delete and Backspace - so nothing here is pointer-only.
-
-  The explanation is a separate comment on purpose: everything after the rule
-  name inside a svelte-ignore comment is parsed as further rule names, and
-  svelte/no-unused-svelte-ignore then reports one error per word.
--->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="row"
-  class:stacked
+  class="knob"
   data-testid="knob-{view.id}"
+  data-index={view.index}
   data-changed={changed}
-  ondblclick={onreset}
-  onpointerdown={beginPress}
-  onpointerup={cancelPress}
-  onpointercancel={cancelPress}
-  onpointerleave={cancelPress}
+  data-widget={view.widget}
 >
-  <!--
-    The label, with section 7's changed-field marker at its start: a 6px
-    square in the ink, drawn only while the field is off its default, and a
-    hidden sentence for a screen reader. The label reserves the marker's
-    space at every state so a change never shifts the word.
-  -->
-  {#if labelled}
-    <label class="label" for={controlId}>
-      {#if changed}
-        <span class="changed" data-testid="knob-{view.id}-changed"
-          ><span class="sr-only">{FIELD_CHANGED}</span></span
-        >
-      {/if}
-      {view.label}
-    </label>
-  {:else}
-    <span class="label" id={labelId}>
-      {#if changed}
-        <span class="changed" data-testid="knob-{view.id}-changed"
-          ><span class="sr-only">{FIELD_CHANGED}</span></span
-        >
-      {/if}
-      {view.label}
-    </span>
-  {/if}
+  <div class="row" class:changed>
+    {#if labelled}
+      <label class="label type-micro" for={controlId}>{view.label}</label>
+    {:else}
+      <span class={caption ? "label type-micro" : "sr-only"} id={labelId}
+        >{view.label}</span
+      >
+    {/if}
+    {#if changed}
+      <span class="sr-only" data-testid="knob-{view.id}-changed"
+        >{FIELD_CHANGED}</span
+      >
+    {/if}
+    <span class="sr-only" id={homeId}>{homeSentence}</span>
 
-  <span class="sr-only" id={homeId}>{homeSentence}</span>
-
-  {#if view.widget === "rail"}
-    <div class="control">
-      <div class="rail" class:track={view.skin === "track"}>
-        {#if view.skin === "track"}
-          <span class="track-line" aria-hidden="true"></span>
-          <span
-            class="track-fill"
-            style:inline-size="{fillPercent}%"
-            aria-hidden="true"
-          ></span>
-          <span
-            class="thumb"
-            style:inset-inline-start="calc({fillPercent}% - 6px)"
-            aria-hidden="true"
-          ></span>
-          <span
-            class="home home-track"
-            class:bar={held}
-            style:inset-inline-start="calc({markerPercent}% - {held ? 6 : 1}px)"
-            aria-hidden="true"
-          ></span>
-        {:else}
-          {#each slots as at (at)}
-            <span class="slot" aria-hidden="true">
-              <span class="dot" class:selected={at === view.index}></span>
-              {#if at === markerAt}
-                <span class="home home-dot" class:bar={held}></span>
-              {/if}
-            </span>
-          {/each}
-        {/if}
-
-        <input
-          class="range"
+    {#if view.widget === "stepper"}
+      <div class="control">
+        <Stepper
           id={controlId}
-          type="range"
-          min="0"
-          max={Math.max(0, count - 1)}
-          step="1"
-          value={view.index}
-          aria-describedby={homeId}
-          aria-valuetext={valueText}
-          oninput={(event) => pick(event.currentTarget.valueAsNumber)}
-          onkeydown={resetKeys}
+          testid="knob-{view.id}"
+          value={view.readout ?? valueText}
+          unit={view.unit}
+          {rank}
+          count={view.values.length}
+          describedBy={homeId}
+          inputmode={view.kind === "note" ? "text" : "numeric"}
+          ontext={typedText}
+          onrank={pickRank}
         />
       </div>
-
-      {#if view.readout}
-        <span class="readout">{view.readout}</span>
-      {/if}
-    </div>
-  {:else if view.widget === "select"}
-    <!--
-      Section 7's select for a larger enumeration (PDF page 5, `On release`).
-      A real <select>: the platform owns the listbox, the arrows and the
-      typeahead, and the chevron is drawn in the ink by the wrapper, never an
-      image. The row's reset gestures apply to it as to any control.
-    -->
-    <div class="control select-wrap">
-      <select
-        class="select"
-        id={controlId}
+    {:else if view.widget === "select"}
+      <div class="control select-wrap">
+        <select
+          class="select"
+          id={controlId}
+          aria-describedby={homeId}
+          onchange={pickSelected}
+        >
+          {#each view.values as value, at (at)}
+            <option value={at} selected={at === view.index}
+              >{value.label}</option
+            >
+          {/each}
+        </select>
+      </div>
+    {:else}
+      <div
+        class="control options"
+        class:swatches={view.widget === "swatch"}
+        role="radiogroup"
+        aria-labelledby={labelId}
         aria-describedby={homeId}
-        onchange={pickSelected}
-        onkeydown={resetKeys}
       >
         {#each view.values as value, at (at)}
-          <option value={at} selected={at === view.index}>{value.label}</option>
+          <label class="option" class:selected={at === view.index}>
+            <input
+              class="sr-only"
+              type="radio"
+              name="knob-{view.id}"
+              value={at}
+              checked={at === view.index}
+              onchange={() => pick(at)}
+            />
+            {#if view.widget === "swatch"}
+              <span
+                class="swatch"
+                style:background-color={value.swatch}
+                aria-hidden="true"
+              ></span>
+              <span class="sr-only">{value.name ?? value.label}</span>
+            {:else}
+              <span class="word">{value.label}</span>
+            {/if}
+          </label>
         {/each}
-      </select>
-    </div>
-  {:else}
-    <div
-      class="control options"
-      class:swatches={view.widget === "swatch"}
-      role="radiogroup"
-      aria-labelledby={labelId}
-      aria-describedby={homeId}
-    >
-      {#each view.values as value, at (at)}
-        <label
-          class="option"
-          class:pill={view.widget !== "swatch"}
-          class:selected={at === view.index}
-          onpointerenter={(event) => forecastEnter(event, at)}
-          onpointerleave={forecastOff}
-        >
-          <input
-            class="sr-only"
-            type="radio"
-            name="knob-{view.id}"
-            value={at}
-            checked={at === view.index}
-            aria-describedby="knob-{view.id}-forecast-{at}"
-            onchange={() => pick(at)}
-            onkeydown={resetKeys}
-            onfocus={(event) => forecastFocus(event, at)}
-            onblur={forecastOff}
-          />
-          <!--
-            The forecast, in its two forms and never in only one: the signed
-            number for the eye, and the sentence for everything that is not an
-            eye. The span is always in the DOM so aria-describedby always has a
-            target to resolve, and it is empty until this option is the one
-            being forecast.
-          -->
-          <span class="sr-only" id="knob-{view.id}-forecast-{at}"
-            >{forecastAt === positionOf(at)
-              ? (forecastSentence ?? "")
-              : ""}</span
-          >
-          {#if forecastLabel !== undefined && forecastAt === positionOf(at)}
-            <span class="delta" aria-hidden="true">{forecastLabel}</span>
-          {/if}
-          {#if view.widget === "swatch"}
-            <span
-              class="swatch"
-              style:background-color={value.swatch}
-              aria-hidden="true"
-            ></span>
-            <span class="sr-only">{value.name ?? value.label}</span>
-          {:else}
-            <span class="word">{value.label}</span>
-          {/if}
-          {#if at === markerAt}
-            <span
-              class="home"
-              class:home-swatch={view.widget === "swatch"}
-              class:bar={held}
-            ></span>
-          {/if}
-        </label>
-      {/each}
-    </div>
-  {/if}
+      </div>
+    {/if}
 
-  <!--
-    Section 7's per-field reset. Present on every row and disabled while the
-    field is at its default, so a change never reflows the row; named for the
-    field, so a screen reader hears which one. It stops the row's own pointer
-    and double-click gestures for the same reason the lock does.
-  -->
-  <button
-    class="reset"
-    type="button"
-    data-testid="knob-{view.id}-reset"
-    disabled={!changed}
-    aria-label={fieldResetName(view.label)}
-    onclick={onreset}
-    ondblclick={(event) => event.stopPropagation()}
-    onpointerdown={(event) => event.stopPropagation()}
-  >
-    {FIELD_RESET}
-  </button>
+    {#if reset}
+      <button
+        class="box reset"
+        type="button"
+        data-testid="knob-{view.id}-reset"
+        disabled={!changed}
+        aria-label={fieldResetName(view.label)}
+        title={FIELD_RESET}
+        onclick={onreset}
+      >
+        <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <line x1="5" y1="6" x2="15" y2="6" />
+          <line x1="15" y1="6" x2="15" y2="12" />
+          <line x1="15" y1="12" x2="7" y2="12" />
+          <line x1="7" y1="12" x2="10" y2="9" />
+          <line x1="7" y1="12" x2="10" y2="15" />
+        </svg>
+      </button>
+    {/if}
 
-  <!--
-    The lock. It stops the row's pointer and double-click gestures rather than
-    riding them: the row treats a double-click anywhere on it as RESET, and a
-    long press on a coarse pointer the same way, so a visitor holding a knob
-    with two quick taps would otherwise also send it home.
-  -->
-  {#if lock}
-    <button
-      class="lock"
-      type="button"
-      data-testid="knob-{view.id}-hold"
-      aria-pressed={held}
-      onclick={onhold}
-      ondblclick={(event) => event.stopPropagation()}
-      onpointerdown={(event) => event.stopPropagation()}
-    >
-      {held ? KNOB_HELD : KNOB_HOLD}
-    </button>
-  {/if}
+    {#if lock}
+      <button
+        class="box lock"
+        type="button"
+        data-testid="knob-{view.id}-hold"
+        aria-pressed={held}
+        aria-label={held ? KNOB_HELD : KNOB_HOLD}
+        title={held ? KNOB_HELD : KNOB_HOLD}
+        onclick={onhold}
+      >
+        <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <line x1="5" y1="10" x2="15" y2="10" />
+          <line x1="15" y1="10" x2="15" y2="17" />
+          <line x1="15" y1="17" x2="5" y2="17" />
+          <line x1="5" y1="17" x2="5" y2="10" />
+          <line x1="7" y1="10" x2="7" y2="5" />
+          <line x1="7" y1="5" x2="13" y2="5" />
+          <line x1="13" y1="5" x2="13" y2={held ? 10 : 7} />
+        </svg>
+      </button>
+    {/if}
+  </div>
 </div>
 
 <style>
+  /* The root is the container its row queries, so the rack, the picker and the Sandbox need none. */
+  .knob {
+    container-type: inline-size;
+  }
+
   /*
-    Row layout (05-UI-SPEC, Knob row layout): label left, control right, then
-    the per-field reset and the lock, in a 44px box. The 12px is the
-    horizontal label gutter and it is only ever horizontal - no vertical gap
-    in this region is 12px.
-
-    touch-action: pan-y so a horizontal drag adjusts the knob and a vertical one
-    scrolls the page - which, as a side effect, removes double-tap zoom from the
-    row and makes the double-click reset safe on iOS.
-
-    EVERY FLEXIBLE TRACK IS minmax(0, 1fr) AND THAT IS NOT DECORATION. A grid
-    track's automatic minimum size is its content's min-content width, so a
-    swatch or word row would refuse to shrink below the widest line it can lay
-    out and push the whole rack wider than its container. Measured on the phone
-    project the moment the lock's column arrived: knob-rack scrollWidth 267
-    against clientWidth 245, red in tuning-webkit.e2e.ts's never-scrolls-
-    sideways assertion. minmax(0, 1fr) lets the options row wrap, which is what
-    it was always supposed to do.
+    The row: label | control | reset | lock, 44px tall, the label column at most a third. Every
+    flexible track is minmax(0, ...): a track's automatic minimum is its content's min-content
+    width, which is how a rack once scrolled sideways on a phone (tuning-webkit.e2e.ts measures it).
   */
   .row {
+    position: relative;
     display: grid;
-    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) auto auto;
     grid-template-areas: "label control reset lock";
-    column-gap: 12px;
-    block-size: 44px;
+    column-gap: 8px;
     align-items: center;
-    touch-action: pan-y;
+    min-block-size: 44px;
+    padding-inline-start: 8px;
   }
 
-  /*
-    Stacked: a 14px line box for the label (spacing exception 4), a 4px gap and
-    the control full width in its 44px box. 14 + 4 + 44 = 62.
-
-    THE TWO BUTTONS ARE WHY THIS IS STILL A GRID rather than the `display:
-    block` it was. The stacked row is two rows tall and the reset and the lock
-    span both of them at the inline end, so the label and the control keep the
-    full width they had less the two columns.
-  */
-  .row.stacked {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      "label reset lock"
-      "control reset lock";
-    block-size: 62px;
+  /* Section 7's marker: a 2px rule in the action colour down the row's start while the field is off its default. */
+  .row.changed::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 2px;
+    background: var(--color-action);
   }
 
-  /*
-    Under 220px of container the control column would be 92px against a 120px
-    floor, so every row stacks. The container itself is established by
-    KnobRack.svelte; the query resolves against the nearest ancestor container
-    whichever stylesheet declares it, and it lives here because it is this
-    component's own geometry that changes.
-  */
-  @container (width < 220px) {
+  /* Under 364px the label takes a line of its own and the control the row below it, the two boxes at its end. */
+  @container (width < 364px) {
     .row {
       grid-template-columns: minmax(0, 1fr) auto auto;
       grid-template-areas:
-        "label reset lock"
+        "label label label"
         "control reset lock";
-      block-size: 62px;
+      row-gap: 4px;
+    }
+
+    .row .control {
+      justify-content: flex-start;
     }
   }
 
-  /* Micro (title): 12px / 600 / 0.01em, sentence case, room for the marker. */
+  /* The eyebrow face, quiet; ink while the row is hovered or holds focus. */
   .label {
-    position: relative;
     grid-area: label;
     display: block;
-    padding-inline-start: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--color-ink);
+    min-inline-size: 0;
+    color: var(--color-ink-quiet);
     overflow-wrap: anywhere;
+    transition: color 140ms ease-out;
   }
 
-  .row.stacked .label {
-    line-height: 14px;
-    margin-block-end: 4px;
-  }
-
-  /*
-    The changed-field marker: a 6px square in the ink, at the label's start,
-    vertically centred on its first line. Ink and never accent - a change is
-    information, and the reserved list is held at eight by tune-ui.spec.ts.
-    No radius (D-01).
-  */
-  .changed {
-    position: absolute;
-    inset-inline-start: 0;
-    inset-block-start: 0.35em;
-    inline-size: 6px;
-    block-size: 6px;
-    background: var(--color-ink);
+  .row:hover .label,
+  .row:focus-within .label {
+    color: var(--color-ink);
   }
 
   .control {
     grid-area: control;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-inline-size: 0;
+  }
+
+  /*
+    The segmented control: real radios in labels under a radiogroup, drawn as joined boxes - each a
+    boundary hairline, the shared edges collapsed - the chosen one outlined and worded in the
+    action colour (the selected value of a knob, reserved-list entry 8), never a fill alone.
+  */
+  .options {
+    flex-wrap: wrap;
     -webkit-touch-callout: none;
     user-select: none;
   }
 
-  /* A rail's control column: the painted rail, then the optional integer. */
-  .control:not(.options):not(.select-wrap) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: 12px;
-    align-items: center;
-  }
-
-  /*
-    The rail is the positioning context for the invisible input, and it carries
-    the focus ring on behalf of it.
-  */
-  .rail {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 4px;
-    block-size: 44px;
-  }
-
-  .rail.track {
-    display: block;
-  }
-
-  .rail:has(:focus-visible) {
-    outline: 2px solid var(--color-action);
-    outline-offset: 4px;
-    border-radius: inherit;
-  }
-
-  /*
-    The real control. Invisible, but it is the thing that has the label, the
-    value, the keyboard and the pointer - the painted dots below are decoration.
-  */
-  .range {
-    position: absolute;
-    inset: 0;
-    inline-size: 100%;
-    block-size: 44px;
-    margin: 0;
-    opacity: 0;
-    cursor: pointer;
-  }
-
-  /* One 8px dot per option, at least 4px apart (05-UI-SPEC, Three widgets). */
-  .slot {
-    position: relative;
-    display: grid;
-    place-items: center;
-    inline-size: 8px;
-    block-size: 44px;
-  }
-
-  /* A true circle on an 8x8 box (D-15). */
-  .dot {
-    inline-size: 8px;
-    block-size: 8px;
-    border-radius: 50%;
-    background: var(--color-boundary);
-    transition: background-color 140ms ease-out;
-  }
-
-  .dot.selected {
-    background: var(--color-action);
-    transition:
-      background-color 140ms ease-out,
-      transform 140ms ease-out;
-  }
-
-  /*
-    FINDING, recorded in 05-08-SUMMARY.md: the spec's hover target for an
-    unselected dot is "--color-action at 40% opacity", which composites to
-    the rest state's own token. The declaration is shipped as the contract
-    words it rather than inventing a colour outside the ladder to make it
-    visible.
-  */
-  .rail:hover .dot:not(.selected) {
-    background: var(--color-action);
-    opacity: 0.4;
-  }
-
-  /* 1.25x on the selected dot or thumb while a pointer is down. */
-  .rail:active .dot.selected,
-  .rail:active .thumb {
-    transform: scale(1.25);
-  }
-
-  /* n >= 9: a 4px track filled to the index, with a 12px thumb. Square ends (D-01). */
-  .track-line,
-  .track-fill {
-    position: absolute;
-    inset-block-start: 20px;
-    inset-inline-start: 0;
-    block-size: 4px;
-  }
-
-  .track-line {
-    inline-size: 100%;
-    background: var(--color-divider);
-  }
-
-  .track-fill {
-    background: var(--color-action);
-    transition: inline-size 120ms ease-out;
-  }
-
-  /* A true circle on a 12x12 box (D-15): the PDF's round lime thumb. */
-  .thumb {
-    position: absolute;
-    inset-block-start: 16px;
-    inline-size: 12px;
-    block-size: 12px;
-    border-radius: 50%;
-    background: var(--color-action);
-    transition: inset-inline-start 120ms ease-out;
-  }
-
-  /*
-    Where home is: a 2px --color-divider dot, 4px below the option at the
-    default index. Decorative at 1.58:1 because its meaning is carried by
-    Reset settings, a labelled control on the same screen. A true circle on a
-    2x2 box (D-15).
-
-    The offsets are all "4px below the painted thing", inside a 44px box whose
-    centre is 22px:
-      dot rail   8px dot  -> bottom 26 -> 30
-      detent    12px thumb -> bottom 28 -> 32
-      swatch    28px square -> bottom 36 -> 40
-      word      14px line box -> bottom 29 -> 33
-  */
-  .home {
-    position: absolute;
-    inline-size: 2px;
-    block-size: 2px;
-    border-radius: 50%;
-    background: var(--color-divider);
-  }
-
-  .home-dot {
-    inset-block-start: 30px;
-    inset-inline-start: 3px;
-  }
-
-  .home-track {
-    inset-block-start: 32px;
-  }
-
-  /*
-    HELD: the same 2px marker, moved to the SELECTED option and widened into a
-    bar spanning it, in --color-boundary rather than --color-divider. A bar is
-    not a circle, so it is square-cornered (D-01, D-10).
-
-    This is the lock's second channel and it is deliberately not a colour from
-    the reserved list: --color-boundary is the structural rung at 3.31:1, one step
-    up from the soft one the free marker uses, so the change reads as shape
-    plus weight rather than as "selected" (10-UI-SPEC 7.2 keeps the accent list
-    at eight, and the accent census in tune-ui.spec.ts is what holds it there).
-
-    The three widths are the three things a marker can span: the 8px dot slot,
-    the 12px detent thumb, and the whole of a word or swatch option.
-  */
-  .home.bar {
-    border-radius: 0;
-    background: var(--color-boundary);
-  }
-
-  .rail .home.bar {
-    inline-size: 8px;
-    inset-inline-start: 0;
-  }
-
-  .rail.track .home.bar {
-    inline-size: 12px;
-  }
-
-  /*
-    `.control.options` rather than `.options`, and the extra class is
-    load-bearing: `.options:not(.swatches) .home` further down sets an
-    inset-inline-start of calc(50% - 1px) at the same specificity and later in
-    the file, so a bar written with one class would be centred on the option
-    instead of spanning it.
-  */
-  .control.options .home.bar {
-    inline-size: 100%;
-    inset-inline-start: 0;
-  }
-
-  /* Word rows and swatch rows wrap; the row height is auto with a 44px floor. */
-  .options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-    min-block-size: 44px;
-  }
-
-  /*
-    THE PILL IS ON THE WORD ROW AND NOT ON THE SWATCH ROW (10-UI-SPEC 19.1b,
-    D-15 reference C). src/app.css's .pill carries the border, the fill and the
-    24px inline padding - a RECTANGLE since 13-03 under D-10 - applied by the
-    class:pill directive in the markup above, which is conditional for a
-    reason: a swatch option is a colour under glass rather than a word, it has
-    carried zero inline padding since Phase 5 so the swatch fills the box, and
-    putting a 1px --color-boundary outline around a colour sample would put a
-    second edge on a thing whose whole job is to show one.
-
-    The 44px floor stays on both axes here, for both widgets, because it is the
-    control's rather than the shape's.
-  */
   .option {
     position: relative;
     display: grid;
     place-items: center;
+    box-sizing: border-box;
     min-inline-size: 44px;
     min-block-size: 44px;
+    padding-inline: 12px;
+    margin-inline-start: -1px;
+    border: 1px solid var(--color-boundary);
     cursor: pointer;
-    transition: color 140ms ease-out;
+    transition: border-color 140ms ease-out;
   }
 
-  .options.swatches .option {
-    padding-inline: 0;
+  .option:first-child {
+    margin-inline-start: 0;
   }
 
-  /*
-    The radio itself is visually hidden, so the site's ring is drawn on the
-    option - the same reason .rail carries the range input's. No control in
-    this component is focusable without a visible ring.
-  */
+  .option:hover {
+    border-color: var(--color-ink-quiet);
+  }
+
+  .option.selected {
+    z-index: 1;
+    border-color: var(--color-action);
+  }
+
+  /* The radio is visually hidden, so the site's ring is drawn on the option. */
   .option:has(:focus-visible) {
+    z-index: 1;
     outline: 2px solid var(--color-action);
-    outline-offset: 4px;
+    outline-offset: 2px;
   }
 
-  /* Micro (title). Selected in accent; everything else quiet. */
   .word {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
@@ -920,26 +374,40 @@
     color: var(--color-action);
   }
 
-  /* The pressed state on a token, never a literal tint (13-03's eleven, D-16). */
-  .option:active {
-    background: var(--color-raised);
+  /* The picker's palette row: the colour under glass, no padding, no shared edge. */
+  .options.swatches .option {
+    padding-inline: 0;
+    margin-inline-start: 0;
+    border-color: transparent;
   }
 
-  /*
-    THE SELECT (section 7, 13-09). A rectangle in the boundary rung with the
-    ink's chevron drawn by the wrapper's ::after - BrowseToolbar.svelte's
-    select, verbatim in shape - at the field role's 15px, 44px tall, filling
-    the control column. appearance: none and a zero radius so the user agent's
-    rounding never reaches e2e/radius.e2e.ts.
-  */
+  /* The swatch is the stored RGB444 value, a 1:1 preview of the light (A-09's carve-out). Square (D-01). */
+  .swatch {
+    inline-size: 28px;
+    block-size: 28px;
+    border: 1px solid var(--color-boundary);
+    transition: border-color 140ms ease-out;
+  }
+
+  .option:hover .swatch {
+    border-color: var(--color-action);
+  }
+
+  .option.selected .swatch {
+    outline: 2px solid var(--color-action);
+    outline-offset: 2px;
+  }
+
+  /* The select: a boundary hairline, the field's 15px, 44px tall, appearance none so no engine rounds it. */
   .select-wrap {
     position: relative;
+    inline-size: 100%;
   }
 
   .select-wrap::after {
     content: "";
     position: absolute;
-    inset-inline-end: 18px;
+    inset-inline-end: 16px;
     inset-block-start: 50%;
     inline-size: 8px;
     block-size: 8px;
@@ -954,10 +422,10 @@
     box-sizing: border-box;
     inline-size: 100%;
     min-block-size: 44px;
-    padding-inline: 12px 40px;
+    padding-inline: 12px 36px;
     border: 1px solid var(--color-boundary);
     border-radius: 0;
-    background: transparent;
+    background: var(--color-workspace);
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.45;
@@ -975,168 +443,51 @@
   }
 
   /*
-    THE FORECAST DELTA (TUNE-02, T2). What this option would cost, in
-    characters, before it is chosen.
-
-    THE FIFTH --font-mono USE ON THE SITE, and it qualifies for exactly the
-    reason W-03 introduced the stack in Phase 4: it is A NUMBER THAT CHANGES AS
-    A POINTER MOVES, and it must not jitter horizontally. Phase 5 confined the
-    stack to four - the two meter columns, the copied link, the device slot's
-    machine text - and every one of them is the same case. tabular-nums for the
-    same reason: +9 and +10 must not shift the option under the pointer.
-
-    --color-ink, not accent: the reserved list stays at eight, and a forecast
-    is information rather than a selection. There is no --color-error-ink branch
-    either; an option that would cross 908 is disabled and cannot be hovered,
-    so X-01 stays at three.
-
-    ABSOLUTE, so it costs no layout. A delta that took part in the flex row
-    would widen the option it appears in and reflow the whole rack under the
-    pointer.
+    The two boxes at the row's end: the tool rail's 44px square with a straight-line glyph. The
+    reset's arrow returns; the lock's shackle seats when held. Quiet ink, full ink on hover and
+    when held (the lock's second channel beside its word); the reset one rung down at the default.
   */
-  .delta {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 50%;
-    transform: translateX(-50%);
-    display: none;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 14px;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-ink);
-    pointer-events: none;
+  .box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    inline-size: 44px;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-ink-quiet);
+    cursor: pointer;
+    transition: color 140ms ease-out;
   }
 
-  /*
-    THE GATE, IN CSS, AND IT IS THE SECOND HALF OF THE ONE IN THE SCRIPT.
-    The pointer half paints only where hovering is a real capability; the
-    keyboard half paints everywhere, because :focus-visible is how a visitor
-    with no pointer at all reaches an option. On a touch screen neither fires
-    for a tap, which is the whole point: never on touch.
-  */
-  .option:has(:focus-visible) .delta {
-    display: block;
-  }
-
-  @media (hover: hover) {
-    .delta {
-      display: block;
-    }
-  }
-
-  /*
-    The swatch exemption, at its minimum: the square is real firmware RGB
-    because it is a 1:1 preview of the light the LEDs will emit. Everything
-    around it - the hairline, the ring, the label - stays on the ladder, and no
-    gradient, tint, glow or filter of any kind touches it. Square (D-01).
-  */
-  .swatch {
-    inline-size: 28px;
-    block-size: 28px;
-    border: 1px solid var(--color-boundary);
-    transition: border-color 140ms ease-out;
-  }
-
-  .option:hover .swatch {
-    border-color: var(--color-action);
-  }
-
-  .option.selected .swatch {
-    outline: 2px solid var(--color-action);
-    outline-offset: 2px;
-  }
-
-  .option.selected:active .swatch {
-    outline-width: 3px;
-  }
-
-  .home-swatch {
-    inset-block-start: 40px;
-    inset-inline-start: calc(50% - 1px);
-  }
-
-  .options:not(.swatches) .home {
-    inset-block-start: 33px;
-    inset-inline-start: calc(50% - 1px);
-  }
-
-  /* The one integer readout, tabular so it cannot jitter as it counts. Read-only (D-14 Q5). */
-  .readout {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 14px;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-ink);
-    text-align: end;
-  }
-
-  /*
-    The per-field reset and the lock (section 7; 10-UI-SPEC 11.5). Sentence
-    case at 13px / 600 with the 0.01em tracking a sentence-case control wears
-    (13-18's rule; 13-19 took Phase 10's uppercase transform and 0.18em off
-    these two, because `Reset`, `Lock` and `Locked` are verbs on buttons
-    under D-05 and the CSS was re-casing them to RESET / LOCK / LOCKED). Quiet
-    when free and full ink when held or hovered - the colour is the lock's
-    THIRD channel, after the word and the marker, and it is two rungs of the
-    ink ladder rather than any part of the accent list.
-
-    44px on BOTH axes, which is the touch floor stated per control rather than
-    per page: a short word at 13px is nowhere near 44px wide on its own.
-    No radius (D-01).
-  */
   .reset {
     grid-area: reset;
-    appearance: none;
-    min-inline-size: 44px;
-    min-block-size: 44px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--color-ink-quiet);
-    cursor: pointer;
-    transition: color 140ms ease-out;
   }
 
-  /*
-    The same rule, spelled twice on purpose: instrument.spec.ts and
-    tune-ui.spec.ts read .lock by its own selector - plus ONE declaration the
-    reset does not carry. The lock's word changes with its state (Lock /
-    Locked), and the two words are not the same width as Phase 10's HOLD /
-    HELD were; a fixed inline-size wider than the longer word is what keeps
-    the toggle from moving the column it ends (copy.ts's header, the retired
-    4 / 4 rule; copy.spec.ts test 5 reads this rule).
-  */
+  /* The Quiet tier: borderless (instrument.spec.ts scan 2); the held state is the seated shackle and the full ink. */
   .lock {
     grid-area: lock;
-    appearance: none;
-    inline-size: 52px;
     min-inline-size: 44px;
     min-block-size: 44px;
     padding: 0;
     border: 0;
     background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--color-ink-quiet);
-    cursor: pointer;
-    transition: color 140ms ease-out;
   }
 
+  .glyph {
+    inline-size: 20px;
+    block-size: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .box:hover:not(:disabled),
   .lock[aria-pressed="true"] {
-    color: var(--color-ink);
-  }
-
-  .lock:hover,
-  .reset:hover:not(:disabled) {
     color: var(--color-ink);
   }
 
@@ -1146,26 +497,13 @@
     cursor: default;
   }
 
-  /*
-    Reduced motion: no scale on drag, no transition on hover - colour change
-    only, which is Phase 4's "hover lifts -> colour change only".
-  */
   @media (prefers-reduced-motion: reduce) {
-    .dot,
-    .dot.selected,
-    .thumb,
-    .track-fill,
+    .label,
+    .option,
     .word,
     .swatch,
-    .option,
-    .reset,
-    .lock {
+    .box {
       transition: none;
-    }
-
-    .rail:active .dot.selected,
-    .rail:active .thumb {
-      transform: none;
     }
   }
 </style>

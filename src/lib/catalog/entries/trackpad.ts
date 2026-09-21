@@ -104,7 +104,7 @@ export const TRACKPAD: CatalogEntry = {
     },
     {
       id: "reach",
-      label: "Flash width",
+      label: "Flash width (cells)",
       kind: "size",
       token: "@N",
       // The number of cells lit along the edge, centred on the finger. The

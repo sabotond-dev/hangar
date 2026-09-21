@@ -97,7 +97,7 @@ export const CULL: CatalogEntry = {
     },
     {
       id: "delay",
-      label: "Key delay",
+      label: "Key delay (ms)",
       kind: "feel",
       token: "@DELAY",
       // Firmware's own inter-step delay in milliseconds, 0..255; 20 is the widest anything asks.

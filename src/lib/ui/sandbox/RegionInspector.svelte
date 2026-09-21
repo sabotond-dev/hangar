@@ -727,6 +727,7 @@
         }}
         knobs={colourKnobs}
         held={noHeld}
+        lock={false}
         onchange={(_id, position) => {
           if (!play) oncolour(levelsOf(position));
         }}

@@ -1,14 +1,13 @@
 <!--
-  The tuning region: the workspace's inspector - the knobs, the MIDI fields,
-  the colour block, Randomize and its one-value Undo, and ONE aria-live region
-  that never fires on a value change (device-ui.spec.ts:681 counts the word here).
-  Reflow width and inset are layout.ts's and written in no component (tune-ui.spec.ts).
-  THERE IS NO ADVANCED SECTION: section 7's boundary says "Use actual parameter names,
-  limits, units, defaults, and dependencies from the configuration schema"; the
-  entries declare none of the advanced properties, so no disclosure is drawn.
-  UNDO RANDOMIZE IS ONE VALUE AND ONE CLICK, and IT IS EXPLICITLY NOT GENERAL UNDO:
-  Not a history, not a stack, not a tree - the Sandbox's draft history is
-  src/lib/sandbox/history.ts (13-16), a different thing with a different owner.
+  The tuning region: the workspace's inspector - the knob rows in five sections by what they change
+  (Look, Feel, Sound, MIDI, Sync: sections.ts decides, in that fixed order; an empty one is not
+  drawn, Look always is for the brightness field), Randomize and its one-value Undo after the last
+  section, and ONE aria-live region that never fires on a value change (device-ui.spec.ts:681
+  counts the word here). THERE IS NO ADVANCED SECTION: section 7's boundary says
+  "Use actual parameter names, limits, units, defaults, and dependencies from the configuration
+  schema"; the entries declare none, so no disclosure is drawn. UNDO RANDOMIZE IS ONE VALUE AND
+  ONE CLICK, and IT IS EXPLICITLY NOT GENERAL UNDO: Not a history, not a stack, not a tree - the
+  Sandbox's draft history is src/lib/sandbox/history.ts (13-16), a different thing.
   Decided at 13-09 / 13-10 / 13-16; see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -37,11 +36,14 @@
     RANDOMIZE,
     RANDOMIZE_GLYPH,
     RESET_SETTINGS,
-    SECTION_APPEARANCE,
-    SECTION_BEHAVIOR,
+    SECTION_FEEL,
+    SECTION_LOOK,
     SECTION_MIDI,
+    SECTION_SOUND,
+    SECTION_SYNC,
     UNDO_RANDOMIZE,
   } from "$lib/tune/inspector-copy";
+  import { SECTION_ORDER, groupBySection } from "$lib/tune/sections";
   import { isMidiDestination } from "$lib/tune/surprise";
   import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
   import BrightnessField from "./BrightnessField.svelte";
@@ -49,8 +51,7 @@
   import KnobRack from "./KnobRack.svelte";
   import MidiField from "./MidiField.svelte";
   import StampNotice from "./StampNotice.svelte";
-  import Inspector from "./shell/Inspector.svelte";
-  import { INSPECTOR_INSET, NUMERIC_GRID_REFLOW } from "./shell/layout";
+  import Inspector, { type InspectorSection } from "./shell/Inspector.svelte";
 
   /**
    * $lib/share/stamp's `Landing["kind"]`, restated: that module reaches the
@@ -160,8 +161,6 @@
   /** untrack: the landing was decided by the route before the panel opened; a later change must not put the notice back after a knob has moved. */
   let landed = $state(untrack(() => landing.kind !== "none"));
   let announcement = $state("");
-  /** D-21: the MIDI grid's column count, answered by the observer below. */
-  let gridColumns = $state(1);
 
   // Plain locals outside the reactive graph: an engine, a timer handle or an observer never goes into a rune.
   let tuner: Tuner | undefined;
@@ -173,9 +172,6 @@
   let announcedOver = false;
   /** Which event was over when it did, so the way back can name the same one. */
   let announcedEvent: EventWord = "Setup";
-  /** The grid's box, observed for D-21. */
-  let gridBox: HTMLDivElement | undefined = $state(undefined);
-  let gridObserver: ResizeObserver | undefined;
 
   // Both read the view through a PARAMETER: here TypeScript has seen `view` assigned only
   // undefined, and a parameter is not narrowed by the outer control flow.
@@ -197,23 +193,11 @@
     current?.previewHeld ?? [];
   const previewHeld = $derived(previewHeldOf(view));
   /**
-   * Section 7's three sections. The MIDI partition is surprise.ts's `isMidiDestination` -
-   * ONE predicate over id and label, which also bounds the roll - so the section shows
-   * exactly what Randomize preserves.
+   * The five sections (change 16): sections.ts's rule over kind and words, MIDI through
+   * surprise.ts's ONE predicate, which also bounds the roll - so the MIDI section shows exactly
+   * what Randomize preserves.
    */
-  const colourKnobs = $derived(
-    knobViews.filter((knob) => knob.widget === "colour"),
-  );
-  const midiKnobs = $derived(
-    knobViews.filter(
-      (knob) => knob.widget !== "colour" && isMidiDestination(knob),
-    ),
-  );
-  const behaviorKnobs = $derived(
-    knobViews.filter(
-      (knob) => knob.widget !== "colour" && !isMidiDestination(knob),
-    ),
-  );
+  const grouped = $derived(groupBySection(knobViews));
   /** The knobs a roll may move: section 7's scope, colour included. */
   const rollableKnobs = $derived(
     knobViews.filter((knob) => !isMidiDestination(knob)),
@@ -261,32 +245,6 @@
   function waiting(state: string): boolean {
     return state === "measuring" || state === "stale";
   }
-
-  // ---------------------------------------------------------------------------
-  // D-21: the grid's columns, from layout.ts's number and the grid's own box.
-
-  /** Two columns when the inspector (the box plus INSPECTOR_INSET twice) is at least NUMERIC_GRID_REFLOW wide - both numbers layout.ts's. */
-  function columnsFor(boxWidth: number): number {
-    return boxWidth + INSPECTOR_INSET * 2 >= NUMERIC_GRID_REFLOW ? 2 : 1;
-  }
-
-  $effect(() => {
-    const box = gridBox;
-    gridObserver?.disconnect();
-    gridObserver = undefined;
-    if (box === undefined || typeof ResizeObserver === "undefined") return;
-    gridColumns = columnsFor(box.getBoundingClientRect().width);
-    gridObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        gridColumns = columnsFor(entry.contentRect.width);
-      }
-    });
-    gridObserver.observe(box);
-    return () => {
-      gridObserver?.disconnect();
-      gridObserver = undefined;
-    };
-  });
 
   // ---------------------------------------------------------------------------
   // The one voice.
@@ -517,116 +475,113 @@
     landed = false;
     tuner.restore(vector);
   }
+
+  /** The sections drawn, in SECTION_ORDER: Look always (the brightness field), the rest when they hold a knob; Feel also when the card has no knob at all, for the empty line. */
+  const sections = $derived.by((): InspectorSection[] => {
+    const out: InspectorSection[] = [];
+    for (const name of SECTION_ORDER) {
+      if (name === "look") out.push({ title: SECTION_LOOK, content: look });
+      else if (name === "feel" && (grouped.feel.length > 0 || !hasKnobs))
+        out.push({ title: SECTION_FEEL, content: feel });
+      else if (name === "sound" && grouped.sound.length > 0)
+        out.push({ title: SECTION_SOUND, content: sound });
+      else if (name === "midi" && grouped.midi.length > 0)
+        out.push({ title: SECTION_MIDI, content: midi });
+      else if (name === "sync" && grouped.sync.length > 0)
+        out.push({ title: SECTION_SYNC, content: sync });
+    }
+    return out;
+  });
 </script>
 
-<!-- Behavior: the schema's fields, then the PDF's two buttons. -->
-{#snippet behavior()}
+<!-- The stamp's landing, before the first section (the inspector's lead). -->
+{#snippet lead()}
   {#if landed}
     <StampNotice kind={landing.kind} {name} />
   {/if}
-
-  <KnobRack
-    entry={{ id: entryId, name }}
-    knobs={behaviorKnobs}
-    held={heldKnobs}
-    lock={rollable}
-    budget={colourBudget}
-    empty={!hasKnobs}
-    onchange={changeKnob}
-    onreset={resetKnob}
-    onhold={holdKnob}
-  />
-
-  {#if hasKnobs}
-    <div class="actions">
-      {#if rollable}
-        <button
-          class="action"
-          type="button"
-          data-testid="surprise-me"
-          disabled={rolling || allHeld}
-          aria-busy={rolling}
-          aria-describedby={allHeld ? heldReasonId : undefined}
-          onclick={surprise}
-        >
-          <span class="glyph" aria-hidden="true">{RANDOMIZE_GLYPH}</span>
-          {RANDOMIZE}
-        </button>
-      {/if}
-      <button
-        class="action"
-        type="button"
-        data-testid="reset-all"
-        disabled={atDefaults}
-        onclick={resetAll}
-      >
-        {RESET_SETTINGS}
-      </button>
-      <!-- Section 7's "Provide Undo randomize": disabled until a roll, and again once used or a knob moves by hand. A card that declares rollable false (change 7) has neither this nor Randomize. -->
-      {#if rollable}
-        <button
-          class="action"
-          type="button"
-          data-testid="undo-randomize"
-          disabled={undo === undefined || rolling}
-          onclick={undoRandomize}
-        >
-          {UNDO_RANDOMIZE}
-        </button>
-      {/if}
-    </div>
-    <!-- DEGR-02's reason rule: this control is disabled by a state spread across every row's toggle. -->
-    {#if allHeld && rollable}
-      <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
-        {SURPRISE_ALL_HELD}
-      </p>
-    {/if}
-    <!-- Change 8: the preview is holding a knob at its previewIndex (ORBIT's Sync at External - no MIDI clock reaches a browser); the wire carries the choice, and this line says so. -->
-    {#if previewHeld.length > 0}
-      <p class="helper type-helper" data-testid="preview-held">
-        {PREVIEW_INTERNAL_CLOCK}
-      </p>
-    {/if}
-  {/if}
 {/snippet}
 
-<!-- Appearance: the colour knobs, through the one picker block, and the brightness field beneath (change 5) - every card has the field, colour knobs or not. -->
-{#snippet appearance()}
-  {#if colourKnobs.length > 0}
+<!-- Look: the colour knobs through the one swatch block, then the brightness field (change 5) - every card has the field, colour knobs or not. -->
+{#snippet look()}
+  <div class="rows">
+    {#if grouped.look.length > 0}
+      <KnobRack
+        entry={{ id: entryId, name }}
+        knobs={grouped.look}
+        held={heldKnobs}
+        lock={rollable}
+        budget={colourBudget}
+        {onresult}
+        onchange={changeKnob}
+        onreset={resetKnob}
+        onhold={holdKnob}
+      />
+    {/if}
+    <BrightnessField
+      value={brightnessNow}
+      onchange={changeBrightness}
+      onreset={resetBrightness}
+    />
+  </div>
+{/snippet}
+
+{#snippet feel()}
+  <div class="rows">
     <KnobRack
       entry={{ id: entryId, name }}
-      knobs={colourKnobs}
+      knobs={grouped.feel}
       held={heldKnobs}
       lock={rollable}
-      budget={colourBudget}
-      empty={false}
-      {onresult}
+      empty={!hasKnobs}
       onchange={changeKnob}
       onreset={resetKnob}
       onhold={holdKnob}
     />
-  {/if}
-  <BrightnessField
-    value={brightnessNow}
-    onchange={changeBrightness}
-    onreset={resetBrightness}
-  />
+  </div>
 {/snippet}
 
-<!-- MIDI output: page 5's 2 x 2 field grid (D-21), one typed field per MIDI knob (13.1-07, D-09), section 16's helper line. -->
+{#snippet sound()}
+  <div class="rows">
+    <KnobRack
+      entry={{ id: entryId, name }}
+      knobs={grouped.sound}
+      held={heldKnobs}
+      lock={rollable}
+      onchange={changeKnob}
+      onreset={resetKnob}
+      onhold={holdKnob}
+    />
+  </div>
+{/snippet}
+
+<!-- MIDI: one typed field per MIDI knob (13.1-07, D-09), section 16's helper for a screen reader. -->
 {#snippet midi()}
-  <div
-    class="grid-box"
-    bind:this={gridBox}
-    data-testid="midi-grid"
-    data-columns={gridColumns}
-    style:--columns={gridColumns}
-  >
-    {#each midiKnobs as knob (knob.id)}
+  <div class="rows" data-testid="midi-grid">
+    {#each grouped.midi as knob (knob.id)}
       <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
     {/each}
   </div>
-  <p class="helper type-helper">{MIDI_HELPER}</p>
+  <p class="sr-only">{MIDI_HELPER}</p>
+{/snippet}
+
+<!-- Sync: the clock knobs; change 8's line while the preview holds one at its previewIndex (ORBIT's Sync at External - no MIDI clock reaches a browser). -->
+{#snippet sync()}
+  <div class="rows">
+    <KnobRack
+      entry={{ id: entryId, name }}
+      knobs={grouped.sync}
+      held={heldKnobs}
+      lock={rollable}
+      onchange={changeKnob}
+      onreset={resetKnob}
+      onhold={holdKnob}
+    />
+  </div>
+  {#if previewHeld.length > 0}
+    <p class="helper type-helper" data-testid="preview-held">
+      {PREVIEW_INTERNAL_CLOCK}
+    </p>
+  {/if}
 {/snippet}
 
 {#snippet headline()}
@@ -648,13 +603,57 @@
     eyebrow={INSPECTOR_EYEBROW}
     {headline}
     lede={INSPECTOR_LEDE}
-    sections={[
-      { title: SECTION_BEHAVIOR, content: behavior },
-      { title: SECTION_APPEARANCE, content: appearance },
-      ...(midiKnobs.length > 0 ? [{ title: SECTION_MIDI, content: midi }] : []),
-    ]}
+    {lead}
+    {sections}
     {actions}
   >
+    <!-- The PDF's buttons, after the last section: Randomize rolls every section but MIDI. A card that declares rollable false (change 7) has neither Randomize nor Undo. -->
+    {#if hasKnobs}
+      <div class="actions">
+        {#if rollable}
+          <button
+            class="action"
+            type="button"
+            data-testid="surprise-me"
+            disabled={rolling || allHeld}
+            aria-busy={rolling}
+            aria-describedby={allHeld ? heldReasonId : undefined}
+            onclick={surprise}
+          >
+            <span class="glyph" aria-hidden="true">{RANDOMIZE_GLYPH}</span>
+            {RANDOMIZE}
+          </button>
+        {/if}
+        <button
+          class="action"
+          type="button"
+          data-testid="reset-all"
+          disabled={atDefaults}
+          onclick={resetAll}
+        >
+          {RESET_SETTINGS}
+        </button>
+        <!-- Section 7's "Provide Undo randomize": disabled until a roll, and again once used or a knob moves by hand. -->
+        {#if rollable}
+          <button
+            class="action"
+            type="button"
+            data-testid="undo-randomize"
+            disabled={undo === undefined || rolling}
+            onclick={undoRandomize}
+          >
+            {UNDO_RANDOMIZE}
+          </button>
+        {/if}
+      </div>
+      <!-- DEGR-02's reason rule: this control is disabled by a state spread across every row's lock. -->
+      {#if allHeld && rollable}
+        <p class="reason" id={heldReasonId} data-testid="surprise-held-reason">
+          {SURPRISE_ALL_HELD}
+        </p>
+      {/if}
+    {/if}
+
     <!-- The fourth group is not painted, by the user's word (13.1-07, D-10): no caption, no meter, no forecast; TUNE-05's line alone. -->
     <BudgetMessage {ladder} {over} />
 
@@ -675,12 +674,23 @@
     display: contents;
   }
 
-  /* Page 5's two outlined buttons, side by side; wrap, never scroll (D-11). */
+  /* A section's rows: the rack, the fields; each row draws its own hairline and queries its own root. */
+  .rows {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+  }
+
+  .rows > :global(* + *) {
+    border-block-start: 1px solid var(--color-divider);
+  }
+
+  /* Page 5's outlined buttons, side by side after the last section; wrap, never scroll (D-11). */
   .actions {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 16px;
-    margin-block-start: 16px;
+    margin-block-start: 20px;
   }
 
   /* Section 10.3's Secondary at 44px: a 1px outline, no fill; square (D-01). */
@@ -723,15 +733,6 @@
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-ink-quiet);
-  }
-
-  /* The grid's box, observed for D-21: --columns is the region's answer, two at or above NUMERIC_GRID_REFLOW, one below; no number written here. */
-  .grid-box {
-    display: grid;
-    grid-template-columns: repeat(var(--columns, 1), minmax(0, 1fr));
-    column-gap: 22px;
-    row-gap: 12px;
-    inline-size: 100%;
   }
 
   .helper {

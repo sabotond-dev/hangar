@@ -26,8 +26,8 @@ const WIRE_WORDS: readonly string[] = [
   "send",
 ];
 
-/** The whole words of an id or a label: camelCase split, then non-letters. */
-function wordsOf(text: string): string[] {
+/** The whole words of an id or a label: camelCase split, then non-letters. sections.ts reads it too (change 16). */
+export function wordsOf(text: string): string[] {
   return text
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .toLowerCase()
@@ -45,6 +45,20 @@ export function isMidiDestination(
 ): boolean {
   const words = [...wordsOf(knob.id), ...wordsOf(knob.label)];
   return words.some((word) => WIRE_WORDS.includes(word));
+}
+
+/**
+ * A MIDI destination whose value is a CONTROLLER NUMBER, whatever kind the descriptor carries
+ * (change 16): DIAL's, FOUR FADERS' and JOYSTICK's `Send` is the vendored preset's `note` kind over
+ * CC numbers 16..80, and a note name for CC 16 would be the renumbering X-08 forbids. A destination
+ * that names a note in its id or label (ORBIT's `Ring 1 MIDI note`) is a note.
+ */
+export function isControllerNumber(
+  knob: Pick<KnobDescriptor, "id" | "label">,
+): boolean {
+  if (!isMidiDestination(knob)) return false;
+  const words = [...wordsOf(knob.id), ...wordsOf(knob.label)];
+  return !words.includes("note");
 }
 
 /** The knobs a roll may move: every knob that does not address the wire. */

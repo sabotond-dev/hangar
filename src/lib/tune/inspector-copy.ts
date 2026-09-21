@@ -25,14 +25,36 @@ export const INSPECTOR_HEADLINE: readonly [string, string] = [
 /** The sentence beneath it. PDF page 5, verbatim. */
 export const INSPECTOR_LEDE = "Tune the gesture, then try it on your surface.";
 
-/** The three section titles. PDF page 5 and section 7, verbatim. */
-export const SECTION_BEHAVIOR = "Behavior";
-export const SECTION_APPEARANCE = "Appearance";
-export const SECTION_MIDI = "MIDI output";
+/**
+ * The five section titles (change 16, 2026-09-21): the settings grouped by what they change, in
+ * this fixed order - the light, the movement, the notes, the wire, the clock. HANGAR's own, one
+ * word each. SECTION_BEHAVIOR ("Behavior") and SECTION_APPEARANCE ("Appearance") ARE RETIRED BY
+ * NAME, 2026-09-21: PDF page 5's two titles held the whole rack and the colour block; the Sandbox
+ * keeps its own copies of both words in sandbox/copy.ts. "MIDI output" became "MIDI".
+ */
+export const SECTION_LOOK = "Look";
+export const SECTION_FEEL = "Feel";
+export const SECTION_SOUND = "Sound";
+export const SECTION_MIDI = "MIDI";
+export const SECTION_SYNC = "Sync";
 
-/** The helper line under the MIDI fields. Section 16 / PDF page 5, verbatim. */
+/** The helper under the MIDI fields, read by a screen reader only since change 16. Section 16 / PDF page 5, verbatim. */
 export const MIDI_HELPER =
   "Map this CC to a parameter in your instrument or DAW.";
+
+// ---------------------------------------------------------------------------
+// The stepper (change 16): a typed field with a step box either side. HANGAR's own - ledgered.
+
+/** The two step boxes' accessible names; the field they step is the row's, named by its label. */
+export const STEP_DOWN = "Step down";
+export const STEP_UP = "Step up";
+
+/**
+ * A stepper field's description and title: the one rule a visitor needs. A typed value lands on
+ * a rung the configuration declares, never between two, because the budget was measured on the rungs.
+ */
+export const SNAP_HINT =
+  "A typed value snaps to the nearest step this setting offers.";
 
 // ---------------------------------------------------------------------------
 // The MIDI output's two typed fields (13.1-07; 13.1-CONTEXT D-09): a text input

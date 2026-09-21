@@ -9695,10 +9695,14 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // -----------------------------------------------------------------------
     // 4. THE WORDS, THE PREVIEW AND THE NOTE FIELD.
     expect(
-      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+      syncKnob.values.map((literal) =>
+        wordFor(syncKnob.kind, literal, syncKnob.id),
+      ),
       "Sync reads Internal / External",
     ).toEqual(["Internal", "External"]);
-    expect(widgetFor(syncKnob.kind, syncKnob.values)).toBe("words");
+    expect(widgetFor(syncKnob.kind, syncKnob.values, syncKnob.id)).toBe(
+      "words",
+    );
     expect(
       divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
       "Division reads 8th / 16th / 32nd",
@@ -9946,9 +9950,13 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
     // 4. THE WORDS AND THE PREVIEW.
     expect(
-      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+      syncKnob.values.map((literal) =>
+        wordFor(syncKnob.kind, literal, syncKnob.id),
+      ),
     ).toEqual(["Internal", "External"]);
-    expect(widgetFor(syncKnob.kind, syncKnob.values)).toBe("words");
+    expect(widgetFor(syncKnob.kind, syncKnob.values, syncKnob.id)).toBe(
+      "words",
+    );
     expect(
       divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
     ).toEqual(["8th", "16th", "32nd"]);
@@ -10129,7 +10137,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       }
     }
     expect(
-      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+      syncKnob.values.map((literal) =>
+        wordFor(syncKnob.kind, literal, syncKnob.id),
+      ),
     ).toEqual(["Internal", "External"]);
     expect(
       divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),
@@ -10309,13 +10319,17 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     }
 
     // 3. THE WORDS AND THE PREVIEW: Sync is worded, the division is a bare
-    //    count on a rail (1 / 2 / 3 collide with the other mode tables' keys).
+    //    count on a stepper (1 / 2 / 3 collide with the other mode tables' keys).
     expect(
-      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+      syncKnob.values.map((literal) =>
+        wordFor(syncKnob.kind, literal, syncKnob.id),
+      ),
     ).toEqual(["Internal", "External"]);
-    expect(widgetFor(syncKnob.kind, syncKnob.values)).toBe("words");
+    expect(widgetFor(syncKnob.kind, syncKnob.values, syncKnob.id)).toBe(
+      "words",
+    );
     expect(divisionKnob.values).toEqual(["1", "2", "3"]);
-    expect(widgetFor(divisionKnob.kind, divisionKnob.values)).toBe("rail");
+    expect(widgetFor(divisionKnob.kind, divisionKnob.values)).toBe("stepper");
     expect(previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync).toBe(0);
     process.stdout.write(
       "\nGHOST on the DAW's clock (change 12, 2026-09-18):\n" +
@@ -10557,7 +10571,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       }
     }
     expect(
-      syncKnob.values.map((literal) => wordFor(syncKnob.kind, literal)),
+      syncKnob.values.map((literal) =>
+        wordFor(syncKnob.kind, literal, syncKnob.id),
+      ),
     ).toEqual(["Internal", "External"]);
     expect(
       divisionKnob.values.map((literal) => wordFor(divisionKnob.kind, literal)),

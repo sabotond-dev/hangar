@@ -47,13 +47,13 @@ import {
 } from "./copy";
 import type { KnobDescriptor, PresetKnob } from "./knobs.preset";
 import { applyKnob, baseStateFor, resetAll } from "./state";
-import { rollable, surpriseIndices } from "./surprise";
+import { isControllerNumber, rollable, surpriseIndices } from "./surprise";
 import {
   integerReadout,
   isColourLattice,
   meterView,
   positionText,
-  railSkin,
+  splitUnit,
   swatchName,
   swatchOf,
   widgetFor,
@@ -254,6 +254,7 @@ function valueView(
   widget: KnobWidget,
   options: readonly string[],
   index: number,
+  id?: string,
 ): KnobValueView {
   const literal = options[index];
   const count = options.length;
@@ -265,7 +266,7 @@ function valueView(
       name,
     };
   }
-  const word = wordFor(kind, literal);
+  const word = wordFor(kind, literal, id);
   if (typeof word === "string") return { label: word };
   const integer = integerReadout(options, index);
   return { label: integer ?? positionText(index, count) };
@@ -291,18 +292,23 @@ function knobViews(
   indices: Readonly<Record<string, number>>,
 ): readonly KnobView[] {
   return knobs.map((knob) => {
-    const widget = widgetFor(knob.kind, knob.options);
+    // A MIDI destination over CC numbers reads as an amount whatever kind it was declared under
+    // (change 16, surprise.ts's isControllerNumber): the preset's Send is `note` over 16..80.
+    const kind: KnobKindName =
+      knob.kind === "note" && isControllerNumber(knob) ? "amount" : knob.kind;
+    const widget = widgetFor(kind, knob.options, knob.id);
     const index = indices[knob.id];
+    const named = splitUnit(knob.label);
     const head = {
       id: knob.id,
-      label: knob.label,
-      kind: knob.kind,
+      label: named.label,
+      unit: named.unit,
+      kind,
       widget,
-      skin: widget === "rail" ? railSkin(knob.options.length) : undefined,
-      // A note knob's readout is the note's name (change 7: CHORUS's twelve roots are a rail,
+      // A note knob's readout is the note's name (change 7: CHORUS's twelve roots are a select,
       // and "C#3" is what its word row would have said); every other integer knob shows its literal.
       readout:
-        knob.kind === "note"
+        kind === "note"
           ? (wordFor("note", knob.options[index] ?? "") ??
             integerReadout(knob.options, index))
           : integerReadout(knob.options, index),
@@ -310,8 +316,8 @@ function knobViews(
     return {
       ...head,
       // The raw literals ride with the readout and only with it: present
-      // exactly when every option is an integer, for the typed MIDI field's
-      // mapping back to an index (view.ts `typedIndex`, 13.1-07).
+      // exactly when every option is an integer, for the typed field's
+      // mapping back to an index (view.ts `typedIndex` / `nearestRung`).
       literals: head.readout === undefined ? undefined : knob.options,
       // The lattice's 4,096 come from the shared cache; every other knob
       // resolves its own handful. See `colourViews`.
@@ -319,7 +325,7 @@ function knobViews(
         widget === "colour" && isColourLattice(knob.options)
           ? colourViews(knob.options)
           : knob.options.map((_, at) =>
-              valueView(knob.kind, widget, knob.options, at),
+              valueView(kind, widget, knob.options, at, knob.id),
             ),
       index,
       default: knob.default,

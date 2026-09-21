@@ -1,13 +1,11 @@
 // The tuning panel's view seam: the types a component names, the rule that turns a knob into a
-// widget, the meter arithmetic, the colour lattice for the picker and the readouts.
-// This module imports nothing at all - not even `import type` - because config-shape.spec.ts test 13
-// fails any file under src/lib/ui/ whose `from "..."` specifier names the vendored compiler, the
-// protocol package or $lib/pad by SPECIFIER TEXT, and a component must be able to name this file
-// freely (view.spec.ts asserts the zero-import shape). The split: view.ts (types and pure rules),
-// copy.ts (every sentence), idle.ts (one shim), model.ts (the compiler side, reached only by
-// `await import()`). Three facts are restated here as literals and held against their real source by
-// a spec rather than imported: the twelve knob kinds and EVENT_BUDGET = 908 (view.spec.ts), and the
-// colour lattice's arithmetic (colour-picker.spec.ts walks all 4,096 positions against `colourAt`).
+// widget, the stepper's arithmetic, the meter arithmetic, the colour lattice for the picker and the
+// readouts. This module imports nothing at all - not even `import type` - because config-shape.spec.ts
+// test 13 fails any file under src/lib/ui/ whose `from "..."` specifier names the vendored compiler,
+// the protocol package or $lib/pad by SPECIFIER TEXT, and a component must be able to name this file
+// freely (view.spec.ts asserts the zero-import shape). Three facts are restated here as literals and
+// held against their real source by a spec: the twelve knob kinds and EVENT_BUDGET = 908
+// (view.spec.ts), and the colour lattice's arithmetic (colour-picker.spec.ts walks all 4,096).
 // Decided at 05-04 (05-CONTEXT D-18) / 10-10 / 13-09; see .planning/phases/13-gui-overhaul/13-09-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -47,24 +45,20 @@ export const KNOB_KIND_NAMES: readonly KnobKindName[] = [
 ];
 
 /**
- * Five names, four row skins and one picker. `swatch`, `words`, `select` and `rail` are what a KNOB
- * ROW can be, and `widgetFor` chooses between the last three; `colour` is the whole ColourPicker
- * block, rendered once per panel (10-UI-SPEC 11.2; behind a swatch and a popover since 13-09).
- * `widgetFor` never returns `swatch`: the picker synthesises it for a hand-authored Lua palette. A
- * worded knob with up to SEGMENTED_MAX options is the word row, one with more (up to WORD_ROW_MAX) a
- * `<select>` (13-09, a rendering change: no option moved, no stamp changed).
+ * Five names, four row skins and one picker (change 16, 2026-09-21). `words` is a segmented control,
+ * `select` a native select, `stepper` a typed field with a step box either side, `swatch` the
+ * picker's own palette row; `colour` is the whole colour block, rendered once per section.
+ * `widgetFor` chooses between `words`, `select` and `stepper` and never returns `swatch`: the picker
+ * synthesises it for a hand-authored Lua palette.
  */
-export type KnobWidget = "colour" | "swatch" | "words" | "select" | "rail";
-
-/** A rail's two skins: a dot per option, or a track with a thumb. */
-export type RailSkin = "dots" | "track";
+export type KnobWidget = "colour" | "swatch" | "words" | "select" | "stepper";
 
 /** Above this many options a worded knob is a `<select>` rather than segmented radios (13-09, section 7). */
 export const SEGMENTED_MAX = 4;
-/** Above this many options a worded knob is a rail; the select's ceiling since 13-09 (view.spec.ts and tune-ui.spec.ts read the name). */
-export const WORD_ROW_MAX = 8;
-/** Above this many options a dot rail becomes a detent track. */
-const DOT_RAIL_MAX = 8;
+/** Above this many options a note knob is typed (a name or a number) rather than chosen from a list (change 16). */
+export const NOTE_SELECT_MAX = 24;
+/** Two. Above this an integer knob is a stepper, where the ladder shows where the value sits (12-05, change 16). */
+export const INTEGER_WORD_ROW_MAX = 2;
 
 // ---------------------------------------------------------------------------
 // The view types a component names.
@@ -81,14 +75,16 @@ export type KnobValueView = {
 
 export type KnobView = {
   id: string;
+  /** The display label, its unit split off (`Tempo (BPM)` reads `Tempo` with `unit` BPM). */
   label: string;
   kind: KnobKindName;
   widget: KnobWidget;
-  skin?: RailSkin;
   values: readonly KnobValueView[];
   index: number;
   default: number;
-  /** The right-aligned integer, when every value is a single integer. */
+  /** The unit a stepper prints after the value (`ms`, `BPM`), from the label's parenthetical; absent otherwise. */
+  unit?: string;
+  /** The rung's own text for a typed field: the integer, or the note's name. */
   readout?: string;
   /**
    * The raw option literals, present exactly when `readout` is (every option a single integer, X-08),
@@ -132,7 +128,7 @@ export type TuneView = {
    * The ids of the knobs the browser preview is holding at their `previewIndex` because the visitor
    * chose a position the browser cannot honour (change 8: ORBIT's Sync at External - no MIDI clock
    * reaches a preview). Empty on every other card and at every honoured position; the inspector says
-   * so under Behavior whenever it is not.
+   * so under Sync whenever it is not.
    */
   previewHeld: readonly string[];
 };
@@ -199,28 +195,70 @@ const INVERSION_WORDS = {
 } as const;
 
 /**
- * ORBIT's clock source (change 8, 2026-09-18), keyed by the Lua boolean the knob substitutes: the
- * Setup folds it to `grxm(2,3)` or `grxm(2,0)` and the Timer steps only when it is false. Booleans,
- * not 0 / 3, so no mode literal collides with the inversion's.
+ * A clock source (change 8, 2026-09-18), keyed by the Lua boolean the `sync` knob substitutes: the
+ * Setup folds it to `grxm(2,3)` or `grxm(2,0)` and the Timer steps only when it is false. Read by
+ * the knob's ID (change 16): any other boolean under `mode` is On / Off, so TRACKPAD's edge flash
+ * no longer reads Internal / External.
  */
 const SYNC_WORDS = {
   false: "Internal",
   true: "External",
 } as const;
 
-/** ORBIT's step division under External (change 8): MIDI clocks per step, 24 to the quarter. */
+/** A boolean under `mode` that is not a clock source: TRACKPAD's `flash`, TRACKPAD COMET's `scroll`. */
+const ON_OFF_WORDS = {
+  true: "On",
+  false: "Off",
+} as const;
+
+/** A step division under External (change 8): MIDI clocks per step, 24 to the quarter. */
 const DIVISION_WORDS = {
   "12": "8th",
   "6": "16th",
   "3": "32nd",
 } as const;
 
+/** QUADRANT's `fill` (change 16): the three fill modes its Setup reads at two sites. */
+const FILL_WORDS = {
+  "0": "Colour only",
+  "1": "Colour and fill",
+  "2": "High contrast",
+} as const;
+
+/** STAGE's `modifier` (change 16): a USB HID modifier usage id from the Keyboard/Keypad page, or 0. */
+const MODIFIER_WORDS = {
+  "0": "None",
+  "224": "Ctrl",
+  "225": "Shift",
+  "226": "Alt",
+} as const;
+
+/**
+ * A `key` knob's first USB HID usage id (change 16): CULL's five and STAGE's nine contiguous keys
+ * start here. CHORUS's `key` is a MIDI note whose literals (48..59) are not on this table, so it
+ * falls through to the note names.
+ */
+const KEY_WORDS = {
+  "30": "1",
+  "58": "F1",
+  "89": "Keypad 1",
+  "104": "F13",
+} as const;
+
+/** The tables read by the knob's ID before its kind's own (change 16). */
+const ID_WORDS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  sync: SYNC_WORDS,
+  fill: FILL_WORDS,
+  modifier: MODIFIER_WORDS,
+  key: KEY_WORDS,
+};
+
 /** The `mode` tables after the dial's own two words, tried in this order; every key is unique across them. */
 const MODE_TABLES: readonly Readonly<Record<string, string>>[] = [
   SHAPE_WORDS,
   INVERSION_WORDS,
-  SYNC_WORDS,
   DIVISION_WORDS,
+  ON_OFF_WORDS,
 ];
 
 /** The compiler's `BendAxis`. */
@@ -235,6 +273,12 @@ const SPRING_WORDS = {
   off: "Stays put",
   centre: "Springs to centre",
   zero: "Springs to zero",
+} as const;
+
+/** STARFIELD's `edge` (change 16): the two words the compiler's `feel` carries as literals. */
+const FEEL_WORDS = {
+  soft: "Soft",
+  hard: "Hard",
 } as const;
 
 /** Sharps, never flats. C4 = 60. */
@@ -282,6 +326,10 @@ export const EVENT_BUDGET = 908;
 // Pure rules.
 
 const INTEGER = /^-?[0-9]+$/;
+/** A typed number: an integer or a decimal, either sign. */
+const NUMBER = /^-?[0-9]+(\.[0-9]+)?$/;
+/** Two or more integers with commas between: ORBIT's pulse sets, QUADRANT's palettes, a scale set. */
+const INTEGER_LIST = /^-?[0-9]+(,-?[0-9]+)+$/;
 
 /** Parse "r,g,b" into three integers in 0..255, or undefined. */
 function rgbOf(literal: string): readonly [number, number, number] | undefined {
@@ -300,7 +348,7 @@ function rgbOf(literal: string): readonly [number, number, number] | undefined {
 
 /**
  * The mode name for a `scale` value, or undefined when the set is not in the
- * table - which is what sends the knob to a rail.
+ * table - which is what sends the knob to its semitone list.
  */
 export function scaleWord(literal: string): string | undefined {
   return (SCALE_WORDS as Readonly<Record<string, string>>)[literal];
@@ -341,15 +389,41 @@ export function noteNumber(text: string): number | undefined {
 }
 
 /**
- * The display word for one value of one kind, or undefined when the kind has
- * no table or the value is not in it. `widgetFor` uses this to decide whether
- * a word row is even possible; the fall-through to a rail is the answer when
- * it is not.
+ * A comma list of integers as a word (change 16): four RGB triples under `mode` read as their hue
+ * names (QUADRANT's palettes), any other list as its numbers with spaces (ORBIT's pulse sets, an
+ * unlisted scale's semitones). Undefined for anything that is not such a list.
+ */
+function listWord(kind: KnobKindName, literal: string): string | undefined {
+  if (!INTEGER_LIST.test(literal)) return undefined;
+  const numbers = literal.split(",").map((part) => Number.parseInt(part, 10));
+  if (
+    kind === "mode" &&
+    numbers.length % 3 === 0 &&
+    numbers.every((n) => n >= 0 && n <= 255)
+  ) {
+    const hues: string[] = [];
+    for (let at = 0; at < numbers.length; at += 3) {
+      hues.push(hueName([numbers[at], numbers[at + 1], numbers[at + 2]]));
+    }
+    return hues.join(", ");
+  }
+  return numbers.join(", ");
+}
+
+/**
+ * The display word for one value of one kind, or undefined when no table names it. `widgetFor`
+ * uses this to decide whether a worded row is possible at all. The knob's ID is read first (change
+ * 16): `sync` is Internal / External where any other boolean is On / Off, `fill`, `modifier` and
+ * `key` have tables of their own, and a comma list of integers reads as a list.
  */
 export function wordFor(
   kind: KnobKindName,
   literal: string,
+  id?: string,
 ): string | undefined {
+  if (kind === "colour") return undefined;
+  const own = id === undefined ? undefined : ID_WORDS[id]?.[literal];
+  if (own !== undefined) return own;
   const table: Readonly<Record<string, string>> | undefined =
     kind === "scale"
       ? SCALE_WORDS
@@ -361,67 +435,48 @@ export function wordFor(
             ? BEND_WORDS
             : kind === "spring"
               ? SPRING_WORDS
-              : undefined;
+              : kind === "feel"
+                ? FEEL_WORDS
+                : undefined;
   if (table) {
-    const own = table[literal];
-    if (own !== undefined || kind !== "mode") return own;
-    for (const more of MODE_TABLES) {
-      const word = more[literal];
-      if (word !== undefined) return word;
+    const word = table[literal];
+    if (word !== undefined) return word;
+    if (kind === "mode") {
+      for (const more of MODE_TABLES) {
+        const later = more[literal];
+        if (later !== undefined) return later;
+      }
     }
-    return undefined;
   }
-  if (kind === "note") {
-    return INTEGER.test(literal)
-      ? noteName(Number.parseInt(literal, 10))
-      : undefined;
+  if (kind === "note" && INTEGER.test(literal)) {
+    return noteName(Number.parseInt(literal, 10));
   }
-  return undefined;
+  return listWord(kind, literal);
 }
 
-/** The kinds a word row is offered to BY NAME, because they have a table; a knob of any kind with at most two integers gets one too (12-05). */
-const WORD_KINDS: readonly KnobKindName[] = [
-  "direction",
-  "mode",
-  "bend",
-  "spring",
-  "scale",
-  "note",
-];
-
 /**
- * The widget rule, and it is TOTAL: every kind and every value set resolves to one widget, and the
- * fall-through is a rail, where position is always meaningful. `colour` is chosen by `kind` ALONE
- * (X-05 / X-06; 10-08, 10-10): a colour knob carries `n = 4096` and any rule that consulted `n`
- * would send it to a 4,096-position rail; the widget is the picker at any `n`. A knob with at most
- * two INTEGER values renders as words, kind-blind (12-05: NINE PADS' `Pads` at `9` and `16` was a
- * two-dot rail nobody saw); the test is whether a label exists, which is what X-05 permits.
+ * The widget rule, and it is TOTAL: every kind and every value set resolves to one widget. `colour`
+ * is chosen by `kind` ALONE (X-05 / X-06; 10-08, 10-10): a colour knob carries `n = 4096` and any
+ * rule that consulted `n` would send it elsewhere. A knob every one of whose values has a word is
+ * segmented up to SEGMENTED_MAX and a select above it - except a note ladder past NOTE_SELECT_MAX,
+ * which is typed. A knob of integers is words at up to INTEGER_WORD_ROW_MAX (12-05: NINE PADS'
+ * `Pads` at `9` and `16`) and a stepper above. Anything else is a select of positions (change 16).
  */
-/** Two. Above this an integer knob is a rail, where position carries meaning. */
-export const INTEGER_WORD_ROW_MAX = 2;
-
 export function widgetFor(
   kind: KnobKindName,
   values: readonly string[],
+  id?: string,
 ): KnobWidget {
   if (kind === "colour") return "colour";
-  if (WORD_KINDS.includes(kind)) {
-    const fits = values.length > 0 && values.length <= WORD_ROW_MAX;
-    if (!fits || !values.every((v) => wordFor(kind, v) !== undefined)) {
-      return "rail";
-    }
-    // The 4/5 boundary (13-09): a row of segmented radios up to four worded
-    // options, a select from five to eight. Rendering only (13-09).
-    return values.length <= SEGMENTED_MAX ? "words" : "select";
+  const n = values.length;
+  if (n > 0 && values.every((v) => wordFor(kind, v, id) !== undefined)) {
+    if (kind === "note" && n > NOTE_SELECT_MAX) return "stepper";
+    return n <= SEGMENTED_MAX ? "words" : "select";
   }
-  if (
-    values.length > 0 &&
-    values.length <= INTEGER_WORD_ROW_MAX &&
-    values.every((v) => INTEGER.test(v))
-  ) {
-    return "words";
+  if (n > 0 && values.every((v) => INTEGER.test(v))) {
+    return n <= INTEGER_WORD_ROW_MAX ? "words" : "stepper";
   }
-  return "rail";
+  return "select";
 }
 
 /**
@@ -434,9 +489,67 @@ export function knobPosition(view: KnobView): number {
   return view.index;
 }
 
-/** A dot per option up to eight; a detent track from nine. */
-export function railSkin(n: number): RailSkin {
-  return n <= DOT_RAIL_MAX ? "dots" : "track";
+// ---------------------------------------------------------------------------
+// The stepper's arithmetic (change 16, 2026-09-21): a typed value snaps to a DECLARED rung, never
+// between - the budget is measured over the rungs at the RGB444 corner - and the step boxes walk
+// the rungs in VALUE order whatever order the entry declared them in.
+
+/** `Tempo (BPM)` -> `Tempo` and `BPM`; a label with no trailing parenthetical is its own, with no unit. */
+export function splitUnit(label: string): { label: string; unit?: string } {
+  const m = /^(.*\S)\s*\(([^()]+)\)$/.exec(label.trim());
+  if (m === null) return { label: label.trim() };
+  return { label: m[1], unit: m[2].trim() };
+}
+
+/** The number a literal is, or undefined: every stepper rung is an integer today, the note ladders included. */
+function numberOf(literal: string): number | undefined {
+  return NUMBER.test(literal.trim()) ? Number(literal.trim()) : undefined;
+}
+
+/**
+ * The declared indices in ascending VALUE order (a stable sort, so equal values keep their
+ * declared order): SNAKE's `300 220 160 110` walks 110 first. A ladder with a non-number anywhere
+ * is walked in declared order.
+ */
+export function valueOrder(literals: readonly string[]): readonly number[] {
+  const indices = literals.map((_, at) => at);
+  const numbers = literals.map(numberOf);
+  if (numbers.some((n) => n === undefined)) return indices;
+  return indices.sort(
+    (a, b) => (numbers[a] as number) - (numbers[b] as number) || a - b,
+  );
+}
+
+/** Where a declared index sits on the value-ordered ladder: 0 is the smallest value. */
+export function rankOf(order: readonly number[], index: number): number {
+  const rank = order.indexOf(index);
+  return rank < 0 ? 0 : rank;
+}
+
+/**
+ * The index of the declared rung NEAREST a typed number, or undefined when the text is not a
+ * number or the ladder has a rung that is not one. Ties go to the lower value; a number past
+ * either end lands on that end. The one hard rule of change 16: a typed value never lands between
+ * two rungs, because nothing between two rungs was ever measured against 908.
+ */
+export function nearestRung(
+  literals: readonly string[],
+  text: string,
+): number | undefined {
+  const typed = numberOf(text);
+  if (typed === undefined || literals.length === 0) return undefined;
+  const numbers = literals.map(numberOf);
+  if (numbers.some((n) => n === undefined)) return undefined;
+  let best = -1;
+  let distance = Number.POSITIVE_INFINITY;
+  for (const index of valueOrder(literals)) {
+    const gap = Math.abs((numbers[index] as number) - typed);
+    if (gap < distance) {
+      best = index;
+      distance = gap;
+    }
+  }
+  return best < 0 ? undefined : best;
 }
 
 // ---------------------------------------------------------------------------

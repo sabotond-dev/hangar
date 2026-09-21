@@ -685,27 +685,28 @@ describe("the tuning panel's copy (src/lib/tune/copy.ts)", () => {
     expect(raw).toContain("forecastExpansion's 44");
     expect(raw).toContain("D-05");
     // And the invariant the 4 / 4 rule carried is where the header says it
-    // went: a fixed inline-size on both .lock rules, wider than the 44px
-    // floor, so toggling the word cannot move the column.
-    for (const component of ["Knob.svelte", "ColourPicker.svelte"]) {
-      const styles = read(`../ui/${component}`);
-      const lock = styles.slice(styles.indexOf("\n  .lock {"));
-      const body = lock.slice(0, lock.indexOf("}"));
-      expect(body, `${component}'s .lock rule was found`).toContain(
-        "min-inline-size: 44px",
-      );
-      const fixed = /inline-size: (\d+)px;/.exec(
-        body.replace("min-inline-size: 44px", ""),
-      );
-      expect(
-        fixed,
-        `${component}'s .lock declares no fixed inline-size`,
-      ).not.toBeNull();
-      expect(
-        Number(fixed?.[1]),
-        `${component}'s .lock is narrower than its 44px floor`,
-      ).toBeGreaterThan(44);
-    }
+    // went: since change 16 the lock is a 44px icon box whose glyph changes
+    // and whose width does not (the box's rule declares a fixed inline-size
+    // at the floor), and the two words are its accessible name and title.
+    // The picker's head lock left the same day - the swatch row carries it.
+    const knob = read("../ui/Knob.svelte");
+    const box = knob.slice(knob.indexOf("\n  .box {"));
+    const body = box.slice(0, box.indexOf("}"));
+    expect(body, "Knob.svelte's .box rule was found").toContain(
+      "min-inline-size: 44px",
+    );
+    const fixed = /inline-size: (\d+)px;/.exec(
+      body.replace("min-inline-size: 44px", ""),
+    );
+    expect(
+      fixed,
+      "Knob.svelte's .box declares no fixed inline-size",
+    ).not.toBeNull();
+    expect(Number(fixed?.[1]), "the box is narrower than its 44px floor").toBe(
+      44,
+    );
+    expect(knob).toContain("aria-label={held ? KNOB_HELD : KNOB_HOLD}");
+    expect(read("../ui/ColourPicker.svelte")).not.toContain("KNOB_HOLD");
   });
 
   it("writes the stamp landings with SHARE-03's fact, the share lines and every live-region string, and imports nothing", () => {

@@ -131,7 +131,7 @@ export const SONAR: CatalogEntry = {
     },
     {
       id: "sweep",
-      label: "Sweep speed",
+      label: "Sweep speed (ms)",
       kind: "speed",
       token: "@PERIOD",
       // Milliseconds per step; a revolution is sixteen of these (70 is 1.12 s). TOKEN IS

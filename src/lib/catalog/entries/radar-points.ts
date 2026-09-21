@@ -157,7 +157,7 @@ export const RADAR_POINTS: CatalogEntry = {
     },
     {
       id: "sweep",
-      label: "Ping speed",
+      label: "Ping speed (ms)",
       kind: "speed",
       token: "@PERIOD",
       // Milliseconds per ring; a whole ping is eight of these (140 is 1.12 s, SONAR's default

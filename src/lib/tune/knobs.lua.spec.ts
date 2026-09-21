@@ -173,21 +173,22 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
   });
 
   it("renders: every shipped Lua knob gets a widget, and none falls through on malformed data", () => {
-    // Five since 13-09: a worded knob at five to eight options is a select.
+    // Five since change 16: a worded knob is segmented to four options and a
+    // select above, an integer ladder past two rungs is a stepper.
     const WIDGETS: readonly KnobWidget[] = [
       "colour",
       "swatch",
       "words",
       "select",
-      "rail",
+      "stepper",
     ];
     let colours = 0;
     let words = 0;
-    let rails = 0;
+    let steppers = 0;
 
     for (const entry of LUA_ENTRIES) {
       for (const knob of luaKnobs(entry)) {
-        const widget = widgetFor(knob.kind, knob.options);
+        const widget = widgetFor(knob.kind, knob.options, knob.id);
         const where = `${entry.id}.${knob.id}`;
         expect(WIDGETS, `${where} resolved to ${widget}`).toContain(widget);
 
@@ -213,19 +214,19 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
             widget,
           );
           words++;
-        } else if (knob.kind === "note" && knob.options.length <= 8) {
+        } else if (knob.kind === "note" && knob.options.length <= 24) {
           expect(["words", "select"], `${where} is not worded`).toContain(
             widget,
           );
           words++;
-        } else {
-          rails++;
+        } else if (widget === "stepper") {
+          steppers++;
         }
       }
     }
 
     expect(colours).toBeGreaterThan(0);
     expect(words).toBeGreaterThan(0);
-    expect(rails).toBeGreaterThan(0);
+    expect(steppers).toBeGreaterThan(0);
   });
 });

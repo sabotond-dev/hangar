@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 // The copy module imports NOTHING (its own header says why), so naming it here
 // costs this file no chunk and lets the source scans below check a component
 // against the sentence it is supposed to be rendering rather than a copy of it.
-import { KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
+import { KNOB_HELD, KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
 // MIX TWO left the tree at 13-10 (13-CONTEXT D-12): MixTwo.svelte, mix.ts and
 // mix.spec.ts deleted, the two titles this file held for it deleted by name,
 // copy.ts's MIX_TWO / MIX_THIS / MIX_THAT / MIX_LINE family left standing for
@@ -32,6 +32,20 @@ import { UNDO_RANDOMIZE } from "../tune/inspector-copy";
 import { EDIT_COLOR, POPOVER_CLOSE } from "../tune/inspector-copy";
 import { render } from "svelte/server";
 import Swatch from "./Swatch.svelte";
+// Change 16's rows: the knob row and the stepper, rendered for their shape;
+// the sections rule the region draws them in.
+import Knob from "./Knob.svelte";
+import {
+  SECTION_FEEL,
+  SECTION_LOOK,
+  SECTION_MIDI,
+  SECTION_SOUND,
+  SECTION_SYNC,
+  SNAP_HINT,
+  STEP_DOWN,
+  STEP_UP,
+} from "../tune/inspector-copy";
+import { SECTION_ORDER, groupBySection, sectionOf } from "../tune/sections";
 // The MIDI output's typed fields (13.1-07, 13.1-CONTEXT D-09): the field is
 // RENDERED with svelte/server for its shape, and the mapping it makes is
 // view.ts's pure door, driven here with Arc's own list.
@@ -51,7 +65,7 @@ import {
 } from "../tune/inspector-copy";
 import { ARC } from "../catalog/entries/arc";
 // The inspector (13-09): the widget rule and its boundary, the copy the
-// inspector renders, layout.ts's D-21 numbers, and a real tuner for the
+// inspector renders, and a real tuner for the
 // per-field reset - the model.spec.ts harness in brief. The compile surface
 // is a spec's to import statically; test 1 holds the COMPONENTS to the
 // await form.
@@ -84,21 +98,15 @@ import {
 } from "../sim/monitor";
 import {
   KNOB_KIND_NAMES,
+  NOTE_SELECT_MAX,
   SCALE_WORDS,
   SEGMENTED_MAX,
-  WORD_ROW_MAX,
   integerRun,
   typedIndex,
   widgetFor,
   type KnobView,
   type TuneView,
 } from "../tune/view";
-import {
-  GRID_FITS_INSPECTOR,
-  NUMERIC_FIELD_W,
-  NUMERIC_GRID_REFLOW,
-  NUMERIC_GRID_W,
-} from "./shell/layout";
 import { stripComments } from "../../test-support/source";
 
 /** Seven and twelve integers, for the totality walk over every kind. */
@@ -122,7 +130,9 @@ const UI_DIR = "src/lib/ui";
  * lives in - a popover from 13-09 to 13.1-04); 10-11's MixTwo.svelte was
  * the ninth from 10-11 to 13-10, when D-12 cut it and its row left with the
  * file. The tenth is 13.1-07's MidiField.svelte, the typed field over a
- * MIDI knob's closed list (13.1-CONTEXT D-09). BudgetMeter.svelte STAYS on
+ * MIDI knob's closed list (13.1-CONTEXT D-09). The eleventh is change 16's
+ * Stepper.svelte, the typed field with its two step boxes that Knob.svelte's
+ * numeric rows and MidiField.svelte share. BudgetMeter.svelte STAYS on
  * the list although nothing mounts it any more (D-10 hid the workspace's
  * fourth group; change 10A, 2026-09-18, hid the Sandbox's two under its
  * room line): it is in the tree until its by-name deletion is decided. Adding each here is not
@@ -148,6 +158,7 @@ const TUNING_COMPONENTS: readonly string[] = [
   "KnobRack.svelte",
   "MidiField.svelte",
   "StampNotice.svelte",
+  "Stepper.svelte",
   "Swatch.svelte",
   "TuningRegion.svelte",
 ];
@@ -216,7 +227,7 @@ describe("the tuning UI's structural rules", () => {
         .map(String)
         .filter((name) => name.endsWith(".svelte")),
     );
-    expect(TUNING_COMPONENTS.length, "eleven components were listed").toBe(11);
+    expect(TUNING_COMPONENTS.length, "twelve components were listed").toBe(12);
     expect(
       TUNING_COMPONENTS.filter((name) => !present.has(name)),
       "a listed tuning component is not on disk - it was renamed or deleted, and every test in this file has silently stopped covering it",
@@ -371,20 +382,15 @@ describe("the tuning UI's structural rules", () => {
     ).toEqual([]);
 
     // -----------------------------------------------------------------------
-    // T1's lock, which is the newest control in this file's scope (10-UI-SPEC
-    // 11.5). It rides inside this test rather than becoming a sixth, because
-    // what it asserts IS this test's rule - a control and its 44px floor -
-    // applied to the one control the floor is easiest to miss on: a four-
-    // character word at 12px is nowhere near 44px wide by itself.
+    // THE LOCK (10-UI-SPEC 11.5; change 16's icon box): a real <button
+    // aria-pressed> whose accessible name changes Lock -> Locked, 44px on
+    // BOTH axes named separately, because `min-block-size` alone passes the
+    // `includes("44px")` walk above while leaving a 30px-wide target.
     const knob = code(componentPath("Knob.svelte"));
-
     expect(
       knob,
       "the lock is not a real <button aria-pressed> - a div with a role, or a checkbox, would put the state somewhere the accessible NAME is not",
     ).toContain("aria-pressed={held}");
-
-    // BOTH axes, named separately, because `min-block-size` alone passes the
-    // `includes("44px")` walk above while leaving a 30px-wide target.
     const lockRule = rulesOf(knob).find(
       (rule) => rule.selector.trim() === ".lock",
     );
@@ -397,9 +403,6 @@ describe("the tuning UI's structural rules", () => {
       lockRule?.body,
       "the lock does not declare its 44px BLOCK floor",
     ).toContain("min-block-size: 44px");
-
-    // The label is the copy module's, never transcribed - and it CHANGES, so
-    // the state is in the accessible name and not only in aria-pressed.
     expect(knob, "the lock transcribes its labels").not.toContain(
       `"${KNOB_HOLD}"`,
     );
@@ -408,145 +411,102 @@ describe("the tuning UI's structural rules", () => {
     expect(
       knob,
       "the lock's label does not change with its state, so HELD is invisible to a screen reader that reads names rather than pressed states",
-    ).toContain("held ? KNOB_HELD : KNOB_HOLD");
+    ).toContain("aria-label={held ? KNOB_HELD : KNOB_HOLD}");
+    // The glyph is straight lines, no path, no arc; the shackle's last line
+    // seats when held, which is the second channel beside the word.
+    expect(knob).not.toContain("<path");
+    expect(knob).toContain("y2={held ? 10 : 7}");
 
-    // -----------------------------------------------------------------------
-    // THE PICKER'S TWO SMALL CONTROLS, BOTH AXES NAMED SEPARATELY (plan 10-10's
-    // contract table, and 10-UI-SPEC 19.1b's pill floor). The walk above is
-    // `includes("44px")` per FILE, so ColourPicker.svelte passes it on the
-    // strength of its 44px head row alone while a selector option or its lock
-    // sits at 30px. Both are word-width controls at 12px - a three-character
-    // knob label is nowhere near 44px wide - so the inline floor is the
-    // load-bearing half here, exactly as it is on Knob.svelte's lock.
-    //
-    // Neither hand-declared walk in this repository covers this file:
-    // device-ui.spec.ts's DEVICE_COMPONENTS is the six device components and
-    // browse-ui.spec.ts's browseFiles() is the six browse ones. 10-UI-SPEC
-    // 19.1g's directory-derived walk arrives at 10-13.1; until it does, this
-    // is the assertion.
+    // THE STEPPER'S THREE CONTROLS (change 16): the two boxes 44 on both
+    // axes, the field 44 tall, and the boxes out of the tab order so the
+    // field is the row's one stop.
+    const stepper = code(componentPath("Stepper.svelte"));
+    const box = rulesOf(stepper).find((r) => r.selector.trim() === ".box");
+    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+      expect(
+        box?.body,
+        `Stepper.svelte's .box does not declare ${axis}`,
+      ).toContain(axis);
+    }
+    expect(
+      rulesOf(stepper).find((r) => r.selector.trim() === ".field")?.body,
+    ).toContain("min-block-size: 44px");
+    expect(
+      occurrences(stepper, 'tabindex="-1"'),
+      "the two step boxes are tab stops - the field is the one stop, the arrows step it",
+    ).toBe(2);
+    expect(stepper, "the field is not a spinbutton").toContain(
+      'role="spinbutton"',
+    );
+    expect(stepper).toContain("aria-valuenow={rank}");
+    expect(stepper).toContain("aria-valuetext={valueText}");
+    for (const key of [
+      '"ArrowUp"',
+      '"ArrowDown"',
+      '"Home"',
+      '"End"',
+      '"Enter"',
+    ]) {
+      expect(stepper, `the field does not read ${key}`).toContain(key);
+    }
+    expect(
+      stepper,
+      "Delete or Backspace is read on a text field - those are its editing keys",
+    ).not.toMatch(/"Delete"|"Backspace"/);
+
+    // THE PICKER'S SELECTOR OPTION, both axes (plan 10-10's contract table).
+    // The picker's head lock left at change 16: the swatch row carries it.
     const picker = rulesOf(code(componentPath("ColourPicker.svelte")));
-    for (const selector of [".option", ".lock"]) {
-      const rule = picker.find((r) => r.selector.trim() === selector);
-      expect(
-        rule,
-        `ColourPicker.svelte no longer has a ${selector} rule`,
-      ).toBeDefined();
-      for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
-        expect(
-          rule?.body,
-          `${selector} does not declare ${axis} - Phase 4's touch floor is both axes per control, and a file-level 44px walk cannot see this`,
-        ).toContain(axis);
-      }
-    }
-
-    // THE SECOND CHANNEL, AND THE COLOUR IT IS NOT. The held marker is a
-    // --color-boundary bar; the free one is the --color-divider dot it always
-    // was. Neither is accent - 10-UI-SPEC 7.2's reserved list stays at eight,
-    // and the census that holds the whole rack to it is the test below.
-    const barRules = rulesOf(knob).filter((rule) =>
-      rule.selector.includes(".home.bar"),
-    );
+    const option = picker.find((r) => r.selector.trim() === ".option");
     expect(
-      barRules.length,
-      "the held marker has no rules of its own, so HOLD and HELD look identical",
-    ).toBeGreaterThan(0);
-    expect(
-      barRules.map((rule) => rule.selector).join(" | "),
-      "the held marker paints in accent - that is a ninth entry on the reserved list, and the whole point of the two-channel design is that it is not taken",
-    ).not.toContain("--color-action");
-    for (const rule of barRules) {
-      expect(
-        rule.body,
-        `${rule.selector} paints the held marker in accent`,
-      ).not.toContain("--color-action");
+      option,
+      "ColourPicker.svelte no longer has an .option rule",
+    ).toBeDefined();
+    for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
+      expect(option?.body, `.option does not declare ${axis}`).toContain(axis);
     }
     expect(
-      barRules.map((rule) => rule.body).join(""),
-      "the held marker is not --color-boundary, so it is either invisible or on a token it has no claim to",
-    ).toContain("var(--color-boundary)");
-    expect(
-      rulesOf(knob).find((rule) => rule.selector.trim() === ".home")?.body,
-      "the FREE marker stopped being the soft dot, so the two states no longer differ by weight",
-    ).toContain("var(--color-divider)");
+      picker.find((r) => r.selector.trim() === ".lock"),
+      "the picker draws a lock of its own again - two locks on one knob",
+    ).toBeUndefined();
+
+    // THE CHANGED MARKER (section 7; change 16): a 2px rule down the row's
+    // start in the action colour, on every row component, with the hidden
+    // sentence beside the label. The same rule in four files, by name.
+    for (const name of [
+      "Knob.svelte",
+      "MidiField.svelte",
+      "Swatch.svelte",
+      "BrightnessField.svelte",
+    ]) {
+      const source = code(componentPath(name));
+      const marker = rulesOf(source).find(
+        (rule) => rule.selector.trim() === ".row.changed::before",
+      );
+      expect(marker, `${name} has no .row.changed::before rule`).toBeDefined();
+      expect(marker?.body, `${name}'s marker is not 2px wide`).toContain(
+        "inline-size: 2px",
+      );
+      expect(
+        marker?.body,
+        `${name}'s marker is not the action colour`,
+      ).toContain("var(--color-action)");
+      expect(source, `${name} lost the hidden sentence`).toContain(
+        "{FIELD_CHANGED}",
+      );
+    }
 
     // -----------------------------------------------------------------------
-    // T2's forecast delta, which rides here for the same reason the lock does:
-    // it is a thing this component paints on a control, and what it must not
-    // do is change the control's size or its colour vocabulary.
-    const deltaRule = rulesOf(knob).find(
-      (rule) => rule.selector.trim() === ".delta",
-    );
-    expect(deltaRule, "Knob.svelte no longer has a .delta rule").toBeDefined();
-
-    // THE FIFTH --font-mono USE ON THE SITE. Phase 5 confined the stack to
-    // four; W-03's reason for introducing it is a number that changes as a
-    // pointer moves and must not jitter horizontally, which is exactly this.
-    expect(
-      deltaRule?.body,
-      "the delta is not monospaced, so +9 and +10 shift the option under the pointer",
-    ).toContain("var(--font-mono)");
-    expect(
-      deltaRule?.body,
-      "the delta is not tabular, which is the other half of not jittering",
-    ).toContain("tabular-nums");
-    expect(
-      deltaRule?.body,
-      "the delta paints in accent - a forecast is information, not a selection, and the reserved list stays at eight",
-    ).not.toContain("--color-action");
-    expect(
-      deltaRule?.body,
-      "the delta paints in the alarm red, which would be X-01's fourth use",
-    ).not.toContain("--color-error-ink");
-    // ABSOLUTE, so it costs no layout: a delta that took part in the flex row
-    // would widen its option and reflow the rack under the pointer.
-    expect(
-      deltaRule?.body,
-      "the delta is in flow, so hovering an option reflows the rack",
-    ).toContain("position: absolute");
-
-    // NEVER ON TOUCH, gated twice and both gates asserted. The per-event one
-    // is what actually stops the work; the media query is what stops the paint
-    // on a device that has no hover at all.
-    expect(
-      knob,
-      "the forecast has no pointerType guard, so a tap puts a compile in front of the gesture",
-    ).toContain('pointerType === "touch"');
-    expect(
-      knob,
-      "the CSS half of the hover gate is gone: @media (hover: hover)",
-    ).toContain("@media (hover: hover)");
-    expect(
-      knob,
-      "the keyboard half is gone - :focus-visible is how a visitor with no pointer reaches an option",
-    ).toContain(":focus-visible");
-
-    // The delta's TEXT is the copy module's, arriving as a prop. This
-    // component builds no sentence and no sign, which is what keeps U+2212 in
-    // one place (copy.spec.ts asserts the other end of that).
-    expect(knob).toContain("forecastLabel");
-    expect(
-      knob,
-      "Knob.svelte builds the signed delta itself instead of rendering the one copy.ts wrote",
-    ).not.toContain("forecastDelta(");
-
-    // -----------------------------------------------------------------------
-    // THE SWATCH'S INLINE COLOUR BLOCK (13.1-04, 13.1-CONTEXT D-08; bench
-    // line 7: "Edit color should not be pop up window in the left upper corne
-    // but instead open down seamlessly to edit color."). From 13-09 to
-    // 13.1-04 this was a <dialog> opened with showModal() - the platform's
-    // trap, top layer and Escape, plus a backdrop click and a focus return
-    // written here. All of that is gone: the toggle opens a block in the
-    // inspector's own flow under its row, the rows below move down, nothing
-    // floats, and focus neither traps nor returns (the toggle never leaves
-    // the DOM). Escape inside the block closes it and places focus on the
-    // row's toggle only because the focused element is about to leave the
-    // DOM. The behaviour is pressed in e2e/tuning.e2e.ts; the shape is here.
+    // THE SWATCH'S INLINE COLOUR BLOCK (13.1-04, 13.1-CONTEXT D-08): the chip
+    // opens a block in the inspector's own flow under its row; nothing
+    // floats, nothing traps. Escape inside the block closes it and places
+    // focus on the row's chip only because the focused element is about to
+    // leave the DOM. The behaviour is pressed in e2e/tuning.e2e.ts.
     const swatch = code(componentPath("Swatch.svelte"));
     for (const needle of [
       "<dialog",
       "showModal",
       "::backdrop",
-      "position: absolute",
       "position: fixed",
       "z-index",
       "focusTrap",
@@ -558,27 +518,21 @@ describe("the tuning UI's structural rules", () => {
         `Swatch.svelte contains "${needle}" - the colour block is inline in the inspector's flow (D-08), never a dialog, never floated, never a trap`,
       ).not.toContain(needle);
     }
-    // The toggle: aria-expanded on the row's own knob, aria-controls to the
-    // block's id, and the copy module's two words - Edit color closed, Close
-    // open - never a transcription.
     expect(
       swatch,
-      "the toggle does not carry aria-expanded for its own knob",
+      "the chip does not carry aria-expanded for its own knob",
     ).toContain("aria-expanded={openFor === knob.id}");
-    expect(swatch, "the toggle does not name the block it controls").toContain(
+    expect(swatch, "the chip does not name the block it controls").toContain(
       'aria-controls="{uid}-{knob.id}-editor"',
     );
     expect(
       swatch,
-      "the toggle's text is not EDIT_COLOR closed and POPOVER_CLOSE open",
+      "the chip's hidden verb is not EDIT_COLOR closed and POPOVER_CLOSE open",
     ).toContain("{openFor === knob.id ? POPOVER_CLOSE : EDIT_COLOR}");
-    expect(swatch, "the toggle's words are transcribed").not.toContain(
+    expect(swatch, "the chip's words are transcribed").not.toContain(
       `"${EDIT_COLOR}"`,
     );
     expect(swatch).not.toContain(`"${POPOVER_CLOSE}"`);
-    // The block: a group labelled by the row's own label id (section 7 -
-    // actual parameter names, nothing invented), rendered only while open on
-    // that knob, the picker inside it keyed on the knob and mounted once.
     expect(swatch, "the block is not role=group").toContain('role="group"');
     expect(swatch, "the block is not labelled by the row's label").toContain(
       'aria-labelledby="{uid}-{knob.id}-label"',
@@ -605,8 +559,6 @@ describe("the tuning UI's structural rules", () => {
       "selectedId={knob.id}",
     );
     expect(block).toContain('data-testid="colour-editor"');
-    // Escape: the handler names the toggle and focuses it after the close -
-    // the one deliberate focus move, and the only one (no trap, no return).
     const escape = swatch.slice(
       swatch.indexOf("function onEditorKeydown"),
       swatch.indexOf("</script>"),
@@ -616,30 +568,24 @@ describe("the tuning UI's structural rules", () => {
     );
     expect(
       escape,
-      "Escape does not put focus on the row's toggle after the block leaves the DOM",
-    ).toContain("toggle?.focus()");
+      "Escape does not put focus on the row's chip after the block leaves the DOM",
+    ).toContain("chip?.focus()");
     expect(
       occurrences(swatch, ".focus()"),
       "Swatch.svelte moves focus more than the once Escape needs",
     ).toBe(1);
-    // The one control keeps Phase 4's floor on both axes; the .close rule
-    // left with the dialog. No corner is declared at all (D-01).
-    const edit = rulesOf(swatch).find((r) => r.selector.trim() === ".edit");
-    expect(edit, "Swatch.svelte no longer has a .edit rule").toBeDefined();
+    // The chip keeps Phase 4's floor on both axes; no corner above zero (D-01).
+    const chip = rulesOf(swatch).find((r) => r.selector.trim() === ".chip");
+    expect(chip, "Swatch.svelte no longer has a .chip rule").toBeDefined();
     for (const axis of ["min-inline-size: 44px", "min-block-size: 44px"]) {
       expect(
-        edit?.body,
-        `.edit does not declare ${axis} - Phase 4's touch floor is both axes per control`,
+        chip?.body,
+        `.chip does not declare ${axis} - Phase 4's touch floor is both axes per control`,
       ).toContain(axis);
     }
-    expect(
-      rulesOf(swatch).find((r) => r.selector.trim() === ".close"),
-      "a .close rule survives the dialog it belonged to",
-    ).toBeUndefined();
-    expect(
-      occurrences(swatch, "border-radius"),
-      "Swatch.svelte declares a corner",
-    ).toBe(0);
+    expect(swatch, "Swatch.svelte declares a corner").not.toMatch(
+      /border-radius:[ ]*[1-9]/,
+    );
     const editor = rulesOf(swatch).find((r) => r.selector.trim() === ".editor");
     expect(editor, "Swatch.svelte has no .editor rule").toBeDefined();
     for (const forbidden of ["position", "box-shadow", "z-index"]) {
@@ -648,14 +594,21 @@ describe("the tuning UI's structural rules", () => {
         `.editor declares ${forbidden} - the block is in the flow, never floated`,
       ).not.toContain(forbidden);
     }
-    // RENDERED, not scanned: two colour knobs give two toggles, both closed,
-    // and no picker in the markup - the block exists only while open.
+    // RENDERED, not scanned: two colour knobs give two chips, both closed,
+    // each reading its colour, and no picker in the markup.
     const colourKnob = (id: string, label: string): KnobView => ({
       id,
       label,
       kind: "colour",
-      widget: "rail",
-      values: [{ label: "0,85,255", swatch: "rgb(0 85 255)" }],
+      widget: "colour",
+      values: [
+        {
+          label: "Azure, 1 of 2",
+          swatch: "rgb(0 85 255)",
+          name: "Azure, 1 of 2",
+        },
+        { label: "Red, 2 of 2", swatch: "rgb(255 0 0)", name: "Red, 2 of 2" },
+      ],
       index: 0,
       default: 0,
     });
@@ -674,20 +627,30 @@ describe("the tuning UI's structural rules", () => {
     }).body;
     expect(
       occurrences(closedBody, 'data-testid="edit-color"'),
-      "two colour knobs did not render two toggles",
+      "two colour knobs did not render two chips",
     ).toBe(2);
     expect(occurrences(closedBody, 'aria-expanded="false"')).toBe(2);
     expect(occurrences(closedBody, `>${EDIT_COLOR}<`)).toBe(2);
     expect(closedBody).not.toContain(POPOVER_CLOSE);
+    expect(closedBody, "a palette chip reads its hue word").toContain(
+      ">Azure<",
+    );
+    expect(closedBody, "the chip paints the stored value").toContain(
+      "background-color: rgb(0 85 255)",
+    );
     expect(
       occurrences(closedBody, 'data-testid="colour-editor"'),
       "a closed swatch rendered a colour block",
     ).toBe(0);
     expect(closedBody).not.toContain("colour-rail-r");
-    // The square is the PDF's 34 x 34 and square-cornered (D-01).
+    expect(
+      occurrences(closedBody, 'aria-pressed="false"'),
+      "each row carries its lock",
+    ).toBe(2);
+    // The square is 28 x 28 and square-cornered (D-01).
     const square = rulesOf(swatch).find((r) => r.selector.trim() === ".square");
-    expect(square?.body).toContain("inline-size: 34px");
-    expect(square?.body).toContain("block-size: 34px");
+    expect(square?.body).toContain("inline-size: 28px");
+    expect(square?.body).toContain("block-size: 28px");
     expect(square?.body).not.toContain("border-radius");
   });
 
@@ -747,21 +710,15 @@ describe("the tuning UI's structural rules", () => {
     // census that fails with a bare number tells the next author the count
     // moved and nothing about which of the eight they were entitled to.
     //
-    // A COUNT, NOT AN INSPECTION. Three waves of this phase add controls to
-    // these files - a lock, a forecast delta, a ghost fill, and now a picker
-    // with three rails and a knob selector - and each one is a chance to reach
-    // for a colour that is already spoken for. None of them took a NINTH, and
-    // this is the assertion that says so rather than the comment.
-    //
-    // THE CENSUS MOVES; THE LIST DOES NOT, AND THAT DISTINCTION IS THE WHOLE
-    // POINT (plan 10-10). Fourteen becomes twenty-one because ColourPicker
-    // .svelte joins the eight files this test reads, and every one of its seven
-    // declarations is one of the eight entries already on the list: three are
-    // the focus ring (entry 4) on the rail, the selector option and nothing
-    // else, and four are the selected value of a knob (entry 8) - the track
-    // fill, the thumb, the selected detent's outline and the selected pill.
-    // A wave that legitimately spends a ninth has to move the census AND the
-    // list together.
+    // A COUNT, NOT AN INSPECTION. Every wave that adds a control to these
+    // files is a chance to reach for a colour that is already spoken for.
+    // CHANGE 16 spent the colour on one thing it had not before, BY THE
+    // USER'S WORD: the changed-from-default marker is a 2px action rule down
+    // the row's start (the brief's item 7), in four files; it reads as entry
+    // 8's family - the row whose value is the visitor's, not the card's. The
+    // stepper's ladder marks the rung the field is at in the same colour
+    // (entry 8 exactly). The forecast delta and the held bar left with the
+    // rail. The list is still eight.
     const RESERVED = [
       "the splash wordmark and its punched rectangles",
       "the name plate's triangles",
@@ -783,66 +740,70 @@ describe("the tuning UI's structural rules", () => {
     // Per file, so a move is named rather than merely counted.
     expect(
       census,
-      `the accent census moved. The reserved list is these eight and nothing else: ${RESERVED.join("; ")}. A held knob's marker is --color-boundary, the forecast delta is --color-ink and the ghost fill is --color-divider - none of them is entitled to the ninth`,
+      `the accent census moved. The reserved list is these eight and nothing else: ${RESERVED.join("; ")}. A held knob is its seated shackle and full ink, a refused field is the error ink - none of them is entitled to the ninth`,
     ).toEqual({
-      // THE BRIGHTNESS FIELD (change 5, 2026-09-17) SPENDS NONE, the typed
-      // MIDI field's way: boundary box, error ink when refused, quiet reset.
-      "BrightnessField.svelte": 0,
+      // The changed marker's rule (change 16).
+      "BrightnessField.svelte": 1,
       "BudgetMessage.svelte": 2,
       "BudgetMeter.svelte": 1,
       "ColourPicker.svelte": 7,
       "CopyLink.svelte": 1,
-      "Knob.svelte": 9,
+      // The changed marker, the chosen segment's edge and word, the focus
+      // ring on an option, the palette swatch's hover edge and selected outline.
+      "Knob.svelte": 6,
       "KnobRack.svelte": 0,
-      // THE TYPED MIDI FIELD (13.1-07) SPENDS NONE: its box is the boundary
-      // token, its refused state the error ink, its reset quiet ink, and the
-      // focus ring is app.css's (entry 4) - nothing in the file names accent.
-      "MidiField.svelte": 0,
-      // MixTwo.svelte stood here at 0 from 10-11 to 13-10 (Secondary tier,
-      // an outline and never a fill) and left with the file under D-12; the
-      // total did not move because it never spent any.
+      // The changed marker (change 16); the box is the boundary token, the
+      // refused state the error ink, the reset quiet ink.
+      "MidiField.svelte": 1,
       "StampNotice.svelte": 0,
-      // THE NINTH (13-09), ONE DECLARATION, MOVED AT 13.1-04: 13-09 spent it
-      // on the popover's Close button's hover border; with the dialog gone
-      // (D-08) it is the toggle's OPEN state - `.edit[aria-expanded="true"]`
-      // in the action colour, so the row whose block is open reads as the
-      // selected one, entry 8's family. The swatch square is the stored
-      // RGB444 value, never a token; the closed toggle and the hex are quiet
-      // ink. Still one, and the rule that carries it is asserted below.
-      "Swatch.svelte": 1,
+      // The ladder's tick at the rung the field is at (entry 8).
+      "Stepper.svelte": 1,
+      // The changed marker, and the open row's chip edge (entry 8's family).
+      "Swatch.svelte": 2,
       "TuningRegion.svelte": 1,
     });
     expect(
       total,
-      "the accent declaration count across the ten tuning components is no longer twenty-two",
-    ).toBe(22);
-    // Swatch.svelte's one is the open toggle's, by rule, so a move to any
-    // other selector in that file is named rather than absorbed by the count.
-    const openToggle = rulesOf(code(componentPath("Swatch.svelte"))).find(
-      (rule) => rule.selector.trim() === '.edit[aria-expanded="true"]',
+      "the accent declaration count across the twelve tuning components is no longer twenty-three",
+    ).toBe(23);
+    // Swatch.svelte's chip edge is the open chip's, by rule, so a move to
+    // any other selector in that file is named rather than absorbed.
+    const openChip = rulesOf(code(componentPath("Swatch.svelte"))).find(
+      (rule) => rule.selector.trim() === ".chip.open",
     );
     expect(
-      openToggle?.body,
-      "Swatch.svelte's one accent declaration is not the open toggle's colour",
+      openChip?.body,
+      "Swatch.svelte's chip accent is not the open chip's edge",
     ).toContain("--color-action");
 
     // Non-vacuity: the walk really read files with accent in them.
     expect(
       Object.values(census).filter((n) => n > 0).length,
-      "the census found accent in fewer files than the seven that carry it",
-    ).toBe(7);
+      "the census found accent in fewer files than the ten that carry it",
+    ).toBe(10);
 
     // AND THE PICKER SPENT NONE OF IT ON THE THINGS THAT WOULD HAVE BEEN A
     // NINTH ENTRY. The cheap-step tick is --color-boundary, the unaffordable
     // detent is --color-workspace behind a --color-divider hairline, and the
-    // default marker is the soft dot it always was. Named individually,
-    // because the total above would absorb a swap between two of them.
+    // default marker is the soft dot it always was.
     const picker = code(componentPath("ColourPicker.svelte"));
     for (const selector of [".tick", ".detent.unaffordable", ".home"]) {
       expect(
         rulesOf(picker).find((rule) => rule.selector.trim() === selector)?.body,
         `${selector} paints in accent, which is a ninth entry on the reserved list`,
       ).not.toContain("--color-action");
+    }
+    // The lock's held state is not the accent either (its shackle and ink).
+    for (const name of ["Knob.svelte", "Swatch.svelte"]) {
+      const held = rulesOf(code(componentPath(name))).filter((rule) =>
+        rule.selector.includes('.lock[aria-pressed="true"]'),
+      );
+      for (const rule of held) {
+        expect(
+          rule.body,
+          `${name}: ${rule.selector} spends accent`,
+        ).not.toContain("--color-action");
+      }
     }
   });
 
@@ -910,13 +871,17 @@ describe("the tuning UI's structural rules", () => {
     expect(files.length, "the ui directory was walked").toBeGreaterThan(7);
     expect(
       carriers.sort(),
-      "the error ink is scoped to the meter, the message, the destination zone's over-budget refusal (DestinationZone.svelte since 13.1-06, SurfaceActions.svelte's destination half before it), the Sandbox's refused field and the brightness field, and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
+      "the error ink is scoped to the meter, the message, the destination zone's over-budget refusal (DestinationZone.svelte since 13.1-06, SurfaceActions.svelte's destination half before it), the Sandbox's refused field, the brightness field and the stepper's refused boundary (change 16), and appears nowhere else under src/lib/ui/ - the walk excludes *.spec.ts, where identity.spec.ts legitimately names the token",
     ).toEqual([
       `${UI_DIR}/BrightnessField.svelte`,
       `${UI_DIR}/BudgetMessage.svelte`,
       `${UI_DIR}/BudgetMeter.svelte`,
       `${UI_DIR}/DestinationZone.svelte`,
       `${UI_DIR}/MidiField.svelte`,
+      // Change 16: the stepper's field carries the refused boundary for the
+      // MIDI field (the same rule, on the shape they share); its message
+      // stays MidiField's. Never on a box.
+      `${UI_DIR}/Stepper.svelte`,
       `${UI_DIR}/sandbox/RegionInspector.svelte`,
     ]);
     expect(
@@ -1343,135 +1308,177 @@ describe("the tuning UI's structural rules", () => {
     }
   });
 
-  it("the region's arithmetic is present, and both constants are", () => {
-    // SINCE 13-09 THE REGION IS THE INSPECTOR AND ITS ARITHMETIC IS D-21's.
-    // From 05-10 to 13-08 this test held the two height constants (194 / 246
-    // + 48r + 66w + 196p - 4) and the measured 257px wrap that let
-    // ChosenPanel.svelte reserve the tuning region's height before a knob had
-    // turned. The inspector's body is the one scroll container of a panel
-    // whose primary action lives in the context bar (Bible section 7), so
-    // that reservation has no subject and the region carries none of it.
-    // What it carries instead is D-21's one number - the width at which the
-    // 2 x 2 numeric grid is two columns - and the rule that the number is
-    // layout.ts's and written in no component. "Both constants" are now the
-    // two layout.ts reads the decision rests on: the reflow width and the
-    // inset that turns a body width into an inspector width.
+  it("the five sections are sections.ts's rule over every card's knobs, in one fixed order, and the region draws only the ones that hold a knob", () => {
+    // CHANGE 16 (2026-09-21). From 13-09 to change 16 the inspector was PDF
+    // page 5's three groups - Behavior, Appearance, MIDI output - and D-21's
+    // 2 x 2 numeric grid with a ResizeObserver reading layout.ts's reflow
+    // width. The user's word regrouped the rows by what they change, one row
+    // per knob, so the observer, the grid and the two layout.ts reads are
+    // gone from the region: the numbers stay in layout.ts for the shell.
     const region = componentPath("TuningRegion.svelte");
-    const rack = componentPath("KnobRack.svelte");
     const regionRaw = raw(region);
     const regionCode = code(region);
-    const rackCode = code(rack);
-
     expect(regionRaw.length, "TuningRegion.svelte was read").toBeGreaterThan(
       1000,
     );
-    expect(raw(rack).length, "KnobRack.svelte was read").toBeGreaterThan(1000);
-
-    // ---- THE OLD RESERVATION IS GONE, BOTH HALVES. A region that still
-    // reserved a height would be sizing itself for a panel that no longer
-    // exists, and a rack that still billed its rows would be a number nobody
-    // re-derives.
-    for (const relic of ["calc(162px", "calc(214px", "width < 257px", "196p"]) {
-      expect(
-        regionCode + rackCode,
-        `the chosen panel's reservation is still written down as "${relic}" - the inspector scrolls its own body and reserves nothing`,
-      ).not.toContain(relic);
-    }
-
-    // ---- D-21: THE NUMBER IS READ FROM layout.ts AND WRITTEN NOWHERE ELSE.
-    // Both constants imported by name, from the shell's one module.
-    const layoutImport =
-      /import[ ]*[{]([^}]*)[}][ ]*from[ ]*["'][.][/]shell[/]layout["']/.exec(
-        regionCode,
-      );
-    expect(
-      layoutImport,
-      "TuningRegion.svelte no longer imports from ./shell/layout - D-21's number has to come from there",
-    ).not.toBeNull();
-    const imported = (layoutImport as RegExpExecArray)[1];
-    for (const name of ["NUMERIC_GRID_REFLOW", "INSPECTOR_INSET"]) {
-      expect(
-        imported,
-        `TuningRegion.svelte does not import ${name} from layout.ts (D-21: the breakpoint is written once, beside the other numbers)`,
-      ).toContain(name);
-    }
-    expect(
-      NUMERIC_GRID_REFLOW,
-      "layout.ts's reflow width is no longer the width that holds the 402px grid with its insets",
-    ).toBe(GRID_FITS_INSPECTOR);
-    // The rule that reads them, in one function, both names present.
-    const columnsFor = regionCode.slice(
-      regionCode.indexOf("function columnsFor"),
-      regionCode.indexOf("}", regionCode.indexOf("function columnsFor")),
-    );
-    expect(columnsFor, "columnsFor was found").toContain("INSPECTOR_INSET");
-    expect(columnsFor).toContain("NUMERIC_GRID_REFLOW");
-    // And the observer that answers it, because a container query cannot
-    // read a custom property.
-    expect(
-      regionCode,
-      "the grid's columns are not answered by a ResizeObserver on its own box",
-    ).toContain("new ResizeObserver(");
-    // NO LITERAL. Neither file writes the reflow width, the grid width or a
-    // field width as a number; the rack's grid rule reads --columns.
-    for (const literal of [
-      String(NUMERIC_GRID_REFLOW),
-      String(NUMERIC_GRID_W),
-      `${NUMERIC_FIELD_W}px`,
-    ]) {
-      expect(
-        regionCode + rackCode,
-        `a component writes "${literal}" as a literal - D-21 says the number lives in layout.ts and not in a component`,
-      ).not.toContain(literal);
-    }
-    const gridRule = rulesOf(rackCode).find(
-      (rule) => rule.selector.trim() === ".rack.grid",
-    );
-    expect(
-      gridRule,
-      "KnobRack.svelte no longer has a .rack.grid rule",
-    ).toBeDefined();
-    expect(
-      gridRule?.body,
-      "the grid's column count is not read from the --columns the region sets",
-    ).toContain("repeat(var(--columns");
-    expect(rackCode, "the rack sets --columns from its prop").toContain(
-      "style:--columns={columns}",
-    );
-
-    // ---- THE SECTIONS ARE THE SCHEMA'S PARTITION AND THERE IS NO ADVANCED
-    // SECTION. Three titles from the copy module, the MIDI ids the partition
-    // keys on, and the section 7 boundary quoted where the next person reads
-    // it - in the header, which is why this half reads the raw file.
-    for (const title of [
+    for (const relic of [
+      "ResizeObserver",
+      "NUMERIC_GRID_REFLOW",
+      "INSPECTOR_INSET",
+      "gridColumns",
       "SECTION_BEHAVIOR",
       "SECTION_APPEARANCE",
+      "isMidiDestination(knob) &&",
+    ]) {
+      expect(regionCode, `the region still carries ${relic}`).not.toContain(
+        relic,
+      );
+    }
+
+    // ---- THE RULE, TOTAL AND FIXED. Every knob on every card lands in one
+    // of the five; the order is the constant's; the MIDI section is
+    // surprise.ts's predicate, so it is exactly what Randomize preserves.
+    expect(SECTION_ORDER).toEqual(["look", "feel", "sound", "midi", "sync"]);
+    let counted = 0;
+    const seen = new Set<string>();
+    for (const entry of CATALOG) {
+      for (const knob of stampKnobs(entry)) {
+        const section = sectionOf(knob);
+        expect(SECTION_ORDER, `${entry.id}.${knob.id} -> ${section}`).toContain(
+          section,
+        );
+        expect(
+          section === "midi",
+          `${entry.id}.${knob.id}: the MIDI section is not surprise.ts's predicate`,
+        ).toBe(isMidiDestination(knob));
+        if (knob.kind === "colour")
+          expect(section, `${entry.id}.${knob.id} is a colour`).toBe("look");
+        seen.add(section);
+        counted += 1;
+      }
+    }
+    expect(counted, "every card's knobs were walked").toBeGreaterThan(100);
+    expect([...seen].sort(), "every section is used by some card").toEqual([
+      "feel",
+      "look",
+      "midi",
+      "sound",
+      "sync",
+    ]);
+    // The witnesses, one per section and the edges of the word rule.
+    const at = (entryId: string, knobId: string) => {
+      const knob = stampKnobs(byId(entryId)!).find((k) => k.id === knobId);
+      expect(knob, `${entryId} declares ${knobId}`).toBeDefined();
+      return sectionOf(knob!);
+    };
+    expect(at("aurora", "speed")).toBe("feel");
+    expect(at("aurora", "colour")).toBe("look");
+    expect(at("orbit", "sync")).toBe("sync");
+    expect(at("orbit", "division")).toBe("sync");
+    expect(at("ghost", "division"), "Clocks a point").toBe("sync");
+    expect(at("orbit", "tempo"), "a tempo is a speed").toBe("feel");
+    expect(at("orbit", "note1"), "Ring 1 MIDI note is the wire").toBe("midi");
+    expect(at("dial", "send"), "Send is the wire").toBe("midi");
+    expect(at("chorus", "key")).toBe("sound");
+    expect(at("chorus", "velocity")).toBe("sound");
+    expect(at("chorus", "inversion")).toBe("sound");
+    expect(at("stage", "modifier")).toBe("sound");
+    expect(at("ninepads", "grid"), "Pads").toBe("feel");
+    expect(at("pomodoro", "note"), "Alarm note").toBe("sound");
+    const grouped = groupBySection(stampKnobs(byId("orbit")!));
+    expect(grouped.midi.map((k) => k.id)).toEqual([
+      "note1",
+      "note2",
+      "note3",
+      "note4",
+      "channel",
+    ]);
+    expect(grouped.sync.map((k) => k.id)).toEqual(["sync", "division"]);
+    expect(grouped.look.length).toBe(4);
+
+    // ---- THE REGION DRAWS THEM: five snippets, the five titles from the
+    // copy module, Look unconditional, the rest gated on their group; the
+    // MIDI snippet renders one MidiField per knob and no rack; the actions
+    // row after the last section as the inspector's child; the stamp
+    // notice as its lead.
+    for (const name of ["look", "feel", "sound", "midi", "sync", "lead"]) {
+      expect(regionCode, `no ${name} snippet`).toContain(
+        `{#snippet ${name}()}`,
+      );
+    }
+    for (const title of [
+      "SECTION_LOOK",
+      "SECTION_FEEL",
+      "SECTION_SOUND",
       "SECTION_MIDI",
+      "SECTION_SYNC",
     ]) {
       expect(regionCode, `the inspector does not render ${title}`).toContain(
         `title: ${title}`,
       );
     }
-    // Since 13-10 the partition is surprise.ts's ONE predicate rather than a
-    // list of four ids in this file, so the section and Randomize's scope
-    // cannot drift apart; the four ids the list carried resolve true through
-    // it, with the labels the catalog gives them.
+    expect(SECTION_LOOK).toBe("Look");
+    expect(SECTION_FEEL).toBe("Feel");
+    expect(SECTION_SOUND).toBe("Sound");
+    expect(SECTION_MIDI).toBe("MIDI");
+    expect(SECTION_SYNC).toBe("Sync");
+    expect(regionCode).toContain(
+      "const grouped = $derived(groupBySection(knobViews))",
+    );
+    expect(regionCode, "Look is gated").toContain(
+      'if (name === "look") out.push({ title: SECTION_LOOK, content: look });',
+    );
+    expect(regionCode).toContain("grouped.midi.length > 0");
+    const snippet = (name: string) =>
+      regionCode.slice(
+        regionCode.indexOf(`{#snippet ${name}()}`),
+        regionCode.indexOf(
+          "{/snippet}",
+          regionCode.indexOf(`{#snippet ${name}()}`),
+        ),
+      );
+    const midi = snippet("midi");
+    expect(midi, "the MIDI section hands its knobs to the rack").not.toContain(
+      "<KnobRack",
+    );
+    expect(midi).toContain("{#each grouped.midi as knob (knob.id)}");
+    expect(midi).toContain(
+      "<MidiField {knob} onchange={changeKnob} onreset={resetKnob} />",
+    );
+    expect(midi, "the MIDI rows lost their test id").toContain(
+      'data-testid="midi-grid"',
+    );
+    expect(
+      midi,
+      "section 16's helper is not read by a screen reader",
+    ).toContain('<p class="sr-only">{MIDI_HELPER}</p>');
+    for (const name of ["look", "feel", "sound", "sync"]) {
+      expect(snippet(name), `the ${name} section renders no rack`).toContain(
+        "<KnobRack",
+      );
+    }
+    expect(snippet("look"), "the brightness field is not under Look").toContain(
+      "<BrightnessField",
+    );
+    expect(
+      snippet("sync"),
+      "the preview's hold line is not under Sync",
+    ).toContain("{PREVIEW_INTERNAL_CLOCK}");
+    expect(snippet("lead")).toContain("<StampNotice");
+    const inspector = regionCode.slice(
+      regionCode.indexOf("<Inspector"),
+      regionCode.indexOf("</Inspector>"),
+    );
+    expect(
+      inspector.indexOf('data-testid="surprise-me"'),
+      "Randomize is not the inspector's child after the sections",
+    ).toBeGreaterThan(inspector.indexOf("{sections}"));
+    expect(regionCode).toContain("{lead}");
+    // The MIDI partition is surprise.ts's predicate, still: the roll's scope.
     expect(
       regionCode,
-      "the MIDI output partition is not surprise.ts's predicate",
-    ).toContain("isMidiDestination(knob)");
-    expect(regionCode).not.toContain("MIDI_IDS");
-    for (const [id, label] of [
-      ["cc", "CC number"],
-      ["ccBase", "CC base"],
-      ["channel", "Channel"],
-      ["send", "Send"],
-    ]) {
-      expect(
-        isMidiDestination({ id, label }),
-        `the MIDI output partition no longer admits ${id}`,
-      ).toBe(true);
-    }
+      "the rollable list is not the rack minus the MIDI predicate",
+    ).toContain("knobViews.filter((knob) => !isMidiDestination(knob))");
     expect(
       /advanced/i.test(regionCode),
       "TuningRegion.svelte renders something called Advanced - section 7's tier is a decision written down, not an empty disclosure",
@@ -1481,37 +1488,22 @@ describe("the tuning UI's structural rules", () => {
       "the header no longer quotes section 7's boundary, so the next person will add the empty Advanced disclosure",
     ).toContain("Use actual parameter names");
     expect(regionRaw).toContain("THERE IS NO ADVANCED SECTION");
-
-    // ---- THE HEADLINE IS ONE CONSTANT, NOT PER ENTRY.
-    expect(regionCode, "the headline is not the register's constant").toContain(
-      "INSPECTOR_HEADLINE",
-    );
-    expect(
-      INSPECTOR_HEADLINE.length,
-      "the headline is two lines, the PDF's",
-    ).toBe(2);
-    expect(
-      regionCode.includes("headline={") || regionCode.includes("{headline}"),
-      "the headline is not handed to Inspector.svelte as a snippet",
-    ).toBe(true);
-
-    // ---- THE DYNAMIC IMPORT BOUNDARY IS STILL THE ONE TEST 1 HOLDS. Stated
-    // here once more because it is what makes the inspector's chunk the
-    // gallery's chunk plus nothing: the compiler arrives inside onMount.
+    // The headline is one constant, handed as a snippet; the compiler
+    // arrives inside onMount (test 1's boundary, restated).
+    expect(regionCode).toContain("INSPECTOR_HEADLINE");
+    expect(INSPECTOR_HEADLINE.length, "two lines, the PDF's").toBe(2);
     expect(regionCode).toContain('await import("$lib/tune/model")');
     expect(regionCode, "the tuner is built statically").not.toMatch(
       /from[ ]*["']\$lib\/tune\/model["']/,
     );
   });
 
-  it("every one of the twelve knob kinds resolves to a widget the row renders, and the boundary is four words to a row and a select from five", () => {
+  it("every one of the twelve knob kinds resolves to a widget the row renders, and the boundary is four words to a row, a select from five, a stepper past two integers", () => {
     // THE RULE IS TOTAL AND THE ROW RENDERS EVERYTHING IT CAN RETURN. The
     // widget vocabulary is read off Knob.svelte's own branches rather than
     // typed: every `view.widget === "..."` the markup tests, plus the
-    // radiogroup that is its else branch, plus the picker block KnobRack
-    // .svelte takes out of the row list. A widget widgetFor could return that
-    // no branch renders would be a knob that fails to render, which the rule
-    // promises cannot happen.
+    // radiogroup that is its else branch, plus the colour block KnobRack
+    // .svelte takes out of the row list.
     const knob = code(componentPath("Knob.svelte"));
     const rack = code(componentPath("KnobRack.svelte"));
     const branches = new Set(
@@ -1519,13 +1511,16 @@ describe("the tuning UI's structural rules", () => {
     );
     expect(
       [...branches].sort(),
-      "Knob.svelte's widget branches are not the rail, the select and the swatch",
-    ).toEqual(["rail", "select", "swatch"]);
+      "Knob.svelte's widget branches are not the select, the stepper and the swatch",
+    ).toEqual(["select", "stepper", "swatch"]);
     expect(knob, "the else branch is no longer a radiogroup").toContain(
       'role="radiogroup"',
     );
     expect(rack, "the rack no longer takes the colour knobs out").toContain(
       'row.widget === "colour"',
+    );
+    expect(knob, "no rail survives: a range input is a slider").not.toContain(
+      'type="range"',
     );
     const renderable = new Set([...branches, "words", "colour"]);
 
@@ -1542,84 +1537,70 @@ describe("the tuning UI's structural rules", () => {
     }
     expect(seen, "the loop ran over all twelve kinds").toBe(12);
 
-    // THE 4/5 BOUNDARY (13-09, section 7, PDF page 5's select). A worded knob
-    // with four options is the row of segmented radios; with five it is the
-    // select; with nine it is a rail, because nine words do not fit a closed
-    // enumeration either. Driven with real scale words, because a scale
-    // whose set is not in the table would rail for a different reason and
-    // pass this test for the wrong one.
+    // THE 4/5 BOUNDARY (13-09, section 7): four worded options are the
+    // segmented row, five and above the select - and the select has no
+    // ceiling since change 16 (CHORUS's twelve roots read as one). Driven
+    // with real scale words, because a scale whose set is not in the table
+    // would read as its semitones instead.
     const scales = Object.keys(SCALE_WORDS);
     expect(scales.length, "the scale table has enough words").toBeGreaterThan(
       9,
     );
     expect(SEGMENTED_MAX, "the row holds four").toBe(4);
-    expect(WORD_ROW_MAX, "the select holds eight").toBe(8);
     expect(widgetFor("scale", scales.slice(0, 4))).toBe("words");
     expect(
       widgetFor("scale", scales.slice(0, 5)),
       "five worded options must be a select, not a row (the boundary moved to 4/5 at 13-09)",
     ).toBe("select");
     expect(widgetFor("scale", scales.slice(0, 8))).toBe("select");
-    expect(widgetFor("scale", scales.slice(0, 9))).toBe("rail");
-    // The same boundary through a note knob, whose words are computed rather
-    // than tabled.
+    expect(widgetFor("scale", scales.slice(0, 9))).toBe("select");
     const notes = (n: number) =>
-      Array.from({ length: n }, (_, i) => String(60 + i));
+      Array.from({ length: n }, (_, i) => String(48 + i));
     expect(widgetFor("note", notes(4))).toBe("words");
     expect(widgetFor("note", notes(5))).toBe("select");
-    // And a value-count change is NOT what moved: the select renders the
-    // same values in the same order, one <option> per value.
+    expect(widgetFor("note", notes(12)), "CHORUS's twelve roots").toBe(
+      "select",
+    );
+    expect(
+      widgetFor("note", notes(NOTE_SELECT_MAX + 1)),
+      "a long note ladder is typed",
+    ).toBe("stepper");
+    // Integers: two are words, three a stepper (12-05, change 16).
+    expect(widgetFor("count", ["9", "16"])).toBe("words");
+    expect(widgetFor("count", ["41", "82", "123"])).toBe("stepper");
+    expect(widgetFor("amount", SEVEN_INTEGERS)).toBe("stepper");
+    // The select renders the same values in the same order, one <option> each.
     expect(knob, "the select does not render one option per value").toContain(
       "{#each view.values as value, at (at)}",
     );
-    expect(knob).toContain("<option value={at} selected={at === view.index}>");
+    expect(knob).toContain("<option value={at} selected={at === view.index}");
 
-    // THE MIDI SECTION IS THE ONE PARTITION THE RACK DOES NOT RENDER (13.1-07,
-    // 13.1-CONTEXT D-09): its snippet renders one MidiField per MIDI knob and
-    // no KnobRack, while Behavior and Appearance still render the rack. The
-    // widget rule is untouched - widgetFor still resolves a five- or
-    // sixteen-integer knob to a rail - and Knob.svelte is not edited; the
-    // region simply hands the partition to the field instead of the rack.
-    const region = code(componentPath("TuningRegion.svelte"));
-    const snippet = (name: string) =>
-      region.slice(
-        region.indexOf(`{#snippet ${name}()}`),
-        region.indexOf("{/snippet}", region.indexOf(`{#snippet ${name}()}`)),
-      );
-    const midi = snippet("midi");
-    expect(midi.length, "the midi snippet was found").toBeGreaterThan(50);
-    expect(midi, "the MIDI section hands its knobs to the rack").not.toContain(
-      "<KnobRack",
-    );
-    expect(midi).toContain("{#each midiKnobs as knob (knob.id)}");
-    expect(midi).toContain(
-      "<MidiField {knob} onchange={changeKnob} onreset={resetKnob} />",
-    );
-    expect(midi, "the field grid lost its D-21 test id").toContain(
-      'data-testid="midi-grid"',
-    );
-    expect(midi, "the grid's columns are not the region's answer").toContain(
-      "style:--columns={gridColumns}",
-    );
-    for (const name of ["behavior", "appearance"]) {
-      expect(
-        snippet(name),
-        `the ${name} section no longer renders the rack`,
-      ).toContain("<KnobRack");
+    // THE WHOLE SHELF, THROUGH THE RESOLVER THE PANEL USES: every widget a
+    // branch renders, and the split the review table records.
+    const split: Record<string, number> = {};
+    for (const entry of CATALOG) {
+      for (const k of stampKnobs(entry)) {
+        const widget = widgetFor(k.kind, k.options, k.id);
+        expect(renderable.has(widget), `${entry.id}.${k.id}`).toBe(true);
+        split[widget] = (split[widget] ?? 0) + 1;
+      }
     }
+    expect(
+      split,
+      "the shelf's widget split moved: 138 knobs on 27 cards (docs/TUNING-REVIEW.md)",
+    ).toEqual({ colour: 39, words: 29, select: 11, stepper: 59 });
   });
 
-  it("MIDI output is two typed fields over the knobs' closed lists: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {
-    // 13.1-07, 13.1-CONTEXT D-09 (bench line 7, screenshot 2: "replace MIDI
-    // channel selector with MIDI output selector with input fields, exactly
-    // as on the attached screenshot"). THREE HALVES. The door: view.ts's
-    // typedIndex maps a typed whole number to the knob's index or to nothing,
-    // never to a nearest option. The field: rendered with svelte/server for
-    // its shape - the PDF's label, a text input with a numeric keyboard, the
-    // knob's own literal, the cue on a Lua channel and not on a preset's. The
-    // wiring: the source routes every keystroke through the door and then
-    // through onchange(knob.id, index), the same call a rail makes, and a
-    // refused keystroke through aria-invalid with the message under it.
+  it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {
+    // 13.1-07, 13.1-CONTEXT D-09; change 16's row. THREE HALVES. The door:
+    // view.ts's typedIndex maps a typed whole number to the knob's index or to
+    // nothing, never to a nearest option - a MIDI destination is validated,
+    // not snapped. The field: rendered with svelte/server for its shape - the
+    // PDF's label, Stepper.svelte's spinbutton with a numeric keyboard, the
+    // knob's own literal, the two step boxes, the cue on a Lua channel (read
+    // by a screen reader, and the label's title) and not on a preset's. The
+    // wiring: every keystroke through the door and then onchange(knob.id,
+    // index), a refused one through aria-invalid with the message under it.
     const cc = ARC.knobs.find((knob) => knob.id === "cc");
     const channel = ARC.knobs.find((knob) => knob.id === "channel");
     expect(cc, "Arc has a cc knob").toBeDefined();
@@ -1639,7 +1620,6 @@ describe("the tuning UI's structural rules", () => {
     // ---- THE DOOR. A typed literal to an index; not offered to nothing;
     // never snapped to the nearest option; leading zeros and spaces are the
     // same number; a word is nothing.
-    // The plan wrote "the index of 20 is 1"; in Arc's list it is 2 (1, 16, 20).
     expect(typedIndex(ccLiterals, "20"), "20 is index 2").toBe(2);
     expect(typedIndex(ccLiterals, "1")).toBe(0);
     expect(typedIndex(ccLiterals, "102")).toBe(4);
@@ -1654,7 +1634,6 @@ describe("the tuning UI's structural rules", () => {
     expect(typedIndex(channelLiterals, "0"), "the firmware's 0").toBe(0);
     expect(typedIndex(channelLiterals, "15")).toBe(15);
     expect(typedIndex(channelLiterals, "16")).toBeUndefined();
-    // The run: a Lua channel starts at 0, a preset's at 1, Arc's cc is no run.
     expect(integerRun(channelLiterals)).toEqual({ min: 0, max: 15 });
     expect(
       integerRun(Array.from({ length: 16 }, (_, i) => String(i + 1))),
@@ -1662,10 +1641,7 @@ describe("the tuning UI's structural rules", () => {
     expect(integerRun(ccLiterals)).toBeUndefined();
     expect(integerRun([])).toBeUndefined();
 
-    // ---- THE WORDS, D-09's ledgered forms from ONE builder. The controller
-    // sentence names the offered values; the channel sentence names the run's
-    // bounds in the knob's own base, so a Lua entry reads 0 to 15 and a preset
-    // 1 to 16 - which is why G.29's "A channel is 1 to 16." is not reused.
+    // ---- THE WORDS, D-09's ledgered forms from ONE builder.
     expect(offeredLine("cc", ccLiterals)).toBe(
       "A controller number here is one of 1, 16, 20, 74 or 102.",
     );
@@ -1686,8 +1662,6 @@ describe("the tuning UI's structural rules", () => {
       "The firmware counts channels from 0; your DAW’s channel 1 is 0 here.",
     );
     expect(LUA_CHANNEL_CUE, "a real apostrophe (D-05)").not.toContain("'");
-    // The labels: the PDF's two for cc and channel, the knob's own otherwise
-    // (13.1-CONTEXT question 6, shipped this way).
     expect(CC_NUMBER_LABEL).toBe("CC number");
     expect(CHANNEL_LABEL).toBe("Channel");
     expect(midiFieldLabel({ id: "cc", label: "Mod controller" })).toBe(
@@ -1711,8 +1685,7 @@ describe("the tuning UI's structural rules", () => {
       id,
       label,
       kind: "amount",
-      widget: "rail",
-      skin: "dots",
+      widget: "stepper",
       values: literals.map((literal) => ({ label: literal })),
       literals,
       index,
@@ -1726,10 +1699,19 @@ describe("the tuning UI's structural rules", () => {
     const ccBody = renderField(field("cc", "CC number", ccLiterals, 3));
     expect(ccBody).toContain('data-testid="midi-field-cc"');
     expect(ccBody, "the field is a text input").toContain('type="text"');
+    expect(ccBody, "a spinbutton").toContain('role="spinbutton"');
     expect(ccBody, "with a numeric keyboard").toContain('inputmode="numeric"');
     expect(ccBody).toContain('autocomplete="off"');
     expect(ccBody, "the value is the knob's own literal").toMatch(/value="74"/);
-    expect(ccBody).toContain(" CC number</label>");
+    expect(ccBody, "the rank is the fourth of five").toContain(
+      'aria-valuenow="3"',
+    );
+    expect(ccBody).toContain('data-testid="midi-field-cc-input"');
+    expect(ccBody, "the two step boxes").toContain(
+      'data-testid="midi-field-cc-down"',
+    );
+    expect(ccBody).toContain('data-testid="midi-field-cc-up"');
+    expect(ccBody).toContain(">CC number</label>");
     expect(ccBody, "no cue on a controller field").not.toContain(
       LUA_CHANNEL_CUE,
     );
@@ -1740,19 +1722,25 @@ describe("the tuning UI's structural rules", () => {
       /data-testid="midi-field-cc-reset"[^>]*disabled/,
     );
     expect(ccBody).toContain('aria-label="Reset CC number"');
+    expect(ccBody, "a MIDI field carries no lock").not.toContain(
+      "aria-pressed",
+    );
     const luaBody = renderField(
       field("channel", "MIDI channel", channelLiterals, 0),
     );
     expect(luaBody, "a Lua channel shows the firmware's 0 (X-08)").toMatch(
       /value="0"/,
     );
-    expect(luaBody).toContain(" Channel</label>");
+    expect(luaBody).toContain(">Channel</label>");
     expect(luaBody, "the cue is under a Lua channel").toContain(
       LUA_CHANNEL_CUE,
     );
     expect(luaBody).toContain('data-testid="midi-field-channel-cue"');
     expect(luaBody, "the cue is not in the field's aria-describedby").toMatch(
       /aria-describedby="[^"]*-cue"/,
+    );
+    expect(luaBody, "the cue is not the label's title").toMatch(
+      /title="The firmware counts channels from 0/,
     );
     const presetBody = renderField(
       field(
@@ -1781,7 +1769,8 @@ describe("the tuning UI's structural rules", () => {
 
     // ---- THE WIRING, off the source. Every keystroke goes through the door
     // and then through onchange(knob.id, index); a refused one keeps the text
-    // and names the reason; the last good value is the knob's readout.
+    // and names the reason; the last good value is the knob's readout; the
+    // boxes walk the rungs in value order.
     const source = code(componentPath("MidiField.svelte"));
     expect(source).toContain("typedIndex(literals, text)");
     expect(source).toContain("onchange(knob.id, index)");
@@ -1789,7 +1778,7 @@ describe("the tuning UI's structural rules", () => {
       "problem = offeredLine(knob.id, literals)",
     );
     expect(source).toContain("problem = TYPE_A_NUMBER");
-    expect(source).toContain("aria-invalid={problem !== undefined}");
+    expect(source).toContain("invalid={problem !== undefined}");
     expect(source, "the field shows the refused text or the readout").toContain(
       'refused ?? knob.readout ?? ""',
     );
@@ -1800,25 +1789,38 @@ describe("the tuning UI's structural rules", () => {
       "knob.index !== knob.default",
     );
     expect(source).toContain("aria-label={fieldResetName(label)}");
+    expect(source, "the boxes do not walk the rungs in value order").toContain(
+      "valueOrder(literals)",
+    );
+    expect(source, "a MIDI field snaps - it validates").not.toContain(
+      "nearestRung",
+    );
     expect(source, "no free numeric: never type=number").not.toContain(
       'type="number"',
     );
-    // 44px on both controls, both axes on the reset; no corner (D-01).
-    const input = rulesOf(source).find((r) => r.selector.trim() === ".input");
-    expect(input?.body).toContain("min-block-size: 44px");
-    const reset = rulesOf(source).find((r) => r.selector.trim() === ".reset");
+    // 44px on the reset, both axes; every corner declared is 0 (D-01); never
+    // a font the instrument register reserves, never accent on a control.
+    const reset = rulesOf(source).find((r) => r.selector.trim() === ".box");
     expect(reset?.body).toContain("min-inline-size: 44px");
     expect(reset?.body).toContain("min-block-size: 44px");
-    for (const rule of rulesOf(source)) {
-      for (const match of rule.body.matchAll(
-        /border-radius[ ]*:[ ]*([^;]+)/g,
-      )) {
-        expect(match[1].trim(), `${rule.selector} declares a corner`).toBe("0");
+    for (const file of ["MidiField.svelte", "Stepper.svelte"]) {
+      for (const rule of rulesOf(code(componentPath(file)))) {
+        for (const match of rule.body.matchAll(
+          /border-radius[ ]*:[ ]*([^;]+)/g,
+        )) {
+          expect(
+            match[1].trim(),
+            `${file} ${rule.selector} declares a corner`,
+          ).toBe("0");
+        }
       }
     }
-    // Never a font the instrument register reserves, never accent.
     expect(source).not.toContain("--font-mono");
-    expect(source).not.toContain("--color-action");
+    const stepper = code(componentPath("Stepper.svelte"));
+    expect(
+      rulesOf(stepper).find((r) => r.selector.trim() === ".input")?.body,
+      "the typed value is not in the mono face",
+    ).toContain("var(--font-mono)");
   });
 
   it("a changed field shows its marker and its own reset restores only that field, with the others proved unmoved", async () => {
@@ -1832,11 +1834,11 @@ describe("the tuning UI's structural rules", () => {
       knob,
       "the changed test is not the one comparison section 7 asks for",
     ).toContain("view.index !== view.default");
-    expect(knob, "the marker is not keyed on changed").toMatch(
-      /[{]#if changed[}]\s*<span class="changed"/,
+    expect(knob, "the marker is not keyed on changed").toContain(
+      '<div class="row" class:changed>',
     );
-    expect(knob, "the marker carries no accessible sentence").toContain(
-      "{FIELD_CHANGED}",
+    expect(knob, "the marker carries no accessible sentence").toMatch(
+      /[{]#if changed[}]\s*<span class="sr-only" data-testid="knob-[{]view[.]id[}]-changed"/,
     );
     expect(knob, "the reset is not disabled at the default").toContain(
       "disabled={!changed}",
@@ -1844,8 +1846,8 @@ describe("the tuning UI's structural rules", () => {
     expect(knob, "the reset is not named for its field").toContain(
       "aria-label={fieldResetName(view.label)}",
     );
-    expect(knob, "the reset does not call the row's one reset").toContain(
-      'data-testid="knob-{view.id}-reset"\n    disabled={!changed}\n    aria-label={fieldResetName(view.label)}\n    onclick={onreset}',
+    expect(knob, "the reset does not call the row's one reset").toMatch(
+      /data-testid="knob-[{]view[.]id[}]-reset"\s+disabled=[{]!changed[}]\s+aria-label=[{]fieldResetName[(]view[.]label[)][}]\s+title=[{]FIELD_RESET[}]\s+onclick=[{]onreset[}]/,
     );
     expect(fieldResetName("Speed")).toBe("Reset Speed");
     // The region hands the row's reset to the tuner by id, and nothing else.
@@ -1882,7 +1884,6 @@ describe("the tuning UI's structural rules", () => {
         view.knobs.find((k) => k.id === id) as KnobView;
       expect(at(moved, a.id).index).not.toBe(a.default);
       expect(at(moved, b.id).index).not.toBe(b.default);
-      // Both changed, as the row would show them.
       expect(at(moved, a.id).index !== at(moved, a.id).default).toBe(true);
 
       tuner.reset(a.id);
@@ -2041,13 +2042,187 @@ describe("the tuning UI's structural rules", () => {
     }
   });
 
-  it("Brightness is one typed field under Appearance on every card: 1..255 with the last good value kept, out of range refused as 'Brightness is 1 to 255.', the marker and a per-field reset, never a knob and never rolled, Reset settings putting it back", async () => {
+  it("the rows, rendered (change 16): a stepper shows the rung with its unit and its rank on the ladder, a segmented row is real radios in joined boxes, a select lists every rung, a swatch chip reads its channels, and every row stacks under 364px of its own container", () => {
+    // svelte/server renders each skin from a KnobView the panel would build;
+    // the behaviour a browser owns (the arrows, a typed value snapping, the
+    // chip opening the block) is pressed in e2e/tuning.e2e.ts.
+    const renderKnob = (view: KnobView, held = false) =>
+      render(Knob, {
+        props: {
+          view,
+          held,
+          onchange: () => undefined,
+          onreset: () => undefined,
+          onhold: () => undefined,
+        },
+      }).body;
+
+    // A STEPPER over SNAKE's descending ladder, at 220 ms: the field reads
+    // 220 with the unit beside it, the rank is 2 of 0..3 on the VALUE
+    // order (110 160 220 300), both boxes live, four ticks with the third
+    // marked, the reset live and the marker on because 220 is not 160.
+    const snake: KnobView = {
+      id: "speed",
+      label: "Step time",
+      unit: "ms",
+      kind: "speed",
+      widget: "stepper",
+      values: ["300", "220", "160", "110"].map((label) => ({ label })),
+      literals: ["300", "220", "160", "110"],
+      readout: "220",
+      index: 1,
+      default: 2,
+    };
+    const stepper = renderKnob(snake);
+    expect(stepper).toContain('data-testid="knob-speed"');
+    expect(stepper).toContain('data-index="1"');
+    expect(stepper).toContain('data-widget="stepper"');
+    expect(stepper).toContain('data-changed="true"');
+    expect(stepper, "the label is the display label, unit split off").toContain(
+      ">Step time</label>",
+    );
+    expect(stepper).toMatch(/value="220"/);
+    expect(stepper, "the unit beside the value").toContain(">ms</span>");
+    expect(stepper, "the rank is on the value order").toContain(
+      'aria-valuenow="2"',
+    );
+    expect(stepper).toContain('aria-valuemax="3"');
+    expect(stepper).toContain('aria-valuetext="220 ms"');
+    expect(stepper, "the snap rule describes the field").toContain(SNAP_HINT);
+    expect(stepper.match(/class="tick[^"]*"/g)?.length, "four ticks").toBe(4);
+    expect(
+      stepper.match(/class="tick[^"]* at"/g)?.length,
+      "one tick is the rung the field is at",
+    ).toBe(1);
+    expect(stepper).toContain(`aria-label="${STEP_DOWN}"`);
+    expect(stepper).toContain(`aria-label="${STEP_UP}"`);
+    expect(stepper).not.toMatch(/data-testid="knob-speed-down"[^>]*disabled/);
+    expect(stepper).not.toMatch(/data-testid="knob-speed-reset"[^>]*disabled/);
+    expect(stepper).toContain('data-testid="knob-speed-changed"');
+    expect(stepper, "the lock is on the row").toContain(
+      'data-testid="knob-speed-hold"',
+    );
+    expect(stepper).toContain(`aria-label="${KNOB_HOLD}"`);
+    // At the foot of the ladder the down box is disabled; held reads Locked.
+    const foot = renderKnob({ ...snake, index: 3, default: 3 }, true);
+    expect(foot).toMatch(/data-testid="knob-speed-down"[^>]*disabled/);
+    expect(foot).not.toMatch(/data-testid="knob-speed-up"[^>]*disabled/);
+    expect(foot).toMatch(/data-testid="knob-speed-reset"[^>]*disabled/);
+    expect(foot).toContain('data-changed="false"');
+    expect(foot).toContain('aria-pressed="true"');
+    expect(foot).toContain(`aria-label="${KNOB_HELD}"`);
+    // A long ladder draws no ticks, only the mark.
+    const long = renderKnob({
+      ...snake,
+      id: "n",
+      unit: undefined,
+      values: Array.from({ length: 128 }, (_, i) => ({ label: String(i) })),
+      literals: Array.from({ length: 128 }, (_, i) => String(i)),
+      readout: "36",
+      index: 36,
+      default: 36,
+    });
+    expect(long.match(/class="tick[^"]*"/g)?.length).toBe(1);
+
+    // A SEGMENTED ROW: real radios in labels under a radiogroup, one checked,
+    // the selected label marked, no select, no spinbutton.
+    const words = renderKnob({
+      id: "direction",
+      label: "Direction",
+      kind: "direction",
+      widget: "words",
+      values: [{ label: "Rising" }, { label: "Falling" }],
+      index: 1,
+      default: 0,
+    });
+    expect(words).toContain('role="radiogroup"');
+    expect(occurrences(words, 'type="radio"')).toBe(2);
+    expect(occurrences(words, "checked")).toBe(1);
+    expect(words).toMatch(/class="option[^"]*selected[^"]*"[^>]*>[^]*Falling/);
+    expect(words).not.toContain("<select");
+    expect(words).not.toContain('role="spinbutton"');
+    expect(words, "the default is described once on the group").toContain(
+      "Default is Rising.",
+    );
+
+    // A SELECT: one option per rung, the rung selected, the house arrow drawn
+    // by the wrapper rather than the engine.
+    const select = renderKnob({
+      id: "key",
+      label: "Key",
+      kind: "note",
+      widget: "select",
+      values: Array.from({ length: 12 }, (_, i) => ({
+        label: `${["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][i]}3`,
+      })),
+      index: 4,
+      default: 0,
+    });
+    expect(occurrences(select, "<option")).toBe(12);
+    expect(select).toMatch(/<option value="4" selected[^>]*>E3</);
+    expect(select).toContain('<label class="label type-micro');
+    const knobRules = rulesOf(code(componentPath("Knob.svelte")));
+    expect(
+      knobRules.find((r) => r.selector.trim() === ".select")?.body,
+    ).toContain("appearance: none");
+    expect(
+      knobRules.find((r) => r.selector.trim() === ".select-wrap::after")?.body,
+      "the arrow is not two straight edges",
+    ).toContain("border-inline-end: 1px solid");
+
+    // THE SEGMENTED CONTROL'S SHAPE: joined boxes (a shared edge collapsed),
+    // the chosen one on the action colour by edge and word, never a fill.
+    const optionRule = knobRules.find((r) => r.selector.trim() === ".option");
+    expect(optionRule?.body).toContain("margin-inline-start: -1px");
+    expect(optionRule?.body).toContain(
+      "border: 1px solid var(--color-boundary)",
+    );
+    expect(
+      knobRules.find((r) => r.selector.trim() === ".option.selected")?.body,
+    ).toContain("border-color: var(--color-action)");
+    expect(
+      knobRules.find((r) => r.selector.trim() === ".option.selected")?.body,
+      "the chosen segment is a fill",
+    ).not.toContain("background");
+
+    // EVERY ROW COMPONENT STACKS UNDER 364px OF ITS OWN CONTAINER: the root
+    // is the container, the row queries it, so the rack, the picker and the
+    // Sandbox need none. The label takes the micro face on every row.
+    for (const name of [
+      "Knob.svelte",
+      "MidiField.svelte",
+      "Swatch.svelte",
+      "BrightnessField.svelte",
+    ]) {
+      const source = code(componentPath(name));
+      expect(source, `${name} is not its row's container`).toContain(
+        "container-type: inline-size",
+      );
+      expect(source, `${name} does not stack under 364px`).toContain(
+        "@container (width < 364px)",
+      );
+      expect(source, `${name}'s label is not the micro face`).toContain(
+        'class="label type-micro"',
+      );
+      expect(
+        source,
+        `${name} keeps a helper sentence inside the row`,
+      ).not.toContain('class="helper type-helper"\n');
+    }
+    // The rack draws the hairline between rows and nothing else.
+    const rack = code(componentPath("KnobRack.svelte"));
+    expect(rack).toContain(".rack > :global(* + *)");
+    expect(rack).not.toContain("layout");
+    expect(rack).not.toContain("stacked");
+  });
+
+  it("Brightness is one typed field under Look on every card: 1..255 with the last good value kept, out of range refused as 'Brightness is 1 to 255.', the marker and a per-field reset, never a knob and never rolled, Reset settings putting it back", async () => {
     // Change 5 (2026-09-17). The field: rendered with svelte/server for its
     // shape - the label, a text input with a numeric keyboard, the value,
     // the reset named for the field and disabled at 255, the marker off 255,
     // read-only under Play. The door: parseBrightness. The wiring: the
-    // region mounts it under Appearance unconditionally (a card with no
-    // colour knob has the section for the field alone), routes a value to
+    // region mounts it under Look unconditionally (a card with no colour
+    // knob has the section for the field alone), routes a value to
     // tuner.setBrightness and the reset to 255, and counts it in Reset
     // settings' disabled state. The scope: no entry has a knob called
     // brightness, so surprise.ts cannot reach it.
@@ -2065,7 +2240,7 @@ describe("the tuning UI's structural rules", () => {
     expect(full, "a text input").toContain('type="text"');
     expect(full, "with a numeric keyboard").toContain('inputmode="numeric"');
     expect(full).toMatch(/value="255"/);
-    expect(full).toContain(` ${BRIGHTNESS_LABEL}</label>`);
+    expect(full).toContain(`>${BRIGHTNESS_LABEL}</label>`);
     expect(full, "nothing refused on arrival").not.toContain(
       'aria-invalid="true"',
     );
@@ -2108,8 +2283,8 @@ describe("the tuning UI's structural rules", () => {
     // The wiring in the region.
     const region = code(componentPath("TuningRegion.svelte"));
     expect(region).toContain("<BrightnessField");
-    expect(region, "Appearance is unconditional now").toContain(
-      "{ title: SECTION_APPEARANCE, content: appearance },",
+    expect(region, "Look is unconditional").toContain(
+      'if (name === "look") out.push({ title: SECTION_LOOK, content: look });',
     );
     expect(region).toMatch(
       /function changeBrightness[(]value: number[)][^}]*tuner[?][.]setBrightness[(]value[)]/,

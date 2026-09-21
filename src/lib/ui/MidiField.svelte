@@ -1,13 +1,13 @@
 <!--
-  One typed MIDI field: PDF page 5's CC number / Channel box. Props: knob (the
-  list, index and default are its), onchange (the same call a rail makes), onreset.
-  A text input over a closed list, never a free numeric: the typed text maps back
-  through view.ts's typedIndex - an offered whole number moves the knob, an
-  unoffered one is refused with the offered values named, anything else with
-  TYPE_A_NUMBER. The last good value survives a refusal (13-16's shape): the
-  refused text stays with aria-invalid until a keystroke validates or the knob
-  moves from outside, and the model never sees it. X-08 kept: a Lua channel shows
-  the firmware's 0-based literal with LUA_CHANNEL_CUE beneath. No lock here. 44px, square.
+  One typed MIDI field, one row (change 16): the label left, Stepper.svelte right over the knob's
+  closed list, the reset box at the end. Props: knob (the list, index and default are its), onchange
+  (the same call a knob row makes), onreset. Every keystroke maps back through view.ts's typedIndex -
+  an offered whole number moves the knob, an unoffered one is refused with the offered values named,
+  anything else with TYPE_A_NUMBER; a note field (ORBIT's ring notes) reads names and numbers through
+  noteNumber. The last good value survives a refusal (13-16's shape): the refused text stays with
+  aria-invalid until a keystroke validates or the knob moves from outside. X-08 kept: a Lua channel
+  shows the firmware's 0-based literal, LUA_CHANNEL_CUE its description and title. No lock: a MIDI
+  destination is never rolled. 44px, square; the error ink on a refused boundary and its line only.
   Decided at 13.1-07 (13.1-CONTEXT D-09); see .planning/phases/13.1-bench-corrections-four/13.1-07-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -27,9 +27,12 @@
   import {
     integerRun,
     noteNumber,
+    rankOf,
     typedIndex,
+    valueOrder,
     type KnobView,
   } from "$lib/tune/view";
+  import Stepper from "./Stepper.svelte";
 
   let {
     knob,
@@ -38,7 +41,7 @@
   }: {
     /** The knob this field is over. The list, the index and the default are its. */
     knob: KnobView;
-    /** One knob moved to one index - the same call a rail makes. */
+    /** One knob moved to one index - the same call a knob row makes. */
     onchange: (id: string, index: number) => void;
     /** One knob back to its default. */
     onreset?: (id: string) => void;
@@ -58,8 +61,11 @@
   const zeroBasedChannel = $derived(
     knob.id === "channel" && integerRun(literals)?.min === 0,
   );
-  /** A NOTE field (change 8: ORBIT's ring notes) takes a name or a number; its readout is the name, its keyboard the full one. */
+  /** A NOTE field (change 8: ORBIT's ring notes) takes a name or a number; its readout is the name. */
   const noteField = $derived(knob.kind === "note");
+  /** The rungs in value order, for the boxes and the ladder. */
+  const order = $derived(valueOrder(literals));
+  const rank = $derived(rankOf(order, knob.index));
 
   /** The refused text, or undefined while the field shows the model's literal. */
   let refused = $state<string | undefined>(undefined);
@@ -76,7 +82,7 @@
     }
   });
 
-  /** What the input shows: the refused text while one is held, else the knob's own literal. */
+  /** What the field shows: the refused text while one is held, else the knob's own literal. */
   const shown = $derived(refused ?? knob.readout ?? "");
   const describedBy = $derived(
     [
@@ -87,8 +93,15 @@
       .join(" ") || undefined,
   );
 
-  function typed(event: Event): void {
-    const text = (event.currentTarget as HTMLInputElement).value;
+  function accept(index: number): void {
+    refused = undefined;
+    problem = undefined;
+    seenIndex = index;
+    if (index !== knob.index) onchange(knob.id, index);
+  }
+
+  /** Every keystroke (a committed one reads the same text again, which is the same answer). */
+  function typed(text: string): void {
     // A note field reads `C#3` and `49` alike (view.ts's noteNumber); a name it cannot read and a
     // number outside 0..127 are refused by the same line - both are "not a note here".
     if (noteField) {
@@ -100,10 +113,7 @@
         problem = NOTE_OFFERED;
         return;
       }
-      refused = undefined;
-      problem = undefined;
-      seenIndex = at;
-      onchange(knob.id, at);
+      accept(at);
       return;
     }
     if (!/^-?[0-9]+$/.test(text.trim())) {
@@ -117,10 +127,13 @@
       problem = offeredLine(knob.id, literals);
       return;
     }
-    refused = undefined;
-    problem = undefined;
-    seenIndex = index;
-    onchange(knob.id, index);
+    accept(index);
+  }
+
+  /** A rank on the value-ordered ladder, back to the declared index. */
+  function pickRank(at: number): void {
+    const index = order[Math.min(order.length - 1, Math.max(0, at))];
+    if (index !== undefined && index !== knob.index) accept(index);
   }
 
   function reset(): void {
@@ -137,38 +150,50 @@
   data-index={knob.index}
   data-changed={changed}
 >
-  <!-- The label with section 7's changed-field marker at its start (Knob.svelte's shape): a 6px square in the ink, and a hidden sentence for a screen reader. -->
-  <label class="label" for={inputId}>
+  <div class="row" class:changed>
+    <label
+      class="label type-micro"
+      for={inputId}
+      title={zeroBasedChannel ? LUA_CHANNEL_CUE : undefined}>{label}</label
+    >
     {#if changed}
-      <span class="changed" data-testid="midi-field-{knob.id}-changed"
-        ><span class="sr-only">{FIELD_CHANGED}</span></span
+      <span class="sr-only" data-testid="midi-field-{knob.id}-changed"
+        >{FIELD_CHANGED}</span
       >
     {/if}
-    {label}
-  </label>
-  <input
-    class="input"
-    id={inputId}
-    type="text"
-    inputmode={noteField ? "text" : "numeric"}
-    autocomplete="off"
-    data-testid="midi-field-{knob.id}-input"
-    value={shown}
-    aria-invalid={problem !== undefined}
-    aria-describedby={describedBy}
-    oninput={typed}
-  />
-  <!-- Section 7's per-field reset: present on every field, disabled at the default, named for the field. -->
-  <button
-    class="reset"
-    type="button"
-    data-testid="midi-field-{knob.id}-reset"
-    disabled={!changed}
-    aria-label={fieldResetName(label)}
-    onclick={reset}
-  >
-    {FIELD_RESET}
-  </button>
+    <div class="control">
+      <Stepper
+        id={inputId}
+        testid="midi-field-{knob.id}"
+        value={shown}
+        {rank}
+        count={literals.length}
+        invalid={problem !== undefined}
+        {describedBy}
+        hint={false}
+        inputmode={noteField ? "text" : "numeric"}
+        ontext={typed}
+        onrank={pickRank}
+      />
+    </div>
+    <button
+      class="box reset"
+      type="button"
+      data-testid="midi-field-{knob.id}-reset"
+      disabled={!changed}
+      aria-label={fieldResetName(label)}
+      title={FIELD_RESET}
+      onclick={reset}
+    >
+      <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
+        <line x1="5" y1="6" x2="15" y2="6" />
+        <line x1="15" y1="6" x2="15" y2="12" />
+        <line x1="15" y1="12" x2="7" y2="12" />
+        <line x1="7" y1="12" x2="10" y2="9" />
+        <line x1="7" y1="12" x2="10" y2="15" />
+      </svg>
+    </button>
+  </div>
   {#if problem !== undefined}
     <p
       class="message type-helper"
@@ -179,114 +204,110 @@
     </p>
   {/if}
   {#if zeroBasedChannel}
-    <p
-      class="cue type-helper"
-      id={cueId}
-      data-testid="midi-field-{knob.id}-cue"
-    >
+    <p class="sr-only" id={cueId} data-testid="midi-field-{knob.id}-cue">
       {LUA_CHANNEL_CUE}
     </p>
   {/if}
 </div>
 
 <style>
-  /* Knob.svelte's stacked row: a 14px label box, a 4px gap, the box in its 44px row (14 + 4 + 44 = 62, the grid field's height), the reset spanning both at the inline end; the message and the cue on a row beneath. */
+  /* The root is the container its row queries (Knob.svelte's shape). */
   .field {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "label reset"
-      "control reset"
-      "message message"
-      "cue cue";
-    align-items: start;
+    container-type: inline-size;
     min-inline-size: 0;
   }
 
-  /* Micro (title): 12px / 600 / 0.01em, sentence case, room for the marker. */
-  .label {
+  /* Knob.svelte's row less the lock: label | control | reset, 44px, the 2px action rule while changed. */
+  .row {
     position: relative;
+    display: grid;
+    grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) auto;
+    grid-template-areas: "label control reset";
+    column-gap: 8px;
+    align-items: center;
+    min-block-size: 44px;
+    padding-inline-start: 8px;
+  }
+
+  .row.changed::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 2px;
+    background: var(--color-action);
+  }
+
+  @container (width < 364px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "label label"
+        "control reset";
+      row-gap: 4px;
+    }
+
+    .row .control {
+      justify-content: flex-start;
+    }
+  }
+
+  .label {
     grid-area: label;
     display: block;
-    padding-inline-start: 12px;
-    margin-block-end: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 14px;
-    letter-spacing: 0.01em;
-    color: var(--color-ink);
+    min-inline-size: 0;
+    color: var(--color-ink-quiet);
     overflow-wrap: anywhere;
+    transition: color 140ms ease-out;
   }
 
-  /* The changed-field marker: a 6px square in the ink, never accent (the reserved list is held at eight by tune-ui.spec.ts). No radius (D-01). */
-  .changed {
-    position: absolute;
-    inset-inline-start: 0;
-    inset-block-start: 0.35em;
-    inline-size: 6px;
-    block-size: 6px;
-    background: var(--color-ink);
-  }
-
-  /* The PDF's field box under the 44px floor: a boundary hairline, square (D-01), tabular numerals; 16px so iOS does not zoom a focused field. */
-  .input {
-    grid-area: control;
-    box-sizing: border-box;
-    inline-size: 100%;
-    min-block-size: 44px;
-    padding-inline: 12px;
-    border: 1px solid var(--color-boundary);
-    border-radius: 0;
-    background: var(--color-workspace);
-    font-family: var(--font-sans);
-    font-size: 16px;
-    font-variant-numeric: tabular-nums;
+  .row:hover .label,
+  .row:focus-within .label {
     color: var(--color-ink);
   }
 
-  .input:hover {
-    border-color: var(--color-ink-quiet);
+  .control {
+    grid-area: control;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-inline-size: 0;
   }
 
-  /* The field that refused a keystroke: the error ink on its boundary only, never on a button. */
-  .invalid .input {
-    border-color: var(--color-error-ink);
-  }
-
+  /* The refusal, in the error ink, on its own line under the row - never on a button. */
   .message {
-    grid-area: message;
-    margin: 6px 0 0;
+    margin: 4px 0 8px 8px;
     color: var(--color-error-ink);
   }
 
-  .cue {
-    grid-area: cue;
-    margin: 6px 0 0;
-    color: var(--color-ink-quiet);
-  }
-
-  /* The per-field reset: Knob.svelte's quiet word at the 44px floor on both axes, no corner. */
-  .reset {
+  /* The reset box: Knob.svelte's, the 44px floor on both axes, no corner. */
+  .box {
     grid-area: reset;
-    align-self: stretch;
-    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    inline-size: 44px;
     min-inline-size: 44px;
     min-block-size: 44px;
-    margin-inline-start: 12px;
     padding: 0;
-    border: 0;
+    border: 1px solid transparent;
     border-radius: 0;
     background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
     color: var(--color-ink-quiet);
     cursor: pointer;
     transition: color 140ms ease-out;
   }
 
-  .reset:hover:not(:disabled) {
+  .glyph {
+    inline-size: 20px;
+    block-size: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .box:hover:not(:disabled) {
     color: var(--color-ink);
   }
 
@@ -296,7 +317,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .reset {
+    .label,
+    .box {
       transition: none;
     }
   }

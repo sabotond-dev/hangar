@@ -4,10 +4,10 @@
 // (layer A the source scan, layer B the built CSS) and e2e/radius.e2e.ts
 // (layer C, computed styles in two engines) import it; nothing in the site
 // does. D-10's two halves live in two layers: layer A permits the literal 50%
-// only at D-15's six file:line pairs (CIRCLES, asserted at exactly six -
-// ColourPicker.svelte :840 the 2px tick, :867 the 12px thumb, :882 the 2px home
-// mark; Knob.svelte :730, :785, :807); layer C fails any percentage radius on a
-// box whose width and height differ. The allowlist can only shrink and is empty.
+// only at D-15's file:line pairs (CIRCLES, asserted at exactly three since change
+// 16 - ColourPicker.svelte :785 the 2px tick, :812 the 12px thumb, :827 the 2px
+// home mark; Knob.svelte's three went with its rail); layer C fails any
+// percentage radius on a box whose width and height differ. The allowlist can only shrink and is empty.
 // Decided at 13-01 (D-01, D-10, D-15); see .planning/phases/13-gui-overhaul/13-01-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -35,50 +35,30 @@ export interface Circle {
 }
 
 /**
- * D-15's six, by file and line. Order is the decision's own. A change here is
- * an amendment to 13-CONTEXT.md D-15 and is dated there first.
+ * D-15's circles, by file and line - three since change 16 (2026-09-21). Order is
+ * the decision's own. A change here is an amendment to 13-CONTEXT.md D-15.
  */
 export const CIRCLES: readonly Circle[] = [
-  // ColourPicker.svelte's three moved from :829 / :857 / :872 to :840 / :867
-  // / :882 on 2026-09-11 when 13-09 cleared its six non-circle radii and put
-  // the popover's prop above them; D-15 is amended with the same numbers.
+  // ColourPicker.svelte's three moved to :785 / :812 / :827 on 2026-09-21 when
+  // change 16 took the head's lock out of the picker (the swatch row carries
+  // it); Knob.svelte's three (:730 / :785 / :807) LEFT with its dot rail and
+  // its track the same day - a stepper has no circle - so D-15's six are
+  // three, and radius.spec.ts asserts three.
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 840,
+    line: 785,
     what: "the tick, a 2px round mark on the cheap steps",
     box: "2x2",
   },
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 867,
+    line: 812,
     what: "the rail thumb",
     box: "12x12",
   },
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 882,
-    what: "the home mark",
-    box: "2x2",
-  },
-  // Knob.svelte's three moved from :598 / :653 / :674 to :730 / :785 / :807
-  // on 2026-09-11 when 13-09 re-skinned the file (the select branch, the
-  // marker and the per-field reset landed above them); D-15 is amended with
-  // the same three numbers on the same day.
-  {
-    file: "src/lib/ui/Knob.svelte",
-    line: 730,
-    what: "the dot rail's dot",
-    box: "8x8",
-  },
-  {
-    file: "src/lib/ui/Knob.svelte",
-    line: 785,
-    what: "the slider thumb",
-    box: "12x12",
-  },
-  {
-    file: "src/lib/ui/Knob.svelte",
-    line: 807,
+    line: 827,
     what: "the home mark",
     box: "2x2",
   },

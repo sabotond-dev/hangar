@@ -93,7 +93,7 @@ export const POMODORO: CatalogEntry = {
   knobs: [
     {
       id: "mins",
-      label: "Minutes",
+      label: "Interval (min)",
       kind: "count",
       token: "@MINS",
       // The interval: 25 the pomodoro proper, 15 and 20 the shorter ones people keep to, 50 the

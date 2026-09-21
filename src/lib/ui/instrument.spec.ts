@@ -227,16 +227,18 @@ const instrumentFiles = (): string[] =>
 const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
   ["BudgetMeter.svelte", "Phase 5", "the two numeric columns"],
   ["CopyLink.svelte", "Phase 5", "the link field"],
-  [
-    "Knob.svelte",
-    "Phase 5 and 11.3",
-    "the integer readout, and the forecast delta",
-  ],
+  // CHANGE 16 (2026-09-21): Knob.svelte's two (the integer readout and the
+  // forecast delta) left with its rail; the typed value lives in
+  // Stepper.svelte's field, and the swatch chip's three channels are the
+  // same machine text, as is the brightness field's. Six uses across six files.
+  ["Stepper.svelte", "change 16", "the typed value"],
+  ["Swatch.svelte", "change 16", "the chip's three channels"],
+  ["BrightnessField.svelte", "change 16", "the typed brightness"],
   ["ColourPicker.svelte", "10-10", "the RGB triple - the sixth"],
 ];
 
-/** Five uses across four files: Knob.svelte carries two of them. */
-const MONO_COUNT = 5;
+/** Six uses across six files. */
+const MONO_COUNT = 6;
 
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   // TWO ROWS LEFT AT 13.1-06 with the install column (13.1-CONTEXT D-06,
@@ -255,11 +257,10 @@ const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   // MixTwo.svelte's row ("mix-two", Secondary) left with the file at 13-10
   // (13-CONTEXT D-12): the derived walk finds one pilled control fewer and
   // the hand list says so in the same commit.
-  [
-    "Knob.svelte",
-    "option",
-    "word row - the WORD widget only; the swatch row is not a word",
-  ],
+  // KNOB.SVELTE'S ROW LEFT ON 2026-09-21 (change 16): its word row is a
+  // segmented control that draws its own joined boxes at 12px of inline
+  // padding, so the pill's 24px would break the join; the derived walk finds
+  // one pilled control fewer and the list says so.
   ["ColourPicker.svelte", "option", "word row - the knob selector"],
   // ONE ROW JOINED AT 13-12 AND LEFT AT 13.1-02: the destination review's
   // affirmative wore the pill as KeepConfirm's does. The user struck the

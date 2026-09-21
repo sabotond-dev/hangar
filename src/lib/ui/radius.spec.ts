@@ -10,8 +10,9 @@
 //      authored there is still a radius - measured against the declared
 //      allowlist in src/lib/ui/radius-allowlist.ts. Zero, 0px, inherit,
 //      initial and unset pass. The literal 50% passes HERE and is handed to
-//      layer C, with the count asserted at exactly SIX and the six file:line
-//      pairs matched against D-15 as a set, so a seventh circle anywhere is
+//      layer C, with the count asserted at exactly THREE (six until change 16
+//      took Knob.svelte's rail) and the file:line pairs matched against D-15
+//      as a set, so a fourth circle anywhere is
 //      red until D-15 names it. Every other value needs a row whose count
 //      EQUALS the observed one. And any Tailwind `rounded*` token in a class
 //      string is red with no allowlist at all.
@@ -77,7 +78,7 @@ const at = (d: Declaration) => `${d.file}:${d.line}`;
 const pair = (c: { file: string; line: number }) => `${c.file}:${c.line}`;
 
 describe("D-01: never a rounded corner (src/lib/ui/radius.spec.ts)", () => {
-  it("layer A: no border-radius above zero is authored outside the declared allowlist, the six circles are exactly D-15's, and no rounded utility sits in a class string", () => {
+  it("layer A: no border-radius above zero is authored outside the declared allowlist, the circles are exactly D-15's, and no rounded utility sits in a class string", () => {
     const { files, declarations } = scanSource();
 
     // Non-vacuous: the walk reached the stylesheet, a component and a dev
@@ -125,21 +126,24 @@ describe("D-01: never a rounded corner (src/lib/ui/radius.spec.ts)", () => {
       (d) => classify(d.value) === "above-zero",
     );
 
-    // D-15: exactly six, and exactly these six, as a set.
+    // D-15: exactly three, and exactly these three, as a set.
     const wanted = new Set(CIRCLES.map(pair));
     const observed = new Set(circles.map(at));
     const seventh = circles.filter((d) => !wanted.has(at(d)));
     const missing = CIRCLES.filter((c) => !observed.has(pair(c)));
     expect(
       seventh.map((d) => `${at(d)} (${d.value})`),
-      `a ${CIRCLE_VALUE} that D-15 does not name. True circles only, and only the six D-15 lists by file and line - a seventh is red until 13-CONTEXT.md D-15 and CIRCLES both name it`,
+      `a ${CIRCLE_VALUE} that D-15 does not name. True circles only, and only the three D-15 lists by file and line - a fourth is red until 13-CONTEXT.md D-15 and CIRCLES both name it`,
     ).toEqual([]);
     expect(
       missing.map((c) => `${pair(c)} (${c.what})`),
       `a D-15 circle is no longer at its named line. If it moved, amend D-15 and CIRCLES with the new line on the same day; if it was squared, D-15 says nothing in Knob.svelte or ColourPicker.svelte becomes a square`,
     ).toEqual([]);
-    expect(circles.length, "the 50% count is exactly six (D-15)").toBe(6);
-    expect(CIRCLES.length, "D-15 names exactly six").toBe(6);
+    expect(
+      circles.length,
+      "the 50% count is exactly three (D-15 as change 16 amends it)",
+    ).toBe(3);
+    expect(CIRCLES.length, "D-15 names exactly three").toBe(3);
 
     // The four red paths, each its own assertion.
     const byFile = new Map<string, Declaration[]>();

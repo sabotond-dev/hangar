@@ -113,7 +113,7 @@ export const SNAKE: CatalogEntry = {
   knobs: [
     {
       id: "speed",
-      label: "Step time",
+      label: "Step time (ms)",
       kind: "speed",
       token: "@SPEED",
       // Milliseconds a generation lasts. APPEARS IN BOTH EVENTS and both must move together.

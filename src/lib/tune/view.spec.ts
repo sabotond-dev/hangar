@@ -23,18 +23,23 @@ import {
   EVENT_BUDGET,
   INTEGER_WORD_ROW_MAX,
   KNOB_KIND_NAMES,
+  NOTE_SELECT_MAX,
   SCALE_WORDS,
   hueName,
   integerReadout,
   meterView,
+  nearestRung,
   noteName,
   percentOf,
   positionText,
-  railSkin,
+  rankOf,
   scaleWord,
+  splitUnit,
   swatchName,
   swatchOf,
+  valueOrder,
   widgetFor,
+  wordFor,
   type KnobKindName,
   type KnobWidget,
 } from "./view";
@@ -102,34 +107,27 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect([...KNOB_KIND_NAMES].sort()).toEqual([...KNOB_KINDS].sort());
   });
 
-  it("gives every one of the twelve kinds a widget, and falls through to a rail", () => {
-    // Five since 13-09: `select` is the worded knob at five to eight options
-    // (section 7's select for a larger enumeration); the 4/5 boundary itself
-    // is asserted in src/lib/ui/tune-ui.spec.ts, beside the component.
+  it("gives every one of the twelve kinds a widget, and falls through to a select of positions", () => {
+    // Five since change 16 (2026-09-21): `stepper` is the typed field over an
+    // integer ladder (and a note ladder past NOTE_SELECT_MAX), `select` the
+    // worded knob at five options and above AND the total fall-through for a
+    // value set nothing can name; the 4/5 boundary is asserted in
+    // src/lib/ui/tune-ui.spec.ts, beside the component. No rail anywhere.
     const widgets: KnobWidget[] = [
       "colour",
       "swatch",
       "words",
       "select",
-      "rail",
+      "stepper",
     ];
 
-    // THE WHOLE MAPPING, COMPARED AS ONE OBJECT (plan 10-10). The amendment
-    // below moves ONE row, and "no other kind's mapping moved" is a claim
-    // about the other eleven - so it is asserted as an equality over the whole
-    // table rather than as a handful of spot checks that a twelfth kind could
-    // slip past. Each kind is handed a value set that its own table cannot
-    // name, so a kind that stopped consulting its values shows up here.
-    //
-    // PLAN 12-05 MOVES A SECOND ROW, AND IT IS `feel`. The two-integer rule is
-    // KIND-BLIND, so any kind handed at most two integer values now gets a word
-    // row - and `feel`'s fixture below is `["0", "1"]`, which is two integers.
-    // The row is moved rather than the fixture, because that is exactly what
-    // the table is for: it shows the reach of the new rule instead of hiding
-    // it behind a value set chosen to avoid it. The coverage the row used to
-    // carry - "a kind with no table falls through to a rail" - is re-asserted
-    // below against STARFIELD's REAL `edge` knob, whose two values are "soft"
-    // and "hard" and are therefore still unnameable.
+    // THE WHOLE MAPPING, COMPARED AS ONE OBJECT (plan 10-10). Each kind is
+    // handed a value set that its own table cannot name, so a kind that
+    // stopped consulting its values shows up here. Three rows moved at change
+    // 16 and the rest are what they were in kind: three integers are a
+    // stepper now (a rail until then), two integers a word row (12-05), a
+    // scale set the table lacks reads as its semitones (a list of integers is
+    // a word), and two words nothing names are a select of positions.
     const UNNAMEABLE: Readonly<Record<KnobKindName, readonly string[]>> = {
       colour: ["0,200,255", "255,90,0"],
       speed: ["240", "180", "110"],
@@ -149,33 +147,36 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     );
     expect(
       mapping,
-      "a kind's widget moved. `colour` is the picker BY KIND ALONE (X-05 / X-06 as plan 10-10 amends them); a knob of ANY kind whose values are at most two integers is a word row (plan 12-05); every other kind still consults its values and falls through to a rail when it cannot name them",
+      "a kind's widget moved. `colour` is the picker BY KIND ALONE (X-05 / X-06 as plan 10-10 amends them); a knob of ANY kind whose values are at most two integers is a word row (plan 12-05); more integers are a stepper (change 16); a worded set is a row to four and a select above; a note ladder is a select to twenty-four; anything nothing can name is a select of positions",
     ).toEqual({
       colour: "colour",
-      speed: "rail",
-      direction: "rail",
-      size: "rail",
-      count: "rail",
-      note: "rail",
-      // Two integers, and the rule is kind-blind. See the paragraph above.
+      speed: "stepper",
+      direction: "select",
+      size: "stepper",
+      count: "stepper",
+      // Nine note names: a select, not a rail (change 16).
+      note: "select",
+      // Two integers, and the rule is kind-blind (12-05).
       feel: "words",
-      amount: "rail",
-      mode: "rail",
-      bend: "rail",
-      spring: "rail",
-      scale: "rail",
+      amount: "stepper",
+      mode: "select",
+      bend: "select",
+      spring: "select",
+      // Two semitone lists read as their numbers (change 16's list rule).
+      scale: "words",
     });
 
     // Totality first: no knob can fail to render, whatever its kind and
-    // whatever its values.
+    // whatever its values - and an EMPTY value set resolves too.
     let seen = 0;
     for (const kind of KNOB_KIND_NAMES) {
       expect(widgets, kind).toContain(widgetFor(kind, ["1", "2", "3"]));
+      expect(widgets, `${kind} on no values`).toContain(widgetFor(kind, []));
       seen += 1;
     }
     expect(seen, "the loop ran over all twelve kinds").toBe(12);
 
-    // Then the three rules.
+    // Then the rules, on the tables' own words.
     expect(widgetFor("colour", ["0,200,255", "255,90,0"])).toBe("colour");
     expect(widgetFor("scale", ["0,2,4,5,7,9,11", "0,2,3,5,7,8,10"])).toBe(
       "words",
@@ -185,18 +186,21 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect(widgetFor("bend", ["none", "x", "y"])).toBe("words");
     expect(widgetFor("spring", ["off", "centre", "zero"])).toBe("words");
     expect(widgetFor("note", ["24", "30", "36"])).toBe("words");
-    expect(widgetFor("speed", ["240", "180", "110"])).toBe("rail");
-    expect(widgetFor("amount", ["0", "1", "2"])).toBe("rail");
+    expect(widgetFor("speed", ["240", "180", "110"])).toBe("stepper");
+    expect(widgetFor("amount", ["0", "1", "2"])).toBe("stepper");
+    // A note ladder: a select to NOTE_SELECT_MAX, typed above it.
+    const notes = (n: number) =>
+      Array.from({ length: n }, (_, i) => String(24 + i));
+    expect(NOTE_SELECT_MAX).toBe(24);
+    expect(widgetFor("note", notes(NOTE_SELECT_MAX))).toBe("select");
+    expect(widgetFor("note", notes(NOTE_SELECT_MAX + 1))).toBe("stepper");
+    expect(widgetFor("note", notes(128))).toBe("stepper");
+    // STARFIELD's edge reads Soft / Hard (change 16's feel table), a row of two.
+    expect(widgetFor("feel", ["soft", "hard"])).toBe("words");
+    expect(wordFor("feel", "soft")).toBe("Soft");
 
     // THE X-05 / X-06 AMENDMENT (10-UI-SPEC §11.2, plans 10-08 and 10-10):
-    // `colour` is chosen by KIND ALONE. The two assertions this replaces
-    // asserted the opposite - that a colour whose values are not RGB falls
-    // through to a rail - and they were right for a six-swatch palette and
-    // wrong for a 4,096-position lattice, where any rule that consults `n`
-    // sends the colour knob to a single detent track: one 4,096-position rail,
-    // which is exactly the picker that lies about what the pad can show. Kept
-    // as assertions rather than deleted, with the verdict inverted, so the
-    // change is visible in the suite rather than only in a diff.
+    // `colour` is chosen by KIND ALONE, whatever the values.
     expect(
       widgetFor("colour", ["red"]),
       "a colour is chosen by kind alone, even when a value is not RGB",
@@ -209,8 +213,6 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
       widgetFor("colour", []),
       "a colour is chosen by kind alone, even with no values at all",
     ).toBe("colour");
-    // The lattice itself, at the size D-06 gives it. `n = 4096` must not move
-    // the answer, which is the whole content of the amendment.
     expect(
       widgetFor(
         "colour",
@@ -221,32 +223,18 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
 
     // `swatch` is still a widget and it is no longer CHOSEN. ColourPicker
     // synthesises it for a hand-authored Lua palette and hands that view to
-    // the shipped Knob.svelte swatch row; nothing else may produce it, or the
-    // rack would draw a colour knob twice.
+    // the shipped Knob.svelte swatch row; nothing else may produce it.
     expect(
       Object.values(mapping),
       "widgetFor still returns a swatch row for some kind - the picker owns that skin now",
     ).not.toContain("swatch");
   });
 
-  it("gives a two-valued integer knob a word row, and leaves PINWHEEL's arms a rail", () => {
+  it("gives a two-valued integer knob a word row, and PINWHEEL's arms a stepper", () => {
     // THE BENCH NOTE THIS ANSWERS is NINE PADS' "make a 16 pads cause nothing
-    // changed", and 12-01 is what makes it a WIDGET question rather than a
-    // wiring one: the knob reaches the tuner's pair AND the module's own RAM,
-    // measured at both levels. What the user could not find was the control.
-    // `grid` is a `count` knob with the two values `9` and `16`, and before
-    // this rule that rendered as two dots over an invisible range input,
-    // fifth in a five-knob rack.
-    //
-    // THE SHIPPED CARDS COME FIRST, DELIBERATELY. A raised ceiling should be
-    // reported as "PINWHEEL's arms stopped being a rail", which is a sentence
-    // about the panel, rather than as "a constant is not 2", which is a
-    // sentence about this file - so the three real knobs are asserted before
-    // the constant and before the synthetic kinds.
-    //
-    // NINE PADS' knob as the card really declares it, read out of the
-    // descriptor rather than pasted, so a later re-cut of its options is
-    // caught here rather than only on screen.
+    // changed" (12-01, 12-05): `grid` is a `count` knob with the two values
+    // `9` and `16`, a row of two words. Above two integers the position on
+    // the ladder carries meaning and the stepper draws it (change 16).
     const grid = presetKnobs("ninepads").find((knob) => knob.id === "grid");
     expect(grid, "ninepads still declares a grid knob").toBeDefined();
     expect(grid!.options, "its two values are the pad counts").toEqual([
@@ -262,65 +250,124 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
       "and the card ships at 4x4, which is index 1 (plan 12-05)",
     ).toBe(1);
 
-    // THE OTHER SIDE OF THE RULE, and both halves of it.
-    //
-    // 1. THREE integer values is still a rail. PINWHEEL's `arms` is the
-    //    shipped knob that proves it - same `count` kind, three values - and a
-    //    ceiling raised to three would turn it into a word row.
+    // THREE integer values is a stepper. PINWHEEL's `arms` is the shipped
+    // knob that proves it - same `count` kind, three values.
     const arms = presetKnobs("pinwheel").find((knob) => knob.id === "arms");
     expect(arms, "pinwheel still declares an arms knob").toBeDefined();
-    expect(
-      arms!.options.length,
-      "arms has three values, which is what makes it the control case",
-    ).toBe(3);
+    expect(arms!.options.length, "arms has three values").toBe(3);
     expect(
       arms!.options.every((v) => /^-?[0-9]+$/.test(v)),
-      "and all three are integers, so only the CEILING keeps it a rail",
+      "and all three are integers, so only the CEILING keeps it off the word row",
     ).toBe(true);
     expect(
       widgetFor(arms!.kind, arms!.options),
-      "PINWHEEL'S ARMS MUST STAY A RAIL. Same `count` kind as NINE PADS' Pads " +
-        "and all three values integers, so the only thing between it and a " +
-        "word row is INTEGER_WORD_ROW_MAX. Above two, position carries " +
-        "meaning and a row of three pills does not: one arm, two arms, three " +
-        "arms is an ORDER, and a rail is what shows an order",
-    ).toBe("rail");
+      "PINWHEEL's arms is a stepper: one arm, two arms, three arms is an ORDER, and the ladder shows an order",
+    ).toBe("stepper");
 
-    // 2. TWO values that are NOT integers is still a rail, and this is why the
-    //    rule reads the values at all. STARFIELD's `edge` is `feel` with the
-    //    values "soft" and "hard"; `feel` has no word table, so an n-only rule
-    //    would have rendered it as a word row labelled "1 of 2" and "2 of 2" -
-    //    strictly worse than the rail it replaced.
+    // STARFIELD's `edge` (`feel`, "soft" / "hard") is a row of two words since
+    // change 16 - the two literals have a table now - where it was a rail of
+    // two unnamed dots before.
     const edge = presetKnobs("starfield").find((knob) => knob.id === "edge");
     expect(edge, "starfield still declares an edge knob").toBeDefined();
-    expect(edge!.options.length, "edge has exactly two values").toBe(2);
-    expect(
-      widgetFor(edge!.kind, edge!.options),
-      "STARFIELD's edge is still a rail - two values, but no label for either",
-    ).toBe("rail");
-    expect(
-      edge!.options.every((v) => /^-?[0-9]+$/.test(v)),
-      "edge's values are words, not integers",
-    ).toBe(false);
+    expect(edge!.options).toEqual(["soft", "hard"]);
+    expect(widgetFor(edge!.kind, edge!.options)).toBe("words");
+    expect(edge!.options.map((v) => wordFor(edge!.kind, v))).toEqual([
+      "Soft",
+      "Hard",
+    ]);
 
-    // AND THE RULE ITSELF, after the three cards it governs: the ceiling, and
-    // that it is chosen KIND-BLIND rather than by admitting `count` to
-    // WORD_KINDS - which is why it is stated against four kinds here.
+    // AND THE RULE ITSELF: the ceiling, and that it is chosen KIND-BLIND.
     expect(INTEGER_WORD_ROW_MAX, "the rule's ceiling is two").toBe(2);
     for (const kind of ["count", "size", "amount", "speed"] as const) {
       expect(
         widgetFor(kind, ["9", "16"]),
         `${kind}: two integer values must render as words`,
       ).toBe("words");
+      expect(
+        widgetFor(kind, ["9", "16", "25"]),
+        `${kind}: three integer values are a stepper`,
+      ).toBe("stepper");
     }
   });
 
-  it("skins a rail with dots at eight options and a track at nine", () => {
-    expect(railSkin(2)).toBe("dots");
-    expect(railSkin(8)).toBe("dots");
-    expect(railSkin(9)).toBe("track");
-    // The one n >= 9 knob shipped today: MIDI channel, sixteen values.
-    expect(railSkin(16)).toBe("track");
+  it("the stepper's arithmetic: a typed value snaps to the nearest declared rung, the boxes walk the rungs in value order, and a label's parenthetical is its unit", () => {
+    // THE ONE HARD RULE OF CHANGE 16. The budget is measured over each knob's
+    // declared rungs at the RGB444 corner, so a typed value lands on a rung
+    // and never between two. SNAKE's step time is declared descending
+    // (300 220 160 110) and is the witness: 100 snaps to 110 (index 3), 300
+    // to 300, 1000 to the top rung, a tie to the lower value.
+    const snake = ["300", "220", "160", "110"];
+    expect(nearestRung(snake, "100")).toBe(3);
+    expect(nearestRung(snake, "115")).toBe(3);
+    expect(nearestRung(snake, "300")).toBe(0);
+    expect(nearestRung(snake, "1000"), "past the top lands on the top").toBe(0);
+    expect(nearestRung(snake, "-5"), "past the foot lands on the foot").toBe(3);
+    expect(nearestRung(snake, "190"), "a tie goes to the lower value").toBe(2);
+    expect(nearestRung(snake, " 221 ")).toBe(1);
+    expect(nearestRung(snake, "2.2e2"), "not a plain number").toBeUndefined();
+    expect(nearestRung(snake, "fast")).toBeUndefined();
+    expect(nearestRung(snake, "")).toBeUndefined();
+    expect(nearestRung([], "1")).toBeUndefined();
+    expect(
+      nearestRung(["soft", "hard"], "1"),
+      "a ladder with a rung that is not a number snaps nothing",
+    ).toBeUndefined();
+    // A decimal typed against integers snaps too: 22.5 is 20's.
+    expect(nearestRung(["20", "40", "60", "85"], "22.5")).toBe(0);
+
+    // VALUE ORDER: the declared indices sorted by value, equal values in
+    // declared order, a non-number anywhere leaving the declared order.
+    expect(valueOrder(snake)).toEqual([3, 2, 1, 0]);
+    expect(valueOrder(["15", "20", "25", "50", "1", "5"])).toEqual([
+      4, 5, 0, 1, 2, 3,
+    ]);
+    expect(valueOrder(["1", "1", "0"])).toEqual([2, 0, 1]);
+    expect(valueOrder(["soft", "hard"])).toEqual([0, 1]);
+    expect(valueOrder([])).toEqual([]);
+    expect(rankOf(valueOrder(snake), 0), "300 is the top rung").toBe(3);
+    expect(rankOf(valueOrder(snake), 3), "110 is the foot").toBe(0);
+    expect(rankOf([2, 0, 1], 9), "an index off the ladder ranks 0").toBe(0);
+
+    // THE UNIT: `Tempo (BPM)` splits; a bare label has none; only a TRAILING
+    // parenthetical counts, and it is trimmed.
+    expect(splitUnit("Tempo (BPM)")).toEqual({ label: "Tempo", unit: "BPM" });
+    expect(splitUnit("Step time (ms)")).toEqual({
+      label: "Step time",
+      unit: "ms",
+    });
+    expect(splitUnit("Speed")).toEqual({ label: "Speed" });
+    expect(splitUnit("  Loop length ( points ) ")).toEqual({
+      label: "Loop length",
+      unit: "points",
+    });
+    expect(splitUnit("Ring (1) colour")).toEqual({ label: "Ring (1) colour" });
+
+    // THE ID-KEYED WORDS (change 16): a boolean under `mode` is Internal /
+    // External for `sync` and On / Off otherwise (TRACKPAD's edge flash no
+    // longer reads External); QUADRANT's fill, STAGE's modifier and the two
+    // HID key knobs have tables of their own; CHORUS's `key` is a note.
+    expect(wordFor("mode", "true", "sync")).toBe("External");
+    expect(wordFor("mode", "false", "sync")).toBe("Internal");
+    expect(wordFor("mode", "true", "flash")).toBe("On");
+    expect(wordFor("mode", "false")).toBe("Off");
+    expect(wordFor("mode", "1", "fill")).toBe("Colour and fill");
+    expect(wordFor("mode", "224", "modifier")).toBe("Ctrl");
+    expect(wordFor("mode", "0", "modifier")).toBe("None");
+    expect(wordFor("mode", "0", "inversion")).toBe("Off");
+    expect(wordFor("note", "104", "key")).toBe("F13");
+    expect(wordFor("note", "30", "key")).toBe("1");
+    expect(wordFor("note", "48", "key")).toBe("C3");
+    expect(wordFor("note", "16")).toBe("E0");
+    // A comma list of integers is a word: ORBIT's pulse sets, QUADRANT's
+    // palettes as their hue words.
+    expect(wordFor("count", "3,5,7,11")).toBe("3, 5, 7, 11");
+    expect(
+      wordFor("mode", "255,140,0,0,200,255,0,255,120,255,0,180", "hue"),
+    ).toBe("Orange, Cyan, Spring green, Rose");
+    expect(wordFor("scale", "0,1,2")).toBe("0, 1, 2");
+    expect(wordFor("colour", "0,200,255"), "a colour is never worded").toBe(
+      undefined,
+    );
   });
 
   it("carries the vendored EVENT_BUDGET, and reports it as the meter's limit", () => {

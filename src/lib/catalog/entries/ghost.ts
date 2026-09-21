@@ -155,7 +155,7 @@ export const GHOST: CatalogEntry = {
     },
     {
       id: "loopLength",
-      label: "Loop length",
+      label: "Loop length (points)",
       kind: "size",
       token: "@LEN",
       // Recorded samples at 20 ms each: 250 is five seconds. NONE may exceed 250 (TRAPS); the
