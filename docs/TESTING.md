@@ -7356,3 +7356,110 @@ files **11 passed** (radius's three circles, none a knob's); c1 by its two files
 (the brightness walk in `install.e2e.ts` typing into the stepper's field); c4 by its five files
 **23 passed** (the Sandbox's brightness walk and its history's boundary). c2 not run: no browse
 title reads the rack.
+
+## 2026-09-21 change 16c - the Sandbox's inspector on the same grid as the playground rack: label | control | reset | lock on every field, the lock box on the name row, segmented switches, steppers over the ranges, the helpers out of the flow
+
+`BENCH-2026-09-16.txt` section 16's tail (the 16b after-screenshot of the Sandbox inspector: two
+registers in one panel). One source commit before the docs, no push, no device, no deploy:
+`88f9921` feat(sandbox) - `sandbox/RegionInspector.svelte` rewritten on the grid (four titled
+sections, every field a `.field` root with a `.row` on `var(--tune-label-w, 96px) minmax(0, 1fr)
+44px 44px`, the 380 switch, the eyebrow label, the segmented control and the select as
+`Knob.svelte`'s rules, the name field and the kind word at 44, the lock box as `Knob.svelte`'s,
+`Stepper.svelte` in every typed field, the helpers as a label `title` and an sr-only description,
+the Arrange row four to a line, the pinned pair filling `Inspector.svelte`'s cells);
+`Stepper.svelte` with `inputTestid`, `placeholder` and `mixed` (and the placeholder's sans face);
+`BrightnessField.svelte`'s helper as a title and a description; `sandbox/copy.ts` with `IDENTITY`,
+`SWITCH_OFF`, `SWITCH_ON`; `sandbox-ui.spec.ts`'s seven shape pins moved; `e2e/sandbox.e2e.ts`
+re-aimed; `e2e/rack-grid.e2e.ts` two Sandbox titles; then this section, the Done paragraph "16c"
+under section 16, and the gate records `gate/change-16c.*` (before, at `08f1061`, on the main
+tree - clean at HEAD, so no worktree) and `gate/change-16c-after.*` (at `88f9921`).
+
+**What moved in the suites.** `sandbox-ui.spec.ts` 28 -> 28, seven pins moved with the shape and
+every behavioural assertion kept: test 10 reads Orientation as `role="radiogroup"[^>]*data-testid=
+"field-orientation"` (a `<select` before); test 12 reads a chosen Spring as `data-testid=
+"field-spring" data-value="true"` (a checked checkbox before); test 16 reads a mixed Spring as
+`data-value="" data-mixed="true"` with no radio of its name checked (an `aria-checked="mixed"`
+checkbox before), a mixed Orientation the same way (a blank selected option before), and the lock
+as `data-testid="field-locked" aria-pressed="false"` / `"true"` (a checkbox's `checked` before);
+the `field-mode`-disabled-in-Play pin holds through the group's `aria-disabled="true"` (rendered
+only in Play). Every helper pin (`MODE_HELPER`, `SPEED_HELPER`, `SPRING_HELPER`, `TOGGLE_HELPER`,
+`GROUP_HELPER`, `TOUCHES_HELPER`, `KNOB_RELATIVE_HELPER`, `BUTTON_MIN_MAX_HELPER`, "A Min above
+the Max inverts the direction.", `LOCKED_HELPER`, `BRIGHTNESS_SURFACE_HELPER`,
+`RECENT_COLOURS_HELPER`) still reads the panel - the text is an sr-only span and a title now. The
+typed-field pins (`field-cc … value="200" … aria-invalid="true"`, `field-min … value=""
+placeholder="Mixed" data-mixed="true"`, `readonly` under Play) hold unchanged because the
+Sandbox's `field-*` ids stay on the inputs through `Stepper.svelte`'s `inputTestid`.
+`tune-ui.spec.ts`, `instrument.spec.ts`, `identity.spec.ts`, `radius.spec.ts` unchanged and green
+(the error ink's carriers unchanged; five mono uses; no raised fill on a selected state; no radius
+above zero). The e2e: `sandbox.e2e.ts` 12 titles unchanged, five walks re-aimed - the options
+walk clicks Relative / Full / On / On / Note through their labels (`getByTestId(id).getByText(
+word).click()`; the radios are visually hidden) and reads the draft back off `data-value` on
+`field-mode`, `field-speed`, `field-spring`, `field-toggle` (the knob's `field-mode`, `field-group`
+and `field-touches` are selects still: `selectOption` and `toHaveValue` as before); the selection
+walk reads `field-locked` as `aria-pressed="true"` and clicks it to unlock; the geometry walk
+reads `field-orientation` off `data-value`; every `fill` / `press("Enter")` on `field-cc`,
+`field-channel`, `field-min`, `field-max`, `field-note`, `field-spring-value` and `field-name`
+unchanged. `e2e/rack-grid.e2e.ts` 2 -> 4 titles (the Sandbox with a fader selected at 1440 x 900
+and 1280 x 720): the eleven rows by label in order (Element name, Type, Orientation, Mode,
+Spring, CC number, Channel, Min, Max, Color, Brightness); every control's x and x + width within
+1px of the first row's and 44 tall; a reset box on the Color and Brightness rows alone, one x, 8px
+past the control; the lock box on the name row alone, 8px past the reset column, ending at the
+row's edge; seven neighbouring pairs one pitch (45 at 1440, over 45 stacked at 1280); the two
+action cells equal and 44; nothing sideways on `sandbox`, `shell-inspector`,
+`shell-inspector-body`. `rowsOf` gained the row's label; `sectionsOf` a by-label flag.
+
+**The numbers, measured on the deployed bytes** (`shots.mjs` in the scratchpad, vite preview on
+4174, stopped by port after; the 16b figures beside them): 1440 x 900 - the body 385, one line,
+every control 1137..1310 (173), the reset box at 1318, the lock at 1370, the pitch 45 in every
+section, 123 across a divider; 1280 x 720 - the body 336 (the inspector 388, 16b's finding),
+stacked, 922..1150 (224), the reset at 1158, the lock at 1210, the pitch 74; 393 x 852 - stacked,
+30..263 (233), the reset at 271, the lock at 323, the pitch 74. The same three numbers on every
+state: a fader, a button on Note, a knob, an XY pad with three touches, two elements, nothing
+selected. What the screenshots showed and what was fixed before the commit: the Arrange row over
+a set wrapped 7 + 1 at 385 (eight 44 boxes at 8px are 408) - now a grid of four to a line, the
+alignments over the centres and the spacings; the "Mixed" line under the Color row over a set
+whose colours differ (13A's `colour-mixed`) makes that one pitch 76, left as the marker it is.
+
+**Counts, carried + delta:** quick 96 / 1028 + 1 todo -> **96 / 1028 + 1 todo** (+0 / +0), green
+twice at `--maxWorkers=2` (run A `vitest run --project server --maxWorkers=2` on the tree before
+the commit - 96 files, 1028 passed, 1 todo, exit 0; run B the gate's quick term at `88f9921` -
+`check-counts` observed 96 files, 1028 passed, 1 todo, exit 0); check 677 -> **677**; lint clean;
+e2e 98 / 113 -> **100 / 115** (+2 / +2); utilities **44 -> 44** (0 disappeared, 0 appeared;
+`fact`, `hold`, `text`, `action`, `quiet` spell none); catalog **27**; testids 350 -> **341**
+(-10 +1 as LITERALS, no DOM value renamed: `field-mode`, `field-speed`, `field-orientation`,
+`field-output`, `field-group`, `field-touches`, `orientation-problem`, `touches-problem` now ride
+through snippet arguments, `field-{FIELD_IDS[field]}` through `Stepper.svelte`'s `inputTestid`
+prop and `{testid}-input` through the same prop's default; `field-locked` is a literal now, a
+snippet argument before); copy exports +3 (`sandbox/copy.ts` 187 -> 190: `IDENTITY`,
+`SWITCH_OFF`, `SWITCH_ON`); OG 27 files / 159,169 B / `9becd682…` and the four fixtures unmoved;
+`src/` 5 modified, 0 added, 0 deleted, 0 renamed against `08f1061`.
+
+**The gate's terms** (`--before change-16c` at `08f1061`; `--after change-16c --against change-16c
+--check 677` at `88f9921`): **the wire set `654e202e…`, the full `1c4acf19…` and the sandbox set
+`3bdb5974…` ALL EQUAL** - no Lua moved, no row column, no runtime part; the census `d22fbc7e…` ->
+`7daf68b2…` (3163 -> 3157 literals, 7490 -> 7483 occurrences: the select markup's four literals
+and the checkbox's gone, `label type-helper` 11 -> 0, `label type-micro` 6 -> 11, `helper
+type-helper` 16 -> 4, `input select` 7 -> 0, `grid` 15 -> 7, `sr-only` 32 -> 39, `row` 18 -> 23,
+`rows` 8 -> 12, `Identity`, `fact`, `hold type-helper`, `message quiet type-helper`, `outlined
+action` new); the copy exports `d73d361a…` -> `9d3640cb…`; the testids `f057796d…` ->
+`b89c69d9…` (350 -> 341); the SCOPED CSS `763cc8d4…` -> `b2a15f74…` and the raw `2baa3fb9…` ->
+`d104bbf0…` (RegionInspector.svelte's rows / field / row / label / control / text / fact /
+options / option / word / select-wrap / select / box / lock / glyph / message / arrange /
+recent / outlined / action rules; its grid / identity / check / checkbox / input / value / helper
+rules gone; Stepper.svelte's placeholder rule; BrightnessField.svelte's helper rule gone);
+utilities 44 -> 44 (`block grid outline ring sr-only` named by markup intact); the titles
+`05122e0b…` -> `afef833c…` (1029 vitest titles incl. todo; 113 -> 115 playwright runs); the JS
+`c3035823…` -> `f619c486…` (73 files); comment lines: 213 files, RegionInspector.svelte's header
+16 -> 15 lines (11 -> 10 against the rule; it was over before), Stepper.svelte's and
+BrightnessField.svelte's at 10 (`comment-lines.mjs --todo` prints nothing for the four source
+files). The script exits 1 at the census by design; the name-status term reads 5 modified; the
+refuse-list stat is empty.
+
+**Chunks** (a fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000
+after each; 5173 untouched; the build stamped the tree before the commit, the gate's build at
+`88f9921` after): c3 by three files (`tuning`, `tuning-webkit`, `rack-grid`) **26 passed** (its
+first run read 2 failed / 24 passed with the two Sandbox titles red on the test itself - the
+reset expectation named Brightness alone where the swatch row carries one too; fixed before the
+source commit); c4 by its five files **23 passed** (the Sandbox's twelve walks on the new shape,
+first run); c5 by its four files **11 passed** (radius's three circles). c1 and c2 not run: no
+install, session or browse title reads the Sandbox's inspector.

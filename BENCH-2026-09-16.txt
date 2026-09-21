@@ -3511,3 +3511,139 @@ element's own Locked toggle, which becomes a lock box on the name row), the same
 plain typed fields at 44, selects and segmented controls as the rack's, checkboxes as segmented
 On / Off), helpers as titles and sr-only text, the section heads as the rack's, the two action
 buttons as equal cells. Proved by screenshots the same way.
+
+**Done - change 16c, 2026-09-21 (the Sandbox's inspector on the rack's grid; the user asleep,
+nothing asked).** One source commit before the docs, no push, no device, no deploy: `88f9921`
+feat(sandbox) - `RegionInspector.svelte` rewritten on the grid, `Stepper.svelte` with three props,
+`BrightnessField.svelte`'s helper out of the flow, `sandbox/copy.ts` +3, `sandbox-ui.spec.ts`'s
+pins, `sandbox.e2e.ts` re-aimed, `rack-grid.e2e.ts` +2 titles; then this paragraph with
+`docs/TESTING.md`'s "2026-09-21 change 16c" and the gate records `gate/change-16c.*` (before, at
+`08f1061`, on the main tree - clean at HEAD, no worktree) and `gate/change-16c-after.*` (at
+`88f9921`).
+
+**Each field's control, before -> after.** ELEMENT NAME: a sentence-case label over a full-width
+16px field -> the eyebrow label in the label column, a typed field filling the control column at
+44 (the house face at the field's 15px, a boundary hairline, 12px in; quiet under Play), and the
+LOCKED checkbox with its helper paragraph -> the rack's lock box in the row's lock column (a real
+`<button aria-pressed>` named Locked, `field-locked` on the box, the shackle seated when every
+member is locked, `aria-pressed="mixed"` when they differ, the helper its title and description;
+over a set, which has no name row, the box rides the Type row). TYPE: a label over a bare word ->
+a row whose control column holds the kind word in the field's face at the field's 12px inset,
+the ink, NO boundary - a fact reads as a fact; a disabled field would have read as a field that
+refused (the Bible's "not editable" without looking broken; `field-kind` on the word as before).
+ORIENTATION, MODE (fader, pad), SPEED, OUTPUT: native selects -> the rack's segmented control of
+two words (real radios in labels under a radiogroup, joined boxes of equal width, the chosen one
+on the action colour by edge and word, `data-value` on the group; two columns counted from the
+words, never measured - every Sandbox word row has two). SPRING, TOGGLE: native checkboxes -> a
+segmented Off / On (`SWITCH_OFF` / `SWITCH_ON`), never a checkbox. KNOB MODE (four words),
+TOUCHES (1..5), GROUP (None + 8): native selects -> the rack's select (appearance none, the
+hairline, the two-edge arrow, full width at 44; Touches keeps its snap-back on a refusal). CC
+NUMBER, CC NUMBER (Y), CHANNEL, MIN, MAX, SPRING VALUE, NOTE: full-width 16px text fields in a
+2 x 2 grid -> `Stepper.svelte` filling the control column over the field's closed range (0..127,
+1..16; the note 0..127 shown as its name): every keystroke through the editor's `editNumber` as
+before (a refusal keeps the text, `aria-invalid` and its line under the row, the error ink on the
+stepper's boundary), Enter and blur through `commitField`; the boxes and the arrows step by one
+from the MODEL's value (a refused text steps from the model, as MidiField does) - each step a
+keystroke to `editNumber`, coalesced under the field's key until blur or Enter, the brightness
+field's shape; the ladder's mark alone (128 rungs; the channel's 16 ticks drawn). HELPERS
+(Mode, Speed, Touches, Spring, Toggle, Group, Note, Min / Max - Max reads Min's description -,
+Locked, the brightness's, the recent colours'): prose paragraphs between the rows -> the label's
+`title` and an sr-only span the control is described by; the Arrange, Shared controllers and
+New elements helpers keep their lines (not field helpers; the brief kept their content). MIXED:
+a stepper shows `Mixed` as its placeholder over an empty value (the sans face, quiet), a select
+its blank disabled option, a segmented control neither word with `data-mixed` on the group, the
+lock `aria-pressed="mixed"`; a value applies to every member as before. THE RESET COLUMN: empty
+on every row - the Sandbox has no per-field default - except Color (the swatch row's, back to
+the palette's default, which it had) and Brightness (255), both on one x. SECTIONS: Identity
+(new, titled - `IDENTITY`), Behavior, MIDI output, Appearance, on Inspector.svelte's rhythm (8
+under the word, 24 round the divider, the first head 16 under the lede); Arrange (a set) and
+Shared controllers (nothing selected) the same heads; the Arrange row four boxes to a line. THE
+ACTIONS: Duplicate / Delete element fill Inspector.svelte's `repeat(auto-fit, minmax(168px,
+1fr))` cells at 44 (2 at 1440, a column at 1280 and the phone, the rack's rule). The eyebrow,
+the headline and the units chip as before. GONE from RegionInspector.svelte: the 2 x 2 grid and
+its ResizeObserver over `NUMERIC_GRID_REFLOW` (layout.ts keeps the number), the `check` and
+`mixedOption` snippets, the `identity` lead (Identity is a section), the `data-field` attribute,
+the visible helper paragraphs, the `lock` class on the Play line (`hold` now; `.lock` is the box).
+
+**Ids moved and walks re-aimed.** No DOM value renamed: `field-cc`, `field-channel`, `field-min`,
+`field-max`, `field-note`, `field-spring-value`, `field-name` stay on their inputs (Stepper.svelte's
+new `inputTestid` prop; its boxes are `field-cc-down` / `-up`, its root `field-cc-stepper`);
+`field-mode`, `field-speed`, `field-spring`, `field-toggle`, `field-output`, `field-orientation`
+sit on the radiogroup (a select or a checkbox before); `field-group`, `field-touches` and the
+knob's `field-mode` on the select as before; `field-locked` on the lock box; `field-kind`,
+`orientation-problem`, `touches-problem`, `field-*-message`, `colour-mixed`, `recent-colours`,
+`arrange-*`, `reset-defaults`, `duplicate-element`, `delete-element` as before. Re-aimed in
+`sandbox.e2e.ts`: the options walk's `field-mode.selectOption("relative")`,
+`field-speed.selectOption("full")`, `field-spring.check()`, `field-toggle.check()` and
+`field-output.selectOption("note")` -> the word clicked through its label
+(`getByTestId(id).getByText(word).click()`), and the draft's read-back `toHaveValue` /
+`toBeChecked` on those four -> `toHaveAttribute("data-value", …)`; the selection walk's
+`field-locked` `toBeChecked()` -> `aria-pressed="true"` and `uncheck()` -> `click()`; the
+geometry walk's `field-orientation` `toHaveValue("vertical")` -> `data-value`. Unchanged: every
+`fill` and `press("Enter")` on the typed fields, the knob's `field-mode` and `field-group` /
+`field-touches` `selectOption`, the brightness walk, the Mixed placeholder read on
+`field-channel`. Copy exports +3 (`IDENTITY`, `SWITCH_OFF`, `SWITCH_ON`); testids 350 -> 341 as
+literals (ten now ride through snippet arguments or the stepper's prop, `field-locked` a literal).
+
+**Screenshots** (the scratchpad, not the tree; vite preview on 4174, never 5173, stopped by port
+after): before - `shots/16c-before/{1440x900,1280x720,393x852}-{fader,button,knob,xy,multi,none}.png`
+and `-tall.png` (the same width on a 2400-tall viewport, so the whole body is one image) at
+`08f1061`: the two registers - Identity, Behavior and MIDI output in 10B's shape over
+Appearance's grid. After - `shots/16c-after/*` at `88f9921`: every row on the grid, every
+control one x and one right edge, 44 tall, the lock at the name row's end, the section heads on
+one rhythm. Measured (the same figures as the rack's, on every state): 1440 x 900 - the body 385,
+one line, the control 1137..1310, the reset at 1318, the lock at 1370, the pitch 45 (123 across a
+divider); 1280 x 720 - the body 336, stacked, 922..1150, the reset at 1158, the lock at 1210, the
+pitch 74; 393 x 852 - stacked, 30..263, the reset at 271, the lock at 323. What I saw on the
+first after cut and fixed before committing: the Arrange row over a set wrapped 7 + 1 at 385
+(eight 44 boxes at 8px are 408; it did before, too) - a grid of four to a line now, the
+alignments over the centres and the spacings. Seen and left: over a set whose colours differ the
+"Mixed" line under the Color row (13A's `colour-mixed`) makes that one pitch 76 - it is the
+marker, and the chip alone would show the first member's colour as everyone's. The first shot
+run's knob state was nothing selected - the script's hotkey went to a focused radio, not the
+plate (the script's fault, fixed in the script; the e2e walks focus the plate first).
+
+**Proved.** `sandbox-ui.spec.ts` 28 / 28 (seven pins moved with the shape, every behavioural
+assertion kept; docs/TESTING.md names each); `tune-ui.spec.ts`, `instrument.spec.ts`,
+`identity.spec.ts`, `radius.spec.ts` untouched and green; `e2e/rack-grid.e2e.ts` 2 -> 4 titles
+(the Sandbox with a fader at 1440 and 1280: eleven rows by label, one x and one right edge, 44
+tall, the reset boxes on Color and Brightness alone at one x, the lock on the name row alone
+ending at the row's edge, seven pairs one pitch, two equal action cells, nothing sideways);
+`sandbox.e2e.ts` 12 titles green on the new shape at the first run. Counts carried + delta:
+quick 96 / 1028 + 1 todo -> **96 / 1028 + 1 todo** (run A on the tree before the commit, run B the
+gate's quick term at `88f9921`, `check-counts` 96 / 1028 / 1 todo, exit 0 both); check 677 ->
+**677**; lint clean; e2e 98 / 113 -> **100 / 115**; utilities **44 -> 44** (0 disappeared, 0
+appeared); catalog **27**; testids 350 -> **341**; copy exports +3; OG 27 files / 159,169 B /
+`9becd682…` and the four fixtures unmoved; `src/` 5 modified, 0 added, 0 deleted, 0 renamed
+against `08f1061`. **The gate's terms** (`--before change-16c` at `08f1061`; `--after change-16c
+--against change-16c --check 677` at `88f9921`): **the wire set `654e202e…`, the full `1c4acf19…`
+and the sandbox set `3bdb5974…` ALL EQUAL**; the census `d22fbc7e…` -> `7daf68b2…` (3163 -> 3157
+literals); the copy exports `d73d361a…` -> `9d3640cb…`; the testids `f057796d…` -> `b89c69d9…`;
+the SCOPED CSS `763cc8d4…` -> `b2a15f74…`, the raw `2baa3fb9…` -> `d104bbf0…`; utilities 44 -> 44;
+the titles `05122e0b…` -> `afef833c…` (1029 vitest incl. todo; 113 -> 115 playwright runs); the JS
+`c3035823…` -> `f619c486…` (73 files); RegionInspector.svelte's header 11 -> 10 against the rule
+(it was over before); the script exits 1 at the census by design; the refuse-list stat empty.
+**Chunks** (a fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000
+after each; 5173 untouched): c3 by three files **26 passed** (its first run 2 failed / 24 passed
+on the test itself - the reset expectation named Brightness alone where the swatch row carries
+one; fixed before the commit); c4 by its five files **23 passed** at the first run; c5 by its four
+files **11 passed**. c1 and c2 not run: no title of theirs reads the Sandbox's inspector.
+
+**Departures from the brief:** the reset cell is filled on Color as well as Brightness (the
+swatch row had one, back to the palette's default; the brief said Brightness alone); Identity is
+a titled section (+1 copy export `IDENTITY`) so the four sections share one head rhythm - the
+Bible's page 3 had the name above the first head; over a set the lock box rides the Type row (a
+set has no name row); the brightness and the recent colours helpers went out of the flow too
+(the brief listed the brightness's; the recent colours' was prose between two rows of
+Appearance); the Arrange row is four boxes to a line (not in the brief; 7 + 1 at 385 was ragged);
+`Stepper.svelte` gained three props (`inputTestid`, `placeholder`, `mixed`) and a placeholder
+rule so the Sandbox's ids and its Mixed state ride the shared shape (renaming the seven typed
+ids to `-input` would have moved sixty test lines for no DOM gain); the Sandbox's segmented
+controls count their two columns and never measure (Knob.svelte's ResizeObserver is for four
+words); a step box sends the next value through `editNumber` as a keystroke, coalesced until blur
+or Enter (the brightness field's rule; the brief named Enter / blur for the typed path only);
+`border-radius: 0` stays on the name field, the select, the boxes and the buttons where the user
+agent would round (the house pattern; radius.spec.ts reads `[1-9]`), no radius above zero anywhere;
+the `data-field` attribute on the typed inputs is gone (no suite read it); the gate's before record
+was taken on the main tree at HEAD (clean) rather than a worktree; STATE / ROADMAP / REQUIREMENTS
+untouched; CAT-04 stays `[ ]`; not deployed.

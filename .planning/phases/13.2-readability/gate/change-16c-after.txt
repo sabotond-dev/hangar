@@ -1,0 +1,136 @@
+# 13.2 gate --after change-16c --against change-16c --check 677
+HEAD 88f9921 (88f9921287ec6f500a83e803b12ce99f8532a5a4); dirty (src e2e scripts docs) 0; free memory 3.17 GB; 2026-09-21T15:47:42Z
+before-record HEAD 08f10618175146f1ae54cb44c5553afbcd7e8f5d
+
+## the wire
+2775 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+212 files; 3157 distinct literals (7483 occurrences); 8 copy modules; 341 data-testids
+literal census sha256 7daf68b2084ab348663edefd3183a48bcafe27c72af39a27a08f8bdcc83b1780
+copy exports   sha256 9d3640cb1ab7e0ddafadd1a9021fe34f5f0cc543d1394f73a773f19fd0f31c2d
+data-testids   sha256 b89c69d9796550137a58bc9a3669ca6c16d44c16a427d654c4403aa78c173fd5
+- 1 -> 0	" : String(touches)}\n            disabled={play}\n            aria-describedby={view.touchesProblem !== undefined\n              ? touchesProblemId\n              : lock}\n            onchange={(event) => {\n              const select = event.currentTarget;\n              ontouches?.(Number.parseInt(select.value, 10));\n              const now = shared(touchesOf);\n              select.value = now === undefined ? "
+- 1 -> 0	" ? `${CC_NUMBER} (X)` : CC_NUMBER,\n        )}\n        {#if region.kind === "
+- 1 -> 2	"${}-${}-helper"
+- 2 -> 3	"${}-input"
+- 1 -> 0	"${}-locked"
+- 2 -> 3	"Off"
+- 1 -> 2	"On"
+- 2 -> 3	"box lock"
+- 108 -> 109	"button"
+- 21 -> 22	"cc"
+- 6 -> 7	"cc2"
+- 33 -> 34	"channel"
+- 1 -> 0	"check"
+- 6 -> 4	"checkbox"
+- 7 -> 10	"control"
+- 1 -> 2	"control options"
+- 1 -> 2	"control select-wrap"
+- 10 -> 11	"false"
+- 16 -> 11	"field"
+- 1 -> 0	"field-orientation"
+- 1 -> 0	"field-touches"
+- 11 -> 12	"glyph"
+- 15 -> 7	"grid"
+- 16 -> 4	"helper type-helper"
+- 2 -> 1	"identity"
+- 2 -> 1	"input"
+- 1 -> 0	"input numerals"
+- 7 -> 0	"input select"
+- 11 -> 0	"label type-helper"
+- 6 -> 11	"label type-micro"
+- 1 -> 0	"lock type-helper"
+- 13 -> 14	"max"
+- 13 -> 14	"min"
+- 62 -> 61	"note"
+- 10 -> 9	"off"
+- 9 -> 10	"option"
+- 1 -> 0	"orientation-problem"
+- 6 -> 4	"outlined"
+- 6 -> 7	"radio"
+- 4 -> 5	"radiogroup"
+- 18 -> 23	"row"
+- 8 -> 12	"rows"
+- 7 -> 8	"select"
+- 7 -> 8	"springValue"
+- 32 -> 39	"sr-only"
+- 78 -> 82	"true"
+- 69 -> 68	"undefined"
+- 4 -> 3	"value"
+- 6 -> 7	"word"
+- 1 -> 0	"}\n              disabled={play}\n              aria-describedby={view.orientationProblem !== undefined\n                ? orientationProblemId\n                : lock}\n              onchange={(event) =>\n                onorientation(event.currentTarget.value as Orientation)}\n            >\n              {@render mixedOption(orientation === undefined)}\n              {#each ORIENTATIONS as o (o)}\n                <option value={o} selected={o === orientation}\n                  >{o === "
+- 1 -> 0	"}\n            disabled={play}\n            aria-describedby={lock}\n            onchange={(event) => onspeed?.(event.currentTarget.value as Speed)}\n          >\n            {@render mixedOption(speed === undefined)}\n            {#each SPEEDS as s (s)}\n              <option value={s} selected={s === speed}\n                >{s === "
+- 1 -> 0	"}\n          disabled={play}\n          aria-describedby={lock}\n          onchange={(event) =>\n            onmode?.(event.currentTarget.value as RegionMode)}\n        >\n          {@render mixedOption(mode === undefined)}\n          {#each CONTINUOUS_MODES as m (m)}\n            <option value={m} selected={m === mode}\n              >{m === "
+- 1 -> 0	"}\n          disabled={play}\n          aria-describedby={lock}\n          onchange={(event) =>\n            onoutput?.(event.currentTarget.value as ButtonOutput)}\n        >\n          {@render mixedOption(output === undefined)}\n          {#each BUTTON_OUTPUTS as o (o)}\n            <option value={o} selected={o === output}\n              >{o === "
++ 0 -> 1	" ? `${CC_NUMBER} (X)` : CC_NUMBER,\n          undefined,\n          undefined,\n        )}\n        {#if region.kind === "
++ 0 -> 1	"${}-locked-helper"
++ 0 -> 1	",\n          TOUCHES,\n          TOUCHES_HELPER,\n          TOUCHES_LIST,\n          touches === undefined ? undefined : String(touches),\n          (value, select) => {\n            ontouches?.(Number.parseInt(value, 10));\n            const now = shared(touchesOf);\n            select.value = now === undefined ? "
++ 0 -> 1	",\n        ORIENTATION,\n        undefined,\n        ORIENTATION_WORDS,\n        orientation,\n        (value) => onorientation(value as Orientation),\n        view.orientationProblem === undefined\n          ? undefined\n          : {\n              id: orientationProblemId,\n              testid: "
++ 0 -> 1	"Identity"
++ 0 -> 1	"fact"
++ 0 -> 1	"hold type-helper"
++ 0 -> 1	"message quiet type-helper"
++ 0 -> 2	"outlined action"
+
+## the comment lines
+213 files; 53898 lines, 35651 code, 13974 comment, 4273 blank, 4269 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/sandbox/copy.ts | 411 | 415 | 112 | 113 | 14 | 14 |
+| src/lib/ui/BrightnessField.svelte | 309 | 306 | 29 | 29 | 14 | 14 |
+| src/lib/ui/Stepper.svelte | 331 | 355 | 36 | 40 | 14 | 14 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 1209 | 1526 | 74 | 95 | 16 | 15 |
+| **totals (213 -> 213 files)** | 53556 | 53898 | 13948 | 13974 | 4270 | 4269 |
+
+4 file(s) moved
+
+## check and lint
+check: 1790005700065 COMPLETED 677 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 96 files, 1028 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 88f9921
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: d104bbf0bf91f5b09bf76f9f09e75689f91d53aa2d98d0a1fd374531409b0fb7 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 d104bbf0bf91f5b09bf76f9f09e75689f91d53aa2d98d0a1fd374531409b0fb7
+SCOPED CSS sha256 b2a15f74189f57c99e23e5285fedf557bea23ddd910fcfaa1f29a8010ee9b0d4
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 f619c486840c6d1c4db7718a16ca161a9955be4f50a7c3e2d4f9a76cad3353d4 (73 files)
+
+## the titles
+TITLES sha256 afef833c9b4630713d5bacce099bb621532560bc18083935e26fabdba5653c2d (1029 vitest titles incl. todo, 115 playwright runs)
+
+## src/ against the before-record's HEAD 08f10618175146f1ae54cb44c5553afbcd7e8f5d
+git diff --name-status: 5 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-16c
+wire: equal (set 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1, full 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a)
+sandbox set: equal (3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159)
+FAIL: the literal census (d22fbc7e8323d7e00f2f7169be6898e1253da3efb921b80ca7fa8dce84eda39f -> 7daf68b2084ab348663edefd3183a48bcafe27c72af39a27a08f8bdcc83b1780; the -/+ lines above name every literal whose count moved)
