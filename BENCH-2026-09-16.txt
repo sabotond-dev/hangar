@@ -3163,3 +3163,188 @@ and a house-styled select beyond; CC / note / channel as typed fields with stepp
 swatch chip opening the picker inline; per-field reset kept; a per-card review table of every
 knob and the widget it gets. The Bible's section 7 (segmented / select / slider) yields to the
 user's word here.
+
+**Done - change 16, 2026-09-21 (the tuning controls reworked; the user asleep, nothing asked).**
+Five commits before the docs, no push, no device, no deploy: `0233414` feat(tune) - the view
+rule, the six components, the new Stepper.svelte and sections.ts, the specs, seven labels; `e0ff250`
+test(tune) - the e2e walks and the gate's quick constant at 1028; `b07c9c4` fix(tune) - the rule
+read against the after-census (a segment character budget, three word tables, the e2e's lock words
+imported from the module they live in); `9d30644` test(tune) - two walks read on the deployed bytes
+(the stepper measured as its control, the hidden radios clicked through their labels, five leftover
+rail calls in install.e2e.ts); `176e6ba` test(tune) - the walk reads ARC's arms as the segmented
+row the fix commit made it; then this paragraph with `docs/TESTING.md`'s
+"2026-09-21 change 16", `docs/TUNING-REVIEW.md` new, `scripts/knob-census.mjs` new (the review's
+raw material) and the gate records `gate/change-16.*` (before, at `d4456a8`, on a clean worktree
+`../hangar-gate-16` with its own `npm ci`, removed after the records were copied) and
+`gate/change-16-after.*` (at `b07c9c4`). D-14 Q5 kept typed numerics to the Sandbox; the user's
+word brings them to the playground, and this paragraph says so.
+
+**The design, per widget (before -> after).** ONE ROW PER KNOB: 44px, a hairline between rows, the
+label left in the micro face (quiet, ink while the row is hovered or holds focus), the control right,
+then the reset box and the lock box - the tool rail's 44 squares with straight-line glyphs (an arrow
+with a returning shaft for reset; a padlock whose shackle seats when held, the second channel beside
+the word Lock / Locked in its name and title). The changed-from-default marker is a 2px rule in the
+action colour down the row's start (the brief's item 7), with FIELD_CHANGED for a screen reader; the
+reset box is present on every row and disabled at the default, so nothing reflows. Every row is its
+own container and stacks under 364px (the label on a line, the control under it with the boxes at its
+end): at the compact band (1280, the inspector 300) and on the phone (393) the rows are stacked, at
+1440 and above (the body 386) they are one line; the e2e measures all three. NUMERIC KNOBS: the dot
+rail and the track (a range input at opacity 0 under painted dots, a read-only readout) -> a typed
+stepper field, `Stepper.svelte`: a spinbutton in the mono face with the unit after the value, a step
+box either side out of the tab order (the field is the row's one stop), a hairline ladder of the rungs
+under the text with the rung the field is at in the action colour (the one nod to where you are;
+drawn up to 32 rungs, a mark alone above), ArrowUp / ArrowDown one rung, Home / End the ends, Enter
+and blur committing. THE SNAPPING RULE, EXACTLY: a typed value is read on Enter or blur only (a
+keystroke moves nothing); a number (integer or decimal) lands on the DECLARED rung nearest it by
+absolute difference, a tie on the lower value, a number past either end on that end; text that is not
+a number (or not a note name or number on a note ladder) leaves the field on the rung it showed, no
+recompile; a landing on the rung already shown moves nothing. The boxes and the arrows walk the rungs
+in VALUE order whatever order the entry declared them in (`valueOrder`, a stable sort, the declared
+order kept where a rung is not a number), so SNAKE's 300 220 160 110 steps up in milliseconds and
+POMODORO's 15 20 25 50 1 5 walks 1 5 15 20 25 50; the stamp encodes the declared index as before.
+WORDED KNOBS: the pill-outlined radios -> a segmented control of joined boxes (real radios in labels
+under a radiogroup, the shared edge collapsed, the chosen one on the action colour by edge and word,
+no fill) up to four words that fit one line (SEGMENTED_MAX 4, SEGMENT_CHARS_MAX 40 across them), the
+house select above (appearance none, the boundary hairline, the two-edge arrow); the twelve-key roots
+and a scale list read as selects; a note ladder past NOTE_SELECT_MAX (24) is typed - ORBIT's 128.
+CC / CHANNEL / NOTE / SEND: the two-column numeric grid of text fields (D-21's ResizeObserver) -> the
+same row with a stepper over the closed list, VALIDATING as before (typedIndex: an offered value moves
+the knob, an unoffered one is refused with the offered values named, never a snap), the boxes and
+arrows walking the offered values in value order, the Lua channel's cue read by a screen reader and
+on the label's title; no lock (never rolled); no XY pair exists on the playground (finding: none of
+the 27 cards declares one). COLOUR: the 34px square + hex + Edit color link -> a chip (the 28px
+square of the stored value beside its readout: the three channels for a lattice knob in the mono face,
+the hue word for a palette) that opens the picker inline under the row as before, Edit color / Close
+its hidden verb and its title, the reset box and the lock box on the row; the picker's head lost its
+own lock (two locks on one knob) and its palette row its label, reset and lock (the row carries them);
+the five-colour palette row stays inside the opened picker. BRIGHTNESS: the same row, the arrows
+stepping by one, no boxes (a free 1..255 is not a ladder). THE SECTIONS: PDF page 5's Behavior /
+Appearance / MIDI output -> Look (the colours, then the brightness field; always drawn), Feel (the
+amounts, speeds, trails, sizes, modes), Sound (kind note or scale, and the words key, root, velocity,
+inversion, modifier, octave, note), MIDI (surprise.ts's wire predicate, so the section is exactly what
+Randomize preserves), Sync (the words sync, division, clock) - in that fixed order, an empty one not
+drawn; `sections.ts sectionOf` is total and tune-ui.spec.ts walks every card's knobs through it (39 /
+38 / 18 / 33 / 10). Randomize, Reset settings and Undo randomize sit after the last section (the
+inspector's child; "where it is" read as a row of buttons under the fields, no longer under a Behavior
+that does not exist); the stamp notice is the inspector's lead; the preview's hold line (change 8) is
+under Sync; MIDI_HELPER and LUA_CHANNEL_CUE are read by a screen reader (no helper prose in the rows).
+GONE: the rail and both skins, the forecast delta and its props (dead since 13.1-07 hid the meters),
+the held bar and the home dot, the three older reset gestures (double-click, long press, Delete /
+Backspace - the box is the reset, and Delete on a text field is an editing key), Knob.svelte's three
+circles (D-15's six are three: ColourPicker.svelte :785 / :812 / :827, `CIRCLES` and radius.spec.ts at
+three, radius.e2e.ts measuring the picker's on AURORA's opened block), the pill class off Knob.svelte's
+word row (instrument.spec.ts's PILLED list says so), KnobRack.svelte's list / grid layouts.
+
+**The per-card review** is `docs/TUNING-REVIEW.md`: every card, every knob, its kind, rungs, values,
+default, section, widget, unit and finding, generated from `scripts/knob-census.mjs` with the findings
+by hand. FIXED (no Lua, no rung value moved): seven labels gained their unit word (Step time (ms),
+Key delay (ms), Ping speed (ms), Sweep speed (ms), Loop length (points), Interval (min) for Minutes,
+Flash width (cells)) - `splitUnit` takes a trailing parenthetical off any label and the stepper shows
+it after the value; three display bugs the census caught - TRACKPAD's edge flash and COMET's comet on
+scroll read Internal / External since change 8's sync words collided on `true` / `false` (the sync
+table is read by the knob's ID now, every other boolean under `mode` is On / Off), the presets' Send
+(DIAL, FOUR FADERS, JOYSTICK: the vendored `note` kind over CC numbers) read E0 for CC 16 in the MIDI
+field since change 8's note names (`isControllerNumber`: a MIDI destination that names no note is a
+controller number), CULL's and STAGE's first key (USB HID usage ids under `note`) read as note names
+(30 read F#1, 104 read G#7; KEY_WORDS reads 1 / F1 / Keypad 1 / F13); and six ladders that read as
+numbers read as words through the knob's ID - QUADRANT's fill (Colour only / Colour and fill / High
+contrast), STAGE's modifier (None / Ctrl / Alt / Shift), STARFIELD's edge (Soft / Hard, a rail of two
+unnamed dots before), ARC's arms (41 / 82 / 123 as 1 / 2 / 3; PINWHEEL's 1 / 2 / 3 untouched), CULL's
+legend brightness (2 3 4 6 as 33% / 50% / 67% / 100%), WHEELS' spring (256..2048 as the 640 / 320 /
+160 / 80 ms a full deflection takes home), plus a comma list of integers as its numbers (ORBIT's pulse
+sets) and four RGB triples as their hue words (QUADRANT's palettes). RECOMMENDED, the user's call:
+the eight four-rung channel ladders (0 1 9 15) that refuse a typed channel outside them (sixteen would
+be a value change inside one stamp character); the unsorted note ladders on POMODORO, QUADRANT, SNAKE
+and STEPS (a re-sort moves the stamp indices); the tick-of-10-ms ladders (CULL's flash, STEPS',
+MORPH's and ORBIT's trails, TRACKPAD's fade, COMET's tail) that read as bare numbers - a ms word table
+keyed by id, as WHEELS' spring now is, needs no value change.
+
+**Copy and test ids.** inspector-copy.ts: SECTION_BEHAVIOR and SECTION_APPEARANCE retired by name,
+SECTION_MIDI "MIDI output" -> "MIDI", SECTION_LOOK / SECTION_FEEL / SECTION_SOUND / SECTION_SYNC,
+STEP_DOWN, STEP_UP, SNAP_HINT added (-2 +7); KNOB_HOLD / KNOB_HELD, EDIT_COLOR / POPOVER_CLOSE,
+FIELD_RESET / FIELD_CHANGED, MIDI_HELPER, LUA_CHANNEL_CUE kept with new homes (a title, a hidden
+verb, a description). Test ids (the census reads literal `data-testid="…"`, 346 -> 351): -1
+`colour-hold` (the picker's head lock); +7 `swatch-{knob.id}-changed` / `-reset` / `-hold`,
+`{testid}-stepper` / `-input` / `-down` / `-up` (Stepper.svelte's, so `knob-<id>-input` and
+`midi-field-<id>-input` ride through it - the MIDI field's input id is unchanged for the e2e);
+`knob-{view.id}-changed` 2 -> 1 literal; every knob row and swatch row carries `data-index`,
+`data-changed` and (a knob) `data-widget`; `midi-grid` kept on the MIDI rows; `edit-color` kept on
+the chip. Three view exports retired (`WORD_ROW_MAX`, `railSkin`, `RailSkin`), five added
+(`NOTE_SELECT_MAX`, `SEGMENT_CHARS_MAX`, `splitUnit`, `valueOrder`, `rankOf`, `nearestRung`);
+`wordFor` and `widgetFor` take the knob's id.
+
+**Proved.** `tune-ui.spec.ts` 13 -> 14 (the floor test re-aimed at the lock box, the stepper's three
+controls and the chip; the census at 23 with the marker and the ladder tick named; the error ink's
+carriers with Stepper.svelte; D-21's test replaced by the sections' - every card's knobs through
+`sectionOf`, the witnesses, the five snippets, Look unconditional, the actions after the sections;
+the widget rule with the shelf's split 39 colour / 30 words / 10 selects / 59 steppers through the
+effective kind; the MIDI row rendered; the changed marker; the rows rendered - a stepper at SNAKE's
+220 ms with rank 2 of 0..3 and four ticks, the foot's down box disabled, a long ladder's mark alone, a
+segmented row's radios, a select's twelve options, the joined boxes' rules, every row a container
+stacking under 364px); `view.spec.ts`'s three widget tests rewritten (the total mapping, the two-
+integer row and PINWHEEL's stepper, the stepper's arithmetic - nearestRung on SNAKE's ladder, ties,
+ends, decimals, a word, valueOrder, rankOf, splitUnit, the id-keyed words); `knobs.lua.spec`'s widget
+list; `lua-smoke`'s five sync reads by id; `colour-picker.spec`'s tick against the picker's own home;
+`copy.spec`'s lock as the 44 box; `instrument.spec`'s mono list at six and the pill list without
+Knob's row; `radius.spec` at three circles; `stamp.spec.ts` untouched and green; every wire term
+byte-identical (below). The e2e: `tuning.e2e.ts` 11 -> 12 titles (the walks step spinbuttons and read
+the rows' data-index; the CC title steps the boxes and the arrows and reads the cue as a description
+and a title; the chip's Close / Edit color as text and title; tpad's Scroll with Home / End; the
+twelfth walks every widget kind on SNAKE and ARC at 1280 - a typed 100 snapping to 110, ArrowUp to
+160, the up box to 220, End to 300, a word refused on blur with no recompile, 999 clamped, the reset
+box and the lock, a segment as one click, the chip opening the palette with its readout following,
+the sections in order, ARC's wave shape select landing on Square, every control on the row at 44px);
+`tuning-webkit.e2e.ts` (stacked at both projects' widths, side by side at 1440, stacked again at 320,
+no sideways scroll at any of the three, every stepper control 44px on the phone - the project's phone
+is the iPhone 15 at 393, the brief's 390); `install.e2e.ts` and `session.e2e.ts` step the first
+stepper and read LUMEN's depth off its row; `radius.e2e.ts` three circles, none a knob's. Counts
+carried + delta: quick 96 / 1027 + 1 todo -> **96 / 1028 + 1 todo** (run A the gate's quick term at
+`b07c9c4`, `check-counts` 96 / 1028 / 1 todo, exit 0; run B `vitest run --project server --maxWorkers=2` at `176e6ba` on the gate's build through `check-counts.mjs 96 1028` - 96 files, 1028 passed, 1 todo, exit 0); check 675 -> **677** (+2:
+Stepper.svelte, sections.ts); lint clean; e2e 95 / 110 -> **96 / 111**; utilities **44 -> 44** (0
+disappeared, 0 appeared - the census's class words `box`, `field`, `ladder`, `tick`, `at`, `chip`,
+`rows`, `knob`, `stepper` spell no utility; `inline-flex`, `grid`, `flex`, `border` were already
+named); catalog **27**; testids 346 -> **351**; copy exports -2 +7; OG 27 files / 159,169 B /
+`9becd682…` and the four fixtures unmoved; `src/` 28 modified, 2 added, 0 deleted, 0 renamed against
+`d4456a8`; the seven relabelled entries' Lua untouched (`hash-wire` set and full equal). **The gate's
+terms** (`--before change-16` at `d4456a8`; `--after change-16 --against change-16 --check 677` at
+`b07c9c4`): **the wire set `654e202e…`, the full `1c4acf19…` and the sandbox set `3bdb5974…` ALL
+EQUAL - no Lua moved, no row column, no runtime part**; the census `be886210…` -> `cd28c1e3…` (3141
+-> 3163 literals, 210 -> 212 files); the copy exports `1ce943b4…` -> `d73d361a…`; the testids
+`60e7351e…` -> `f29b0454…`; the SCOPED CSS `11a91a6a…` -> `a373572a…` and the raw `8ab7ccda…` ->
+`0c4948f8…` (Knob.svelte's row / option / select / box rules, Stepper.svelte's, MidiField.svelte's,
+Swatch.svelte's chip, BrightnessField.svelte's row, KnobRack.svelte's hairline, TuningRegion.svelte's
+rows; the rail, the track, the dots, the delta, the picker's lock and the region's grid gone);
+utilities 44 -> 44; the titles `8783d842…` -> `5e64e0ca…` (1028 -> 1029 vitest titles incl. todo, 110 -> 111 playwright runs); the JS `acfddf4d…` ->
+`db4331c6… (74 -> 73 files)`; comment lines: every touched header at the ten-line rule (ColourPicker.svelte's 62 is as it
+was, the refuse-list's). The script exits 1 at the census by design; the name-status term reads 2
+added, stated above. **Chunks** (a fresh detached wrangler dev on 4173 each, stopped through
+PowerShell, HTTP 000 after each; 5173 untouched; the build stamped `b07c9c4`): c3 by its two files **22 passed** at `176e6ba` (its first run at `b07c9c4` read 20 passed with the two walks red on the tests themselves - the phone walk measured the stepper's input at 42px between the field's two hairlines, the widget walk called check() on a radio hidden inside its label - and its second at `9d30644` 21 passed on the walk's stale arms expectation, each fixed in the test commit named above); c5 by its four files **11 passed** at `176e6ba` (radius's title on both engines measuring the picker's three circles and none of a knob's; 11 at `b07c9c4` and at `9d30644` too); c1 by its two files **33 passed** at `9d30644` (its first run at `b07c9c4` read 31 passed with the two store-then-change titles red on five stale rail calls, fixed in `9d30644`; not rerun at `176e6ba`, which touched tuning.e2e.ts alone). c2 and c4 not run: no browse, catalog, fidelity, first-experience, library or sandbox title reads the workspace's rows, and the Sandbox's swatch row and brightness field - the same components - are walked by radius's title in c5.
+
+**Questions for the user.** (a) The sections are Look, Feel, Sound, MIDI, Sync in that order - Look
+first because the colour is the first thing a card shows; say if Feel should lead. (b) Randomize,
+Reset settings and Undo randomize sit after the last section; say if you want them under Feel (where
+Behavior's were) or pinned. (c) CULL's and STAGE's keystroke knobs (the first key, the modifier, the
+key delay) sit under Sound by the word `key`; say if you want a sixth group for keystrokes, or them
+under Feel. (d) The step boxes are out of the tab order (the field's arrows step); say if you want them
+as tab stops. (e) A typed value commits on Enter or blur and snaps silently; say if a landing should be
+announced (the live region is silent on a knob move by Phase 5's contract). (f) The unit is taken from
+a label's trailing parenthetical only; say if you want a unit on the tick ladders (a ms word table
+needs no value change) or on the unit-less amounts. (g) The four-rung channels and the unsorted note
+ladders are recommendations in `docs/TUNING-REVIEW.md`; say which to take (each moves the stamp). (h)
+The picker's palette row shows its swatches right-aligned under the head; say if you want them left.
+(i) The lock and the reset are icon boxes with titles; say if you want their words visible on a wide
+screen. (j) The three older reset gestures are gone (double-click, long press, Delete / Backspace);
+say if any should return. (k) Changes 1 to 15's questions still stand.
+
+**Departures from the brief:** five commits before the docs, not two (the fix commit is the rule read
+against the after-census, which the brief's "read every card's rack" asked for and the first cut
+under-served; the second and third test commits are what the chunk runs found in the walks
+themselves - a measure on the wrong box, a hidden radio, five stale calls, one stale expectation); the Sandbox's `RegionInspector.svelte` gained one line (`lock={false}` on its swatch
+row - the swatch rows carry a lock now and the Sandbox rolls nothing); `ColourPicker.svelte` lost its
+head lock, its `onhold` / `onforecast` props and its palette row's label / reset / lock - a
+behaviour change on the refuse-list file, by the brief's word ("if the rail dots go, their circle
+exemptions go with them"), its three circles untouched at their new lines; `lua-smoke.spec.ts`'s five
+sync reads pass the knob's id (not on the brief's list; the word split needed it); `layout.ts` kept
+its D-21 numbers unread by the region; the brightness field has no step boxes (a free range, not a
+ladder); the picker's palette row inside an opened block is right-aligned; STATE / ROADMAP /
+REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed; the worktree removed.

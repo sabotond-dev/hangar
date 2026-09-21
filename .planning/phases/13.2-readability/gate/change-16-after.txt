@@ -1,0 +1,249 @@
+# 13.2 gate --after change-16 --against change-16 --check 677
+HEAD b07c9c4 (b07c9c4c261206eed9c2d5905dfa22a4d1ef2407); dirty (src e2e scripts docs) 1; free memory 2.01 GB; 2026-09-21T13:21:41Z
+before-record HEAD d4456a8708dd3b693449a9e80d7618daa1be4868
+
+## the wire
+2775 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a
+475 Sandbox strings from 25 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159
+
+## the strings
+212 files; 3163 distinct literals (7494 occurrences); 8 copy modules; 351 data-testids
+literal census sha256 cd28c1e333e8fd2a2fbb4916be6bac4232c228bd03d4b4ca9a8c83ac0af5a75e
+copy exports   sha256 d73d361aee7352d345221bf85c04d6dad1504b8ca0e2de2098bd81b373512706
+data-testids   sha256 f29b045444a88ee66e59d3a49d14877faff98cca63861b110341a90b0eba4f5e
+- 1 -> 0	"(hover: hover)"
+- 2 -> 1	"(pointer: coarse)"
+- 1 -> 0	")\n              : "
+- 6 -> 8	", "
+- 1 -> 2	"1024"
+- 1 -> 2	"104"
+- 1 -> 2	"123"
+- 2 -> 1	"12x12"
+- 1 -> 2	"2048"
+- 1 -> 2	"224"
+- 1 -> 2	"225"
+- 1 -> 2	"226"
+- 1 -> 2	"256"
+- 3 -> 2	"2x2"
+- 2 -> 3	"30"
+- 1 -> 2	"41"
+- 1 -> 2	"50%"
+- 1 -> 2	"512"
+- 3 -> 4	"58"
+- 1 -> 2	"82"
+- 2 -> 3	"89"
+- 1 -> 0	"8x8"
+- 1 -> 0	":focus-visible"
+- 3 -> 4	"Alt"
+- 2 -> 1	"Appearance"
+- 4 -> 6	"ArrowDown"
+- 3 -> 5	"ArrowUp"
+- 5 -> 4	"Backspace"
+- 2 -> 1	"Behavior"
+- 1 -> 2	"Ctrl"
+- 9 -> 8	"Delete"
+- 4 -> 5	"End"
+- 11 -> 12	"Enter"
+- 1 -> 0	"Flash width"
+- 4 -> 5	"Home"
+- 1 -> 0	"Key delay"
+- 1 -> 0	"Loop length"
+- 2 -> 1	"MIDI output"
+- 1 -> 0	"Minutes"
+- 1 -> 2	"None"
+- 1 -> 2	"Off"
+- 1 -> 0	"Ping speed"
+- 1 -> 0	"Step time"
+- 1 -> 0	"Sweep speed"
+- 5 -> 6	"Sync"
+- 30 -> 31	"amount"
+- 10 -> 9	"bend"
+- 1 -> 3	"box"
+- 105 -> 108	"button"
+- 4 -> 0	"changed"
+- 2 -> 3	"chip"
+- 67 -> 66	"colour"
+- 1 -> 0	"colour-hold"
+- 4 -> 7	"control"
+- 1 -> 0	"cue type-helper"
+- 1 -> 0	"delta"
+- 9 -> 8	"direction"
+- 5 -> 6	"division"
+- 5 -> 4	"dot"
+- 3 -> 1	"dots"
+- 6 -> 5	"edit"
+- 9 -> 10	"false"
+- 12 -> 17	"feel"
+- 15 -> 16	"field"
+- 3 -> 11	"glyph"
+- 21 -> 15	"grid"
+- 1 -> 0	"grid-box"
+- 17 -> 16	"helper type-helper"
+- 1 -> 0	"hex numerals"
+- 2 -> 1	"home"
+- 1 -> 0	"home home-dot"
+- 1 -> 0	"home home-track"
+- 5 -> 6	"id"
+- 1 -> 2	"inversion"
+- 4 -> 5	"key"
+- 2 -> 3	"keys"
+- 20 -> 21	"knob"
+- 20 -> 16	"label"
+- 1 -> 6	"label type-micro"
+- 3 -> 1	"list"
+- 9 -> 7	"lock"
+- 10 -> 14	"look"
+- 4 -> 8	"midi"
+- 1 -> 2	"modifier"
+- 55 -> 62	"note"
+- 2 -> 3	"notes"
+- 1 -> 3	"numeric"
+- 13 -> 5	"rail"
+- 6 -> 4	"range"
+- 6 -> 3	"reset"
+- 2 -> 3	"root"
+- 16 -> 18	"row"
+- 3 -> 8	"rows"
+- 15 -> 16	"scale"
+- 6 -> 7	"select"
+- 4 -> 3	"slot"
+- 12 -> 11	"spring"
+- 29 -> 32	"sr-only"
+- 3 -> 0	"src/lib/ui/Knob.svelte"
+- 13 -> 9	"swatch"
+- 5 -> 10	"sync"
+- 18 -> 19	"text"
+- 1 -> 0	"the dot rail's dot"
+- 2 -> 1	"the home mark"
+- 1 -> 0	"the slider thumb"
+- 6 -> 5	"thumb"
+- 1 -> 2	"tick"
+- 5 -> 4	"touch"
+- 7 -> 1	"track"
+- 2 -> 1	"track-fill"
+- 2 -> 1	"track-line"
+- 75 -> 78	"true"
+- 69 -> 68	"undefined"
+- 5 -> 4	"value"
+- 1 -> 2	"velocity"
+- 7 -> 5	"words"
++ 0 -> 1	"${}-hint"
++ 0 -> 1	"100%"
++ 0 -> 1	"160 ms"
++ 0 -> 1	"320 ms"
++ 0 -> 1	"33%"
++ 0 -> 1	"640 ms"
++ 0 -> 1	"67%"
++ 0 -> 1	"80 ms"
++ 0 -> 1	"A typed value snaps to the nearest step this setting offers."
++ 0 -> 1	"Colour and fill"
++ 0 -> 1	"Colour only"
++ 0 -> 1	"F1"
++ 0 -> 1	"F13"
++ 0 -> 1	"Feel"
++ 0 -> 1	"Flash width (cells)"
++ 0 -> 1	"Hard"
++ 0 -> 1	"High contrast"
++ 0 -> 1	"Interval (min)"
++ 0 -> 1	"Key delay (ms)"
++ 0 -> 1	"Keypad 1"
++ 0 -> 1	"Look"
++ 0 -> 1	"Loop length (points)"
++ 0 -> 1	"MIDI"
++ 0 -> 1	"On"
++ 0 -> 1	"Ping speed (ms)"
++ 0 -> 1	"Shift"
++ 0 -> 1	"Soft"
++ 0 -> 1	"Sound"
++ 0 -> 1	"Step down"
++ 0 -> 1	"Step time (ms)"
++ 0 -> 1	"Step up"
++ 0 -> 1	"Sweep speed (ms)"
++ 0 -> 2	"box lock"
++ 0 -> 4	"box reset"
++ 0 -> 1	"clock"
++ 0 -> 1	"clocks"
++ 0 -> 1	"divisions"
++ 0 -> 1	"ladder"
++ 0 -> 1	"octave"
++ 0 -> 5	"sound"
++ 0 -> 1	"spinbutton"
++ 0 -> 7	"stepper"
++ 0 -> 1	"tick at"
++ 0 -> 1	"unit"
+
+## the comment lines
+213 files; 53464 lines, 35304 code, 13908 comment, 4252 blank, 4264 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/tune/inspector-copy.ts | 255 | 277 | 108 | 121 | 16 | 16 |
+| src/lib/tune/model.ts | 970 | 976 | 242 | 244 | 13 | 13 |
+| src/lib/tune/sections.ts (new) | - | 78 | - | 14 | - | 8 |
+| src/lib/tune/surprise.ts | 122 | 136 | 55 | 61 | 13 | 13 |
+| src/lib/tune/view.ts | 729 | 874 | 210 | 243 | 18 | 16 |
+| src/lib/ui/BrightnessField.svelte | 284 | 347 | 27 | 27 | 12 | 12 |
+| src/lib/ui/ColourPicker.svelte | 953 | 897 | 375 | 358 | 74 | 74 |
+| src/lib/ui/Knob.svelte | 1172 | 510 | 448 | 59 | 101 | 14 |
+| src/lib/ui/KnobRack.svelte | 155 | 110 | 33 | 23 | 14 | 10 |
+| src/lib/ui/MidiField.svelte | 304 | 326 | 34 | 33 | 14 | 14 |
+| src/lib/ui/Stepper.svelte (new) | - | 313 | - | 32 | - | 12 |
+| src/lib/ui/Swatch.svelte | 243 | 404 | 42 | 44 | 14 | 13 |
+| src/lib/ui/TuningRegion.svelte | 748 | 749 | 121 | 117 | 15 | 14 |
+| src/lib/ui/radius-allowlist.ts | 289 | 269 | 74 | 72 | 13 | 13 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 1208 | 1209 | 74 | 74 | 16 | 16 |
+| **totals (211 -> 213 files)** | 53421 | 53464 | 14229 | 13908 | 4339 | 4264 |
+
+15 file(s) moved
+
+## check and lint
+check: 1789996939345 COMPLETED 677 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 96 files, 1028 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp b07c9c4
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 0c4948f86c2ffa02f4692eac39415123a300e8a74123b56ee3de8e887043be16 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 0c4948f86c2ffa02f4692eac39415123a300e8a74123b56ee3de8e887043be16
+SCOPED CSS sha256 a373572ad9e08a782a42bfe0c35594b5a3ecea48c7a889122f29706f7cf25b44
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 db4331c6c1377fc958eb330775634339be7c58de3972555a1dcb909bdc7ae128 (73 files)
+
+## the titles
+TITLES sha256 5e64e0cacbc3bac94e04da2dccd18b46155722b3798167cc521186b2faceb2b3 (1029 vitest titles incl. todo, 111 playwright runs)
+
+## src/ against the before-record's HEAD d4456a8708dd3b693449a9e80d7618daa1be4868
+git diff --name-status: 28 modified, 2 added, 0 deleted, 0 renamed
+  A	src/lib/tune/sections.ts
+  A	src/lib/ui/Stepper.svelte
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte:  src/lib/ui/ColourPicker.svelte |   62 +-
+ src/lib/ui/Knob.svelte         | 1246 ++++++++++------------------------------
+ 2 files changed, 295 insertions(+), 1013 deletions(-)
+
+## comparison against change-16
+wire: equal (set 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1, full 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a)
+sandbox set: equal (3bdb59744142629d3940093155be0aeb780f44b0a6f4bd6e908a19613e507159)
+FAIL: the literal census (be886210dadeb4199cb5653987a6afb8b58590ef5f36e7d179d92a169ac5f372 -> cd28c1e333e8fd2a2fbb4916be6bac4232c228bd03d4b4ca9a8c83ac0af5a75e; the -/+ lines above name every literal whose count moved)

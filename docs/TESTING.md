@@ -7175,3 +7175,100 @@ after each; 5173 untouched; the build stamped `6fdb80b`): c4 by its five files *
 twelve Sandbox titles among them); c5 by its four files **11 passed** (radius's title walks the
 Sandbox). c1, c2 and c3 not run: no install, session, browse or tuning title reads the Sandbox's
 rail, and the workspace's inspector is untouched.
+
+## 2026-09-21 change 16 - the playground's tuning controls reworked: one row per knob, typed steppers that snap to the declared rungs, segmented rows and selects, a swatch chip, five sections
+
+`BENCH-2026-09-16.txt` section 16 (the user's word: "use input fields where you seem fit instead of
+sliders", "modern and better", "straightforward"; the executor's discretion under the brief's
+direction). Five commits before the docs, no push, no device, no deploy: `0233414`
+feat(tune) - the view rule (`tune/view.ts`: `KnobWidget` swaps `rail` for `stepper`, `wordFor` and
+`widgetFor` read the knob's id, `splitUnit` / `valueOrder` / `rankOf` / `nearestRung` new,
+`NOTE_SELECT_MAX`; `tune/sections.ts` new: `sectionOf` / `groupBySection` / `SECTION_ORDER`;
+`tune/surprise.ts`'s `isControllerNumber` and exported `wordsOf`; `tune/model.ts` building the view
+with the effective kind and the unit; `inspector-copy.ts`'s five section titles, `STEP_DOWN` /
+`STEP_UP` / `SNAP_HINT`), the components (`Stepper.svelte` new; `Knob.svelte`, `MidiField.svelte`,
+`Swatch.svelte`, `BrightnessField.svelte`, `KnobRack.svelte`, `TuningRegion.svelte` rewritten to the
+row; `ColourPicker.svelte` without its head lock; `sandbox/RegionInspector.svelte`'s swatch row
+`lock={false}`), seven entry labels with their unit word, the specs; `e0ff250` test(tune) - the e2e
+walks and the gate's quick constant at 1028; `b07c9c4` fix(tune) - `SEGMENT_CHARS_MAX`, three word
+tables (arms, dim, spring), the shelf split through the effective kind, the e2e's lock words from
+`tune/copy`; `9d30644` test(tune) - two walks read on the deployed bytes (the stepper measured as
+its control, the hidden radios clicked through their labels, five leftover rail calls in
+`install.e2e.ts`); `176e6ba` test(tune) - the walk reads ARC's arms as the segmented row the fix
+commit made it; then this section, the Done paragraph under section 16, `docs/TUNING-REVIEW.md` new,
+`scripts/knob-census.mjs` new, and the gate records `gate/change-16.*` (before, at `d4456a8`, on a
+clean worktree `../hangar-gate-16` with its own `npm ci`, removed after the records were copied) and
+`gate/change-16-after.*` (at `b07c9c4`).
+
+**What moved in the suites.** `tune-ui.spec.ts` 13 -> 14: test 1's list at twelve with
+`Stepper.svelte`; the floor test re-aimed (the lock box's both axes, its name changing with its
+state, its straight-line glyph; `Stepper.svelte`'s two boxes and its field at 44, the boxes out of
+the tab order, the field a spinbutton reading ArrowUp / ArrowDown / Home / End / Enter and never
+Delete or Backspace; the picker's `.option` kept and its `.lock` asserted gone; the changed marker's
+`.row.changed::before` rule at 2px in the action colour in four files; the chip's shape and its
+rendered pair); the census at 23 across twelve files (the marker in four, the ladder's tick, the
+open chip's edge, Knob's six); the error ink's carriers with `Stepper.svelte`; D-21's arithmetic test
+replaced by the sections' (the region free of `ResizeObserver` / `NUMERIC_GRID_REFLOW` /
+`INSPECTOR_INSET` / the two retired titles; every card's knobs through `sectionOf` with the MIDI
+section equal to `isMidiDestination`; fourteen witnesses; ORBIT's groups; the five snippets and
+titles; Look unconditional; the MIDI snippet's `MidiField` rows and hidden helper; the actions after
+`{sections}`; the lead); the widget test's branches at select / stepper / swatch, no range input,
+the boundaries (four words a row, five a select, twelve a select, twenty-five notes typed, two
+integers words, three a stepper) and the shelf's split 39 / 30 / 10 / 59 through the effective kind;
+the MIDI test on the row (spinbutton, `aria-valuenow`, the two boxes, no lock, the cue as description
+and title, `valueOrder` in the source, no `nearestRung`, every corner 0 in two files, the mono face
+in `Stepper.svelte` and not in `MidiField.svelte`); the changed-field test on the new markup; the
+Brightness test under Look; and one new test, the rows rendered with `svelte/server` (a stepper at
+SNAKE's 220 ms - the unit, rank 2 of 0..3, four ticks with the third marked, the boxes live, the reset
+live, the lock's name; the foot's down box disabled and Locked; a long ladder's mark alone; a segmented
+row's two radios and the chosen word; a select's twelve options and the house arrow; the joined boxes'
+rules; every row component a container stacking under 364px with a micro-face label; the rack's
+hairline). `view.spec.ts`: the twelve-kind mapping (stepper / select / words, no rail), the
+two-integer row and PINWHEEL's stepper and STARFIELD's Soft / Hard, and the stepper's arithmetic
+(nearestRung on SNAKE's ladder: 100 -> 110, ties to the lower, past the ends, a decimal, a word,
+an empty ladder, a ladder with a word; valueOrder; rankOf; splitUnit; the id-keyed words including
+the sync / on-off split, the HID keys, the palettes as hue words, arms, dim, spring). `knobs.lua.spec`
+counts steppers; `lua-smoke.spec`'s five sync reads pass the id and GHOST's division is a stepper;
+`colour-picker.spec`'s tick shares the PICKER's home mark and Knob.svelte draws no circle;
+`copy.spec`'s lock invariant is Knob.svelte's `.box` at a fixed 44 and the name changing, the picker
+without `KNOB_HOLD`; `instrument.spec`'s `MONO_USES` six across six files (Stepper, Swatch,
+BrightnessField in; Knob out) and `PILLED` without Knob's row; `radius.spec` at three circles.
+`stamp.spec.ts` untouched and green. The e2e: `tuning.e2e.ts` 11 -> 12 (`knobIndices` off
+`data-index`; `steppers` / `turnStepper` with ArrowUp; the CC title's boxes and arrows, the cue
+attached and titled; the chip's `toContainText` and title; tpad's Scroll a stepper; the twelfth title
+
+- the widget walk on SNAKE and ARC); `tuning-webkit.e2e.ts` (`rowLayout` on the first stepper row:
+  stacked at the project's width, the five stepper controls at 44 on the phone, side by side at 1440,
+  stacked at 320, no sideways scroll at all three); `install.e2e.ts` (`steppers` / `turnStepper`,
+  LUMEN's depth off `knob-depth`'s `data-index`); `session.e2e.ts` (the first spinbutton, ArrowUp);
+  `radius.e2e.ts` (`THREE_CIRCLES`, the picker's alone, the knob rows measuring none).
+
+**Counts, carried + delta:** quick 96 / 1027 + 1 todo -> **96 / 1028 + 1 todo** (+0 files / +1),
+green twice at `--maxWorkers=2` (run A the gate's quick term at `b07c9c4` - `check-counts` observed
+96 files, 1028 passed, 1 todo, exit 0; run B `vitest run --project server --maxWorkers=2` at `176e6ba` on the gate's build through `check-counts.mjs 96 1028` - 96 files, 1028 passed, 1 todo, exit 0); check 675 -> **677** (+2); lint clean;
+e2e 95 / 110 -> **96 / 111** (+1 / +1); utilities **44 -> 44** (0 disappeared, 0 appeared); catalog
+**27**; testids 346 -> **351** (-1 `colour-hold`; +7 `swatch-{knob.id}-changed` / `-reset` / `-hold`,
+`{testid}-stepper` / `-input` / `-down` / `-up`); copy exports -2 +7; OG 27 files / 159,169 B /
+`9becd682…` and the four fixtures unmoved; `src/` 28 modified, 2 added, 0 deleted, 0 renamed against
+`d4456a8`.
+
+**The gate's terms** (`--before change-16` at `d4456a8`; `--after change-16 --against change-16
+--check 677` at `b07c9c4`): **the wire set `654e202e…`, the full `1c4acf19…` and the sandbox set
+`3bdb5974…` ALL EQUAL - no Lua moved, no row column, no runtime part; the seven relabelled entries'
+strings are byte-identical**; the census `be886210…` -> `cd28c1e3…` (3141 -> 3163 literals, 210 ->
+212 files: the rail's class words, the delta, the picker's lock and the region's grid go; the row's,
+the box's, the stepper's, the chip's, the ladder's, the five section words and the three stepper
+words come); the copy exports `1ce943b4…` -> `d73d361a…` (8 modules); the testids `60e7351e…` ->
+`f29b0454…` (346 -> 351); the SCOPED CSS `11a91a6a…` -> `a373572a…` and the raw `8ab7ccda…` ->
+`0c4948f8…` (the rows' rules, named above); utilities 44 -> 44; the titles `8783d842…` ->
+`5e64e0ca…` (1028 -> 1029 vitest titles incl. todo, 110 -> 111 playwright runs); the JS `acfddf4d…`
+-> `db4331c6…` (74 -> 73 files); comment lines: every touched header at the ten-line rule by
+`comment-lines.mjs --todo` (ColourPicker.svelte's 62 is as it was before the change). The script
+exits 1 at the census by design; the name-status term reads 2 added (`Stepper.svelte`,
+`sections.ts`), and the refuse-list stat names `ColourPicker.svelte` (62 lines, the head lock and the
+two props, its three circles untouched at :785 / :812 / :827) as the brief allowed.
+
+**Chunks** (a fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000 after
+each; 5173 untouched; the build stamped `b07c9c4`): c3 by its two files **22 passed** at `176e6ba` (its first run at `b07c9c4` read 20 passed with the two walks red on the tests themselves - the phone walk measured the stepper's input at 42px between the field's two hairlines, the widget walk called check() on a radio hidden inside its label - and its second at `9d30644` 21 passed on the walk's stale arms expectation, each fixed in the test commit named above); c5 by its four files **11 passed** at `176e6ba` (radius's title on both engines measuring the picker's three circles and none of a knob's; 11 at `b07c9c4` and at `9d30644` too); c1 by its two files **33 passed** at `9d30644` (its first run at `b07c9c4` read 31 passed with the two store-then-change titles red on five stale rail calls, fixed in `9d30644`; not rerun at `176e6ba`, which touched tuning.e2e.ts alone). c2 and c4 not run: no browse, catalog, fidelity, first-experience, library or sandbox title reads the workspace's rows, and the Sandbox's swatch row and brightness field - the same components - are walked by radius's title in c5. c2 and c4 not run: no browse,
+catalog, fidelity, first-experience, library or sandbox title reads the workspace's rows (the
+Sandbox's swatch row and brightness field are the same components, walked by radius's title in c5).
