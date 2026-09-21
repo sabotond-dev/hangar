@@ -55,6 +55,8 @@ export type KnobWidget = "colour" | "swatch" | "words" | "select" | "stepper";
 
 /** Above this many options a worded knob is a `<select>` rather than segmented radios (13-09, section 7). */
 export const SEGMENTED_MAX = 4;
+/** Above this many characters across its words a worded knob is a select too (change 16): four long words do not sit on one line. */
+export const SEGMENT_CHARS_MAX = 40;
 /** Above this many options a note knob is typed (a name or a number) rather than chosen from a list (change 16). */
 export const NOTE_SELECT_MAX = 24;
 /** Two. Above this an integer knob is a stepper, where the ladder shows where the value sits (12-05, change 16). */
@@ -245,12 +247,38 @@ const KEY_WORDS = {
   "104": "F13",
 } as const;
 
+/** ARC's `arms` (change 16): the compiler's radial multipliers, 41 per arm; PINWHEEL's 1 / 2 / 3 are not on this table and read as they are. */
+const ARMS_WORDS = {
+  "41": "1",
+  "82": "2",
+  "123": "3",
+} as const;
+
+/** CULL's `dim` (change 16): a multiplier over a divisor of 6, read as the share of the palette it leaves lit. */
+const DIM_WORDS = {
+  "2": "33%",
+  "3": "50%",
+  "4": "67%",
+  "6": "100%",
+} as const;
+
+/** WHEELS' `spring` (change 16): the walk per 20 ms fire, read as the time a full deflection takes to come home. */
+const RETURN_WORDS = {
+  "256": "640 ms",
+  "512": "320 ms",
+  "1024": "160 ms",
+  "2048": "80 ms",
+} as const;
+
 /** The tables read by the knob's ID before its kind's own (change 16). */
 const ID_WORDS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   sync: SYNC_WORDS,
   fill: FILL_WORDS,
   modifier: MODIFIER_WORDS,
   key: KEY_WORDS,
+  arms: ARMS_WORDS,
+  dim: DIM_WORDS,
+  spring: RETURN_WORDS,
 };
 
 /** The `mode` tables after the dial's own two words, tried in this order; every key is unique across them. */
@@ -458,8 +486,8 @@ export function wordFor(
  * The widget rule, and it is TOTAL: every kind and every value set resolves to one widget. `colour`
  * is chosen by `kind` ALONE (X-05 / X-06; 10-08, 10-10): a colour knob carries `n = 4096` and any
  * rule that consulted `n` would send it elsewhere. A knob every one of whose values has a word is
- * segmented up to SEGMENTED_MAX and a select above it - except a note ladder past NOTE_SELECT_MAX,
- * which is typed. A knob of integers is words at up to INTEGER_WORD_ROW_MAX (12-05: NINE PADS'
+ * segmented up to SEGMENTED_MAX options and SEGMENT_CHARS_MAX characters and a select above either
+ * - except a note ladder past NOTE_SELECT_MAX, which is typed. A knob of integers is words at up to INTEGER_WORD_ROW_MAX (12-05: NINE PADS'
  * `Pads` at `9` and `16`) and a stepper above. Anything else is a select of positions (change 16).
  */
 export function widgetFor(
@@ -469,9 +497,13 @@ export function widgetFor(
 ): KnobWidget {
   if (kind === "colour") return "colour";
   const n = values.length;
-  if (n > 0 && values.every((v) => wordFor(kind, v, id) !== undefined)) {
+  const words = values.map((v) => wordFor(kind, v, id));
+  if (n > 0 && words.every((word) => word !== undefined)) {
     if (kind === "note" && n > NOTE_SELECT_MAX) return "stepper";
-    return n <= SEGMENTED_MAX ? "words" : "select";
+    const chars = words.reduce((sum, word) => sum + (word as string).length, 0);
+    return n <= SEGMENTED_MAX && chars <= SEGMENT_CHARS_MAX
+      ? "words"
+      : "select";
   }
   if (n > 0 && values.every((v) => INTEGER.test(v))) {
     return n <= INTEGER_WORD_ROW_MAX ? "words" : "stepper";

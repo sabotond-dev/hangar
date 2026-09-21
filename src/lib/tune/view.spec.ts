@@ -25,6 +25,7 @@ import {
   KNOB_KIND_NAMES,
   NOTE_SELECT_MAX,
   SCALE_WORDS,
+  SEGMENT_CHARS_MAX,
   hueName,
   integerReadout,
   meterView,
@@ -184,7 +185,10 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect(widgetFor("direction", ["x", "y", "diagonal"])).toBe("words");
     expect(widgetFor("mode", ["relative", "absolute"])).toBe("words");
     expect(widgetFor("bend", ["none", "x", "y"])).toBe("words");
-    expect(widgetFor("spring", ["off", "centre", "zero"])).toBe("words");
+    // Three words, 41 characters: the segmented row would wrap, so a select (SEGMENT_CHARS_MAX).
+    expect(SEGMENT_CHARS_MAX).toBe(40);
+    expect(widgetFor("spring", ["off", "centre", "zero"])).toBe("select");
+    expect(widgetFor("spring", ["off", "centre"])).toBe("words");
     expect(widgetFor("note", ["24", "30", "36"])).toBe("words");
     expect(widgetFor("speed", ["240", "180", "110"])).toBe("stepper");
     expect(widgetFor("amount", ["0", "1", "2"])).toBe("stepper");
@@ -358,6 +362,13 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
     expect(wordFor("note", "30", "key")).toBe("1");
     expect(wordFor("note", "48", "key")).toBe("C3");
     expect(wordFor("note", "16")).toBe("E0");
+    expect(wordFor("count", "82", "arms"), "ARC's arms").toBe("2");
+    expect(wordFor("count", "2", "arms"), "PINWHEEL's arms").toBeUndefined();
+    expect(wordFor("amount", "3", "dim"), "CULL's legend").toBe("50%");
+    expect(wordFor("spring", "512", "spring"), "WHEELS' spring").toBe("320 ms");
+    expect(wordFor("spring", "centre", "spring"), "the joystick's").toBe(
+      "Springs to centre",
+    );
     // A comma list of integers is a word: ORBIT's pulse sets, QUADRANT's
     // palettes as their hue words.
     expect(wordFor("count", "3,5,7,11")).toBe("3, 5, 7, 11");

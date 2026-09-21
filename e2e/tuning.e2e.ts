@@ -63,6 +63,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { FRONT_DOOR_HERO } from "../src/lib/catalog/front-door";
 import { shareUrl } from "../src/lib/share/url";
 import {
+  KNOB_HELD,
+  KNOB_HOLD,
   LINK_COPIED,
   SHARE_FALLBACK_FIELD_NAME,
   STAMP_RESTORED,
@@ -78,8 +80,6 @@ import {
 // module imports nothing.
 import {
   EDIT_COLOR,
-  KNOB_HELD,
-  KNOB_HOLD,
   LUA_CHANNEL_CUE,
   POPOVER_CLOSE,
   RANDOMIZE,

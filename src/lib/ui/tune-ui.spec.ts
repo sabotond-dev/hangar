@@ -22,7 +22,7 @@ import { KNOB_HELD, KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
 // 13-19, which owns that module and its spec's count.
 // The randomiser's scope (13-10, section 7): the predicate the inspector's
 // MIDI partition and the roll share.
-import { isMidiDestination } from "../tune/surprise";
+import { isControllerNumber, isMidiDestination } from "../tune/surprise";
 import { UNDO_RANDOMIZE } from "../tune/inspector-copy";
 // The swatch's inline colour block (13.1-04, D-08): the toggle's two words
 // are the copy module's, and the closed shape is RENDERED with svelte/server
@@ -1575,12 +1575,16 @@ describe("the tuning UI's structural rules", () => {
     );
     expect(knob).toContain("<option value={at} selected={at === view.index}");
 
-    // THE WHOLE SHELF, THROUGH THE RESOLVER THE PANEL USES: every widget a
-    // branch renders, and the split the review table records.
+    // THE WHOLE SHELF, THROUGH THE RESOLVER THE PANEL USES (the effective
+    // kind, as model.ts reads it: a Send is a controller number whatever
+    // kind the preset declared): every widget a branch renders, and the
+    // split docs/TUNING-REVIEW.md records.
     const split: Record<string, number> = {};
     for (const entry of CATALOG) {
       for (const k of stampKnobs(entry)) {
-        const widget = widgetFor(k.kind, k.options, k.id);
+        const kind =
+          k.kind === "note" && isControllerNumber(k) ? "amount" : k.kind;
+        const widget = widgetFor(kind, k.options, k.id);
         expect(renderable.has(widget), `${entry.id}.${k.id}`).toBe(true);
         split[widget] = (split[widget] ?? 0) + 1;
       }
@@ -1588,7 +1592,7 @@ describe("the tuning UI's structural rules", () => {
     expect(
       split,
       "the shelf's widget split moved: 138 knobs on 27 cards (docs/TUNING-REVIEW.md)",
-    ).toEqual({ colour: 39, words: 29, select: 11, stepper: 59 });
+    ).toEqual({ colour: 39, words: 30, select: 10, stepper: 59 });
   });
 
   it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {
