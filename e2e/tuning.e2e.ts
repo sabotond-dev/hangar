@@ -862,7 +862,9 @@ test.describe("turning a knob", () => {
     await expect(note).toHaveAttribute("data-widget", "words");
     const radios = note.locator("input[type='radio']");
     expect(await radios.count()).toBe(4);
-    await radios.nth(1).check();
+    // The radio is visually hidden inside its label; the label is the click.
+    await note.locator("label").nth(1).click();
+    await expect(radios.nth(1)).toBeChecked();
     await recomputed(page);
     await expect(note).toHaveAttribute("data-index", "1");
 
@@ -882,7 +884,8 @@ test.describe("turning a knob", () => {
       .getByTestId("knob-body")
       .locator("input[type='radio']");
     expect(await palette.count()).toBe(4);
-    await palette.nth(1).check();
+    await editor.getByTestId("knob-body").locator("label").nth(1).click();
+    await expect(palette.nth(1)).toBeChecked();
     await recomputed(page);
     await expect(body).toHaveAttribute("data-index", "1");
     await expect(chip).toContainText("Cyan");
@@ -891,8 +894,10 @@ test.describe("turning a knob", () => {
     await recomputed(page);
     await expect(body).toHaveAttribute("data-index", "0");
 
-    // EVERY CONTROL ON THE ROW HITS 44px, measured.
-    for (const control of [input, up, down, reset, lock, chip]) {
+    // EVERY CONTROL ON THE ROW HITS 44px, measured: the field as its whole
+    // control (the input sits 42px between the field's two hairlines).
+    const stepper = page.getByTestId("knob-speed-stepper");
+    for (const control of [stepper, up, down, reset, lock, chip]) {
       const box = await control.boundingBox();
       expect(box, "the control has a box").not.toBeNull();
       expect(box!.height, "44px tall").toBeGreaterThanOrEqual(44);

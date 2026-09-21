@@ -350,16 +350,19 @@ test.describe("the whole site except install, on a phone engine", () => {
     ).toBeGreaterThanOrEqual(o.label.y + o.label.h);
 
     // EVERY STEPPER CONTROL HITS 44px AT THIS WIDTH, measured on the first
-    // stepper row: the field, the two boxes, the reset and the lock.
+    // stepper row: the field (as its control), the two boxes, the reset and the lock.
     const first = page
       .locator("[data-testid^='knob-'][data-widget='stepper']")
       .first();
-    for (const suffix of ["-input", "-down", "-up", "-reset", "-hold"]) {
+    // The field is measured as its whole control (the box between the two
+    // step boxes): the input inside it sits 42px between the field's two
+    // hairlines, and the 44 is the control's.
+    for (const suffix of ["-stepper", "-down", "-up", "-reset", "-hold"]) {
       const control = first.locator(`[data-testid$="${suffix}"]`).first();
       const box = await control.boundingBox();
       expect(box, `${suffix} has a box`).not.toBeNull();
       expect(box!.height, `${suffix} is 44px tall`).toBeGreaterThanOrEqual(44);
-      if (suffix !== "-input") {
+      if (suffix !== "-stepper") {
         expect(box!.width, `${suffix} is 44px wide`).toBeGreaterThanOrEqual(44);
       }
     }

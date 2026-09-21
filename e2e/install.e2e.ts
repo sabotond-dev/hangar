@@ -1807,19 +1807,19 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // store again. Nothing opens on the way (2026-09-16 change 2): the
     // second click below is the second store.
     zona.script({});
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
     await expect(
       keepControl(page),
       "a knob moved after a store: the store is live",
     ).toBeEnabled();
     await expect(storeLine(page)).toBeHidden();
-    await turnRail(page, 0, "ArrowLeft");
+    await turnStepper(page, 0, "ArrowDown");
     await expect(keepControl(page)).toBeDisabled();
     await expect(storeLine(page)).toHaveText(KEEP_REASONS["already-kept"]);
     expect(zona.seen("PAGESTORE", "EXECUTE"), "a knob turn stored").toBe(1);
 
     // A change, then the second store lands: two stores in all.
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
     await expect(keepControl(page)).toBeEnabled();
     await keepOnPage(page, zona);
     await expect(keepControl(page)).toBeDisabled();
@@ -1900,7 +1900,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // click - never once per leg, never once for the acknowledgement and
     // again for the proof. The recorder is on before the click.
     zona.script({});
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
     await expect(keepControl(page)).toBeEnabled();
     await recordLiveRegions(page);
     const before = await liveTexts(page);
@@ -1934,7 +1934,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // lost title (device-clause.ts) and the header's Clear waiting for the
     // module with its no-session reason. The cable comes out under the
     // click's first write - the defaults leg's.
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
     await expect(keepControl(page)).toBeEnabled();
     const n = (await writesOf(page)).length + 1;
     await page.evaluate(
@@ -2226,7 +2226,7 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // rather than written down - so the ten characters in front of it make
     // each rendered value unique in a 704-character Setup, where the bare
     // digit would match a dozen places. The default is index 2 and one
-    // ArrowRight is index 3, the deepest ramp there is.
+    // ArrowUp is index 3, the deepest ramp there is.
     const depthKnob = LUMEN.knobs.find((knob) => knob.id === "depth");
     expect(depthKnob, "LUMEN has a depth knob").toBeDefined();
     expect(LUMEN.source.kind, "LUMEN is a hand-authored Lua entry").toBe("lua");
