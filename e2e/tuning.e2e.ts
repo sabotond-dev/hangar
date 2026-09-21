@@ -917,14 +917,15 @@ test.describe("turning a knob", () => {
     await recomputed(page);
     await expect(shape).toHaveAttribute("data-index", "4");
     await expect(select).toHaveValue("4");
-    // ARC's Send-shaped knobs are under MIDI, its arms a stepper under Feel.
+    // ARC's CC number and channel are under MIDI; its arms (41 / 82 / 123, the
+    // compiler's radial multipliers) read 1 / 2 / 3 as a segmented row under
+    // Feel - the review's finding, fixed in view.ts by the knob's id.
     await expect(page.locator("[data-testid='shell-inspector'] h3")).toHaveText(
       ["Look", "Feel", "MIDI"],
     );
-    await expect(page.getByTestId("knob-arms")).toHaveAttribute(
-      "data-widget",
-      "stepper",
-    );
+    const arms = page.getByTestId("knob-arms");
+    await expect(arms).toHaveAttribute("data-widget", "words");
+    await expect(arms.locator("label")).toHaveText(["1", "2", "3"]);
 
     expect(consoleErrors).toEqual([]);
   });
