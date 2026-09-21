@@ -2973,3 +2973,17 @@ first game and the OG. (f) The Setup now clears the board on an Apply; say if th
 three-cells-over-whatever behaviour was relied on. (g) Row 39 is the bench's; the steer's "wrong
 way / late" fix rests on the calibrated map being this unit's (12.1's one-prototype map, row 24).
 (h) Changes 1 to 13B's questions still stand.
+
+15. Sandbox toolbar - a vertical icon rail beside the inspector (2026-09-21, Fable)
+--------------------------------------------------------------------------------
+
+> [screenshot: the Sandbox's three toolbar rows - Undo / Redo / Save copy / Export as a file; the
+> flip-horizontal, flip-vertical, rotate boxes with the transforms helper; View - CC numbers,
+> Names, ? / Export for Grid Editor / Import a profile]
+> put these into the right handside, next to the selected element config panel vertically with
+> icons only
+
+Recorded: every control in those three rows moves into one vertical rail of icon-only boxes on
+the right-hand side, beside the inspector (the selected element's panel), with the label as the
+tooltip and the accessible name; the helper sentences go (the cheat-sheet and the tooltips carry
+the words). The row above the plate and the View row are gone.
