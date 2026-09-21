@@ -3145,3 +3145,21 @@ boxes still carry them and the e2e clicks them; the profile outcome went to the 
 `library.ts`, every catalog entry, the manifest, `pad-sim.ts`, `firmware-oracle.spec.ts`, the
 Sandbox runtime and emitter Lua, `src/vendor/`, the fixtures untouched; STATE / ROADMAP /
 REQUIREMENTS untouched; CAT-04 stays `[ ]`; not deployed; no worktree, no `node_modules` junction.
+
+16. The playground's tuning controls reworked (2026-09-21, Fable)
+--------------------------------------------------------------------------------
+
+> review the configuration sliders for each playground configs. give them a rework for the UI and
+> graphic style would be more modern and better. make the straigthforward, and use input fields
+> where you seem fit instead of sliders. use your own best discretion to come up with design ideas
+> how to make the configuration experience better.
+
+Recorded: the tuning panel's controls (Knob.svelte's four skins - words, select, rail, colour -
+KnobRack, TuningRegion, MidiField) are redesigned on the executor's discretion under a direction
+set in the brief: one consistent field row per knob; numeric knobs as typed stepper fields
+snapping to the entry's declared rungs (the budget is measured over those rungs, so a typed value
+lands on the nearest one, never between); worded knobs as segmented controls up to four options
+and a house-styled select beyond; CC / note / channel as typed fields with steppers; colour as a
+swatch chip opening the picker inline; per-field reset kept; a per-card review table of every
+knob and the widget it gets. The Bible's section 7 (segmented / select / slider) yields to the
+user's word here.
