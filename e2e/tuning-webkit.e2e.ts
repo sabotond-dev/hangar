@@ -25,15 +25,16 @@
 // the link copies, and a shared link lands with install disabled for the right
 // reason.
 //
-// THE 393px FACT, AND WHY THE STACKING ASSERTION LIVES AT 320px. At the phone
-// project's own width the tuning region's content box is about 265px - above
-// the 220px container-query threshold in Knob.svelte - so a knob's label and
-// its control stay SIDE BY SIDE, exactly as they do at 1280px. Asserting
-// "stacked" at 393px would therefore be asserting something false, and
-// asserting it at a width where every layout stacks would prove nothing about a
-// phone. So test 2 asserts side-by-side at whichever width the project runs at,
-// then narrows the viewport to 320px and asserts the layout really did stack -
-// and that nothing scrolls sideways at either width.
+// THE STACKING FACT (change 16). A knob row is one line - the label left, the
+// control right, the two boxes at the end - only where its own container is
+// 364px or wider: the inspector's body is 386 at 1440 and above, 248 at the
+// compact band (1280) and 341 on the phone (393). So at BOTH projects' own
+// widths the rows are STACKED (the label on a line of its own, the control
+// under it with the boxes at its end), and test 2 asserts exactly that, then
+// widens the viewport to 1440 and asserts the row went side by side, then
+// narrows it to 320 and asserts it stacked again - and that nothing scrolls
+// sideways at any of the three widths, and that every stepper control still
+// hits 44px on the phone.
 //
 // TWO WebKit FACTS THESE TESTS RESPECT:
 //
@@ -108,25 +109,17 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-/** Knob id to index, read off the real controls. (tuning.e2e.ts) */
+/** Knob id to index, read off the rows' own data-index. (tuning.e2e.ts) */
 function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
   return page.evaluate(() =>
-    Array.from(document.querySelectorAll("[data-testid^='knob-']"))
-      .filter((el) => el.getAttribute("data-testid") !== "knob-rack")
-      .map((el) => {
-        const rail = el.querySelector(
-          "input[type='range']",
-        ) as HTMLInputElement | null;
-        const radios = Array.from(
-          el.querySelectorAll("input[type='radio']"),
-        ) as HTMLInputElement[];
-        return {
-          id: el.getAttribute("data-testid") ?? "",
-          index: rail
-            ? Number(rail.value)
-            : radios.findIndex((radio) => radio.checked),
-        };
-      }),
+    Array.from(
+      document.querySelectorAll(
+        "[data-testid^='knob-'][data-index], [data-testid^='swatch-'][data-index]",
+      ),
+    ).map((el) => ({
+      id: el.getAttribute("data-testid") ?? "",
+      index: Number(el.getAttribute("data-index")),
+    })),
   );
 }
 
@@ -197,14 +190,11 @@ type RowLayout = {
 };
 
 /**
- * The first RAIL knob row, classified by where its control sits relative to its
- * label - which is the only thing Knob.svelte's 220px container query moves.
+ * The first STEPPER knob row, classified by where its control sits relative to
+ * its label - which is the only thing Knob.svelte's 364px container query moves.
  *
- * Three choices in here are load-bearing:
+ * Two choices in here are load-bearing:
  *
- *   - A rail row, and one that does not carry the `stacked` class. A words or
- *     swatch row stacks at every width by construction, so including one would
- *     make "stacked" true for a reason that has nothing to do with a phone.
  *   - The classification compares the two BOXES, never their `y` alone. The row
  *     is a grid with `align-items: center`, so a 14px label and a 44px control
  *     have different TOPS while sitting perfectly side by side - an equality on
@@ -215,13 +205,10 @@ type RowLayout = {
 function rowLayout(page: Page): Promise<RowLayout | null> {
   return page.evaluate(() => {
     const row = Array.from(
-      document.querySelectorAll("[data-testid^='knob-']"),
-    ).find(
-      (el) =>
-        el.getAttribute("data-testid") !== "knob-rack" &&
-        !el.classList.contains("stacked") &&
-        el.querySelector("input[type='range']") !== null,
-    );
+      document.querySelectorAll(
+        "[data-testid^='knob-'][data-widget='stepper']",
+      ),
+    ).find((el) => el.querySelector("input[role='spinbutton']") !== null);
     if (!row) return null;
     const label = row.querySelector(".label");
     const control = row.querySelector(".control");
@@ -342,38 +329,73 @@ test.describe("the whole site except install, on a phone engine", () => {
       ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
     }
 
-    // At this project's own width - 393px on the phone, 1280px on the desktop -
-    // the region's content box is above Knob.svelte's 220px threshold, so a
-    // knob's label and its control share a line. See the header: this is the
-    // 393px fact, and it is why the stacking assertion is not made here.
-    const wide = await rowLayout(page);
-    expect(wide, "the rack has at least one rail knob").not.toBeNull();
-    const w = wide as NonNullable<typeof wide>;
+    // At this project's own width - 393px on the phone, 1280px on the desktop's
+    // compact band - the row's container is under 364px, so the label takes a
+    // line of its own and the control sits under it (change 16). See the
+    // header: this is the stacking fact.
+    const own = await rowLayout(page);
+    expect(own, "the rack has at least one stepper row").not.toBeNull();
+    const o = own as NonNullable<typeof own>;
     expect(
-      w.layout,
-      `${w.id} is side by side at this width: ${JSON.stringify(w)}`,
-    ).toBe("side-by-side");
+      o.layout,
+      `${o.id} is stacked at this width: ${JSON.stringify(o)}`,
+    ).toBe("stacked");
+    expect(
+      o.control.x,
+      `${o.id} stacked: the control sits under the label, at the same x`,
+    ).toBe(o.label.x);
+    expect(
+      o.control.y,
+      "and below it, not merely reflowed",
+    ).toBeGreaterThanOrEqual(o.label.y + o.label.h);
 
-    // 320px is the narrowest width DEGR-01 is written for, and since 13-09 the
-    // rack no longer stacks there: the inspector's body is 268px wide at 320
-    // (the viewport less two 26px insets), above Knob.svelte's 220px query,
-    // where the chosen panel's 192px content box was below it. So the
-    // stacking MECHANISM is exercised below the floor, at 260px, where the
-    // rack is 208px - and at both widths nothing scrolls sideways.
-    await page.setViewportSize({ width: 320, height: 659 });
-    for (const id of ["knob-rack", "tuning-region", "shell-inspector"]) {
-      const box = await overflowOf(page, id);
-      expect(
-        (box as { scrollWidth: number }).scrollWidth,
-        `${id} has nothing to scroll to sideways at 320px: ${JSON.stringify(box)}`,
-      ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
+    // EVERY STEPPER CONTROL HITS 44px AT THIS WIDTH, measured on the first
+    // stepper row: the field, the two boxes, the reset and the lock.
+    const first = page
+      .locator("[data-testid^='knob-'][data-widget='stepper']")
+      .first();
+    for (const suffix of ["-input", "-down", "-up", "-reset", "-hold"]) {
+      const control = first.locator(`[data-testid$="${suffix}"]`).first();
+      const box = await control.boundingBox();
+      expect(box, `${suffix} has a box`).not.toBeNull();
+      expect(box!.height, `${suffix} is 44px tall`).toBeGreaterThanOrEqual(44);
+      if (suffix !== "-input") {
+        expect(box!.width, `${suffix} is 44px wide`).toBeGreaterThanOrEqual(44);
+      }
     }
-    await page.setViewportSize({ width: 260, height: 659 });
+
+    // At 1440 the inspector's body is 386px and the row is one line: the
+    // control to the right of the label, overlapping it vertically.
+    await page.setViewportSize({ width: 1440, height: 900 });
     await expect
       .poll(
         guarded(
           async () => (await rowLayout(page))?.layout,
-          "the first rail knob's row layout",
+          "the first stepper row's layout",
+        ),
+        {
+          message:
+            "the container query re-evaluated after the resize and the row went side by side",
+          timeout: 10_000,
+        },
+      )
+      .toBe("side-by-side");
+    for (const id of ["knob-rack", "tuning-region", "shell-inspector"]) {
+      const box = await overflowOf(page, id);
+      expect(
+        (box as { scrollWidth: number }).scrollWidth,
+        `${id} has nothing to scroll to sideways at 1440px: ${JSON.stringify(box)}`,
+      ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
+    }
+
+    // 320px is the narrowest width DEGR-01 is written for: stacked again, and
+    // nothing scrolls sideways.
+    await page.setViewportSize({ width: 320, height: 659 });
+    await expect
+      .poll(
+        guarded(
+          async () => (await rowLayout(page))?.layout,
+          "the first stepper row's layout",
         ),
         {
           message:
@@ -382,23 +404,11 @@ test.describe("the whole site except install, on a phone engine", () => {
         },
       )
       .toBe("stacked");
-
-    const narrow = await rowLayout(page);
-    const n = narrow as NonNullable<typeof narrow>;
-    expect(
-      n.control.x,
-      `${n.id} stacked: the control sits under the label, at the same x`,
-    ).toBe(n.label.x);
-    expect(
-      n.control.y,
-      "and below it, not merely reflowed",
-    ).toBeGreaterThanOrEqual(n.label.y + n.label.h);
-
     for (const id of ["knob-rack", "tuning-region", "shell-inspector"]) {
       const box = await overflowOf(page, id);
       expect(
         (box as { scrollWidth: number }).scrollWidth,
-        `${id} still has nothing to scroll to sideways at 260px: ${JSON.stringify(box)}`,
+        `${id} has nothing to scroll to sideways at 320px: ${JSON.stringify(box)}`,
       ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
     }
 
@@ -432,17 +442,20 @@ test.describe("the whole site except install, on a phone engine", () => {
       "reduced motion holds one frame, so 400ms of wall clock must not move it",
     ).toBe(before);
 
-    const rails = page.locator("[data-testid='knob-rack'] input[type='range']");
-    expect(await rails.count(), "the rack has a rail to turn").toBeGreaterThan(
-      0,
+    const steppers = page.locator(
+      "[data-testid='knob-rack'] input[role='spinbutton']",
     );
-    await rails.first().focus();
-    await page.keyboard.press("ArrowRight");
+    expect(
+      await steppers.count(),
+      "the rack has a stepper to step",
+    ).toBeGreaterThan(0);
+    await steppers.first().focus();
+    await page.keyboard.press("ArrowUp");
     await settled(page);
 
     expect(
       await sample(page, ENTRY),
-      "one keyboard step changes the pad the visitor is looking at",
+      "one arrow changes the pad the visitor is looking at",
     ).not.toBe(before);
 
     // THE requestIdleCallback FALLBACK, OBSERVED FROM OUTSIDE. Safari has no
@@ -574,9 +587,11 @@ test.describe("the whole site except install, on a phone engine", () => {
       "the precondition: this page cannot talk to hardware at all",
     ).toBe(false);
 
-    const rails = page.locator("[data-testid='knob-rack'] input[type='range']");
-    await rails.first().focus();
-    await page.keyboard.press("ArrowRight");
+    const steppers = page.locator(
+      "[data-testid='knob-rack'] input[role='spinbutton']",
+    );
+    await steppers.first().focus();
+    await page.keyboard.press("ArrowUp");
     await settled(page);
     const tuned = await knobIndices(page);
 

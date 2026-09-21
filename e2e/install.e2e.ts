@@ -1258,16 +1258,17 @@ async function recomputed(page: Page): Promise<void> {
   await metersSettled(page);
 }
 
-const rails = (page: Page) =>
-  page.locator("[data-testid='knob-rack'] input[type='range']");
+/** The knob rows' stepper fields (change 16), in rack order. */
+const steppers = (page: Page) =>
+  page.locator("[data-testid='knob-rack'] input[role='spinbutton']");
 
-/** One keyboard step on a rail, then let the debounce land. */
-async function turnRail(
+/** One arrow on a stepper - up is the next rung in value order - then let the debounce land. */
+async function turnStepper(
   page: Page,
   at: number,
-  key: "ArrowRight" | "ArrowLeft" = "ArrowRight",
+  key: "ArrowUp" | "ArrowDown" = "ArrowUp",
 ): Promise<void> {
-  await rails(page).nth(at).focus();
+  await steppers(page).nth(at).focus();
   await page.keyboard.press(key);
   await recomputed(page);
 }
@@ -2262,29 +2263,29 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
       "the Setup the module received is the entry's own event-marked Lua",
     ).toBe(true);
 
-    // THE RAIL, LOCATED BY THE KNOB IT BELONGS TO RATHER THAN COUNTED. The
-    // rack's range inputs are not one per knob in declaration order: LUMEN's
-    // cursor knob renders as a ColourPicker, which contributes THREE rails of
-    // its own and no Knob wrapper, so an index taken from the entry's knobs
-    // array would land on a colour channel. The index handed to turnRail is
-    // read out of the DOM, from the rail that sits inside `knob-depth`.
-    const railIndex = await page.evaluate(() => {
+    // THE STEPPER, LOCATED BY THE KNOB IT BELONGS TO RATHER THAN COUNTED:
+    // the rack's stepper fields are not one per knob in declaration order
+    // (LUMEN's cursor knob is a swatch row, its controllers are MIDI fields),
+    // so the index handed to turnStepper is read out of the DOM, from the
+    // field inside `knob-depth`; the row's data-index is the knob's position.
+    const depthRow = page.getByTestId("knob-depth");
+    const stepperIndex = await page.evaluate(() => {
       const found = [
         ...document.querySelectorAll(
-          '[data-testid="knob-rack"] input[type="range"]',
+          '[data-testid="knob-rack"] input[role="spinbutton"]',
         ),
       ];
       return found.findIndex(
-        (rail) => rail.closest('[data-testid="knob-depth"]') !== null,
+        (field) => field.closest('[data-testid="knob-depth"]') !== null,
       );
     });
     expect(
-      railIndex,
-      "the depth knob renders a rail in the rack",
+      stepperIndex,
+      "the depth knob renders a stepper in the rack",
     ).toBeGreaterThanOrEqual(0);
-    await expect(rails(page).nth(railIndex)).toHaveValue(String(fromIndex));
-    await turnRail(page, railIndex, "ArrowRight");
-    await expect(rails(page).nth(railIndex)).toHaveValue(String(toIndex));
+    await expect(depthRow).toHaveAttribute("data-index", String(fromIndex));
+    await turnStepper(page, stepperIndex, "ArrowUp");
+    await expect(depthRow).toHaveAttribute("data-index", String(toIndex));
 
     // The store SAW the move: the pair on screen is no longer the pair the
     // module holds, so the already-kept row no longer matches and Store on

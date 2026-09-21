@@ -1533,13 +1533,15 @@ test.describe("the three live regions with a granted ZONA on the cable", () => {
       ).length,
     ).toBeLessThanOrEqual(1);
 
-    // MOMENT TWO: a tuning change. Turn the first rail one step, let the
+    // MOMENT TWO: a tuning change. Step the first stepper once, let the
     // debounced recompile land, then RESET ALL - the tuning region's own
     // gesture that speaks (a knob that stays inside budget is silent by
     // Phase 5's contract; only a command or a budget crossing speaks).
-    const rails = page.locator("[data-testid='knob-rack'] input[type='range']");
-    await rails.nth(0).focus();
-    await page.keyboard.press("ArrowRight");
+    const steppers = page.locator(
+      "[data-testid='knob-rack'] input[role='spinbutton']",
+    );
+    await steppers.nth(0).focus();
+    await page.keyboard.press("ArrowUp");
     await recomputed(page);
     await page.getByTestId("reset-all").click();
     await recomputed(page);

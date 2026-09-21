@@ -112,25 +112,14 @@ const SANDBOX = "/sandbox/?new";
 
 const ROUTES = ["/", "/playground/", ...WORKSPACES, SANDBOX, ...DEV_ROUTES];
 
-/** The six, as the sweep labels them: the owning control and the class. */
-const SIX_CIRCLES = [
-  "knob:dot",
-  "knob:thumb",
-  "knob:home",
-  "picker:tick",
-  "picker:thumb",
-  "picker:home",
-];
 /**
- * The one of the six no route can mount since 13.1-07 (13.1-CONTEXT D-09):
- * Knob.svelte's track thumb (:785) draws only on a rail of nine or more
- * values, and the two such lists in the tree - the MIDI channel's sixteen
- * and a preset's send's twelve - are typed fields now. The circle is still
- * declared and still counted by radius.spec.ts layer A; this sweep cannot
- * reach it, says so by name, and measures the other five. Whether the
- * track rail's circle stays declared is the gate's (13.1-08) to decide.
+ * The three, as the sweep labels them: the owning control and the class.
+ * Knob.svelte's three (the dot, the track thumb, the home mark) left with
+ * its rail at change 16 (2026-09-21): a stepper row draws no circle, so D-15
+ * names the picker's alone and every one of them is mounted on AURORA's
+ * opened colour block.
  */
-const UNREACHABLE_CIRCLES = ["knob:thumb"];
+const THREE_CIRCLES = ["picker:tick", "picker:thumb", "picker:home"];
 
 /** Strict once the allowlist is empty; tolerant of exactly its values until then. */
 const STRICT = ALLOWLIST.length === 0;
@@ -332,7 +321,7 @@ test("no element on any route computes a corner radius above zero, and every 50%
   expect(DEV_ROUTES.length, "probe pages under /dev/").toBeGreaterThanOrEqual(
     7,
   );
-  expect(CIRCLES.length, "D-15 names six").toBe(6);
+  expect(CIRCLES.length, "D-15 names three").toBe(3);
   for (const id of WORKSPACE_ENTRIES) {
     expect(
       ROUTED.some((entry) => entry.id === id),
@@ -374,14 +363,13 @@ test("no element on any route computes a corner radius above zero, and every 50%
       await expect(page.getByTestId("tuning-region")).toBeVisible();
       const inspector = page.getByTestId("shell-inspector");
       await expect(inspector.getByTestId("knob-rack").first()).toBeVisible();
-      // THE VIEW MUST HAVE LANDED BEFORE THE SWATCH IS LOOKED FOR. The
-      // Behavior rack renders (with its empty line) before the tuner's first
-      // view arrives, and the Appearance section - the swatch and its
-      // block - exists only once it has; a count of Edit color taken at
-      // "first rack visible" read zero once under three workers and skipped
-      // the click, and the picker's thumb then read hidden (2026-09-11, both
-      // engines, on the dialog of the day). So a knob ROW is waited for
-      // first, and the block is opened and waited for visible.
+      // THE VIEW MUST HAVE LANDED BEFORE THE SWATCH IS LOOKED FOR: the rack
+      // renders before the tuner's first view arrives, and the swatch rows
+      // exist only once it has (a count of the chip taken at "first rack
+      // visible" read zero once under three workers, 2026-09-11). So a knob
+      // ROW is waited for first, and the block is opened and waited for
+      // visible; the picker's circles (the only three since change 16) are
+      // waited for by the thumb.
       await expect(
         inspector
           .locator('[data-testid^="knob-"]:not([data-testid="knob-rack"])')
@@ -392,18 +380,10 @@ test("no element on any route computes a corner radius above zero, and every 50%
         await editColor.first().click();
         await expect(page.getByTestId("colour-editor")).toBeVisible();
       }
-      // The precondition is the circles themselves, not the rack: a sweep
-      // that runs before the last rail mounts measures fewer than it should
-      // (observed once in chromium, the 16-value knob's thumb missing - a
-      // knob that is a typed field since 13.1-07; see the header).
-      if ((await page.locator(".rail.track").count()) > 0) {
-        await expect(page.locator(".thumb").first()).toBeVisible();
-      }
       if ((await page.getByTestId("colour-rail-r").count()) > 0) {
         await expect(page.locator(".thumb").first()).toBeVisible();
+        await expect(page.locator(".home").first()).toBeAttached();
       }
-      await expect(inspector.locator(".dot").first()).toBeVisible();
-      await expect(inspector.locator(".home").first()).toBeAttached();
     }
     if (route === SANDBOX) {
       await expect(page).toHaveURL(/[/]sandbox[/]s-[a-z0-9-]+[/]$/);
@@ -445,19 +425,16 @@ test("no element on any route computes a corner radius above zero, and every 50%
   }
 
   // D-10's square arm is only a check if the circles are on screen: every
-  // one of D-15's circle kinds a route can mount must have been measured on
-  // some route, and the one no route can mount (UNREACHABLE_CIRCLES, above)
-  // must NOT have been - a thumb measured somewhere means a track rail came
-  // back and the list here is stale.
+  // one of D-15's three circle kinds must have been measured on some route,
+  // and nothing a knob row owns may have been - a knob circle measured
+  // anywhere means a rail came back.
   expect(
-    SIX_CIRCLES.filter(
-      (kind) => !UNREACHABLE_CIRCLES.includes(kind) && !measuredKinds.has(kind),
-    ),
+    THREE_CIRCLES.filter((kind) => !measuredKinds.has(kind)),
     `D-15 circle kinds NOT measured on any route (measured: ${[...measuredKinds].sort().join(", ") || "none"}) - the square arm would be vacuous`,
   ).toEqual([]);
   expect(
-    UNREACHABLE_CIRCLES.filter((kind) => measuredKinds.has(kind)),
-    "a circle listed as unreachable since 13.1-07 was measured on a route - a track rail mounts again; take it off UNREACHABLE_CIRCLES",
+    [...measuredKinds].filter((kind) => kind.startsWith("knob:")),
+    "a knob row measured a circle - change 16 took Knob.svelte's rail and its three circles",
   ).toEqual([]);
 
   console.log(

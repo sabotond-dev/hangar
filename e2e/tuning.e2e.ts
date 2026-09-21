@@ -1,8 +1,9 @@
 // TUNE-02 to TUNE-07, SHARE-01 to SHARE-03 and DEGR-01's clipboard half: the
 // whole tuning and sharing journey, in a real browser.
 //
-// Eleven tests, all in the chromium project (ten from 05-11 to 13.1-06; the
-// eleventh, 13.1-07's, types into the MIDI output's CC number field). The
+// Twelve tests, all in the chromium project (ten from 05-11 to 13.1-06; the
+// eleventh, 13.1-07's, types into the MIDI section's CC number field; the
+// twelfth, change 16's, walks every widget kind the reworked rows draw). The
 // last two open /dev/tune/, the unlinked probe wave 12 added, because the
 // over-budget state TUNE-04 and TUNE-05 describe is unreachable from the
 // shipped UI - see the block above those two tests.
@@ -77,6 +78,8 @@ import {
 // module imports nothing.
 import {
   EDIT_COLOR,
+  KNOB_HELD,
+  KNOB_HOLD,
   LUA_CHANNEL_CUE,
   POPOVER_CLOSE,
   RANDOMIZE,
@@ -84,6 +87,11 @@ import {
   SHARE_SNAPSHOT,
   offeredLine,
 } from "../src/lib/tune/inspector-copy";
+// SNAKE, for the widget walk (change 16): its step time is declared
+// DESCENDING (300 220 160 110), the witness that the stepper walks the
+// rungs in value order and a typed 100 snaps to 110. snake.ts imports only
+// a type from the catalog.
+import { SNAKE } from "../src/lib/catalog/entries/snake";
 // Arc, for the CC number title (13.1-07): the values the field must offer
 // and refuse are read off the entry, never typed here. arc.ts imports only
 // a type from the vendored compiler, so this costs the runner nothing.
@@ -174,43 +182,30 @@ function canvasSize(
 }
 
 /**
- * Knob id to index, read off the real controls rather than off any store.
+ * Knob id to index, read off the rows' own `data-index` (change 16: every
+ * knob row and every swatch row carries its position) and, while the colour
+ * block is open, the picker's three rails.
  *
- * THE COLOUR KNOB IS NOT A `knob-` ROW ANY MORE and it must not fall out of
- * this walk. Plan 10-10 lifts every colour knob out of the rack's row list and
- * into ONE ColourPicker block, so its testids are `colour-rail-r` / `-g` /
- * `-b` rather than `knob-colour`. A walk that only reads `knob-` would still
- * have found four rows on aurora and would have said nothing while RESET ALL
- * quietly stopped being checked against the one knob with 4,096 positions.
- * The three rails are appended under their own ids, which is also why they
- * cannot collide with a row.
+ * THE COLOUR KNOB IS A SWATCH ROW (`swatch-<id>`) and its picker's rails are
+ * `colour-rail-r` / `-g` / `-b`; both are in the walk, so RESET ALL is
+ * checked against the one knob with 4,096 positions too.
  *
  * SINCE 13.1-04 THE RAILS ARE IN THE DOM ONLY WHILE THE COLOUR BLOCK IS OPEN
- * (13.1-CONTEXT D-08: the picker opens inline under the swatch row, rendered
- * only while open; 13-09's closed dialog kept them mounted). A title that
- * wants the colour knob in a snapshot opens the block first, with
- * `openColourEditor`, and keeps it open across whatever it compares; a
- * title that never opens it compares snapshots without the three rails on
- * both sides, which is still an honest comparison of the rows.
+ * (13.1-CONTEXT D-08). A title that wants the rails in a snapshot opens the
+ * block first, with `openColourEditor`, and keeps it open across whatever it
+ * compares; a title that never opens it compares snapshots without the three
+ * rails on both sides, which is still an honest comparison of the rows.
  */
 function knobIndices(page: Page): Promise<{ id: string; index: number }[]> {
   return page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll("[data-testid^='knob-']"))
-      .filter((el) => el.getAttribute("data-testid") !== "knob-rack")
-      .map((el) => {
-        const rail = el.querySelector(
-          "input[type='range']",
-        ) as HTMLInputElement | null;
-        const radios = Array.from(
-          el.querySelectorAll("input[type='radio']"),
-        ) as HTMLInputElement[];
-        return {
-          id: el.getAttribute("data-testid") ?? "",
-          index: rail
-            ? Number(rail.value)
-            : radios.findIndex((radio) => radio.checked),
-        };
-      });
+    const rows = Array.from(
+      document.querySelectorAll(
+        "[data-testid^='knob-'][data-index], [data-testid^='swatch-'][data-index]",
+      ),
+    ).map((el) => ({
+      id: el.getAttribute("data-testid") ?? "",
+      index: Number(el.getAttribute("data-index")),
+    }));
     const picker = Array.from(
       document.querySelectorAll("[data-testid^='colour-rail-']"),
     ).map((el) => {
@@ -314,11 +309,10 @@ async function openPanel(
 }
 
 /**
- * The colour picker opens INLINE under the swatch row on the swatch's Edit
- * color since 13.1-04 (Bible section 7; 13.1-CONTEXT D-08 - a popover from
- * 13-09 to 13.1-04). Open it when its rails are not on screen: the block,
- * and the rails with it, exist only while open, so the toggle is clicked
- * first and the block waited for.
+ * The colour picker opens INLINE under the swatch row on the row's chip
+ * (change 16; 13.1-CONTEXT D-08 - a popover from 13-09 to 13.1-04). Open it
+ * when its rails are not on screen: the block, and the rails with it, exist
+ * only while open, so the chip is clicked first and the block waited for.
  */
 async function openColourEditor(page: Page): Promise<void> {
   const rail = page.locator(
@@ -331,27 +325,23 @@ async function openColourEditor(page: Page): Promise<void> {
 }
 
 /**
- * The KNOB ROWS' rails, in rack order. The first one is Aurora's Speed.
- *
- * SCOPED TO THE ROWS, and the scope is the whole point. Aurora's knob list is
- * `[colour, speed, direction, band]` plus Brightness, so plan 10-10's picker
- * takes the FIRST slot in the rack and its three colour rails come first in
- * document order. An unscoped `input[type='range']` walk therefore made
- * `turnRail(0)` and `turnRail(1)` turn red and green - which moved a knob and
- * a pad, so half this file stayed green, while "RESET ALL puts every knob
- * back" compared two identical racks and went red instead. Rows here, the
- * picker through `turnColourRail`; SCROLL_RAIL keeps meaning tpad's third
- * rail, and tpad has no colour knob at all.
+ * The KNOB ROWS' stepper fields, in rack order (change 16). The first one is
+ * Aurora's Speed, the second its Band: Aurora's knob list is `[colour, speed,
+ * direction, band]` plus Brightness - the colour is a swatch row and the
+ * direction a segmented row, so neither is a spinbutton, and the brightness
+ * field is a plain text input. SCOPED TO THE ROWS: the picker's rails are
+ * range inputs under their own ids, reached through `turnColourRail`;
+ * SCROLL_STEPPER keeps meaning tpad's third field.
  */
-const rails = (page: Page) =>
+const steppers = (page: Page) =>
   page.locator(
-    "[data-testid='knob-rack'] [data-testid^='knob-'] input[type='range']",
+    "[data-testid='knob-rack'] [data-testid^='knob-'] input[role='spinbutton']",
   );
 
-/** One keyboard step to the right on a rail, then let the debounce land. */
-async function turnRail(page: Page, at: number): Promise<void> {
-  await rails(page).nth(at).focus();
-  await page.keyboard.press("ArrowRight");
+/** One arrow up on a stepper - the next rung in VALUE order - then let the debounce land. */
+async function turnStepper(page: Page, at: number): Promise<void> {
+  await steppers(page).nth(at).focus();
+  await page.keyboard.press("ArrowUp");
   await recomputed(page);
 }
 
@@ -420,12 +410,12 @@ test.describe("turning a knob", () => {
       "reduced motion holds one frame, so 400ms of wall clock must not move it",
     ).toBe(before);
 
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
 
     const after = await sample(page, ENTRY);
     expect(
       after,
-      "one keyboard step on the first rail changes the pad the visitor is looking at",
+      "one arrow on the first stepper changes the pad the visitor is looking at",
     ).not.toBe(before);
 
     // THE replaceEngine PROPERTY, ASSERTED DIRECTLY. SimHost.register() would
@@ -472,13 +462,15 @@ test.describe("turning a knob", () => {
     const input = page.getByTestId("midi-field-cc-input");
     const message = page.getByTestId("midi-field-cc-message");
     const reset = page.getByTestId("midi-field-cc-reset");
-    // The section: two fields in the grid, under the PDF's labels, with the
-    // PDF's helper beneath; no rack in the MIDI section.
+    // The section: two rows under the PDF's labels, each a stepper field
+    // (change 16), the helper read by a screen reader; no rack in the MIDI
+    // section.
     const grid = page.getByTestId("midi-grid");
     await expect(grid).toBeVisible();
     expect(await grid.locator("[data-testid='knob-rack']").count()).toBe(0);
     await expect(grid.locator("label")).toHaveText(["CC number", "Channel"]);
     await expect(input).toHaveAttribute("type", "text");
+    await expect(input).toHaveAttribute("role", "spinbutton");
     await expect(input).toHaveAttribute("inputmode", "numeric");
     await expect(
       input,
@@ -543,6 +535,23 @@ test.describe("turning a knob", () => {
       `the typed literal reached the compiler: setup ${setupBefore} -> ${setupAt102}, timer ${timerBefore} -> ${timerAt102}`,
     ).toBe(true);
 
+    // THE STEP BOXES AND THE ARROWS (change 16) walk the closed list in
+    // value order: up from 102 is nothing (the top box is disabled), down is
+    // 74, an arrow down again is 20, and the field validates each landing.
+    const up = page.getByTestId("midi-field-cc-up");
+    const down = page.getByTestId("midi-field-cc-down");
+    await expect(up, "at the top the up box has nowhere to go").toBeDisabled();
+    await down.click();
+    await recomputed(page);
+    await expect(field).toHaveAttribute("data-index", "3");
+    await expect(input).toHaveValue("74");
+    await input.focus();
+    await page.keyboard.press("ArrowDown");
+    await recomputed(page);
+    await expect(field).toHaveAttribute("data-index", "2");
+    await expect(input).toHaveValue("20");
+    await expect(up).toBeEnabled();
+
     // THE PER-FIELD RESET: back to the default, the marker off.
     await reset.click();
     await recomputed(page);
@@ -558,9 +567,15 @@ test.describe("turning a knob", () => {
     const channelInput = page.getByTestId("midi-field-channel-input");
     await expect(channelInput).toHaveValue(channel!.values[channel!.default]);
     expect(channel!.values[0], "a Lua channel list starts at 0").toBe("0");
+    // The cue is read, not painted (change 16: no helper prose in the rows):
+    // in the DOM for a screen reader, in the field's description, and the
+    // label's title for a pointer.
     const cue = page.getByTestId("midi-field-channel-cue");
-    await expect(cue).toBeVisible();
+    await expect(cue).toBeAttached();
     await expect(cue).toHaveText(LUA_CHANNEL_CUE);
+    await expect(
+      page.getByTestId("midi-field-channel").locator("label"),
+    ).toHaveAttribute("title", LUA_CHANNEL_CUE);
     await expect(channelInput).toHaveAttribute(
       "aria-describedby",
       await cue.getAttribute("id"),
@@ -596,7 +611,7 @@ test.describe("turning a knob", () => {
       );
     }
 
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
 
     const setupAfter = await measured(page, "setup");
     const timerAfter = await measured(page, "timer");
@@ -638,8 +653,8 @@ test.describe("turning a knob", () => {
     const homeSetup = await measured(page, "setup");
     const homeTimer = await measured(page, "timer");
 
-    await turnRail(page, 0);
-    await turnRail(page, 1);
+    await turnStepper(page, 0);
+    await turnStepper(page, 1);
     // AND THE COLOUR KNOB, which is the picker since 10-10. Without this the
     // rack's one 4,096-position knob would be present in `home` and never
     // moved, so RESET ALL would be proved to leave it alone rather than to put
@@ -667,18 +682,19 @@ test.describe("turning a knob", () => {
       "back at the defaults there is nothing left to reset",
     ).toBeDisabled();
 
-    // THE TOGGLE AND ESCAPE (13.1-04, 13.1-CONTEXT D-08; Bible section 14 as
-    // simplified). The block is inline, so there is no trap and no return:
-    // while it is open the row's toggle reads Close; Escape pressed with
-    // focus INSIDE the block closes it - the block leaves the DOM - and focus
-    // lands on the row's toggle, which reads Edit color again. The one
-    // behaviour a source scan cannot prove, so it is pressed here.
-    const toggle = page.getByTestId("edit-color").first();
+    // THE CHIP AND ESCAPE (13.1-04, 13.1-CONTEXT D-08; change 16's chip).
+    // The block is inline, so there is no trap and no return: while it is
+    // open the row's chip carries Close (its hidden verb and its title);
+    // Escape pressed with focus INSIDE the block closes it - the block
+    // leaves the DOM - and focus lands on the row's chip, which carries Edit
+    // color again. The one behaviour a source scan cannot prove.
+    const chip = page.getByTestId("edit-color").first();
     await expect(page.getByTestId("colour-editor")).toBeVisible();
-    await expect(toggle, "the open block's toggle reads Close").toHaveText(
+    await expect(chip, "the open block's chip reads Close").toContainText(
       POPOVER_CLOSE,
     );
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(chip).toHaveAttribute("title", POPOVER_CLOSE);
+    await expect(chip).toHaveAttribute("aria-expanded", "true");
     await page
       .locator("[data-testid='colour-rail-r'] input[type='range']")
       .focus();
@@ -687,11 +703,12 @@ test.describe("turning a knob", () => {
       page.getByTestId("colour-editor"),
       "Escape inside the block closes it",
     ).toHaveCount(0);
-    await expect(toggle, "focus lands on the row's toggle").toBeFocused();
-    await expect(toggle, "the closed toggle reads Edit color").toHaveText(
+    await expect(chip, "focus lands on the row's chip").toBeFocused();
+    await expect(chip, "the closed chip reads Edit color").toContainText(
       EDIT_COLOR,
     );
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(chip).toHaveAttribute("title", EDIT_COLOR);
+    await expect(chip).toHaveAttribute("aria-expanded", "false");
 
     expect(consoleErrors).toEqual([]);
   });
@@ -734,6 +751,178 @@ test.describe("turning a knob", () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test("every widget kind, walked (change 16): a typed 100 snaps to SNAKE's 110, the boxes and the arrows step in value order, End is the top rung, a word is refused, the reset box and the lock work, a segment is one click, the chip opens the palette, the sections read in order, a select lands on its option, and every control hits 44px", async ({
+    page,
+  }) => {
+    // The reworked rows on the deployed bytes, one walk per widget kind at
+    // the desktop width (the phone width is tuning-webkit.e2e.ts's). SNAKE
+    // is the witness for the stepper: its step time is declared DESCENDING
+    // (300 220 160 110 ms), so "up" must be the next LARGER value whatever
+    // the declared order, and a typed 100 must land on 110 - the nearest
+    // declared rung, never between two. tune-ui.spec.ts holds the rule
+    // (nearestRung, valueOrder); this is the wiring, pressed.
+    const consoleErrors = collectErrors(page);
+    const speed = SNAKE.knobs.find((knob) => knob.id === "speed");
+    expect(speed, "SNAKE carries a step time knob").toBeDefined();
+    expect(speed!.values).toEqual(["300", "220", "160", "110"]);
+    expect(speed!.default).toBe(1);
+    await openPanel(page, `/playground/${SNAKE.id}/`, SNAKE.id);
+
+    // THE SECTIONS, in the fixed order, only the ones SNAKE fills.
+    await expect(
+      page.locator("[data-testid='shell-inspector'] h3"),
+      "the sections are Look, Feel, Sound and MIDI, in that order (no Sync on SNAKE)",
+    ).toHaveText(["Look", "Feel", "Sound", "MIDI"]);
+
+    // THE STEPPER. The row arrives at 220 ms with its unit beside the value.
+    const row = page.getByTestId("knob-speed");
+    const input = page.getByTestId("knob-speed-input");
+    const up = page.getByTestId("knob-speed-up");
+    const down = page.getByTestId("knob-speed-down");
+    const reset = page.getByTestId("knob-speed-reset");
+    const lock = page.getByTestId("knob-speed-hold");
+    await expect(row).toHaveAttribute("data-widget", "stepper");
+    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(input).toHaveValue("220");
+    await expect(input).toHaveAttribute("role", "spinbutton");
+    await expect(input).toHaveAttribute("aria-valuetext", "220 ms");
+    await expect(row.locator(".unit")).toHaveText("ms");
+    await expect(
+      reset,
+      "at the default there is nothing to reset",
+    ).toBeDisabled();
+    await expect(row).toHaveAttribute("data-changed", "false");
+
+    // A typed 100, committed with Enter, snaps to 110 - index 3 in the
+    // declared order - and the field shows the rung, not the typed text.
+    await input.fill("100");
+    await expect(row, "typing alone moves nothing").toHaveAttribute(
+      "data-index",
+      "1",
+    );
+    await input.press("Enter");
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "3");
+    await expect(input).toHaveValue("110");
+    await expect(row).toHaveAttribute("data-changed", "true");
+    await expect(reset).toBeEnabled();
+    await expect(down, "110 is the foot of the ladder").toBeDisabled();
+
+    // The arrows and the boxes walk the VALUE order: up from 110 is 160
+    // (index 2), the up box is 220 (index 1), End is 300 (index 0).
+    await input.focus();
+    await page.keyboard.press("ArrowUp");
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "2");
+    await expect(input).toHaveValue("160");
+    await up.click();
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(input).toHaveValue("220");
+    await input.focus();
+    await page.keyboard.press("End");
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "0");
+    await expect(input).toHaveValue("300");
+    await expect(up, "300 is the top of the ladder").toBeDisabled();
+    await down.click();
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "1");
+
+    // A word is not a value: on blur the field shows the rung it was on and
+    // the region never went busy.
+    await input.fill("fast");
+    await input.blur();
+    await expect(input).toHaveValue("220");
+    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(region(page)).toHaveAttribute("data-busy", "false");
+    // A typed 999 clamps to the top rung.
+    await input.fill("999");
+    await input.press("Enter");
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "0");
+
+    // The reset box puts the row back; the lock toggles its word and state.
+    await reset.click();
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(row).toHaveAttribute("data-changed", "false");
+    await expect(reset).toBeDisabled();
+    await expect(lock).toHaveAttribute("aria-pressed", "false");
+    await expect(lock).toHaveAttribute("title", KNOB_HOLD);
+    await lock.click();
+    await expect(lock).toHaveAttribute("aria-pressed", "true");
+    await expect(lock).toHaveAttribute("title", KNOB_HELD);
+    await lock.click();
+    await expect(lock).toHaveAttribute("aria-pressed", "false");
+
+    // THE SEGMENTED ROW: SNAKE's lowest note, four radios; the second is one click.
+    const note = page.getByTestId("knob-note");
+    await expect(note).toHaveAttribute("data-widget", "words");
+    const radios = note.locator("input[type='radio']");
+    expect(await radios.count()).toBe(4);
+    await radios.nth(1).check();
+    await recomputed(page);
+    await expect(note).toHaveAttribute("data-index", "1");
+
+    // THE SWATCH CHIP: SNAKE's body colour is a hand-authored palette; the
+    // chip reads its hue word, opens the block on a click, and the palette
+    // row inside it moves the knob - the chip's readout follows.
+    const body = page.getByTestId("swatch-body");
+    const chip = body.getByTestId("edit-color");
+    await expect(chip).toContainText("Spring green");
+    await expect(chip).toHaveAttribute("aria-expanded", "false");
+    await chip.click();
+    await expect(chip).toHaveAttribute("aria-expanded", "true");
+    const editor = page.getByTestId("colour-editor");
+    await expect(editor).toBeVisible();
+    await expect(editor).toHaveAttribute("data-knob", "body");
+    const palette = editor
+      .getByTestId("knob-body")
+      .locator("input[type='radio']");
+    expect(await palette.count()).toBe(4);
+    await palette.nth(1).check();
+    await recomputed(page);
+    await expect(body).toHaveAttribute("data-index", "1");
+    await expect(chip).toContainText("Cyan");
+    await expect(body).toHaveAttribute("data-changed", "true");
+    await body.getByTestId("swatch-body-reset").click();
+    await recomputed(page);
+    await expect(body).toHaveAttribute("data-index", "0");
+
+    // EVERY CONTROL ON THE ROW HITS 44px, measured.
+    for (const control of [input, up, down, reset, lock, chip]) {
+      const box = await control.boundingBox();
+      expect(box, "the control has a box").not.toBeNull();
+      expect(box!.height, "44px tall").toBeGreaterThanOrEqual(44);
+    }
+    for (const control of [up, down, reset, lock]) {
+      const box = await control.boundingBox();
+      expect(box!.width, "44px wide").toBeGreaterThanOrEqual(44);
+    }
+
+    // THE SELECT: ARC's wave shape, six words; Square is index 4.
+    await openPanel(page, `/playground/${ARC.id}/`, ARC.id);
+    const shape = page.getByTestId("knob-shape");
+    await expect(shape).toHaveAttribute("data-widget", "select");
+    const select = shape.locator("select");
+    expect(await select.locator("option").count()).toBe(6);
+    await select.selectOption({ label: "Square" });
+    await recomputed(page);
+    await expect(shape).toHaveAttribute("data-index", "4");
+    await expect(select).toHaveValue("4");
+    // ARC's Send-shaped knobs are under MIDI, its arms a stepper under Feel.
+    await expect(page.locator("[data-testid='shell-inspector'] h3")).toHaveText(
+      ["Look", "Feel", "MIDI"],
+    );
+    await expect(page.getByTestId("knob-arms")).toHaveAttribute(
+      "data-widget",
+      "stepper",
+    );
+
+    expect(consoleErrors).toEqual([]);
+  });
 });
 
 test.describe("sharing what the visitor made", () => {
@@ -755,7 +944,7 @@ test.describe("sharing what the visitor made", () => {
       SHARE_SNAPSHOT,
     );
 
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
     await copy.click();
 
     // The confirmation is the control's own state, and its accessible name is
@@ -797,8 +986,8 @@ test.describe("sharing what the visitor made", () => {
     const consoleErrors = collectErrors(page);
     await openPanel(page, `/playground/${ENTRY}/`);
 
-    await turnRail(page, 0);
-    await turnRail(page, 1);
+    await turnStepper(page, 0);
+    await turnStepper(page, 1);
     const sent = await knobIndices(page);
     await page.getByTestId("copy-link").click();
     const link = await page.evaluate(() => navigator.clipboard.readText());
@@ -910,7 +1099,7 @@ test.describe("a browser with no clipboard API", () => {
       "the precondition: this page really has no clipboard API, so the fallback is being forced rather than waited for",
     ).toBe(false);
 
-    await turnRail(page, 0);
+    await turnStepper(page, 0);
     const copy = page.getByTestId("copy-link");
     await copy.click();
 
@@ -974,17 +1163,18 @@ test.describe("a browser with no clipboard API", () => {
 // the numerals below are held against the compiler's answer rather than against
 // a literal that would rot the day the pin moves.
 //
-// The knob these tests drive is Scroll - the third rail on tpad's rack - and
-// its measured band with the probe's reserve of 3 is: index 0..3 -> 907/908 (in
-// budget), 4 -> 905/908, 5 -> 909/908, 6..7 -> 910/908. Home is index 0 and End
-// is index 7, both native to the range input the rail is built on, so one key
-// press crosses the line in either direction.
+// The knob these tests drive is Scroll - the third stepper on tpad's rack -
+// and its measured band with the probe's reserve of 3 is: index 0..3 ->
+// 907/908 (in budget), 4 -> 905/908, 5 -> 909/908, 6..7 -> 910/908. Home is
+// the smallest value and End the largest on the stepper's ladder, and the
+// list is ascending, so Home is index 0 and End index 7: one key press
+// crosses the line in either direction.
 
 const PROBE = "/dev/tune/";
 
 /** tpad's third knob. Its label is what the over-budget block names. */
 const SCROLL_LABEL = "Scroll";
-const SCROLL_RAIL = 2;
+const SCROLL_STEPPER = 2;
 
 /** The probe's independently computed cost. */
 async function probeCost(
@@ -1012,7 +1202,7 @@ async function openProbe(page: Page): Promise<void> {
 
 /** One key press on Scroll, then let the debounced recompile land. */
 async function pressScroll(page: Page, key: "Home" | "End"): Promise<void> {
-  await rails(page).nth(SCROLL_RAIL).focus();
+  await steppers(page).nth(SCROLL_STEPPER).focus();
   await page.keyboard.press(key);
   await recomputed(page);
 }
@@ -1156,7 +1346,7 @@ test.describe("a configuration the compiler refuses", () => {
     // Down first, so there is a measured in-budget number to come back to.
     // Without this the block would be the arrived case a second time and there
     // would be nothing to click.
-    await rails(page).nth(SCROLL_RAIL).focus();
+    await steppers(page).nth(SCROLL_STEPPER).focus();
     await page.keyboard.press("Home");
     await remeasured(page, opened);
     const inside = await measured(page, "setup");
