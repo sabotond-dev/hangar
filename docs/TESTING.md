@@ -7048,3 +7048,130 @@ title walks the Sandbox); c3 by its two files **21 passed** (the workspace's ins
 pinned button); `sandbox.e2e.ts` alone twice on the way to green (a `rgb(255 0 0)` expectation
 against Chromium's `rgb(255, 0, 0)`, then 11 passed at 26 s and 34 s). c1 and c2 not run: no
 install, session or browse title reads the Sandbox or the workspace's inspector.
+
+## 2026-09-21 change 15 - the Sandbox's toolbar rows become one vertical icon rail beside the inspector
+
+`BENCH-2026-09-16.txt` section 15 (the user's word with the screenshot: the three rows above the
+plate "into the right handside, next to the selected element config panel vertically with icons
+only"). Two source commits and one docs commit, no push, no device, no deploy: `6b41d99`
+feat(sandbox) - the model (`sandbox/tool-rail.ts` `RAIL_GROUPS` / `RAIL_BOXES` / `railBoxes` /
+`GLYPH_BOX`), the interface (`ToolRail.svelte` new; `shell.svelte.ts`'s `tools` snippet and
+`+layout.svelte`'s tools column; the route's snippet, dispatch and `say()`; `SurfaceActions.svelte`,
+`SurfaceTransforms.svelte`, `ViewToggles.svelte` and `ProfileActions.svelte` deleted by name;
+`copy.ts`'s `TRANSFORM_HELPER` and `VIEW_GROUP` retired by name, `TOOLS` added), and the specs
+(`sandbox-ui.spec` 27 -> 28; `shell.spec` test 5; `device-ui.spec`'s two reads); `6fdb80b`
+test(sandbox) - the e2e walk and the gate's quick constant at 1027; then this section, the Done
+paragraph under section 15 and the gate records `gate/change-15.*` (before, at `76d96da`, in the
+working tree - clean, nothing else landing) and `gate/change-15-after.*` (at `6fdb80b`).
+
+**Where the rail sits.** A FOURTH SHELL COLUMN, not a row of the inspector's: `ShellFill.tools`
+is a snippet like `rail` and `inspector`, and `+layout.svelte` draws `shell-tools-column` between
+`<main>` and `shell-inspector-column` only when a route fills it (`.frame.with-tools` is
+`var(--rail-w) minmax(0, 1fr) auto var(--inspector-w)`; every other route's frame is byte-identical -
+the class is absent and no column is rendered, shell.spec test 5 holds both). The inspector keeps
+its clamp (`layout.ts` untouched; the 2 x 2 reflow and the compact band's 300 are as they were) and
+the centre gives the rail its width. In the stacked band (below 1024, the shell's own breakpoint)
+the frame is one column and the tools column is a row of its own between the centre and the
+inspector - the rail's strip.
+
+**The rail.** `tool-rail.ts` is the source of truth, `menu.ts`'s pattern: twelve boxes in five
+groups in rail order - Undo, Redo; Save copy, Export as a file, Export for Grid Editor, Import a
+profile; Flip left to right, Flip top to bottom, Rotate a quarter turn clockwise; CC numbers, Names
+(toggles); Keyboard shortcuts - each with its label (copy.ts's and profile-copy.ts's own), its keys
+where it has them (`Mod+Z`, `Mod+Y`, `?`), its kind (action, toggle, file) and a glyph of straight
+lines on a 20 box: 13B's mirror and turn reused, an arrow with a returning shaft for Undo and its
+mirror for Redo, two offset squares for Save copy, an arrow into a tray for Export as a file and
+out of it for Import a profile, an arrow into a four-cell square for Export for Grid Editor, a
+number sign for CC numbers, a label tag for Names, the `?` in the mono face. `railBoxes(flags)`
+keeps the rows' rules exactly: Undo and Redo off in Play and with nothing to take back or redo,
+the transforms off in Play and on an empty surface, Export for Grid Editor off with its reason
+(measuring, over the budget) as its title, everything else live; a box Play disables is described
+by the mode line as the rows' were. `ToolRail.svelte` (`tool-rail`, a `role="group"` named
+`Tools`): one stack of 44px squares (`grid-template-columns: 44px`), a hairline (`<hr>`, the
+divider token) between the groups; TWO STACKS under 768 of viewport height (`@media (max-height:
+767.98px)`: the shell's row is 535 at 720 tall and twelve boxes in one stack are 583); a strip
+below 1024 of width (`repeat(auto-fill, 44px)`, the full width, the hairlines gone). Every box
+`aria-label` = the label, `title` = the label with the keys in the platform's words through
+`titledWithKeys` and `keysWord` (`Undo (Ctrl+Z)`, `Undo (Cmd+Z)` on a Mac, `Keyboard shortcuts
+(?)`) or the export's reason while disabled; the sr-only descriptions kept: the no-link
+explanation on Export as a file (`no-link-explanation`, the e2e reads it), the profile helpers on
+the two profile boxes, the view helpers on the two toggles. The pressed toggles read by their
+border and ink (identity's selection rule untouched - no `--color-raised`). The keyboard is
+unchanged: spec 22's completeness test is green as it stood.
+
+**The outcome lines.** The three rows' transient lines - `Loop copy saved to My configs.`,
+`Exported as loop.hangar.json.`, `Exported as My performance.json.` / `Imported … as a new
+surface.` and the import's refusals - go to THE PLATE'S STATUS LINE (`surface-status`) through the
+route's `say(line)`: `plateNotice` for `CONFIRM_MS` (4 s), cleared only if the line is still the
+one written (a later command's line is not clipped). `saved`, `exported`, `profileOutcome` and
+their three timers are one `outcomeTimer`. Nothing is drawn under the rail: a 44px column has no
+room for a sentence, and the plate's line is where every other outcome already reads.
+
+**Retired.** `SurfaceActions.svelte` (the export box and its line), `SurfaceTransforms.svelte`
+(the three boxes and the helper), `ViewToggles.svelte` (the View word, two toggles, the ? box) and
+`ProfileActions.svelte` (the two profile boxes and the outcome) deleted by name - nothing stays
+mounted; their rules leave the built CSS (below). `TRANSFORM_HELPER` and `VIEW_GROUP` retired by
+name in `copy.ts` (the cheat-sheet and the titles carry the words); `TOOLS` added. The route's
+`.tools` / `.history` / `.save` / `.saved` / `.view-row` rules, the compact band's tools tightening,
+the `@container` query and the column's `container-type` gone with the rows.
+
+**What moved in the suites.** `sandbox-ui.spec.ts` 27 -> 28: 18's shape half renders the rail's
+transform group (named, disabled and described by the mode line in Play, disabled bare on an empty
+surface, no radius / `rx` / `<path>`, the route's `transform(id)` and `transform("rotate")`); 22
+reads `Undo (Ctrl+Z)` / `Redo (Ctrl+Y)` / `Undo (Cmd+Z)` and `Keyboard shortcuts (?)` off the
+rail's boxes instead of the route's template; 25 the toggles' `aria-pressed`, their labels as
+titles and their helpers as descriptions (title reworded); 27 the profile boxes live and disabled
+with the reason as the title, the file input's type and accept, the helper absent while disabled,
+and the outcome through `say()` (title reworded); 28 new - the five groups' ids in order, the
+kinds, every glyph inside the box with no zero-length line, the keys and the transform, `railBoxes`
+under six flag sets, the shape (`Tools`, four hairlines, the twelve in document order with their
+names, eleven `<svg>` and the model's line count, the titles per platform, the descriptions, two
+`aria-pressed`, the mode line in Play only), the 44 square, both media queries, the route's snippet
+between `rail` and `inspector`, the dispatch, the four components gone from disk and from the
+route, the layout's column before the inspector's and its track list. `shell.spec.ts` test 5: the
+tools column absent from the playground fill and present between `</main>` and the inspector's
+column with `with-tools` when filled. `device-ui.spec.ts`: the two `SurfaceActions.svelte` reads
+re-aimed at `ToolRail.svelte` (its no-destination and no-skip pins hold on the successor).
+`e2e/sandbox.e2e.ts` 11 -> 12 titles: the rail's walk (at 1280 x 720 the tools column between the
+plate's right edge and the inspector's left, the twelve boxes each 44 x 44 inside it and inside the
+viewport in two stacks, Undo above `?`; one stack at 1280 x 900; Save copy writing `saved to My
+configs.` on `surface-status`; at 390 x 844 the rail wider than tall, the column 390 wide and above
+the inspector's column, `?` to the right of Undo; no console error); the surfaces walk and the
+fake-ZONA loop read the outcomes on `surface-status`.
+
+**Counts, carried + delta:** quick 96 / 1026 + 1 todo -> **96 / 1027 + 1 todo** (+0 files / +1),
+green twice at `--maxWorkers=2` (run A the gate's quick term at `6fdb80b` - `check-counts` observed
+96 files, 1027 passed, 1 todo, exit 0; run B `vitest run --project server --maxWorkers=2` at `6fdb80b` on the gate's build - the JSON reporter 1027 passed, 0 failed, 1 todo, and `check-counts.mjs 96 1027` on its log matches, exit 0); check 677 -> **675** (-4 +2); lint clean;
+e2e 94 / 109 -> **95 / 110** (+1 / +1); utilities **44** -> **44** (0 disappeared, 0 appeared -
+`hidden`, `flex`, `grid`, `block`, `fixed`, `sticky`, `relative`, `absolute`, `contents`, `border`
+and `rounded` kept out of the new comments, ids and titles); catalog **27**; testids 359 ->
+**346** (the census reads `data-testid="…"` literals: -8 retired - `surface-share`,
+`export-outcome`, `save-copy-outcome`, `surface-transforms`, `view-toggles`, `profile-actions`,
+`profile-outcome`, `no-link-explanation` as a literal; -7 kept but riding through the template now -
+`undo`, `redo`, `export-surface`, `import-profile`, `shortcuts-open`, `view-numbers`,
+`view-names`, as `flip-horizontal` / `flip-vertical` / `turn-surface` already did; `export-profile`
+and `save-copy` 2 -> 1, the workspace's literals; +2 `tool-rail`, `shell-tools-column`;
+`no-link-explanation` is still in the DOM, spec 28 and the e2e read it); copy exports -2 +1
+(`TRANSFORM_HELPER`, `VIEW_GROUP` retired; `TOOLS`); OG 27 files / 159,169 B / `9becd682…` and the
+four fixtures unmoved; `src/` 7 modified, 2 added, 4 deleted, 0 renamed against `76d96da`.
+
+**The gate's terms** (`--before change-15` at `76d96da`; `--after change-15 --against change-15
+--check 675` at `6fdb80b`): **the wire set `654e202e…` and the full `1c4acf19…` EQUAL, the sandbox
+set `3bdb5974…` EQUAL - no Lua moved**; the census `a684e569…` -> `be886210…` (3156 -> 3141
+literals, 212 -> 210 files; the -/+ lines are the rows' class names and ids gone, the rail's
+`box` / `box file` / `rule` / `tool-rail` / `shell-tools-column` / `Tools` / `${}+Z` / `${}+Y`
+come); the copy exports `cc7a68db…` -> `1ce943b4…` (8 modules); the testids `bcd5150b…` ->
+`60e7351e…` (359 -> 346); the SCOPED CSS `d1c9ab44…` -> `11a91a6a…` and the raw `703fb565…` ->
+`8ab7ccda…` (the rail's `.rail` / `.rule` / `.box` / `.glyph` / `.text` / `.file`; the layout's
+`.frame.with-tools` / `.tools-col`; the route's `.tools` / `.history` / `.save` / `.saved` /
+`.view-row` and its container query gone; the four retired components' rules gone); utilities 44
+-> 44; the titles `d85f7867…` -> `8783d842…` (1027 -> 1028 vitest titles incl. todo, 109 -> 110
+playwright runs); the JS `76858d0e…` -> `acfddf4d…`; comment lines: every header at the ten-line
+rule by `comment-lines.mjs --todo` (the route's trimmed 12 -> 10 on the way). The script exits 1 at
+the census by design; the name-status term reads 4 deleted, stated above.
+
+**Chunks** (a fresh detached wrangler dev on 4173 each, stopped through PowerShell, HTTP 000
+after each; 5173 untouched; the build stamped `6fdb80b`): c4 by its five files **23 passed on its second run (the first run's fresh server dropped about a minute in - 8 passed, then 15 refused connections and fetches that never landed, the wrangler log ending mid-request with no error; run again fresh: 23 passed in 38 s)** (the
+twelve Sandbox titles among them); c5 by its four files **11 passed** (radius's title walks the
+Sandbox). c1, c2 and c3 not run: no install, session, browse or tuning title reads the Sandbox's
+rail, and the workspace's inspector is untouched.
