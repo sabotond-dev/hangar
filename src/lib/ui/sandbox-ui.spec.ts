@@ -1,8 +1,8 @@
-// The Sandbox's interface, twenty-seven tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by
+// The Sandbox's interface, twenty-eight tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by
 // change 10A - the selector, the hotkeys, the move, the delete icon, the blank kind; 12 by 10B, 13
 // by change 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B; 21 to 27 by 13C - the menu,
 // the sheet, the Play monitor, the shared-controller pass, the view toggles, the recent colours, the
-// profile controls), two halves each:
+// profile controls; 28 by change 15 - the tool rail), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -13,7 +13,7 @@
 // Decided at 13-16 / 13.1-03 (Bible sections 2, 8, 14, 16); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
@@ -46,11 +46,14 @@ import {
   MULTI_LEDE,
   NOTE_RANGE,
   NOTHING_TO_PASTE,
+  NO_LINK_EXPLANATION,
   PALETTE_FILL_HELPER,
   PASTE_AT_CAP,
   PASTE_NO_SPACE,
   PLAY_LOCKS_FIELDS,
   PLAY_LOCKS_PALETTE,
+  REDO,
+  SAVE_COPY,
   PLAY_MONITOR_EMPTY,
   PLAY_MONITOR_HELPER,
   RECENT_COLOURS_HELPER,
@@ -65,8 +68,12 @@ import {
   TOO_FULL_TO_STORE,
   TOUCHES,
   TOUCHES_HELPER,
-  TRANSFORM_HELPER,
+  TOOLS,
+  UNDO,
   VALUE_RANGE,
+  VIEW_NAMES,
+  VIEW_NAMES_HELPER,
+  VIEW_NUMBERS,
   VIEW_NUMBERS_HELPER,
   WHOLE_NUMBER,
   conflictLine,
@@ -96,11 +103,17 @@ import {
   platformOf,
 } from "../sandbox/shortcuts";
 import {
+  GLYPH_BOX,
+  RAIL_BOXES,
+  RAIL_GROUPS,
+  railBoxes,
+  type RailFlags,
+} from "../sandbox/tool-rail";
+import {
   EXPORT_PROFILE,
   EXPORT_PROFILE_HELPER,
   EXPORT_PROFILE_OVER,
   IMPORT_PROFILE,
-  profileExportedLine,
 } from "../share/profile-copy";
 import type { HostMidi } from "../sim/lua-host";
 import { MonitorLog, midiLogOf, type MonitorRow } from "../sim/monitor";
@@ -196,12 +209,10 @@ import ContextMenu from "./sandbox/ContextMenu.svelte";
 import ElementList from "./sandbox/ElementList.svelte";
 import Palette from "./sandbox/Palette.svelte";
 import PlayMonitor from "./sandbox/PlayMonitor.svelte";
-import ProfileActions from "./sandbox/ProfileActions.svelte";
 import RegionInspector from "./sandbox/RegionInspector.svelte";
 import ShortcutSheet from "./sandbox/ShortcutSheet.svelte";
 import SurfaceEditor from "./sandbox/SurfaceEditor.svelte";
-import SurfaceTransforms from "./sandbox/SurfaceTransforms.svelte";
-import ViewToggles from "./sandbox/ViewToggles.svelte";
+import ToolRail from "./sandbox/ToolRail.svelte";
 import { stripComments } from "../../test-support/source";
 
 const repo = (rel: string) =>
@@ -264,6 +275,37 @@ const list = (view: EditorState) =>
   }).body;
 
 const count = (html: string, needle: string) => html.split(needle).length - 1;
+
+/** The rail's flags with everything live (change 15). */
+const LIVE_FLAGS: RailFlags = {
+  play: false,
+  empty: false,
+  canUndo: true,
+  canRedo: true,
+  numbers: true,
+  names: true,
+};
+
+/** The tool rail rendered against the flags, described by "why" in Play. */
+const railHtml = (flags: Partial<RailFlags>, mac = false) =>
+  render(ToolRail, {
+    props: {
+      ...LIVE_FLAGS,
+      ...flags,
+      mac,
+      describedBy: "why",
+      onaction: noop,
+      ontoggle: noop,
+      onimport: noop,
+      onshortcuts: noop,
+    },
+  }).body;
+
+/** A rail box's opening tag by its test id (the file box is its input). */
+const railBox = (html: string, id: string): string =>
+  new RegExp(`<(?:button|input)[^>]*data-testid="${id}"[^>]*>`).exec(
+    html,
+  )?.[0] ?? "";
 
 /** Every region on a surface validates against the others, and the map builds. */
 function wholeSurfaceValid(surface: Surface): boolean {
@@ -3064,31 +3106,36 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       kind: "nothing",
     });
 
-    // THE SHAPE HALF: the row's three named boxes and its helper, all three
-    // disabled and described when told to be; straight lines only, no
-    // radius; the route mounts it off in Play and on an empty surface.
-    const row = render(SurfaceTransforms, {
-      props: { ontransform: noop },
-    }).body;
-    for (const id of ["flip-horizontal", "flip-vertical", "turn-surface"])
-      expect(row).toContain(`data-testid="${id}"`);
+    // THE SHAPE HALF (the rail's transform group since change 15): three
+    // named boxes, all three disabled and described by the mode line in
+    // Play, disabled on an empty surface; straight lines only, no radius;
+    // the route's dispatch calls transformSurface.
+    const transforms = ["flip-horizontal", "flip-vertical", "turn-surface"];
+    const row = railHtml({});
+    for (const id of transforms) expect(row).toContain(`data-testid="${id}"`);
     expect(row).toContain(`aria-label="${FLIP_HORIZONTAL}"`);
     expect(row).toContain(`aria-label="${FLIP_VERTICAL}"`);
     expect(row).toContain(`aria-label="${ROTATE}"`);
-    expect(row).toContain(TRANSFORM_HELPER);
-    expect(row).not.toContain("disabled");
-    const off = render(SurfaceTransforms, {
-      props: { ontransform: noop, disabled: true, describedBy: "why" },
-    }).body;
-    expect(count(off, 'disabled=""')).toBe(3);
-    expect(count(off, 'aria-describedby="why"')).toBe(3);
-    const source = code(`${UI}/SurfaceTransforms.svelte`);
+    for (const id of transforms)
+      expect(railBox(row, id)).not.toContain("disabled");
+    const off = railHtml({ play: true });
+    for (const id of transforms) {
+      expect(railBox(off, id)).toContain('disabled=""');
+      expect(railBox(off, id)).toContain('aria-describedby="why"');
+    }
+    const bare = railHtml({ empty: true });
+    for (const id of transforms) {
+      expect(railBox(bare, id)).toContain('disabled=""');
+      expect(railBox(bare, id)).not.toContain('aria-describedby="why"');
+    }
+    const source = code(`${UI}/ToolRail.svelte`);
     expect(source).not.toMatch(/border-radius:\s*[1-9]/);
     expect(source).not.toMatch(/(^|\s)r[xy]=/m);
     expect(source, "straight lines only").not.toContain("<path");
     const route = code(ROUTE);
-    expect(route).toContain("<SurfaceTransforms");
-    expect(route).toContain("disabled={play || empty}");
+    expect(route).toContain("<ToolRail");
+    expect(route).toContain("transform(id)");
+    expect(route).toContain('transform("rotate")');
     expect(route).toContain("editor.transformSurface(kind)");
     for (const s of emitted) expect(wholeSurfaceValid(s)).toBe(true);
   });
@@ -3813,19 +3860,22 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toContain('event.key === "?"');
     expect(route).toContain("<ShortcutSheet {mac} onclose={closeSheet} />");
     expect(route).toContain("if (sheetOpen) {");
-    const toggles = render(ViewToggles, {
-      props: { numbers: true, names: true, ontoggle: noop, onshortcuts: noop },
-    }).body;
-    expect(toggles).toContain('data-testid="shortcuts-open"');
-    expect(toggles).toContain('title="Keyboard shortcuts (?)"');
+    const rail = railHtml({});
+    expect(rail).toContain('data-testid="shortcuts-open"');
+    expect(railBox(rail, "shortcuts-open")).toContain(
+      'title="Keyboard shortcuts (?)"',
+    );
     // THE TITLES: the palette rows, Undo and Redo, Duplicate and Delete.
     const { editor } = fresh();
     const pal = palette(editor.state());
     expect(pal).toContain('title="Fader (F)"');
     expect(pal).toContain('title="XY pad (X)"');
     expect(pal).toContain('title="Blank (L)"');
-    expect(route).toContain("titledWithKeys(UNDO, `${modWord(mac)}+Z`)");
-    expect(route).toContain("titledWithKeys(REDO, `${modWord(mac)}+Y`)");
+    expect(railBox(rail, "undo")).toContain('title="Undo (Ctrl+Z)"');
+    expect(railBox(rail, "redo")).toContain('title="Redo (Ctrl+Y)"');
+    expect(railBox(railHtml({}, true), "undo")).toContain(
+      'title="Undo (Cmd+Z)"',
+    );
     editor.choose("button");
     editor.clickCell(0, 0);
     editor.cancel();
@@ -4047,7 +4097,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toContain("{conflicts}");
   });
 
-  it("25. the view toggles (change 13C): the store round-trips under its own key and a corrupt envelope reads as both on; with the numbers on every sending kind shows its controller - the fader its own numeral, a button, a knob and an XY pad a new one, a note button its note name, a blank none - and with them off none; names off drops the names; the toggles render pressed with their helpers as titles; the route reads the store on mount, writes every toggle, hands the plate the pair, and the draft never carries it", () => {
+  it("25. the view toggles (change 13C): the store round-trips under its own key and a corrupt envelope reads as both on; with the numbers on every sending kind shows its controller - the fader its own numeral, a button, a knob and an XY pad a new one, a note button its note name, a blank none - and with them off none; names off drops the names; the toggles render pressed on the rail with their labels as titles and their helpers as descriptions; the route reads the store on mount, writes every toggle, hands the plate the pair, and the draft never carries it", () => {
     const { store, map } = mapStore();
     expect(DEFAULT_VIEW).toEqual({ schema: 1, numbers: true, names: true });
     expect(readSandboxView(store)).toBe(DEFAULT_VIEW);
@@ -4123,16 +4173,18 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     editor.commitField();
     expect(shown({ numbers: true, names: true })).toContain(">C4</text>");
     // THE TOGGLES.
-    const toggles = render(ViewToggles, {
-      props: { numbers: true, names: false, ontoggle: noop, onshortcuts: noop },
-    }).body;
-    expect(toggles).toMatch(
-      /data-testid="view-numbers"[^>]*aria-pressed="true"/,
+    const toggles = railHtml({ numbers: true, names: false });
+    expect(railBox(toggles, "view-numbers")).toContain('aria-pressed="true"');
+    expect(railBox(toggles, "view-names")).toContain('aria-pressed="false"');
+    expect(railBox(toggles, "view-numbers")).toContain(
+      `title="${VIEW_NUMBERS}"`,
     );
-    expect(toggles).toMatch(
-      /data-testid="view-names"[^>]*aria-pressed="false"/,
+    expect(railBox(toggles, "view-names")).toContain(`title="${VIEW_NAMES}"`);
+    expect(railBox(toggles, "view-numbers")).toMatch(
+      /aria-describedby="[^"]+"/,
     );
-    expect(toggles).toContain(`title="${VIEW_NUMBERS_HELPER}"`);
+    expect(toggles).toContain(VIEW_NUMBERS_HELPER);
+    expect(toggles).toContain(VIEW_NAMES_HELPER);
     expect(toggles).toContain('role="group"');
     // THE ROUTE, and the draft: a Surface has no such field.
     const route = code(ROUTE);
@@ -4246,35 +4298,34 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toContain("recentColours={recent.colours}");
   });
 
-  it("27. the Grid Editor profile controls (change 13C): Export for Grid Editor and Import a profile render as the toolbar's outlined boxes - the export disabled with its reason as its title while the landing is measuring or over the budget, the import a file input accepting the export's types - with the outcome beside them; the Sandbox route builds the file from the landing's strings and opens an imported surface as a new draft; the workspace's pinned button builds it from the tuner's strings; the destination zone is untouched", () => {
-    const html = render(ProfileActions, {
-      props: { onexport: noop, onimport: noop },
-    }).body;
-    expect(html).toContain('data-testid="export-profile"');
-    expect(html).toContain(EXPORT_PROFILE);
-    expect(html).toContain(IMPORT_PROFILE);
-    expect(html).not.toMatch(/data-testid="export-profile"[^>]*disabled/);
-    expect(html).toContain(`title="${EXPORT_PROFILE_HELPER}"`);
-    const input =
-      html.match(/<input[^>]*data-testid="import-profile"[^>]*>/)?.[0] ?? "";
-    expect(input).toContain('type="file"');
-    expect(html).toContain(`accept="${EXPORT_ACCEPT}"`);
-    expect(html).not.toContain('data-testid="profile-outcome"');
-    const held = render(ProfileActions, {
-      props: {
-        exportReason: EXPORT_PROFILE_OVER,
-        outcome: profileExportedLine("Loop.json"),
-        onexport: noop,
-        onimport: noop,
-      },
-    }).body;
-    expect(held).toMatch(/data-testid="export-profile"[^>]*disabled/);
-    expect(held).toContain(`title="${EXPORT_PROFILE_OVER}"`);
-    expect(held).toContain("Exported as Loop.json.");
-    expect(held).toMatch(/role="status"[^>]*data-testid="profile-outcome"/);
-    expect(code(`${UI}/ProfileActions.svelte`)).not.toMatch(
-      /border-radius: (?!0;)/,
+  it("27. the Grid Editor profile controls (change 13C): Export for Grid Editor and Import a profile render as the rail's icon boxes - the export disabled with its reason as its title while the landing is measuring or over the budget, the import a file input accepting the export's types - with the outcome on the plate's status line; the Sandbox route builds the file from the landing's strings and opens an imported surface as a new draft; the workspace's pinned button builds it from the tuner's strings; the destination zone is untouched", () => {
+    const html = railHtml({});
+    expect(railBox(html, "export-profile")).toContain(
+      `aria-label="${EXPORT_PROFILE}"`,
     );
+    expect(railBox(html, "import-profile")).toContain(
+      `aria-label="${IMPORT_PROFILE}"`,
+    );
+    expect(railBox(html, "export-profile")).not.toContain("disabled");
+    expect(railBox(html, "export-profile")).toContain(
+      `title="${EXPORT_PROFILE}"`,
+    );
+    expect(html).toContain(EXPORT_PROFILE_HELPER);
+    const input = railBox(html, "import-profile");
+    expect(input).toContain('type="file"');
+    expect(input).toContain(`accept="${EXPORT_ACCEPT}"`);
+    const held = railHtml({ exportReason: EXPORT_PROFILE_OVER });
+    expect(railBox(held, "export-profile")).toContain('disabled=""');
+    expect(railBox(held, "export-profile")).toContain(
+      `title="${EXPORT_PROFILE_OVER}"`,
+    );
+    expect(held).not.toContain(EXPORT_PROFILE_HELPER);
+    expect(code(`${UI}/ToolRail.svelte`)).not.toMatch(/border-radius: (?!0;)/);
+    // THE OUTCOME: the route's say() puts the line on the plate's status
+    // line for CONFIRM_MS (change 15), for the export and the import alike.
+    expect(code(ROUTE)).toContain("say(profileExportedLine(fileName))");
+    expect(code(ROUTE)).toContain("say(importedLine(surface.name))");
+    expect(code(ROUTE)).toContain("plateNotice = line;");
     // THE SANDBOX ROUTE: the landing's strings (what Store writes), the
     // element count line as the description, the surface's envelope under
     // the hangar key, the file name from the surface's name; an import lands
@@ -4296,7 +4347,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(route).toMatch(
       /landing === undefined\s*\?\s*EXPORT_PROFILE_MEASURING\s*:\s*landing\.refusal !== undefined\s*\?\s*EXPORT_PROFILE_OVER/,
     );
-    expect(route).toContain("<ProfileActions");
+    expect(route).toContain("<ToolRail");
     expect(route).toContain("onimport={(text) => void importProfile(text)}");
     // THE WORKSPACE: the tuner's five strings, the card's sentence, the same
     // record Save a copy writes under the hangar key, in the inspector's pinned actions.
@@ -4310,5 +4361,179 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       /overBudgetReason \?\?\s*\(configStrings === undefined \? EXPORT_PROFILE_MEASURING : undefined\)/,
     );
     expect(code("src/lib/ui/DestinationZone.svelte")).not.toContain("profile");
+  });
+
+  it("28. the tool rail (change 15): twelve icon-only boxes in five groups in rail order - Undo, Redo; Save copy, Export as a file, Export for Grid Editor, Import a profile; the three transforms; CC numbers and Names as toggles; the shortcut sheet - every glyph straight lines inside the 20 box, the rows' rules kept by railBoxes, each box 44 square with its label as its name and, with its keys, its title, a hairline between the groups, the reasons and helpers as descriptions; the route hands it to the shell's tools column between the centre and the inspector, and the three rows and their four components are gone", () => {
+    // THE ORDER, the kinds, the glyphs.
+    expect(RAIL_GROUPS.map((g) => g.map((b) => b.id))).toEqual([
+      ["undo", "redo"],
+      ["save-copy", "export-surface", "export-profile", "import-profile"],
+      ["flip-horizontal", "flip-vertical", "turn-surface"],
+      ["view-numbers", "view-names"],
+      ["shortcuts-open"],
+    ]);
+    expect(RAIL_BOXES).toHaveLength(12);
+    const kinds = Object.fromEntries(RAIL_BOXES.map((b) => [b.id, b.kind]));
+    expect(kinds["view-numbers"]).toBe("toggle");
+    expect(kinds["view-names"]).toBe("toggle");
+    expect(kinds["import-profile"]).toBe("file");
+    expect(
+      RAIL_BOXES.filter((b) => b.kind === "action").map((b) => b.id),
+    ).toHaveLength(9);
+    let lines = 0;
+    for (const box of RAIL_BOXES) {
+      expect(box.label.length, box.id).toBeGreaterThan(0);
+      if (box.glyph === undefined) {
+        expect(box.id).toBe("shortcuts-open");
+        expect(box.text).toBe("?");
+        continue;
+      }
+      expect(box.glyph.length, box.id).toBeGreaterThan(2);
+      for (const line of box.glyph) {
+        expect(line).toHaveLength(4);
+        for (const n of line) {
+          expect(n).toBeGreaterThanOrEqual(0);
+          expect(n).toBeLessThanOrEqual(GLYPH_BOX);
+        }
+        expect(line[0] !== line[2] || line[1] !== line[3], box.id).toBe(true);
+        lines += 1;
+      }
+    }
+    expect(RAIL_BOXES.find((b) => b.id === "undo")?.keys).toBe("Mod+Z");
+    expect(RAIL_BOXES.find((b) => b.id === "redo")?.keys).toBe("Mod+Y");
+    expect(RAIL_BOXES.find((b) => b.id === "turn-surface")?.transform).toBe(
+      "rotate",
+    );
+    // THE RULES, the rows' own: Undo and Redo off in Play and with nothing
+    // to take back or redo; the transforms off in Play and on an empty
+    // surface; the export off with its reason; the rest live.
+    const states = (f: Partial<RailFlags>) =>
+      Object.fromEntries(
+        railBoxes({ ...LIVE_FLAGS, ...f })
+          .flat()
+          .map((b) => [b.id, b]),
+      );
+    const live = states({});
+    for (const b of Object.values(live)) expect(b.disabled, b.id).toBe(false);
+    expect(live["view-numbers"].pressed).toBe(true);
+    expect(states({ names: false })["view-names"].pressed).toBe(false);
+    const inPlay = states({ play: true });
+    const byMode = [
+      "undo",
+      "redo",
+      "flip-horizontal",
+      "flip-vertical",
+      "turn-surface",
+    ];
+    expect(
+      Object.values(inPlay)
+        .filter((b) => b.disabled)
+        .map((b) => b.id)
+        .sort(),
+    ).toEqual([...byMode].sort());
+    for (const id of byMode) expect(inPlay[id].byMode, id).toBe(true);
+    const nothing = states({ canUndo: false, canRedo: false });
+    expect(nothing.undo.disabled).toBe(true);
+    expect(nothing.undo.byMode).toBe(false);
+    expect(nothing.redo.disabled).toBe(true);
+    expect(nothing["flip-vertical"].disabled).toBe(false);
+    const bare = states({ empty: true });
+    for (const id of ["flip-horizontal", "flip-vertical", "turn-surface"]) {
+      expect(bare[id].disabled, id).toBe(true);
+      expect(bare[id].byMode, id).toBe(false);
+    }
+    expect(bare.undo.disabled).toBe(false);
+    const over = states({ exportReason: EXPORT_PROFILE_OVER });
+    expect(over["export-profile"].disabled).toBe(true);
+    expect(over["export-profile"].reason).toBe(EXPORT_PROFILE_OVER);
+    expect(over["import-profile"].disabled).toBe(false);
+    expect(over["export-surface"].disabled).toBe(false);
+    // THE SHAPE: the group named, the twelve in document order, eleven
+    // glyphs of the model's lines and the ? box, four hairlines, the names
+    // and the titles, the keys in the platform's words.
+    const html = railHtml({});
+    expect(html).toContain('data-testid="tool-rail"');
+    expect(html).toMatch(new RegExp(`role="group"[^>]*aria-label="${TOOLS}"`));
+    expect(count(html, "<hr")).toBe(4);
+    let at = -1;
+    for (const box of RAIL_BOXES) {
+      const tag = railBox(html, box.id);
+      expect(tag, box.id).not.toBe("");
+      expect(tag, box.id).toContain(`aria-label="${box.label}"`);
+      const i = html.indexOf(`data-testid="${box.id}"`);
+      expect(i, `${box.id} in rail order`).toBeGreaterThan(at);
+      at = i;
+    }
+    expect(count(html, "<svg")).toBe(11);
+    expect(count(html, "<line")).toBe(lines);
+    expect(railBox(html, "undo")).toContain(`title="${UNDO} (Ctrl+Z)"`);
+    expect(railBox(html, "redo")).toContain(`title="${REDO} (Ctrl+Y)"`);
+    expect(railBox(railHtml({}, true), "redo")).toContain(
+      `title="${REDO} (Cmd+Y)"`,
+    );
+    expect(railBox(html, "save-copy")).toContain(`title="${SAVE_COPY}"`);
+    expect(railBox(html, "save-copy")).not.toContain("aria-describedby");
+    expect(railBox(html, "export-surface")).toMatch(/aria-describedby="[^"]+"/);
+    expect(html).toContain('data-testid="no-link-explanation"');
+    expect(html).toContain(NO_LINK_EXPLANATION);
+    expect(railBox(html, "view-numbers")).toContain('aria-pressed="true"');
+    expect(railBox(html, "undo")).not.toContain("aria-pressed");
+    expect(count(html, 'aria-pressed="')).toBe(2);
+    const off = railHtml({ play: true, canUndo: false });
+    expect(railBox(off, "undo")).toContain('aria-describedby="why"');
+    expect(railBox(railHtml({ canUndo: false }), "undo")).not.toContain(
+      'aria-describedby="why"',
+    );
+    const source = code(`${UI}/ToolRail.svelte`);
+    expect(source).toMatch(
+      /\.box \{[^}]*inline-size: 44px;[^}]*block-size: 44px;/,
+    );
+    expect(source).not.toMatch(/border-radius:\s*[1-9]/);
+    expect(source).not.toMatch(/(^|\s)r[xy]=/m);
+    expect(source, "straight lines only").not.toContain("<path");
+    expect(source).toContain("@media (max-width: 1023.98px)");
+    expect(source).toContain("@media (max-height: 767.98px)");
+    // THE ROUTE AND THE SHELL: the tools snippet between the rail and the
+    // inspector in the fill, the layout's column between main and the
+    // inspector's, the rows gone with their helpers and their components.
+    const route = code(ROUTE);
+    expect(route).toContain("{#snippet tools()}");
+    expect(route).toMatch(/rail,\s*tools,\s*inspector,/);
+    expect(route).toContain("onaction={railAction}");
+    expect(route).toContain("ontoggle={toggleView}");
+    expect(route).toContain('describedBy="sandbox-mode-line"');
+    expect(route).toContain("onshortcuts={(opener) => openSheet(opener)}");
+    for (const gone of [
+      'class="tools"',
+      'class="view-row"',
+      "<SurfaceTransforms",
+      "<ViewToggles",
+      "<ProfileActions",
+      "<SurfaceActions",
+      "TRANSFORM_HELPER",
+      "VIEW_GROUP",
+      "profileOutcome",
+      "save-copy-outcome",
+      "export-outcome",
+    ]) {
+      expect(route, gone).not.toContain(gone);
+    }
+    for (const file of [
+      "SurfaceActions",
+      "SurfaceTransforms",
+      "ViewToggles",
+      "ProfileActions",
+    ]) {
+      expect(existsSync(repo(`${UI}/${file}.svelte`)), file).toBe(false);
+    }
+    const layout = code("src/routes/+layout.svelte");
+    expect(layout).toContain('data-testid="shell-tools-column"');
+    expect(layout).toContain("{@render fill.tools()}");
+    expect(layout).toMatch(
+      /\.frame\.with-tools \{[^}]*grid-template-columns: var\(--rail-w\) minmax\(0, 1fr\) auto var\(--inspector-w\)/,
+    );
+    expect(layout.indexOf('data-testid="shell-tools-column"')).toBeLessThan(
+      layout.indexOf('data-testid="shell-inspector-column"'),
+    );
   });
 });

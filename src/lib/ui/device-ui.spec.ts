@@ -797,10 +797,11 @@ describe("the device UI's structural rules", () => {
       workspace,
       "the tuner's pair still reaches the store (TryOnDevice's effect, kept in the route)",
     ).toContain("install.observeConfig(pair)");
-    const actions = code(`${UI_DIR}/sandbox/SurfaceActions.svelte`);
+    // SurfaceActions.svelte retired at change 15; the export box is ToolRail.svelte's.
+    const actions = code(`${UI_DIR}/sandbox/ToolRail.svelte`);
     expect(
       occurrences(actions, "destination"),
-      "SurfaceActions still carries a destination half",
+      "ToolRail still carries a destination half",
     ).toBe(0);
     expect(occurrences(actions, "zone"), "the zone prop is gone").toBe(0);
     // NOTHING UNDER src/lib/ui/ OR THE ROUTES DRAWS A PUT BACK CONTROL OR
@@ -1956,7 +1957,7 @@ describe("the device UI's structural rules", () => {
     // caller of confirm(), the target's own guard, the heartbeat-first order
     // page-target.spec.ts asserts off the frames - did not move with it.
     const route = code("src/routes/playground/[id]/+page.svelte");
-    const actions = code(`${UI_DIR}/sandbox/SurfaceActions.svelte`);
+    const actions = code(`${UI_DIR}/sandbox/ToolRail.svelte`);
     const zone = code(componentPath("DestinationZone.svelte"));
     const store = code("src/lib/device/install.svelte.ts");
     const target = code("src/lib/device/page-target.ts");
@@ -2028,7 +2029,7 @@ describe("the device UI's structural rules", () => {
     expect(zone).toContain("onTargetChange");
     for (const [file, source] of [
       ["the workspace route", route],
-      ["SurfaceActions.svelte", actions],
+      ["ToolRail.svelte", actions],
     ] as const) {
       expect(
         occurrences(source, "onTargetChange"),
@@ -2068,7 +2069,7 @@ describe("the device UI's structural rules", () => {
     const REMEMBER = ["remember", "Destination"].join("");
     for (const [file, source] of [
       ["the workspace route", route],
-      ["SurfaceActions.svelte", actions],
+      ["ToolRail.svelte", actions],
       ["DestinationZone.svelte", zone],
       ["install.svelte.ts", store],
       ["page-target.ts", target],

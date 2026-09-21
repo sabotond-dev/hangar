@@ -73,6 +73,8 @@ export interface ShellFill {
   rail?: Snippet;
   /** The right inspector. Absent on page 2 and page 4, where the centre takes its width. */
   inspector?: Snippet;
+  /** The tool rail between the centre and the inspector (change 15): the Sandbox's twelve icon boxes. Absent elsewhere; the column is not drawn without it. */
+  tools?: Snippet;
   /** The intro header's secondary link (page 1's Quick guide). 13-07's. */
   secondary?: Snippet;
 }

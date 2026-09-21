@@ -130,6 +130,7 @@
         <div
           class="frame"
           class:no-inspector={!fill.inspector}
+          class:with-tools={fill.tools !== undefined}
           data-testid="shell-frame"
           style:--rail-w="{RAIL_W}px"
           style:--rail-compact-w="{RAIL_COMPACT_W}px"
@@ -147,6 +148,11 @@
           <main class="centre" data-testid="shell-centre">
             {@render children()}
           </main>
+          {#if fill.tools}
+            <div class="tools-col" data-testid="shell-tools-column">
+              {@render fill.tools()}
+            </div>
+          {/if}
           {#if fill.inspector}
             <div class="inspector-col" data-testid="shell-inspector-column">
               {@render fill.inspector()}
@@ -210,6 +216,11 @@
     grid-template-columns: var(--rail-w) minmax(0, 1fr);
   }
 
+  /* With a tool rail (change 15): a fourth track between the centre and the inspector, as wide as the rail draws itself. */
+  .frame.with-tools {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr) auto var(--inspector-w);
+  }
+
   .rail-col {
     min-block-size: 0;
     overflow: hidden;
@@ -243,6 +254,14 @@
     border-inline-start: 1px solid var(--color-divider);
   }
 
+  /* The tools column scrolls its own body on a viewport too short for the rail's two stacks. */
+  .tools-col {
+    min-block-size: 0;
+    overflow-y: auto;
+    background: var(--color-panel);
+    border-inline-start: 1px solid var(--color-divider);
+  }
+
   /* Compact band (section 13's 1024-1439): the 200 rail and the 268-300 inspector. */
   @media (max-width: 1439.98px) {
     .frame {
@@ -259,7 +278,8 @@
   */
   @media (max-width: 1023.98px) {
     .frame,
-    .frame.no-inspector {
+    .frame.no-inspector,
+    .frame.with-tools {
       grid-template-columns: minmax(0, 1fr);
       flex: none;
       block-size: auto;
@@ -270,7 +290,8 @@
       border-block-end: 1px solid var(--color-divider);
     }
 
-    .inspector-col {
+    .inspector-col,
+    .tools-col {
       border-inline-start: 0;
       border-block-start: 1px solid var(--color-divider);
     }

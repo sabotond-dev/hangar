@@ -1,16 +1,14 @@
 <!--
   /sandbox/{id}/ - the Sandbox: PDF page 3 on the shell (13-16; Bible sections 2, 8, 14, 16;
-  BUILD-01/02/06/07/08, PREV-04, KEEP-01). The rail (Palette, ElementList, `+ New surface`) and
-  the inspector (RegionInspector) are snippets handed to the shell; the centre is the name row with
-  the Edit / Play switch, one toolbar row (Undo, Redo, Save copy, Export as a file), the surface's
-  three transforms (SurfaceTransforms, 13B) and the plate. One model: src/lib/sandbox/editor.ts holds
-  the surface, the set, mode, focus, history and the remembered defaults; this route keeps the one
-  EditorState in raw state and owns the stores (the draft, the defaults, the clipboard's session), the
-  landing, the preview, the frame and the window's key listener (the hotkeys, V / Escape, Delete,
-  Ctrl/Cmd + C X V D A L, ? for the shortcut sheet - never in a text field), the plate's menu, the
-  view toggles, the recent colours, the Play monitor and the Grid Editor profile file (13C). The landing
-  is land.ts's under the pinned minifier with SLOTS 5 to install.observeConfig; no number about the
-  budget is shown; Play runs the surface's own strings.
+  BUILD-01/02/06/07/08, PREV-04, KEEP-01). Three snippets handed to the shell: the rail (Palette,
+  ElementList, `+ New surface`), the tool rail (ToolRail, change 15: Undo, Redo, Save copy, the
+  exports and the import, the transforms, the view toggles, the sheet's box - icon-only beside the
+  inspector) and the inspector (RegionInspector); the centre is the name row with the Edit / Play
+  switch and the plate. One model: src/lib/sandbox/editor.ts; this route keeps the one EditorState
+  in raw state and owns the stores, the landing, the preview, the frame, the window's key listener
+  (the hotkeys, V / Escape, Delete, Ctrl/Cmd + C X V D A L, ? - never in a text field), the plate's
+  menu, the recent colours, the Play monitor and the Grid Editor profile file (13C). The landing is
+  land.ts's under the pinned minifier with SLOTS 5 to install.observeConfig; Play runs the surface's own strings.
   Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -42,10 +40,8 @@
     MODE_PLAY_GLYPH,
     NEW_SURFACE,
     NOTHING_TO_PASTE,
-    REDO,
     RENAME_SURFACE,
     ROTATED,
-    SAVE_COPY,
     SAVE_REFUSED,
     STARTER_ACTION,
     SUB_LINE,
@@ -53,7 +49,6 @@
     TEMPLATE_ACTION,
     TITLE,
     TOO_FULL_TO_STORE,
-    UNDO,
     alignedLine,
     copiedLine,
     copyName,
@@ -66,13 +61,13 @@
     renameSurfaceName,
     savedLine,
     spacedLine,
-    titledWithKeys,
     unlockedLine,
   } from "$lib/sandbox/copy";
   import { readClipboard, writeClipboard } from "$lib/sandbox/clipboard";
   import { conflictedIds, findConflicts } from "$lib/sandbox/conflicts";
   import { menuItems, type MenuAction } from "$lib/sandbox/menu";
-  import { isMacPlatform, modWord, platformOf } from "$lib/sandbox/shortcuts";
+  import { isMacPlatform, platformOf } from "$lib/sandbox/shortcuts";
+  import type { RailBoxId } from "$lib/sandbox/tool-rail";
   import {
     EXPORT_PROFILE_MEASURING,
     EXPORT_PROFILE_OVER,
@@ -136,14 +131,11 @@
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
   import Palette from "$lib/ui/sandbox/Palette.svelte";
   import PlayMonitor from "$lib/ui/sandbox/PlayMonitor.svelte";
-  import ProfileActions from "$lib/ui/sandbox/ProfileActions.svelte";
   import RegionInspector from "$lib/ui/sandbox/RegionInspector.svelte";
   import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import ShortcutSheet from "$lib/ui/sandbox/ShortcutSheet.svelte";
-  import SurfaceActions from "$lib/ui/sandbox/SurfaceActions.svelte";
   import SurfaceEditor from "$lib/ui/sandbox/SurfaceEditor.svelte";
-  import SurfaceTransforms from "$lib/ui/sandbox/SurfaceTransforms.svelte";
-  import ViewToggles from "$lib/ui/sandbox/ViewToggles.svelte";
+  import ToolRail from "$lib/ui/sandbox/ToolRail.svelte";
   import Rail from "$lib/ui/shell/Rail.svelte";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
   import type { PageData } from "./$types";
@@ -169,19 +161,16 @@
   let view = $state.raw<EditorState | undefined>(undefined);
   let draftLine = $state<string | undefined>(undefined);
   let landing = $state.raw<SurfaceLanding | undefined>(undefined);
-  let exported = $state<string | undefined>(undefined);
   let notice = $state<string | undefined>(undefined);
-  /** A command's outcome on the plate's status line (change 13A): the clipboard's, the lock's, a refusal; cleared by the next change. */
+  /** A command's outcome on the plate's status line (change 13A): the clipboard's, the lock's, a refusal; cleared by the next change. Since change 15 the rail's outcomes too (Save copy, the exports, the import), cleared after CONFIRM_MS. */
   let plateNotice = $state<string | undefined>(undefined);
-  let saved = $state<string | undefined>(undefined);
   let unavailable = $state(false);
   let renaming = $state(false);
-  /** Change 13C: the shortcut sheet, the view toggles, the recent colours, the clipboard's state for the menu, the profile's line, the platform. */
+  /** Change 13C: the shortcut sheet, the view toggles, the recent colours, the clipboard's state for the menu, the platform. */
   let sheetOpen = $state(false);
   let viewPrefs = $state.raw<SandboxView>(DEFAULT_VIEW);
   let recent = $state.raw<RecentColours>(NO_COLOURS);
   let clipboardHeld = $state(false);
-  let profileOutcome = $state<string | undefined>(undefined);
   let mac = $state(false);
   /** The control that opened the sheet, so Close returns focus to it. */
   let sheetOpener: HTMLElement | undefined;
@@ -193,9 +182,7 @@
   let mounted = false;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let measureTimer: ReturnType<typeof setTimeout> | undefined;
-  let confirmTimer: ReturnType<typeof setTimeout> | undefined;
-  let exportTimer: ReturnType<typeof setTimeout> | undefined;
-  let profileTimer: ReturnType<typeof setTimeout> | undefined;
+  let outcomeTimer: ReturnType<typeof setTimeout> | undefined;
   let recentTimer: ReturnType<typeof setTimeout> | undefined;
   let measureGeneration = 0;
   let previewGeneration = 0;
@@ -581,13 +568,44 @@
     sheetOpener = undefined;
   }
 
-  function sayProfile(line: string): void {
-    profileOutcome = line;
-    if (profileTimer !== undefined) clearTimeout(profileTimer);
-    profileTimer = setTimeout(() => {
-      profileTimer = undefined;
-      profileOutcome = undefined;
+  /** A rail outcome on the plate's status line (change 15) for CONFIRM_MS, unless something else has written the line since. */
+  function say(line: string): void {
+    plateNotice = line;
+    if (outcomeTimer !== undefined) clearTimeout(outcomeTimer);
+    outcomeTimer = setTimeout(() => {
+      outcomeTimer = undefined;
+      if (plateNotice === line) plateNotice = undefined;
     }, CONFIRM_MS);
+  }
+
+  /** The rail's action boxes (change 15): every one a call the keys or the rows already made. */
+  function railAction(id: RailBoxId): void {
+    switch (id) {
+      case "undo":
+        editor?.undo();
+        return;
+      case "redo":
+        editor?.redo();
+        return;
+      case "save-copy":
+        save_copy();
+        return;
+      case "export-surface":
+        export_surface();
+        return;
+      case "export-profile":
+        void exportProfile();
+        return;
+      case "flip-horizontal":
+      case "flip-vertical":
+        transform(id);
+        return;
+      case "turn-surface":
+        transform("rotate");
+        return;
+      default:
+        return;
+    }
   }
 
   /**
@@ -629,7 +647,7 @@
       profileFileName(surface.name),
       serialiseProfile(profile),
     );
-    sayProfile(profileExportedLine(fileName));
+    say(profileExportedLine(fileName));
   }
 
   /**
@@ -643,7 +661,7 @@
     const at = new Date().toISOString();
     const found = readProfile(text, at);
     if (found.kind === "refused") {
-      sayProfile(found.reason);
+      say(found.reason);
       return;
     }
     const id = mintSurfaceId();
@@ -651,7 +669,7 @@
     pendingImport = surface;
     saveSurfaceDraft(local(), surface, at);
     await goto(resolve("/sandbox/[draftId]", { draftId: id }));
-    sayProfile(importedLine(surface.name));
+    say(importedLine(surface.name));
   }
 
   /** Save copy (section 11; library.ts): a NEW named copy, never a write over the draft. */
@@ -669,13 +687,9 @@
       createdAt: at,
       editedAt: at,
     });
-    saved =
-      outcome === "written" ? savedLine(copyName(surface.name)) : SAVE_REFUSED;
-    if (confirmTimer !== undefined) clearTimeout(confirmTimer);
-    confirmTimer = setTimeout(() => {
-      confirmTimer = undefined;
-      saved = undefined;
-    }, CONFIRM_MS);
+    say(
+      outcome === "written" ? savedLine(copyName(surface.name)) : SAVE_REFUSED,
+    );
   }
 
   /** Export as a file (D-14 Q7; section 11): the record shape through transfer.ts's own envelope and download. */
@@ -698,12 +712,7 @@
         at,
       ),
     );
-    exported = exportedLine(fileName);
-    if (exportTimer !== undefined) clearTimeout(exportTimer);
-    exportTimer = setTimeout(() => {
-      exportTimer = undefined;
-      exported = undefined;
-    }, CONFIRM_MS);
+    say(exportedLine(fileName));
   }
 
   function commitName(next: string): void {
@@ -854,9 +863,7 @@
       save();
     }
     if (measureTimer !== undefined) clearTimeout(measureTimer);
-    if (confirmTimer !== undefined) clearTimeout(confirmTimer);
-    if (exportTimer !== undefined) clearTimeout(exportTimer);
-    if (profileTimer !== undefined) clearTimeout(profileTimer);
+    if (outcomeTimer !== undefined) clearTimeout(outcomeTimer);
     if (recentTimer !== undefined) clearTimeout(recentTimer);
     // The landing is this page's: the store forgets it with the page.
     install.observeConfig(undefined);
@@ -876,7 +883,7 @@
   /* The destination zone renders while a ZONA is connected (13-12's rule); without a session the bar says so itself. */
   const reportedPage = $derived(session.identity?.activePage);
 
-  /* The shell: SANDBOX current, the breadcrumb, the draft's clause, the device's, the destination, the rail and the inspector. */
+  /* The shell: SANDBOX current, the breadcrumb, the draft's clause, the device's, the destination, the rail, the tool rail and the inspector. */
   $effect(() =>
     fillShell({
       variant: "app",
@@ -887,6 +894,7 @@
       page: install.snapshotPage,
       destination: reportedPage === undefined ? undefined : destination,
       rail,
+      tools,
       inspector,
     }),
   );
@@ -931,6 +939,27 @@
 <!-- The context bar's destination zone (13-12; 13-17; 13.1-06; Apply gone 2026-09-16): the page target, Store on ZONA - the one component both routes mount. -->
 {#snippet destination()}
   <DestinationZone {name} config={landing?.config} {refusal} />
+{/snippet}
+
+<!-- The tool rail (change 15): the shell's column between the plate and the inspector; its outcomes go to the plate's status line. -->
+{#snippet tools()}
+  {#if view !== undefined}
+    <ToolRail
+      {play}
+      {empty}
+      canUndo={view.canUndo}
+      canRedo={view.canRedo}
+      {exportReason}
+      numbers={viewPrefs.numbers}
+      names={viewPrefs.names}
+      {mac}
+      describedBy="sandbox-mode-line"
+      onaction={railAction}
+      ontoggle={toggleView}
+      onimport={(text) => void importProfile(text)}
+      onshortcuts={(opener) => openSheet(opener)}
+    />
+  {/if}
 {/snippet}
 
 {#snippet inspector()}
@@ -1061,68 +1090,6 @@
       </div>
     </header>
 
-    <div class="tools">
-      <div class="history">
-        <button
-          class="outlined"
-          type="button"
-          data-testid="undo"
-          disabled={play || !view.canUndo}
-          title={titledWithKeys(UNDO, `${modWord(mac)}+Z`)}
-          aria-describedby={play ? "sandbox-mode-line" : undefined}
-          onclick={() => editor?.undo()}>{UNDO}</button
-        >
-        <button
-          class="outlined"
-          type="button"
-          data-testid="redo"
-          disabled={play || !view.canRedo}
-          title={titledWithKeys(REDO, `${modWord(mac)}+Y`)}
-          aria-describedby={play ? "sandbox-mode-line" : undefined}
-          onclick={() => editor?.redo()}>{REDO}</button
-        >
-      </div>
-      <div class="save">
-        {#if saved !== undefined}
-          <span
-            class="saved type-helper"
-            role="status"
-            data-testid="save-copy-outcome">{saved}</span
-          >
-        {/if}
-        <button
-          class="outlined"
-          type="button"
-          data-testid="save-copy"
-          onclick={save_copy}>{SAVE_COPY}</button
-        >
-        <SurfaceActions {exported} onexport={export_surface} />
-      </div>
-    </div>
-
-    <!-- The surface's three transforms (change 13B): a row of their own under the toolbar, off in Play and on an empty surface. -->
-    <SurfaceTransforms
-      disabled={play || empty}
-      describedBy={play ? "sandbox-mode-line" : undefined}
-      ontransform={transform}
-    />
-
-    <!-- Change 13C: the view toggles with the sheet's box, and the Grid Editor profile's two controls. -->
-    <div class="view-row">
-      <ViewToggles
-        numbers={viewPrefs.numbers}
-        names={viewPrefs.names}
-        ontoggle={toggleView}
-        onshortcuts={() => openSheet()}
-      />
-      <ProfileActions
-        {exportReason}
-        outcome={profileOutcome}
-        onexport={() => void exportProfile()}
-        onimport={(text) => void importProfile(text)}
-      />
-    </div>
-
     <div class="centre">
       <SurfaceEditor
         {view}
@@ -1192,8 +1159,6 @@
     gap: 16px;
     max-inline-size: 900px;
     margin-inline: auto;
-    /* The toolbar row's wrap rule reads this column's width, not the viewport's (KnobRack's precedent). */
-    container-type: inline-size;
   }
 
   .top {
@@ -1309,74 +1274,7 @@
     color: var(--color-ink-quiet);
   }
 
-  /* ONE toolbar row (PDF page 3): Undo, Redo left; Save copy and the export right; every box 44 tall.
-     Above 480 of column the row never wraps: the two transient outcome lines shrink and fold beside
-     their buttons (measured at 1280 and 1440: one line stays one row of 44, both make it 56 for four
-     seconds), so a file name never sets the row's minimum (measured at 1024: 55px of slide without this). */
-  .tools {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-  }
-
-  .history,
-  .save {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .history {
-    flex: none;
-  }
-
-  .save {
-    flex: 1 1 auto;
-    justify-content: flex-end;
-    min-inline-size: 0;
-  }
-
-  /* The saved line gives way beside its button: it shrinks and folds, never the boxes. */
-  .saved {
-    min-inline-size: 0;
-    overflow-wrap: anywhere;
-    text-align: end;
-    color: var(--color-ink-quiet);
-  }
-
-  .tools .outlined {
-    flex: none;
-    white-space: nowrap;
-  }
-
-  /* The compact band (1024-1439): the centre is 372 at 1024 and the four
-     boxes at the wide band's padding and gaps are 413, so the row tightens -
-     10px padding and 8px gaps, 353 - and stays one row. */
-  @media (max-width: 1439.98px) {
-    .tools {
-      gap: 12px;
-    }
-
-    .history,
-    .save {
-      gap: 8px;
-    }
-
-    .tools .outlined {
-      padding-inline: 10px;
-    }
-  }
-
-  /* Under 480 of column (372 at 1024) an outcome line has no room beside the boxes (353 with gaps), so
-     the right pair drops to a second line for its four seconds; Clear.svelte's 480 is the same threshold. */
-  @container (width < 480px) {
-    .tools {
-      flex-wrap: wrap;
-    }
-  }
-
-  /* Outlined controls: the boundary token, square, 44px on both axes. */
+  /* Outlined controls (the rail's + New surface): the boundary token, square, 44px on both axes. */
   .outlined {
     min-block-size: 44px;
     min-inline-size: 44px;
@@ -1401,15 +1299,6 @@
 
   .outlined.wide {
     inline-size: 100%;
-  }
-
-  /* The view row (13C): the toggles left, the profile's two boxes right, wrapping when the column is narrow. */
-  .view-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
   }
 
   .centre {

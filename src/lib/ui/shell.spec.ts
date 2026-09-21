@@ -582,6 +582,24 @@ describe("the shell: one frame, six regions, one set of numbers (src/lib/ui/shel
     const two = renderLayout({ variant: "app", rail: marked("rail") });
     expect(two).toContain("no-inspector");
     expect(two).not.toContain('data-testid="shell-inspector-column"');
+    // The tools column (change 15): between main and the inspector's column
+    // only when a route fills `tools`, the frame saying so; never otherwise.
+    expect(body).not.toContain("with-tools");
+    expect(body).not.toContain('data-testid="shell-tools-column"');
+    const four = renderLayout({
+      variant: "app",
+      section: "sandbox",
+      rail: marked("rail"),
+      tools: marked("tools"),
+      inspector: marked("inspector"),
+    });
+    expect(four).toContain("with-tools");
+    const toolsAt = four.indexOf('data-testid="shell-tools-column"');
+    expect(toolsAt).toBeGreaterThan(four.indexOf("</main>"));
+    expect(toolsAt).toBeLessThan(
+      four.indexOf('data-testid="shell-inspector-column"'),
+    );
+    expect(four.indexOf('data-testid="tools"')).toBeGreaterThan(toolsAt);
 
     // The stylesheet reads the variables and writes none of the numbers: no
     // layout figure appears as a px literal in any shell file's style block

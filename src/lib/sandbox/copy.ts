@@ -276,9 +276,11 @@ export const spacedLine = (n: number): string =>
 export const DISTRIBUTE_NO_ROOM =
   "There’s no room to space these out. Move the outer elements further apart first.";
 
-/** The surface's three transforms (suggestion 4): the row's helper, the three names, the three outcomes. */
-export const TRANSFORM_HELPER =
-  "Flip or rotate the whole surface. Every element moves with it, locked ones too: a transform is not an element edit.";
+// TRANSFORM_HELPER (`Flip or rotate the whole surface. Every element moves with it, locked ones
+// too: a transform is not an element edit.`) IS RETIRED BY NAME, 2026-09-21 (change 15, BENCH
+// section 15): the transforms row went into the tool rail, whose boxes carry their labels as
+// titles and the cheat-sheet carries the words.
+/** The surface's three transforms (suggestion 4): the three names, the three outcomes. */
 export const FLIP_HORIZONTAL = "Flip left to right";
 export const FLIP_VERTICAL = "Flip top to bottom";
 export const ROTATE = "Rotate a quarter turn clockwise";
@@ -374,8 +376,9 @@ export const PLAY_MONITOR_EMPTY =
   "Nothing sent yet. Touch the surface and what it sends shows here.";
 export const PLAY_MONITOR_CLEAR = "Clear";
 
-/** The plate's view toggles (suggestion 12): the group's name and its two switches. */
-export const VIEW_GROUP = "View";
+// VIEW_GROUP (`View`) IS RETIRED BY NAME, 2026-09-21 (change 15): the View row went into the
+// tool rail, whose group is named TOOLS below.
+/** The plate's view toggles (suggestion 12): the two switches and their helpers. */
 export const VIEW_NUMBERS = "CC numbers";
 export const VIEW_NAMES = "Names";
 export const VIEW_NUMBERS_HELPER =
@@ -399,3 +402,9 @@ export const RECENT_COLOURS_HELPER =
   "The last eight colors you applied. Click one to apply it to every selected element.";
 export const recentColourName = (r: number, g: number, b: number): string =>
   `Apply color ${r}, ${g}, ${b}`;
+
+// ---------------------------------------------------------------------------
+// Change 15 (BENCH-2026-09-16.txt section 15): the tool rail beside the inspector.
+
+/** The rail's accessible name: the group of twelve icon-only boxes (tool-rail.ts). */
+export const TOOLS = "Tools";
