@@ -3828,3 +3828,16 @@ for one more dearest fader: acceptable, or should Receive default off on a surfa
 (6) ARC echo: a DAW that echoes controller feedback while the LFO runs - is the `s.l` guard enough,
 or should RX on a free-running output default Off? (7) the hue wheel rather than a palette - right?
 (8) a button's received "on" is above 0 and not its min - right for a button whose min is not 0?
+
+17A's questions, decided 2026-09-23 on the recorded reading (the user away): the cards' channels
+read 1..16 as the Sandbox's do (the wire keeps 0..15; a display change); pitch bend stays 7-bit
+(every value is 7-bit); every card assigns its own receive callback, and a card with nothing to
+receive assigns `self.midirx_cb=nil`, so a previous landing's callback never survives a Store;
+the `s.l` echo guard stands; the colour input stays off by default. The playground's remaining
+cards are built in two serial parts: 17B the nineteen hand-authored Lua cards (CHORUS, CONSOLE,
+CULL, GHOST, LUMEN, MORPH, ORBIT, POMODORO, QUADRANT, RADAR POINTS, RADAR, SNAKE, SONAR, STAGE,
+STEPS, STRIP, TRACKPAD COMET, TRACKPAD, WHEELS), one commit per card; 17C the seven ported
+presets on the shelf's cards (AURORA, PINWHEEL, STARFIELD, JOYSTICK, NINE PADS, FOUR FADERS,
+DIAL), compiled from the untouchable vendor tree - wrapped on HANGAR's side or rebuilt as Lua
+cards the way RADAR was (12b), the executor's measured call. Keystroke (HID) sends are not MIDI
+and stay as they are.
