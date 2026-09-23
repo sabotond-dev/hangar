@@ -6,9 +6,12 @@
 // stored for the Timer); the flash lives in the Timer because no Setup-side shape fits beside
 // the four gestures. One card, the look chosen in its tune panel, an off state that is the plain
 // trackpad (the user's "as is, selectable tuning options under Trackpad"). Knobs, all in the
-// Timer: @FX (true / false), @C, @N, @T. Setup 903 of 908 at every knob state (5 free), Timer 510
-// at the picker corner (508 at the defaults); restsBlack true. The id is `trackpad`, not `tpad`.
-// History: docs/entries/trackpad.md (the bench line, 12-06, 12-10, 12-12, 12.1-04 measurements).
+// Timer: @FX (true / false), @C, @N, @T. Setup 903 of 908 at every knob state (5 free), Timer 526
+// at the picker corner (524 at the defaults); restsBlack true. The id is `trackpad`, not `tpad`.
+// No MIDI: the Timer assigns `s.midirx_cb=nil` on every call (change 17B - the Setup has 5 free;
+// a previous landing's receive callback never survives this one).
+// History: docs/entries/trackpad.md (the bench line, 12-06, 12-10, 12-12, 12.1-04 measurements;
+// change 17B).
 //
 // MECHANISM
 //   - Setup: `txma(1023) tyma(1023)` (both axes, as the recipe has them), `gmbs(3,0)` at load,
@@ -62,7 +65,7 @@ const SETUP =
   "--[[@cb]]self:txma(1023)self:tyma(1023)gmbs(3,0)self.r=0 local function z(s)s.p={}s.n=0 s.k=0 s.m=0 s.w=0 s.j=0 s.q=0 end z(self)self.touch_cb=function(s,i,e,x,y)if s.q>25 then z(s)end s.q=0 local o,g,f,h=true,0,0,0 while o and g<24 do g=g+1 local c,t=s.p[i],e==3 or e>=5 if e==4 or e>7 or not c and not t then if not c then s.n=s.n+1 s.k=glim(s.k,s.n,9)end c={x,y}s.p[i]=c s.j=4 end if t then if c then s.p[i]=nil s.n=s.n-1 s.j=4 if s.n<1 then if s.r<1 and e>4 and s.m<s.k*120 then gmbs(glim(s.k,1,2),1)s.r=4 end gtt(0,20)z(s)end end else local u,v=x-c[1],y-c[2]c[1]=x c[2]=y s.m=s.m+math.abs(u)+math.abs(v)if s.n>1 then s.w=s.w+v else f=f+u h=h+v end end o=s:touch_pop()i=s:tid()e=s:tev()x=s:txv()y=s:tyv()end if s.j>0 then s.j=s.j-1 elseif s.n>1 then local d=(s.w+64)//128 if d~=0 then s.w=s.w-d*128 s.m=999 gmms(3,-d)end else gmms(1,glim(f,-63,63))gmms(2,glim(h,-63,63))s.u,s.v=f,h end end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self if s.n then if s.r>0 then s.r=s.r-1 if s.r<1 then gmbs(3,0)end end s.q=s.q+1 if s.q==100 then gmbs(3,0)end if not s.i then s.i=1 for n=0,80 do glc(glag(0,n),1,@C,1)end end if @FX and s.u and s.n<2 then local f,h=s.u,s.v s.u=nil if f*f+h*h>2 then for _,c in pairs(s.p)do local u,p,q,o=f,1,9,(U(c[2]//8,KY)+32)//64 if h*h>f*f then u,p,q,o=h,9,1,(U(c[1]//8,KX)+32)//64 end for k=-(@N//2),@N//2 do D((u>0 and 8 or 0)*p+glim(o+k,0,8)*q,1,@T*(16-k*k)//16*6)end end end end end";
+  "--[[@cb]]gtt(0,20)local s=self s.midirx_cb=nil if s.n then if s.r>0 then s.r=s.r-1 if s.r<1 then gmbs(3,0)end end s.q=s.q+1 if s.q==100 then gmbs(3,0)end if not s.i then s.i=1 for n=0,80 do glc(glag(0,n),1,@C,1)end end if @FX and s.u and s.n<2 then local f,h=s.u,s.v s.u=nil if f*f+h*h>2 then for _,c in pairs(s.p)do local u,p,q,o=f,1,9,(U(c[2]//8,KY)+32)//64 if h*h>f*f then u,p,q,o=h,9,1,(U(c[1]//8,KX)+32)//64 end for k=-(@N//2),@N//2 do D((u>0 and 8 or 0)*p+glim(o+k,0,8)*q,1,@T*(16-k*k)//16*6)end end end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 

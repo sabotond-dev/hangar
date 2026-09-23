@@ -238,3 +238,15 @@ docs/HARDWARE-AUDITION.md.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them.
 ```
+
+## Change 17B, 2026-09-23: no MIDI, and a previous landing's receive cleared (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+TRACKPAD sends mouse reports (`gmms`, `gmbs`), not MIDI, so it declares no output and gains no knob (the rack and the
+stamp are unmoved). Section 17's decision - every card assigns its own receive callback or nil - could not go in the
+Setup, which has 5 free (`self.midirx_cb=nil` is 18 characters, and TRACKPAD COMET's Setup is held byte for byte
+equal to this one). So the TIMER assigns `s.midirx_cb=nil` on every call, from its first, 20 ms after the Setup arms
+it; a previous landing's callback guards itself on the touch callback it was made beside, so it is inert inside that
+window too. Timer 508 / 510 -> 524 / 526 (defaults / corner), Setup 903 unmoved; frames.json and the OG image unmoved.
+**Latch: one control** - the pad is one mouse surface; the edge flash is a picture, not a control.
+`lua-smoke.spec.ts` "TRACKPAD: no MIDI ...": after three ticks no callback over a previous landing's, the pointer
+still moves, no MIDI.
