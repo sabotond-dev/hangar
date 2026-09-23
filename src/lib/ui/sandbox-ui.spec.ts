@@ -3,7 +3,7 @@
 // by change 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B; 21 to 27 by 13C - the menu,
 // the sheet, the Play monitor, the shared-controller pass, the view toggles, the recent colours, the
 // profile controls; 28 by change 15 - the tool rail; 29 by change 17 - the MIDI output; 30 by
-// change 18 - Latch), two halves each:
+// change 18 - Latch; 31 by change 18b - the knob without it), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -174,7 +174,7 @@ import {
   writeClipboard,
   type ClipboardContent,
 } from "../sandbox/clipboard";
-import { regionRow, regionTail } from "../sandbox/emit";
+import { emitSurface, regionRow, regionTail } from "../sandbox/emit";
 import {
   GEOMETRY_COPY,
   alignBoxes,
@@ -191,9 +191,12 @@ import { History } from "../sandbox/history";
 import {
   boundingBox,
   ccCeiling,
+  channelWord,
   flagsOf,
+  HAND_OVER_BIT,
   latchTouchOf,
   lockedOf,
+  takesLatch,
   orientationOf,
   seventhOf,
   withBrightness,
@@ -4737,7 +4740,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       expect(route, wiring).toContain(wiring);
   });
 
-  it("30. Latch (change 18): Off / On through the editor on every kind that takes touch, one entry, the same value no entry, refused with a blank in the set or in Play; a set of mixed kinds writes every member; the remembered defaults carry it; a draft with the field reads and a word refused whole; the panel's row last under Behavior on every kind but a blank - alone over mixed kinds - with its helper as the label's title; the route's wiring", () => {
+  it("30. Latch (change 18): Off / On through the editor on every kind that takes touch but the knob (change 18b), one entry, the same value no entry, refused with a blank in the set or in Play; a set of mixed kinds writes every member; the remembered defaults carry it; a draft with the field reads and a word refused whole; the panel's row last under Behavior on every kind but a blank and a knob - alone over mixed kinds - with its helper as the label's title; the route's wiring", () => {
     const { editor } = fresh();
     const placed: Region[] = [];
     for (const [kind, col, row] of [
@@ -4753,8 +4756,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       placed.push(editor.surface.regions[editor.surface.regions.length - 1]);
     }
     const [fader, button, knob, pad, blank] = placed;
-    // EVERY KIND THAT TAKES TOUCH: Off is one entry, Off again none, On back one more.
-    for (const r of [fader, button, knob, pad]) {
+    // EVERY KIND THAT CARRIES LATCH: Off is one entry, Off again none, On back one more (the knob
+    // is test 31's).
+    for (const r of [fader, button, pad]) {
       editor.select(r.id);
       const depth = editor.state().depth;
       expect(latchTouchOf(byId(editor, r.id)), r.kind).toBe(true);
@@ -4779,12 +4783,12 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // A SET OF MIXED KINDS: one entry writes every member.
     editor.select(fader.id);
     editor.toggleSelect(button.id);
-    editor.toggleSelect(knob.id);
     depth = editor.state().depth;
     expect(editor.setLatchTouch(true)).toBe(true);
     expect(editor.state().depth).toBe(depth + 1);
-    for (const r of [fader, button, knob])
+    for (const r of [fader, button])
       expect(byId(editor, r.id).latchTouch, r.kind).toBe(true);
+    expect(byId(editor, knob.id)).not.toHaveProperty("latchTouch");
     expect(byId(editor, pad.id).latchTouch).toBe(false);
     // In Play: refused.
     editor.setMode("play");
@@ -4792,7 +4796,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(byId(editor, fader.id).latchTouch).toBe(true);
     editor.setMode("edit");
     // THE REMEMBERED DEFAULTS: one element's Latch is its kind's; a multi-edit is not remembered.
-    for (const kind of ["fader", "button", "knob", "xy"] as const)
+    for (const kind of ["fader", "button", "xy"] as const)
       expect(REMEMBERED_FIELDS[kind], kind).toContain("latchTouch");
     expect(REMEMBERED_FIELDS.blank).toEqual([]);
     expect(rememberKind({ ...pad, latchTouch: false })).toMatchObject({
@@ -4851,8 +4855,8 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(isStoredRecord(record(true))).toBe(true);
     expect(isStoredRecord(record("off"))).toBe(false);
     expect(isStoredRecord(record(0))).toBe(false);
-    // THE PANEL: the row last under Behavior on every kind but a blank, its helper the label's title.
-    for (const r of [fader, button, knob, pad]) {
+    // THE PANEL: the row last under Behavior on every kind but a blank and a knob, its helper the label's title.
+    for (const r of [fader, button, pad]) {
       editor.select(r.id);
       const html = inspector(editor);
       expect(html, r.kind).toContain('data-testid="field-latch"');
@@ -4888,5 +4892,117 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(code(ROUTE)).toContain(
       "onlatchtouch={(latchTouch) => void editor?.setLatchTouch(latchTouch)}",
     );
+  });
+  it("31. the knob loses Latch (change 18b): no Latch row on a knob, alone or in a set; the editor refuses it on a knob and on any set with a knob in it; a set of mixed kinds with a knob has no Behavior (the row writes every member, so it is not shown rather than skipping one); a knob stored Off while change 18 allowed it loads On - its word without the bit, its strings byte-identical to the field absent - and a remembered Off never reaches a new knob", () => {
+    const { editor } = fresh();
+    const placed: Region[] = [];
+    for (const [kind, col, row] of [
+      ["fader", 0, 0],
+      ["button", 3, 0],
+      ["knob", 5, 0],
+      ["xy", 3, 4],
+    ] as const) {
+      editor.choose(kind);
+      editor.clickCell(col, row);
+      editor.cancel();
+      placed.push(editor.surface.regions[editor.surface.regions.length - 1]);
+    }
+    const [fader, button, knob, pad] = placed;
+    // THE KINDS: Latch on the fader, the button and the XY pad; never the knob or the blank.
+    expect(
+      (["fader", "button", "xy", "knob", "blank"] as const).map(takesLatch),
+    ).toEqual([true, true, true, false, false]);
+    // A KNOB ALONE: Behavior with its Mode, no Latch row; Latch refused, nothing recorded.
+    editor.select(knob.id);
+    let html = inspector(editor);
+    expect(html).toContain(">Behavior<");
+    expect(html).toContain('data-testid="field-mode"');
+    expect(html, "no Latch row on a knob").not.toContain(
+      'data-testid="field-latch"',
+    );
+    expect(count(html, ">Latch<")).toBe(0);
+    let depth = editor.state().depth;
+    expect(editor.setLatchTouch(false)).toBe(false);
+    expect(editor.setLatchTouch(true)).toBe(false);
+    expect(editor.state().depth).toBe(depth);
+    expect(byId(editor, knob.id)).not.toHaveProperty("latchTouch");
+    // A SET WITH A KNOB IN IT: no Behavior at all over mixed kinds (Latch was its one row), no
+    // Latch row, the editor refuses, nothing recorded; without the knob the row is back.
+    for (const others of [[fader], [button], [pad], [fader, button, pad]]) {
+      editor.select(knob.id);
+      for (const r of others) editor.toggleSelect(r.id);
+      html = inspector(editor);
+      const names = others.map((r) => r.kind).join(" ");
+      expect(html, names).not.toContain(">Behavior<");
+      expect(html, names).not.toContain('data-testid="field-latch"');
+      expect(html, names).toContain(">MIDI output<");
+      depth = editor.state().depth;
+      expect(editor.setLatchTouch(false), names).toBe(false);
+      expect(editor.state().depth).toBe(depth);
+      for (const r of others)
+        expect(latchTouchOf(byId(editor, r.id))).toBe(true);
+    }
+    editor.select(pad.id);
+    editor.toggleSelect(fader.id);
+    expect(inspector(editor)).toContain('data-testid="field-latch"');
+    // A SET OF KNOBS: Behavior with the Mode, no Latch row.
+    editor.choose("knob");
+    editor.clickCell(6, 6);
+    editor.cancel();
+    const second = editor.surface.regions[editor.surface.regions.length - 1];
+    expect(second.kind).toBe("knob");
+    editor.select(knob.id);
+    editor.toggleSelect(second.id);
+    html = inspector(editor);
+    expect(html).toContain('data-testid="field-mode"');
+    expect(html).not.toContain('data-testid="field-latch"');
+    expect(editor.setLatchTouch(false)).toBe(false);
+    // THE REMEMBERED DEFAULTS: never Latch on a knob, whatever the record carries.
+    expect(REMEMBERED_FIELDS.knob).not.toContain("latchTouch");
+    expect(rememberKind({ ...knob, latchTouch: false })).not.toHaveProperty(
+      "latchTouch",
+    );
+    expect(withKindDefaults(knob, { latchTouch: false })).not.toHaveProperty(
+      "latchTouch",
+    );
+    // A KNOB STORED OFF (change 18 allowed it for a few hours, never deployed): the record still
+    // reads - a draft is never refused for a field its kind does not honour - and loads On.
+    const stored: Region = { ...knob, latchTouch: false };
+    const storedSurface: Surface = {
+      id: "s-18b",
+      name: "Turn",
+      regions: [stored, fader],
+    };
+    const record = {
+      schema: 1,
+      id: "sandbox:s-18b",
+      name: "Turn",
+      kind: "sandbox",
+      source: "s-18b",
+      createdAt: "2026-09-23T00:00:00.000Z",
+      editedAt: "2026-09-23T00:00:00.000Z",
+      surface: storedSurface,
+    };
+    expect(isStoredRecord(record)).toBe(true);
+    expect(latchTouchOf(stored), "a knob stored Off reads On").toBe(true);
+    expect(channelWord(stored)).toBe(channelWord(knob));
+    expect(channelWord(stored)).toBeLessThan(HAND_OVER_BIT);
+    const strings = (s: Surface): (string | undefined)[] => {
+      const e = emitSurface(s, { slots: 5 });
+      expect(e.handOver, "no hand-over entry for a knob").toBe(false);
+      return [e.setup, e.timer, e.mapmode, e.system, e.systemTimer];
+    };
+    expect(
+      strings(storedSurface),
+      "byte-identical to the field absent",
+    ).toEqual(strings({ ...storedSurface, regions: [knob, fader] }));
+    // Loaded into the editor: the panel shows no row, and a set of the knob and the fader keeps
+    // Latch refused rather than half-applied.
+    const loaded = new SandboxEditor(storedSurface);
+    loaded.select(stored.id);
+    expect(inspector(loaded)).not.toContain('data-testid="field-latch"');
+    loaded.toggleSelect(fader.id);
+    expect(loaded.setLatchTouch(false)).toBe(false);
+    expect(byId(loaded, fader.id)).not.toHaveProperty("latchTouch");
   });
 });

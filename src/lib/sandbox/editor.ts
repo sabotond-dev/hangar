@@ -88,6 +88,7 @@ import {
   orientationOf,
   outputOf,
   springValueOf,
+  takesLatch,
   touchesOf,
   typesOf,
   type Box,
@@ -287,8 +288,10 @@ export { NO_DEFAULTS };
 /**
  * The fields that stick per kind (change 13B, suggestion 8): the ones the readings named, and
  * only on the kind that has them - since change 17 the type (an XY pad's per axis, and its Y
- * channel) and Receive too, and since change 18 Latch. The controller, the colour, the
- * orientation, the name and the geometry never stick; a blank has nothing to remember.
+ * channel) and Receive too, and since change 18 Latch - on the kinds that carry it, so not on a
+ * knob since change 18b (model.ts `takesLatch`: a knob remembered Off never reaches a new one).
+ * The controller, the colour, the orientation, the name and the geometry never stick; a blank has
+ * nothing to remember.
  */
 export const REMEMBERED_FIELDS: Readonly<
   Record<ElementKind, readonly (keyof KindDefaults)[]>
@@ -318,7 +321,7 @@ export const REMEMBERED_FIELDS: Readonly<
     "receive",
     "latchTouch",
   ],
-  knob: ["channel", "min", "max", "mode", "output", "receive", "latchTouch"],
+  knob: ["channel", "min", "max", "mode", "output", "receive"],
   button: [
     "channel",
     "min",
@@ -1249,11 +1252,12 @@ export class SandboxEditor {
     return true;
   }
 
-  /** Latch (change 18): On keeps a finger on the element it landed on, Off hands it over - on every member; a blank takes no touch; refused in Play. One entry. */
+  /** Latch (change 18): On keeps a finger on the element it landed on, Off hands it over - on every member; refused with a kind that does not carry it in the set (a blank takes no touch; a knob, change 18b, never lets go of its finger) and in Play. One entry. */
   setLatchTouch(latchTouch: boolean): boolean {
     if (this._mode === "play") return false;
     const regions = this.selectedRegions;
-    if (regions.length === 0 || regions.some(isPaintOnly)) return false;
+    if (regions.length === 0 || regions.some((r) => !takesLatch(r.kind)))
+      return false;
     if (regions.every((r) => (r.latchTouch !== false) === latchTouch))
       return true;
     this.applyPatch({ latchTouch }, "option");

@@ -146,6 +146,7 @@
     groupOf,
     isRelative,
     latchTouchOf,
+    takesLatch,
     lockedOf,
     maxOf,
     minOf,
@@ -450,6 +451,8 @@
     return members.every((r) => read(r) === first) ? first : undefined;
   }
   const play = $derived(view.mode === "play");
+  /** Latch's row (change 18): shown when every member carries it - no blank, and since change 18b no knob (model.ts `takesLatch`). */
+  const latchShown = $derived(any && members.every((r) => takesLatch(r.kind)));
   const lock = $derived(play ? lockId : undefined);
   /** The surface's brightness (change 5): one field, shown with or without a selection. */
   const brightness = $derived(brightnessOf(view.surface.brightness));
@@ -584,8 +587,12 @@
     // Identity (section 8): the name, the type and the lock, Orientation on faders (change 16c: a titled section on the grid).
     out.push({ title: IDENTITY, content: identity });
     // Every sending kind has a Behavior since change 10B; a blank has none. A set of one kind has its
-    // kind's rows; since change 18 a set of mixed kinds has one too, Latch alone - with no blank in it.
-    if (!members.some((r) => r.kind === "blank"))
+    // kind's rows; since change 18 a set of mixed kinds has one too, Latch alone - with no blank in it,
+    // and since change 18b no knob either (a knob does not carry Latch, and the row writes every member).
+    if (
+      !members.some((r) => r.kind === "blank") &&
+      (sharedKind !== undefined || latchShown)
+    )
       out.push({ title: BEHAVIOR, content: behavior });
     // A blank sends nothing: no MIDI output section (change 10A), and none with a blank in the set.
     if (!members.some((r) => r.kind === "blank"))
@@ -1002,11 +1009,13 @@
         undefined,
       )}
     {/if}
-    {@render latchRow()}
+    {#if latchShown}
+      {@render latchRow()}
+    {/if}
   </div>
 {/snippet}
 
-<!-- Latch (change 18): Off / On, on by default - the last row of Behavior on every kind that takes touch. -->
+<!-- Latch (change 18): Off / On, on by default - the last row of Behavior on every kind that takes touch but the knob (change 18b), and over a set only when every member carries it. -->
 {#snippet latchRow()}
   {@const latch = shared(latchTouchOf)}
   {@render segmented(

@@ -1402,13 +1402,15 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await page.getByTestId("field-group").selectOption("3");
     await expect(sandbox).toHaveAttribute("data-depth", "12");
 
-    // THE KNOB: K, a click, Escape; Relative (2's comp.) takes Min and Max away.
+    // THE KNOB: K, a click, Escape; Relative (2's comp.) takes Min and Max away. No Latch row
+    // (change 18b: a knob does not carry it).
     await plate.focus();
     await page.keyboard.press("k");
     await clickCell(plate, 3, 4);
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("inspector-name")).toHaveText("Knob 1");
     await expect(page.getByTestId("field-min")).toBeVisible();
+    expect(await page.getByTestId("field-latch").count()).toBe(0);
     await page.getByTestId("field-mode").selectOption("relative-twos");
     expect(await page.getByTestId("field-min").count()).toBe(0);
     expect(await page.getByTestId("field-max").count()).toBe(0);
