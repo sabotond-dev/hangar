@@ -348,7 +348,9 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
           ", ",
         )}); ${PRESET_ENTRIES.length} presets x ${presetStateCount} states, ${presetSites} colour arguments; none unreachable\n`,
     );
-  });
+    // Change 17B: every output's Number is 0..127, so the single-knob sample grew by hundreds of
+    // states (2.2 s alone after STEPS' eight tracks, past the 5 s default under a loaded run).
+  }, 60000);
 
   it("4. the wire: 255 is byte-identical on every string above; at 128 and at 1 no string is longer, every one still passes checkSyntax; Trackpad 903 / Chorus / Console measured at the picker corner at 255, 128 and 1", async () => {
     const all: { label: string; text: string; sites: ColourSites }[] = [];

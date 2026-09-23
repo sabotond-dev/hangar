@@ -368,3 +368,35 @@ untouched and green.
 for eight knobs and lands `unreadable` by design; the captured default vector still carries no
 stamp (the two new indices read their defaults). Every STEPS link shared before today opens the
 card at its defaults.
+
+## Change 17B, 2026-09-23: eight tracks, eight outputs; a received note arms its step (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+The brief offered "Track 1".."Track 8" or one "Steps" output with a base note. **Eight tracks is a drum kit** (the
+card's own header), and a kit's notes are seldom neighbours - kick 36, snare 38, closed hat 42, open hat 46 - so one
+base note plus the row would make a player re-map the kit in the DAW. The honest reading is eight outputs, "Track 1"
+(row 0, the top) to "Track 8" (row 7), triggers, each with Type (Note / CC), Channel, Number and Receive.
+
+- **Knobs.** Track 1 keeps the old two: `@NOTE` (`note`, relabelled "Track 1 MIDI note") all of 0..127 with its four
+  old rungs first; `@CH` (`channel`, "Track 1 MIDI channel") all sixteen in order - so the drum channel 9 (10 as the
+  rows read it) moved from index 2 of the four to index 9 of the sixteen, and the default moved with it. Appended track
+  by track: `type1 receive1`, then `typeD channelD noteD receiveD` for tracks 2..8 (channels 9, notes 37..43 by default:
+  the old `@NOTE+r`). Forty knobs, eight outside the outputs. The stamp: STEPS's captured wild stamp stays
+  `unreadable` (change 12 already); its captured DEFAULT vector names `channel: 2`, which is channel 2 now, so it is no
+  longer the defaults and encodes to a stamp - `stamp.spec.ts` names it beside CHORUS's (change 7), and the entry's own
+  defaults still carry none.
+- **The send.** Three tables of eight in the Timer (types, channels, numbers); a column's armed rows send
+  `s:gms(h[d],T[d],N[d],100)` and the previous column's `s:gms(h[d],T[d]*3//2-88,N[d],0)`. At the defaults the wire is
+  STEPS's before the change, message for message (36..43 on wire channel 9).
+- **The receive.** A host note-on (a controller above 0 under CC) on a track's type, channel and number ARMS the
+  track's step at the playhead - the column last played, `(s.k-1)%8` - and lights it: ORBIT's rule. Never a clear, so an
+  echo of STEPS's own notes changes nothing; a note-off, velocity 0, another channel or note do nothing; nothing is
+  sent. The Timer makes the callback once per install (`s.j`); the Setup assigns `self.midirx_cb=nil`. Audition row 43.
+- **Latch: swipe by design** - a finger swiped across the grid toggles one step per cell it crosses (`Q`'s change
+  signal), the gesture the card was built around.
+- **Cost:** Setup 720 / 727 -> 739 / 746 (defaults / corner), Timer 359 / 361 -> 810 / 826 (82 free). frames.json and
+  the OG image unmoved. `brightness.spec.ts` test 3 walks every single-knob position of every card, eight more 0..127
+  knobs among them; it took 2.2 s alone and past its 5 s default under a loaded run, so it carries 60 s.
+- **Proved.** `lua-smoke.spec.ts` "STEPS: each track is an output ...": no callback before the Timer's first call over
+  a previous landing's; the default pattern's 43 on and off on wire channel 9 and nothing else; five mismatches arm
+  nothing; note 38 arms track 3's step at the playhead, nothing sent back, the echo changes nothing, and a pass later
+  38 plays; track 8 as a controller gate on 50, wire channel 4; track 3's Receive Off arms nothing.

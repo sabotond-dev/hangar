@@ -128,8 +128,11 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 41 -> 42 the same day (change 17B): ORBIT's receive - a received note arms its
  * ring's step at the playhead - four clauses (a)-(d) and a dated paragraph.
+ *
+ * 42 -> 43 the same day (change 17B): the grid sequencers' receive - STEPS's tracks
+ * and SONAR's line - four clauses (a)-(d) and a dated paragraph.
  */
-const ROW_COUNT = 42;
+const ROW_COUNT = 43;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

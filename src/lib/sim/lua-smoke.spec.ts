@@ -13771,4 +13771,73 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       host.close();
     }
   }, 60000);
+
+  it("STEPS: each track is an output on its own Type (Note or CC), Channel and Number - at the defaults the bottom row's 43 on channel 10 (wire 9) as before - and each receives: a note-on arms the track's step at the playhead and lights it, never clears one, so its own notes echoed back change nothing; a swipe arming every cell it crosses is by design", async () => {
+    /** Row r's step c: its pad cell's layer-2 phase (255 armed). */
+    const step = (sim: PadSim, r: number, c: number): number =>
+      sim.layer(hwOfCell(c + r * 9), 2).pha;
+    {
+      const { host, sim } = await openCard("steps", {}, true);
+      try {
+        expect(
+          host.midiIn(REPORT, 9, 144, 38, 100),
+          "nil until the Timer",
+        ).toBe(false);
+        host.run(60);
+        const played = wire(host.midi);
+        expect(played).toContain("9:144:43:100");
+        expect(played).toContain("9:128:43:0");
+        expect(
+          played.every(
+            (m) => m.startsWith("9:144:43:") || m.startsWith("9:128:43:"),
+          ),
+        ).toBe(true);
+        // Track 3 (row 2, note 38): nothing armed there by default. Arm it at the playhead.
+        const k = host.selfNumber("k") ?? 0;
+        const c = (((k - 1) % 8) + 8) % 8;
+        expect(step(sim, 2, c)).toBe(0);
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 9, 128, 38, 64],
+          [REPORT, 9, 144, 38, 0],
+          [REPORT, 8, 144, 38, 100],
+          [14, 9, 144, 38, 100],
+          [REPORT, 9, 144, 39, 100],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(step(sim, 2, c), "five mismatches arm nothing").toBe(0);
+        const quiet = host.midi.length;
+        expect(host.midiIn(REPORT, 9, 144, 38, 100)).toBe(true);
+        expect(step(sim, 2, c), "armed at the playhead").toBe(255);
+        expect(host.midi.length, "nothing sent back").toBe(quiet);
+        host.midiIn(REPORT, 9, 144, 38, 100);
+        expect(step(sim, 2, c), "the echo changes nothing").toBe(255);
+        host.run(8 * 12 + 10);
+        expect(wire(host.midi, quiet)).toContain("9:144:38:100");
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Track 8 (the default pattern's row) as controller 50 on wire channel 4; track 3 Receive Off.
+    {
+      const { host, sim } = await openCard("steps", {
+        type8: "176",
+        channel8: "4",
+        note8: "50",
+        receive3: "0",
+      });
+      try {
+        host.run(60);
+        const played = wire(host.midi);
+        expect(played).toContain("4:176:50:100");
+        expect(played).toContain("4:176:50:0");
+        const k = host.selfNumber("k") ?? 0;
+        const c = (((k - 1) % 8) + 8) % 8;
+        host.midiIn(REPORT, 9, 144, 38, 100);
+        expect(step(sim, 2, c), "Receive Off").toBe(0);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });

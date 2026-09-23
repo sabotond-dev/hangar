@@ -5,10 +5,13 @@
 // past. Eight tracks, eight steps; the ninth column and the bottom row are dark by design (a step
 // is a 16th at the BPM knob, so the eight columns are two beats; eight tracks is a drum kit). The
 // plain rectangular grid ORBIT and SONAR deliberately are not. Setup arms a default pattern - the
-// bottom row on every second step - so the card plays before anyone touches it. Eight knobs: @BPM
-// (both events), @ARMC, @SWEEPC, @TRAIL (a divisor of 252), @SYNC (both events), @DIV, @NOTE, @CH.
-// Setup 727 of 908 at the picker corner (720 at the defaults), Timer 361 (359); restsBlack false.
-// History: docs/entries/steps.md (11-07, 11-08, 12-08, 12.1-03 measurements; change 12's sync).
+// bottom row on every second step - so the card plays before anyone touches it. Knobs: @BPM (both
+// events), @ARMC, @SWEEPC, @TRAIL (a divisor of 252), @SYNC (both events), @DIV, and since change
+// 17B eight MIDI outputs, Track 1..8 (row 0..7), each @Td, a channel (@CH for track 1, @C2..@C8), a
+// note (@NOTE for track 1, @N2..@N8) and @Rd - forty knobs. Setup 746 of 908 at the picker corner
+// (739 at the defaults), Timer 826 (810); restsBlack false.
+// History: docs/entries/steps.md (11-07, 11-08, 12-08, 12.1-03 measurements; change 12's sync;
+// change 17B's tracks).
 //
 // MECHANISM
 //   - self.p is a flat table indexed 0..63, one boolean per cell, the column in the low three
@@ -29,7 +32,7 @@
 //   - The Timer, `gtt(0,15000//@BPM)` first (the handler runs inside a pcall; a re-arm at the end
 //     dies permanently on the first raise): `X(s,20)` sweeps contacts quiet for twenty calls
 //     (2.4 s at the default; a lost lift is reached by `X`, never by `Q`). Then two locals: the
-//     release `u(s)` - note-off for the SOUNDING column's armed rows, (s.k+7)%8 - and the step
+//     release `u(s)` - the off for the SOUNDING column's armed rows, (s.k+7)%8 - and the step
 //     `f(s)`: `u(s)`, k = s.k%8, advance, then for each row paint column k's decay pair
 //     glpfs(a,1,252,256-252//@TRAIL,0) glt(a,1,@TRAIL) and play the armed rows. Both are
 //     published on every call (`s.f=f s.u=u`), then `if @SYNC then return end f(s)`: Internal
@@ -45,10 +48,21 @@
 //   - A swipe that crosses a cell twice toggles it twice - correct for a toggle (orbit.md names
 //     the set-rather-than-toggle alternative as an open bench question).
 //
-// WHAT IT SENDS
-//   note-on   s:gms(@CH,144,@NOTE+r,100,0) for every armed row of the new column
-//   note-off  s:gms(@CH,128,@NOTE+r,0,0) for every armed row of the previous column, first;
-//             the same note-offs on the DAW's Start and Stop, so nothing hangs across a transport
+// WHAT IT SENDS (each track its own output since change 17B; T, h, N the Timer's tables of the
+// eight tracks' types, channels and numbers, d = r+1)
+//   on    s:gms(h[d],T[d],N[d],100) for every armed row of the new column - a note, or a controller
+//   off   s:gms(h[d],T[d]*3//2-88,N[d],0) (128, or the controller at 0) for every armed row of the
+//         previous column, first; the same offs on the DAW's Start and Stop, so nothing hangs
+//         across a transport. At the defaults the tracks are 36..43 on channel 10 (wire 9): the
+//         wire STEPS sent, message for message.
+// WHAT IT RECEIVES (change 17B; @Rd the header INSTR per track, 13 On, 0 Off)
+//   A host note-on (a controller above 0 under CC) on a track's type, channel and number ARMS the
+//   track's step at the playhead - the column last played, (s.k-1)%8 - and lights it: live step
+//   recording, ORBIT's rule. A note-off, a zero, another channel or number do nothing; RX NEVER
+//   CLEARS a step, so STEPS's own notes echoed back by a DAW's MIDI thru change nothing. Nothing is
+//   sent. The callback is made by the TIMER once per install (`s.j`); the Setup assigns
+//   `self.midirx_cb=nil`. The latch: a swipe toggling every cell it crosses is the gesture - swipe
+//   by design.
 //
 // TRAPS
 //   - THE DECAY RATE IS DERIVED FROM THE TRAIL LENGTH: rate 256 - 252//@TRAIL from phase 252
@@ -59,7 +73,7 @@
 //   - NO KEEPER IS WRITTEN ON LAYER 1 AT ALL: the column is a decay, and glt(a,1,65535) on a
 //     decaying layer is pitfall 1 exactly - the countdown is replaced, the rate wraps, every
 //     swept cell strobes forever.
-//   - THE NOTE RANGE IS EIGHT WIDE: @NOTE + 7 < 128 for every value (the largest is 60).
+//   - EACH TRACK'S NUMBER IS ITS OWN (0..127) since change 17B; no arithmetic joins the rows.
 //   - @BPM AND @SYNC APPEAR IN BOTH EVENTS and both must move together. The step is a 16th,
 //     `15000//@BPM` ms: 200 150 120 90 60 at 75 100 125 166 250 - today's five periods exactly,
 //     125 the default (the 120 ms column the card always had, so the rest frame did not move).
@@ -83,13 +97,86 @@
 //   - THE LUA CARRIES NO COMMENTS beyond the nine-character marker: compressScript keeps them.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import {
+  previewFor,
+  type CatalogEntry,
+  type CatalogSource,
+  type LuaKnob,
+  type MidiOutput,
+} from "../types";
+import {
+  CHANNEL_VALUES,
+  RECEIVE_ON_INDEX,
+  RECEIVE_VALUES,
+  TRIGGER_STATUSES,
+  numberValues,
+} from "../../tune/midi";
+
+/**
+ * Track d's knobs past the eight the card had (change 17B): its Type, Channel (track 1's is the
+ * old `channel`), Number (track 1's is the old `note`) and Receive, appended track by track.
+ * Track d is row d-1, top to bottom.
+ */
+function trackKnobs(d: number): LuaKnob[] {
+  const type: LuaKnob = {
+    id: `type${d}`,
+    label: `Track ${d} MIDI type`,
+    kind: "mode",
+    token: `@T${d}`,
+    values: TRIGGER_STATUSES,
+    default: 0,
+  };
+  const receive: LuaKnob = {
+    id: `receive${d}`,
+    label: `Track ${d} MIDI receive`,
+    kind: "mode",
+    token: `@R${d}`,
+    values: RECEIVE_VALUES,
+    default: RECEIVE_ON_INDEX,
+  };
+  if (d === 1) return [type, receive];
+  return [
+    type,
+    {
+      id: `channel${d}`,
+      label: `Track ${d} MIDI channel`,
+      kind: "amount",
+      token: `@C${d}`,
+      // 9 by default (the drum channel, 10 as the rows read it), as every track sent before.
+      values: CHANNEL_VALUES,
+      default: 9,
+    },
+    {
+      id: `note${d}`,
+      label: `Track ${d} MIDI note`,
+      kind: "note",
+      token: `@N${d}`,
+      // 36 + d - 1 by default: the old @NOTE+r at the default lowest note.
+      values: numberValues(),
+      default: 35 + d,
+    },
+    receive,
+  ];
+}
+
+/** Track d's output: a trigger - a set step's note-on, the next column's note-off. */
+const trackOutput = (d: number): MidiOutput => ({
+  id: `track${d}`,
+  name: `Track ${d}`,
+  kind: "trigger",
+  tokens: {
+    type: `@T${d}`,
+    channel: d === 1 ? "@CH" : `@C${d}`,
+    number: d === 1 ? "@NOTE" : `@N${d}`,
+    receive: `@R${d}`,
+  },
+});
 
 const SETUP =
-  "--[[@cb]]self.p={}self.k=0 self.q=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end self.rtmrx_cb=function(s,h,b)if b==250 then local u=s.u if u then u(s)end s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil local u=s.u if u then u(s)end elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)";
+  "--[[@cb]]self.p={}self.k=0 self.q=0 for n=0,63 do self.p[n]=n>55 and n%2==0 local a=glag(0,n%8+n//8*9)glc(a,1,@SWEEPC,1)glp(a,1,0)glc(a,2,@ARMC,1)glp(a,2,self.p[n]and 255 or 0)end self.touch_cb=function(s,i,e,x,y)local a=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not a then return end local c=a%9 local r=a//9 if c>7 or r>7 then return end local n=c+r*8 s.p[n]=not s.p[n]glp(glag(0,a),2,s.p[n]and 255 or 0)end self.rtmrx_cb=function(s,h,b)if b==250 then local u=s.u if u then u(s)end s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil local u=s.u if u then u(s)end elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end self.midirx_cb=nil grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local function u(s)local q=(s.k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(@CH,128,@NOTE+r,0,0)end end end local function f(s)u(s)local k=s.k%8 s.k=k+1 for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(@CH,144,@NOTE+r,100,0)end end end s.f=f s.u=u if @SYNC then return end f(s)";
+  "--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local T,h,N={@T1,@T2,@T3,@T4,@T5,@T6,@T7,@T8},{@CH,@C2,@C3,@C4,@C5,@C6,@C7,@C8},{@NOTE,@N2,@N3,@N4,@N5,@N6,@N7,@N8}local function u(s)local q=(s.k+7)%8 for r=0,7 do if s.p[q+r*8]then s:gms(h[r+1],T[r+1]*3//2-88,N[r+1],0)end end end local function f(s)u(s)local k=s.k%8 s.k=k+1 for r=0,7 do local a=glag(0,k+r*9)glpfs(a,1,252,256-252//@TRAIL,0)glt(a,1,@TRAIL)if s.p[k+r*8]then s:gms(h[r+1],T[r+1],N[r+1],100)end end end s.f=f s.u=u if s.j~=s.touch_cb then s.j=s.touch_cb local R,j={@R1,@R2,@R3,@R4,@R5,@R6,@R7,@R8},s.j s.midirx_cb=function(s,e,v)local q,w=v[2],v[4]if q==128 then w=0 end if s.touch_cb==j and w>0 then local c=(s.k-1)%8 for r=0,7 do local d=r+1 if e[1]==R[d]and q==T[d]and v[1]==h[d]and v[3]==N[d]then s.p[c+r*8]=true glp(glag(0,c+r*9),2,255)end end end end end if @SYNC then return end f(s)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -176,25 +263,32 @@ export const STEPS: CatalogEntry = {
     },
     {
       id: "note",
-      label: "Lowest note",
+      label: "Track 1 MIDI note",
       kind: "note",
       token: "@NOTE",
-      // Row 0 plays this and row 7 this plus seven. 36 is the General MIDI kick; the largest
-      // value is 60, and 60 + 7 = 67.
-      values: ["36", "48", "60", "24"],
+      // Track 1's Number (change 17B; "Lowest note" before it, row r playing it plus r): all of
+      // 0..127, its four old rungs first so a saved copy keeps its note. 36 is the GM kick.
+      values: numberValues(["36", "48", "60", "24"]),
       default: 0,
     },
     {
       id: "channel",
-      label: "Channel",
-      kind: "mode",
+      label: "Track 1 MIDI channel",
+      kind: "amount",
       token: "@CH",
-      // ZERO-BASED, the first argument of gms. The default is 9 (channel 10, where a drum
-      // machine listens). TWICE in the Timer - the release and the note-on.
-      values: ["0", "1", "9", "15"],
-      default: 2,
+      // Track 1's Channel (change 17B; every track's before it). ZERO-BASED on the wire, the rows
+      // read 1..16. The default is 9 (channel 10, where a drum machine listens) - index 9 of the
+      // sixteen since 17B, index 2 of the four (0, 1, 9, 15) before it.
+      values: CHANNEL_VALUES,
+      default: 9,
     },
+    ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap(trackKnobs),
   ],
+
+  // Eight outputs (change 17B), one per track - eight tracks is a drum kit, and a kit's notes are
+  // seldom neighbours - each a trigger with Type, Channel, Number and Receive (a received note arms
+  // the track's step at the playhead).
+  outputs: [1, 2, 3, 4, 5, 6, 7, 8].map(trackOutput),
 
   // The same eight indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
@@ -206,7 +300,13 @@ export const STEPS: CatalogEntry = {
     sync: 0,
     division: 1,
     note: 0,
-    channel: 2,
+    channel: 9,
+    // The tracks' knobs past the eight (change 17B), at their own defaults.
+    ...Object.fromEntries(
+      [1, 2, 3, 4, 5, 6, 7, 8]
+        .flatMap(trackKnobs)
+        .map((knob) => [knob.id, knob.default]),
+    ),
   },
 
   // FALSE: Setup arms four cells of the bottom row at phase 255. frames.spec.ts test 5.

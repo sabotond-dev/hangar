@@ -528,6 +528,23 @@ describe("the stamp: the envelope", () => {
           nulls += 1;
           continue;
         }
+        // STEPS, at change 17B (2026-09-23, BENCH-2026-09-16.txt section 17): its channel grew
+        // from four rungs (0, 1, 9, 15) to the sixteen in order, so the default channel 9 moved
+        // from index 2 to index 9. The captured default vector names `channel: 2`, which is
+        // channel 2 now - no longer the defaults, so it encodes to a stamp. The entry's OWN
+        // defaults still carry none; the fixture is not regenerated.
+        if (record.entry === "steps") {
+          expect(
+            encodeFor(each, indices),
+            "steps: the captured vector is no longer the defaults (change 17B)",
+          ).toBeDefined();
+          expect(
+            encodeFor(each, each.defaults),
+            "steps: its own defaults must still carry no stamp",
+          ).toBeUndefined();
+          nulls += 1;
+          continue;
+        }
         expect(
           encodeFor(each, indices),
           `${record.entry}: the defaults must still carry no stamp`,
