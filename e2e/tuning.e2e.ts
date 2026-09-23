@@ -836,11 +836,12 @@ test.describe("turning a knob", () => {
     expect(speed!.default).toBe(1);
     await openPanel(page, `/playground/${SNAKE.id}/`, SNAKE.id);
 
-    // THE SECTIONS, in the fixed order, only the ones SNAKE fills.
+    // THE SECTIONS, in the fixed order, only the ones SNAKE fills - no Sound since change 17B:
+    // the lowest note is the Bite output's Number, on the wire.
     await expect(
       page.locator("[data-testid='shell-inspector'] h3"),
-      "the sections are Look, Feel, Sound and MIDI, in that order (no Sync on SNAKE)",
-    ).toHaveText(["Look", "Feel", "Sound", "MIDI"]);
+      "the sections are Look, Feel and MIDI, in that order (no Sound or Sync on SNAKE)",
+    ).toHaveText(["Look", "Feel", "MIDI"]);
 
     // THE STEPPER. The row arrives at 220 ms with its unit beside the value.
     const row = page.getByTestId("knob-speed");
@@ -924,11 +925,12 @@ test.describe("turning a knob", () => {
     await lock.click();
     await expect(lock).toHaveAttribute("aria-pressed", "false");
 
-    // THE SEGMENTED ROW: SNAKE's lowest note, four radios; the second is one click.
-    const note = page.getByTestId("knob-note");
+    // THE SEGMENTED ROW: SNAKE's Bite type, Note / CC (change 17B; the lowest note was the
+    // witness until it became the Bite output's Number); the second is one click.
+    const note = page.getByTestId("knob-midiType");
     await expect(note).toHaveAttribute("data-widget", "words");
     const radios = note.locator("input[type='radio']");
-    expect(await radios.count()).toBe(4);
+    expect(await radios.count()).toBe(2);
     // The radio is visually hidden inside its label; the label is the click.
     await note.locator("label").nth(1).click();
     await expect(radios.nth(1)).toBeChecked();
