@@ -1301,7 +1301,8 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     );
     const utility = zona.state.system?.[EVENT_UTILITY] ?? "";
     expect(utility.startsWith("--[[@cb]]"), "255/4 holds a body").toBe(true);
-    expect(utility, "the runtime's head").toContain("S=S or{}");
+    // The runtime's head is the branch table since change 17 (the contact tables are the trimmed 255/0's).
+    expect(utility, "the runtime's head").toContain("I=I or{}");
     expect(
       systemTimer + system + utility,
       "the release and the entry landed somewhere",
@@ -1505,6 +1506,95 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("field-cc")).toHaveValue("120");
 
     expect(consoleErrors, "no console error on the Touches walk").toEqual([]);
+  });
+
+  test("the MIDI walk (change 17): a fader set to Pitch bend on channel 5 loses its number field and keeps Receive On, an XY pad's Y axis set to Channel pressure on channel 9 under its own sub-head, the Color input switched on with nothing selected - every field one Undo - and the draft recovered on a reload", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+
+    // THE FADER: Type a select over three words; Pitch bend takes the number row away.
+    await plate.focus();
+    await page.keyboard.press("f");
+    await clickCell(plate, 0, 0);
+    await page.keyboard.press("v");
+    await expect(sandbox).toHaveAttribute("data-depth", "1");
+    await expect(page.getByTestId("field-cc")).toBeVisible();
+    await expect(page.getByTestId("field-receive")).toHaveAttribute(
+      "data-value",
+      "true",
+    );
+    await page.getByTestId("field-output").selectOption("pitchbend");
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    expect(await page.getByTestId("field-cc").count()).toBe(0);
+    await page.getByTestId("field-channel").fill("5");
+    await page.getByTestId("field-channel").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    // Receive Off then On again: two entries, the value On.
+    await page.getByTestId("field-receive").getByText("Off").click();
+    await expect(page.getByTestId("field-receive")).toHaveAttribute(
+      "data-value",
+      "false",
+    );
+    await page.getByTestId("field-receive").getByText("On").click();
+    await expect(sandbox).toHaveAttribute("data-depth", "5");
+    await expect(page.getByTestId("field-receive")).toHaveAttribute(
+      "data-value",
+      "true",
+    );
+
+    // THE XY PAD: the two axis blocks, the Y axis's type and channel its own.
+    await plate.focus();
+    await page.keyboard.press("x");
+    await clickCell(plate, 4, 0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("inspector-name")).toHaveText("XY pad 1");
+    await expect(page.getByTestId("axis-x")).toBeVisible();
+    await expect(page.getByTestId("axis-y")).toBeVisible();
+    await page.getByTestId("field-output-y").selectOption("pressure");
+    expect(await page.getByTestId("field-cc2").count()).toBe(0);
+    await page.getByTestId("field-channel-y").fill("9");
+    await page.getByTestId("field-channel-y").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "8");
+    await expect(page.getByTestId("field-channel")).toHaveValue("1");
+
+    // THE COLOR INPUT, with nothing selected: On shows its channel and first CC.
+    await plate.focus();
+    await page.keyboard.press("Escape");
+    expect(await page.getByTestId("colour-input-channel").count()).toBe(0);
+    await page.getByTestId("colour-input").getByText("On").click();
+    await expect(page.getByTestId("colour-input-channel")).toHaveValue("16");
+    await expect(page.getByTestId("colour-input-cc")).toHaveValue("0");
+    await expect(sandbox).toHaveAttribute("data-depth", "9");
+    await page.getByTestId("colour-input-cc").fill("200");
+    await expect(page.getByTestId("colour-input-cc-message")).toContainText(
+      "A controller number is 0 to 127.",
+    );
+    await page.getByTestId("colour-input-cc").fill("100");
+    await page.getByTestId("colour-input-cc").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "10");
+    // One Undo takes the first CC back.
+    await page.getByTestId("undo").click();
+    await expect(page.getByTestId("colour-input-cc")).toHaveValue("0");
+    await page.getByTestId("redo").click();
+    await expect(page.getByTestId("colour-input-cc")).toHaveValue("100");
+
+    // THE DRAFT: reloaded, every field is what was set.
+    await page.waitForTimeout(400);
+    await page.reload();
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    const again = page.getByTestId("surface-plate");
+    await expect(page.getByTestId("colour-input-cc")).toHaveValue("100");
+    await clickCell(again, 0, 0);
+    await expect(page.getByTestId("field-output")).toHaveValue("pitchbend");
+    await expect(page.getByTestId("field-channel")).toHaveValue("5");
+    await clickCell(again, 4, 0);
+    await expect(page.getByTestId("field-output-y")).toHaveValue("pressure");
+    await expect(page.getByTestId("field-channel-y")).toHaveValue("9");
+
+    expect(consoleErrors, "no console error on the MIDI walk").toEqual([]);
   });
 
   test("the selection walk (change 13A): Shift+click selects two under one group outline, a marquee selects the three it touches, Ctrl+C then Ctrl+V pastes them by the placement rule with auto-numbered names, Ctrl+X cuts them as one Undo, a channel typed over two writes both and reads Mixed when they differ, and a locked element refuses a drag and a delete with its line", async ({

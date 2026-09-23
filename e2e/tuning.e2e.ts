@@ -439,10 +439,11 @@ test.describe("turning a knob", () => {
     page,
   }) => {
     // 13.1-07, 13.1-CONTEXT D-09 (bench line 7, screenshot 2), in a browser:
-    // the field is a text input OVER Arc's closed cc list - 1, 16, 20, 74,
-    // 102 - so a typed 20 is the knob at index 2, a typed 99 is refused
-    // with aria-invalid and the offered line under it while the knob stays
-    // where it was, blur keeps the refused text, and a typed 102 lands. The
+    // the field is a text input OVER Arc's closed cc list - 0..127 since
+    // change 17, its five old rungs 1, 16, 20, 74, 102 first - so a typed 20
+    // is the knob at index 2, a typed 200 is refused with aria-invalid and
+    // the offered line under it while the knob stays where it was, blur keeps
+    // the refused text, and a typed 102 lands. The
     // knob index is read off the field's own data-index, and the measurement
     // is proved to have run by the busy transition and - on the 3-character
     // literal - by the number moving. A CC number paints nothing, so the
@@ -454,7 +455,8 @@ test.describe("turning a knob", () => {
     const channel = ARC.knobs.find((knob) => knob.id === "channel");
     expect(cc && channel, "Arc carries a cc and a channel knob").toBeTruthy();
     const values = cc!.values;
-    expect(values).toEqual(["1", "16", "20", "74", "102"]);
+    expect(values.slice(0, 5)).toEqual(["1", "16", "20", "74", "102"]);
+    expect(values).toHaveLength(128);
     const arrival = values[cc!.default];
 
     await openPanel(page, `/playground/${ARC.id}/`, ARC.id);
@@ -462,13 +464,16 @@ test.describe("turning a knob", () => {
     const input = page.getByTestId("midi-field-cc-input");
     const message = page.getByTestId("midi-field-cc-message");
     const reset = page.getByTestId("midi-field-cc-reset");
-    // The section: two rows under the PDF's labels, each a stepper field
-    // (change 16), the helper read by a screen reader; no rack in the MIDI
-    // section.
+    // The section: the LFO output's block (change 17) - its Channel and
+    // Number stepper fields (change 16), the helper read by a screen reader;
+    // no rack in the MIDI section.
     const grid = page.getByTestId("midi-grid");
     await expect(grid).toBeVisible();
     expect(await grid.locator("[data-testid='knob-rack']").count()).toBe(0);
-    await expect(grid.locator("label")).toHaveText(["CC number", "Channel"]);
+    await expect(field.locator("label")).toHaveText("Number");
+    await expect(
+      page.getByTestId("midi-field-channel").locator("label"),
+    ).toHaveText("Channel");
     await expect(input).toHaveAttribute("type", "text");
     await expect(input).toHaveAttribute("role", "spinbutton");
     await expect(input).toHaveAttribute("inputmode", "numeric");
@@ -499,11 +504,11 @@ test.describe("turning a knob", () => {
     // values named, the knob unmoved and the numbers unmoved - no compile
     // ran, so the region never went busy.
     const setupAt20 = await measured(page, "setup");
-    await input.fill("99");
+    await input.fill("200");
     await expect(input).toHaveAttribute("aria-invalid", "true");
     await expect(message).toHaveText(offeredLine("cc", values));
     expect(offeredLine("cc", values)).toBe(
-      "A controller number here is one of 1, 16, 20, 74 or 102.",
+      "A controller number here is 0 to 127.",
     );
     await expect(input).toHaveAttribute(
       "aria-describedby",
@@ -514,7 +519,7 @@ test.describe("turning a knob", () => {
     expect(await measured(page, "setup")).toBe(setupAt20);
     // Blur keeps the refused text and its message (13-16's rule).
     await input.blur();
-    await expect(input).toHaveValue("99");
+    await expect(input).toHaveValue("200");
     await expect(input).toHaveAttribute("aria-invalid", "true");
     await expect(message).toHaveText(offeredLine("cc", values));
     await expect(field).toHaveAttribute("data-index", "2");
@@ -536,20 +541,27 @@ test.describe("turning a knob", () => {
     ).toBe(true);
 
     // THE STEP BOXES AND THE ARROWS (change 16) walk the closed list in
-    // value order: up from 102 is nothing (the top box is disabled), down is
-    // 74, an arrow down again is 20, and the field validates each landing.
+    // value order whatever the declared order: down from 102 is 101, an arrow
+    // down again is 100, and at 127 the up box has nowhere to go.
     const up = page.getByTestId("midi-field-cc-up");
     const down = page.getByTestId("midi-field-cc-down");
-    await expect(up, "at the top the up box has nowhere to go").toBeDisabled();
     await down.click();
     await recomputed(page);
-    await expect(field).toHaveAttribute("data-index", "3");
-    await expect(input).toHaveValue("74");
+    await expect(field).toHaveAttribute(
+      "data-index",
+      String(values.indexOf("101")),
+    );
+    await expect(input).toHaveValue("101");
     await input.focus();
     await page.keyboard.press("ArrowDown");
     await recomputed(page);
-    await expect(field).toHaveAttribute("data-index", "2");
-    await expect(input).toHaveValue("20");
+    await expect(input).toHaveValue("100");
+    await input.fill("127");
+    await recomputed(page);
+    await expect(up, "at the top the up box has nowhere to go").toBeDisabled();
+    await down.click();
+    await recomputed(page);
+    await expect(input).toHaveValue("126");
     await expect(up).toBeEnabled();
 
     // THE PER-FIELD RESET: back to the default, the marker off.
@@ -585,6 +597,64 @@ test.describe("turning a knob", () => {
       "the cue is the channel's alone",
     ).toHaveCount(0);
 
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("ARC's MIDI output (change 17): the LFO's block under its name, Type a select that takes the Number row away on Pitch bend, a typed Channel, Same channel for all showing the shared channel and setting it, Receive a segmented Off / On - every move recompiled", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, `/playground/${ARC.id}/`, ARC.id);
+    const grid = page.getByTestId("midi-grid");
+    await expect(grid.getByTestId("midi-output")).toHaveText("LFO");
+    await expect(grid.getByTestId("midi-output")).toHaveAttribute(
+      "data-output",
+      "lfo",
+    );
+    const type = page.getByTestId("knob-midiType");
+    const typeSelect = type.locator("select");
+    await expect(typeSelect).toHaveValue("0");
+    await expect(type.locator("option")).toHaveText([
+      "CC",
+      "Pitch bend",
+      "Channel pressure",
+    ]);
+    await expect(page.getByTestId("midi-field-cc")).toBeVisible();
+    // TYPE: Pitch bend takes the Number away and recompiles; CC brings it back.
+    await typeSelect.selectOption({ label: "Pitch bend" });
+    await recomputed(page);
+    await expect(type).toHaveAttribute("data-index", "1");
+    await expect(page.getByTestId("midi-field-cc")).toHaveCount(0);
+    await typeSelect.selectOption({ label: "CC" });
+    await recomputed(page);
+    await expect(page.getByTestId("midi-field-cc")).toBeVisible();
+    // CHANNEL: typed 4; Same channel for all shows it (the one output shares it).
+    const channel = page.getByTestId("midi-field-channel-input");
+    const same = page.getByTestId("knob-midiSameChannel").locator("select");
+    await expect(same).toHaveValue("1");
+    await channel.fill("4");
+    await channel.press("Enter");
+    await channel.blur();
+    await recomputed(page);
+    await expect(page.getByTestId("midi-field-channel")).toHaveAttribute(
+      "data-index",
+      "4",
+    );
+    await expect(same).toHaveValue("5");
+    // SAME CHANNEL FOR ALL: 9 writes every output's channel.
+    await expect(
+      page.getByTestId("knob-midiSameChannel").locator("option"),
+    ).toHaveCount(17);
+    await same.selectOption({ label: "9" });
+    await recomputed(page);
+    await expect(channel).toHaveValue("9");
+    await expect(same).toHaveValue("10");
+    // RECEIVE: On by default, Off one click.
+    const receive = page.getByTestId("knob-midiReceive");
+    await expect(receive).toHaveAttribute("data-index", "1");
+    await receive.getByText("Off").click();
+    await recomputed(page);
+    await expect(receive).toHaveAttribute("data-index", "0");
     expect(consoleErrors).toEqual([]);
   });
 

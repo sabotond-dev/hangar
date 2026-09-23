@@ -71,23 +71,35 @@ function overflowOf(page: Page, testId: string) {
   }, testId);
 }
 
-/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only; by test id, or by label. */
+/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only - a MIDI output's sub-head (change 17) starts a group of its own; by test id, or by label. */
 function sectionsOf(page: Page, byLabel = false): Promise<string[][]> {
-  return page.evaluate(
-    (labels) =>
-      Array.from(
-        document.querySelectorAll("[data-testid='shell-inspector-body'] .rows"),
-      ).map((rows) =>
-        Array.from(rows.querySelectorAll(".row")).map((row) =>
-          labels
-            ? (row.querySelector(".label")?.textContent ?? "").trim()
-            : (row.getAttribute("data-testid") ??
-              row.parentElement?.getAttribute("data-testid") ??
-              ""),
-        ),
-      ),
-    byLabel,
-  );
+  return page.evaluate((labels) => {
+    const name = (row: Element) =>
+      labels
+        ? (row.querySelector(".label")?.textContent ?? "").trim()
+        : (row.getAttribute("data-testid") ??
+          row.parentElement?.getAttribute("data-testid") ??
+          "");
+    const groups: string[][] = [];
+    for (const rows of Array.from(
+      document.querySelectorAll("[data-testid='shell-inspector-body'] .rows"),
+    )) {
+      let group: string[] = [];
+      for (const child of Array.from(rows.children)) {
+        if (child.classList.contains("subhead")) {
+          groups.push(group);
+          group = [];
+          continue;
+        }
+        const own = child.classList.contains("row")
+          ? [child]
+          : Array.from(child.querySelectorAll(".row"));
+        group.push(...own.map(name));
+      }
+      groups.push(group);
+    }
+    return groups.filter((g) => g.length > 0);
+  }, byLabel);
 }
 
 async function openArc(page: Page): Promise<void> {
@@ -114,15 +126,19 @@ test.describe("the rack's grid", () => {
       await page.setViewportSize({ width, height });
       await openArc(page);
       const rows = await rowsOf(page);
-      // ARC: two swatch rows, the brightness field, the arms, the wave shape, the CC number, the channel.
+      // ARC: two swatch rows, the brightness field, the arms, the wave shape; MIDI (change 17):
+      // Same channel for all, then the LFO output's Type, Channel, Number and Receive.
       expect(rows.map((row) => row.id)).toEqual([
         "swatch-swirlColour",
         "swatch-heartColour",
         "brightness-field",
         "knob-arms",
         "knob-shape",
-        "midi-field-cc",
+        "knob-midiSameChannel",
+        "knob-midiType",
         "midi-field-channel",
+        "midi-field-cc",
+        "knob-midiReceive",
       ]);
 
       // THE CONTROL COLUMN: one left edge, one right edge, 44px tall, on every row.
@@ -295,17 +311,19 @@ test.describe("the Sandbox inspector's grid", () => {
       await openFader(page);
       const rows = await rowsOf(page);
       // Identity: the name, the type, the orientation; Behavior: the mode, the spring; MIDI
-      // output: the four typed fields; Appearance: the colour, the brightness.
+      // output: the Type (change 17), the four typed fields, Receive; Appearance: the colour, the brightness.
       expect(rows.map((row) => row.label)).toEqual([
         "Element name",
         "Type",
         "Orientation",
         "Mode",
         "Spring",
+        "Type",
         "CC number",
         "Channel",
         "Min",
         "Max",
+        "Receive",
         "Color",
         "Brightness",
       ]);
@@ -337,14 +355,14 @@ test.describe("the Sandbox inspector's grid", () => {
         "the colour and brightness rows alone carry a reset box",
       ).toEqual(["Color", "Brightness"]);
       expect(
-        near((rows[9].reset as Box).x, (rows[10].reset as Box).x),
+        near((rows[11].reset as Box).x, (rows[12].reset as Box).x),
         "the two reset boxes share one x",
       ).toBe(true);
       expect(
         rows.filter((row) => row.lock).map((row) => row.label),
         "the name row alone carries the lock box",
       ).toEqual(["Element name"]);
-      const reset = rows[10].reset as Box;
+      const reset = rows[12].reset as Box;
       expect(
         near(reset.x, first.control.r + 8),
         `the reset box is at ${reset.x}`,
@@ -368,16 +386,18 @@ test.describe("the Sandbox inspector's grid", () => {
       ).toBe(true);
 
       // THE PITCH: inside a section, every neighbouring pair of controls is one distance apart.
-      const byLabel = new Map(rows.map((row) => [row.label, row]));
+      // By document order, not by label: Identity's Type and MIDI output's Type (change 17) share one.
       const pitches: number[] = [];
+      let cursor = 0;
       for (const section of await sectionsOf(page, true)) {
-        for (let at = 1; at < section.length; at++) {
-          const above = byLabel.get(section[at - 1]) as Row;
-          const below = byLabel.get(section[at]) as Row;
-          pitches.push(below.control.y - above.control.y);
+        const own = rows.slice(cursor, cursor + section.length);
+        expect(own.map((row) => row.label)).toEqual(section);
+        cursor += section.length;
+        for (let at = 1; at < own.length; at++) {
+          pitches.push(own[at].control.y - own[at - 1].control.y);
         }
       }
-      expect(pitches.length, "the sections' neighbouring pairs").toBe(7);
+      expect(pitches.length, "the sections' neighbouring pairs").toBe(9);
       for (const pitch of pitches) {
         expect(
           near(pitch, pitches[0]),
