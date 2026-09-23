@@ -421,6 +421,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       // Change 17C: a wrapped preset's outputs are token knobs on its rack.
       "aurora: xType, channel, xCc, xReceive, yType, yChannel, yCc, yReceive",
       "pinwheel: xType, channel, xCc, xReceive, yType, yChannel, yCc, yReceive",
+      "starfield: xType, channel, xCc, xReceive, yType, yChannel, yCc, yReceive",
       "joystick: send",
       "ninepads: channel",
       "faders: send, channel",
@@ -444,11 +445,11 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       // CATALOG now; the same knob, the same id, a Lua palette rack.
       "radar: send, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
     ]);
-    expect(entries, "twenty-two entries carry a MIDI destination").toBe(22);
+    expect(entries, "twenty-three entries carry a MIDI destination").toBe(23);
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(168);
+    ).toBe(176);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,

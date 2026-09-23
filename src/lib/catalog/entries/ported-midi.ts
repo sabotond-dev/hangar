@@ -249,10 +249,23 @@ const PINWHEEL: PresetMidi = {
   template: xyTemplate("pinwheel", "K(s.u,s.w,1,252,255,0,128)"),
 };
 
+/**
+ * STARFIELD (change 17C): every light breathes at its own pace, the finger's comet, the first
+ * finger's position as two outputs. The receive draws AURORA's comet at the held pair - the call the
+ * finger itself makes (`K(x,y,1,252)` in the layer-1 colour the Setup sets, 255,170,34).
+ */
+const STARFIELD: PresetMidi = {
+  knobs: axisKnobs("176", "xCc", "176"),
+  outputs: AXIS_OUTPUTS,
+  supersedes: [],
+  template: xyTemplate("starfield", "K(s.u,s.w,1,252)"),
+};
+
 /** The wrapped cards by catalog id. A card joins by one row here; ported.ts reads its knobs and outputs. */
 export const PRESET_MIDI: Readonly<Record<string, PresetMidi>> = {
   aurora: AURORA,
   pinwheel: PINWHEEL,
+  starfield: STARFIELD,
 };
 
 /** The selected literal of one output knob: the asked index when it is one, else the entry's default. */

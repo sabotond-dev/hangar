@@ -14303,4 +14303,8 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
   it("PINWHEEL: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair in the first finger's colour, nothing sent back; the first finger's claim is the latch", async () => {
     await xyCard("pinwheel", [255, 0, 128]);
   }, 60000);
+
+  it("STARFIELD: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair, nothing sent back; the first finger's claim is the latch", async () => {
+    await xyCard("starfield", [255, 170, 34]);
+  }, 60000);
 });
