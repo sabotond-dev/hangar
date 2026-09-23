@@ -409,3 +409,26 @@ seventh ring 1 - its point on the wire and all eight ring-1 cells lit on layer 2
 RADAR POINTS is not in `wild-stamps.json` (it arrived after the capture), so no captured record
 moves; a link shared before today carries five indices against seven knobs and lands
 `unreadable` by the length check, opening the card at its defaults.
+
+## Change 17B, 2026-09-23: the Points output, no receive (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+RADAR POINTS sends one stream - every armed point's note as the ring crosses it, released a step later - so it is one
+output, "Points", a trigger, with Type (Note / CC) and Channel.
+
+- **Knobs.** `@TYPE` (`midiType`) appended last; `@CH` (`channel`, already all sixteen) the output's Channel, reading
+  1..16. **No Number**: each point's pitch is its compass direction's, from `@ROOT` and the scale - a Number would
+  name nothing. Eight knobs, seven outside the output. No captured wild record for this card.
+- **The send.** Note-on `s:gms(@CH,@TYPE,m,100)`, the release `s:gms(@CH,@TYPE*3//2-88,m,0)` (128, or the controller
+  at 0). At the defaults the wire is the card's before the change, message for message; `lua-smoke.spec.ts`'s geometry
+  case reads the release as `144*3//2-88` at the default Type.
+- **No receive.** A received note names a direction, not a place: every ring past the first holds several cells of one
+  pitch, so there is no one point to arm. The Setup assigns `s.midirx_cb=nil` - and had 16 free: it now holds its
+  element as the local `s` (`local s=self`, `s.a s.o s.v s.q`, twelve characters back), which paid for the nil.
+- **Latch: swipe by design** - a finger swiped across the field arms or disarms one point per cell it crosses (`Q`'s
+  change signal), the placing gesture (lua-smoke.spec.ts "holds a boundary finger on one cell on ORBIT, STEPS, RADAR
+  POINTS and SONAR").
+- **Cost:** Setup 891 / 892 -> 896 / 897 (defaults / corner; 11 free), Timer 378 / 380 -> 382 / 384. frames.json and
+  the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "RADAR POINTS: the Points output ...": ring 1's east point armed with a tap sounds on
+  the ring's crossing and is released a step later - notes on channel 0 at the defaults, controllers on wire channel 6
+  at CC - every note-on released; no callback over a previous landing's.

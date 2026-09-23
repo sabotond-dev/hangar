@@ -6681,8 +6681,10 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       rendered.timer.includes(`:gms(${channel},144,`),
       "radar-points: the Timer sends NOTE-ON, status 144, through gms",
     ).toBe(true);
+    // Since change 17B the release is the Points output's Type's off, `@TYPE*3//2-88`: 128 at the
+    // default Type, a note (the wire below still reads 128).
     expect(
-      rendered.timer.includes(`:gms(${channel},128,`),
+      rendered.timer.includes(`:gms(${channel},144*3//2-88,`),
       "radar-points: the Timer sends NOTE-OFF, status 128, through gms",
     ).toBe(true);
 
@@ -13531,6 +13533,40 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
         expect(lit(sim, 1)).toBe(255);
         host.midiIn(REPORT, 0, 144, 51, 100);
         expect(lit(sim, 3), "Receive Off").toBe(0);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
+
+  it("RADAR POINTS: the Points output sends every armed point on its Type and Channel - at the defaults a note-on as the ring crosses and its note-off a step later on channel 0, as before - and receives nothing (the Setup assigns nil over a previous landing's); a swipe arming every cell it crosses is by design", async () => {
+    for (const [over, on, off] of [
+      [{}, "0:144:", "0:128:"],
+      [{ midiType: "176", channel: "6" }, "6:176:", "6:176:"],
+    ] as const) {
+      const { host } = await openCard("radar-points", over, true);
+      try {
+        // Arm ring 1's east cell (41) with a tap on its LED.
+        host.touchDown(0, ledCentre(5, "x"), ledCentre(4, "y"));
+        host.tick();
+        host.touchUp(0, ledCentre(5, "x"), ledCentre(4, "y"));
+        host.tick();
+        host.run(400);
+        const sent = wire(host.midi);
+        const ons = sent.filter((m) => m.startsWith(on) && !m.endsWith(":0"));
+        const offs = sent.filter((m) => m.startsWith(off) && m.endsWith(":0"));
+        expect(ons.length, JSON.stringify(over)).toBeGreaterThan(0);
+        expect(offs.length, "every note-on is released").toBe(ons.length);
+        expect(
+          sent.every((m) => m.startsWith(on) || m.startsWith(off)),
+          sent.slice(0, 4).join(" "),
+        ).toBe(true);
+        const note = Number(ons[0].split(":")[2]);
+        expect(
+          host.midiIn(REPORT, Number(on.split(":")[0]), 144, note, 100),
+          "no callback",
+        ).toBe(false);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
       } finally {
         host.close();
       }
