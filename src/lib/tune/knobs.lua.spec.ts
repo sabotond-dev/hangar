@@ -118,6 +118,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "quadrant.note4 (128)",
       "pomodoro.note (128)",
       "pomodoro.transportNote (128)",
+      "wheels.cc (128)",
+      "wheels.pitchCc (128)",
       "radar.send (128)",
       "radar.yCc (128)",
     ];

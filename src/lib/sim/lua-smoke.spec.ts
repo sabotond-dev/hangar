@@ -6062,9 +6062,16 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // THE BEND STATUS IS READ OFF THE LUA. 224 is pitch bend; gmbs is a MOUSE
     // BUTTON, and a card built on that reading would compile, fit, simulate,
     // install and silently click.
+    // Since change 17B the wheel's Type is a knob (Pitch bend by default, "224"): ONE sender,
+    // defined by the Timer and pulled in by the Setup, sends the fourteen bits under 224, and both
+    // halves - the finger in the Setup and the spring in the Timer - call it.
+    const pitchType = entry.knobs.find((knob) => knob.id === "pitchType");
     expect(
-      /:gms\([^,]+,224,/.test(source.timer) &&
-        /:gms\([^,]+,224,/.test(source.setup),
+      pitchType?.values[entry.defaults.pitchType ?? pitchType.default] ===
+        "224" &&
+        source.timer.includes("if t>223 then s:gms(@PCH,t,b%128,b//128)") &&
+        source.timer.includes("P(s.b)") &&
+        source.setup.includes("P(s.b)"),
       "wheels: BOTH halves of the pitch wheel must send PITCH BEND, status " +
         "224, through gms - the finger in the Setup and the spring in the " +
         "Timer. The channel is a knob token here, not a digit, which is why " +
@@ -14020,6 +14027,79 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       expect(host.errors, host.errors.join(" | ")).toEqual([]);
     } finally {
       host.close();
+    }
+  }, 60000);
+
+  it("WHEELS: the Pitch and Mod wheels are two outputs, each on its own Type, Channel and Number - at the defaults the fourteen-bit bend and controller 1 on channel 0 as before - and each receives: a host value moves the wheel's light and holds until the next touch (the spring does not run), nothing sent back; a contact keeps its wheel (already latched); the receive is pulled in, no Timer armed", async () => {
+    /** The pitch wheel's lit row (column 0, phase 255), and the mod bar's lit rows (column 8). */
+    const pitchRow = (sim: PadSim): number =>
+      [0, 1, 2, 3, 4, 5, 6, 7, 8].find(
+        (r) => sim.layer(hwOfCell(r * 9), 1).pha === 255,
+      ) ?? -1;
+    const modBar = (sim: PadSim): number =>
+      [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(
+        (r) => sim.layer(hwOfCell(r * 9 + 8), 1).pha === 255,
+      ).length;
+    {
+      const { host, sim } = await openCard("wheels", {}, true);
+      try {
+        expect(host.timerArmed, "the pull-in arms nothing").toBe(false);
+        expect(pitchRow(sim), "the wheel at rest").toBe(4);
+        const quiet = host.midi.length;
+        // RX: a full bend up (lsb 0, msb 127) puts the marker on the top row and it stays.
+        expect(host.midiIn(REPORT, 0, 224, 0, 127)).toBe(true);
+        expect(pitchRow(sim)).toBe(0);
+        host.run(50);
+        expect(pitchRow(sim), "no spring on a received bend").toBe(0);
+        host.midiIn(REPORT, 0, 176, 1, 127);
+        expect(modBar(sim)).toBe(9);
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 1, 176, 1, 0],
+          [14, 0, 176, 1, 0],
+          [REPORT, 0, 176, 2, 0],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(modBar(sim), "mismatches leave it").toBe(9);
+        expect(host.midi.length, "nothing sent back").toBe(quiet);
+        // The next touch takes the pitch wheel back and springs it home on the wire.
+        host.touchDown(0, 100, 500);
+        host.tick();
+        host.touchUp(0, 100, 500);
+        host.run(200);
+        expect(wire(host.midi).at(-1), "home at 8192").toBe("0:224:0:64");
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // The pitch wheel as controller 30 on wire channel 2 (the top seven bits), the mod wheel as a
+    // pressure on 5; the pitch wheel's Receive Off.
+    {
+      const { host, sim } = await openCard("wheels", {
+        pitchType: "176",
+        pitchChannel: "2",
+        pitchCc: "30",
+        modType: "208",
+        channel: "5",
+        pitchReceive: "0",
+      });
+      try {
+        host.touchDown(0, 100, 0);
+        host.tick();
+        expect(wire(host.midi)[0]).toBe("2:176:30:127");
+        host.touchDown(1, 900, 0);
+        host.tick();
+        expect(wire(host.midi).at(-1)).toBe("5:208:127:0");
+        host.touchUp(0, 100, 0);
+        host.touchUp(1, 900, 0);
+        host.run(200);
+        host.midiIn(REPORT, 2, 176, 30, 0);
+        expect(pitchRow(sim), "Receive Off").toBe(4);
+        host.midiIn(REPORT, 5, 208, 0, 0);
+        expect(modBar(sim)).toBe(0);
+      } finally {
+        host.close();
+      }
     }
   }, 60000);
 });

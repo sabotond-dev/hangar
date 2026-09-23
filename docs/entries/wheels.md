@@ -365,3 +365,37 @@ THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them. Everything worth saying is said here, in
 TypeScript, where it costs nothing.
 ```
+
+## Change 17B, 2026-09-23: the Pitch and Mod wheel outputs, each received; the pull-in (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+WHEELS sent a fourteen-bit bend and one controller on one channel. Per output (answer 3) the two wheels are two
+outputs, "Pitch wheel" and "Mod wheel", continuous, each with Type, Channel, Number and Receive.
+
+- **Knobs.** The Mod wheel keeps the old two: `@CC` (`cc`) all of 0..127 with its four old rungs first, and `@CH`
+  (`channel`, "Mod wheel MIDI channel") all sixteen in order (it was 0, 1, 9, 15 under kind `mode`). Appended: `@MT`
+  `@MR` (the Mod wheel's), `@PT` (the Pitch wheel's Type, **Pitch bend by default** - index 1), `@PCH` (0), `@PN`
+  (read only under a controller, 16 by default so a wheel switched to CC does not land on the mod wheel's 1) and `@PR`.
+  Twelve knobs, four outside the outputs. No captured wild record for this card.
+- **The send.** Two senders, defined by the Timer body: the pitch wheel's `P(b)` sends the fourteen-bit bend under a
+  pitch bend (`b%128, b//128`, the card's whole point - **a departure from `docs/MIDI.md`'s 7-bit pitch bend, kept
+  because this wheel was fourteen-bit first and the defaults must send what they sent**) and the top seven bits
+  otherwise; the mod wheel's `M(v)` sends by its type. The finger in the Setup and the spring in the Timer both call
+  `P`. At the defaults the wire is WHEELS's before the change, message for message - the spring still lands on 8192.
+- **The receive.** A host pitch bend sets the bend (`lsb + msb*128`; a controller or pressure `w*128`) and the marker
+  row follows, and it HOLDS until the next touch: nothing arms the spring, so a received bend is shown, not walked home
+  and not sent back (the brief's "take it until touched"). The mod wheel's value sets its bar. Nothing is sent back.
+- **Where it lives - the pull-in.** The Setup had 13 free; the Timer is armed only by a lift, so it cannot make the
+  callback at landing. The Setup ends `self:tim()P,M=self.q,self.w`: the Timer body runs once there - at rest its
+  spring does nothing (`d` is 0), so it only makes the two senders and the receive once per install (`s.j`) - and the
+  Setup takes the senders as its upvalues. `D` is handed over as `self.z` for the receive's repaint. WHEELS stays
+  `static`: nothing arms at landing.
+- **Latch: already latched** - `s.o[i]` fixes each contact's wheel at its onset (a finger that starts on the pitch
+  wheel and crosses the divider keeps bending), the card's rule since 11-15.
+- **Cost:** Setup 882 / 895 -> 890 / 900 (defaults / corner; 8 free), Timer 338 / 343 -> 880 / 895 (13 free) - both
+  events nearly full. frames.json and the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "WHEELS: the Pitch and Mod wheels ...": no Timer armed; a received full bend puts the
+  marker on the top row and it stays through fifty ticks (no spring); the mod wheel at 127 fills its bar; three
+  mismatches ignored; nothing sent back; the next touch and lift spring the wheel home to 8192 on the wire; the pitch
+  wheel as controller 30 on wire channel 2 (127 at the top) and the mod wheel as a pressure on 5; the pitch wheel's
+  Receive Off. The two older WHEELS cases (the spring home to exactly 8192, the mod wheel held across a lift) unmoved
+  but for the source check, which now reads the one sender both halves call.
