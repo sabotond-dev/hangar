@@ -7,8 +7,9 @@
   is refused with the offered values named, anything else with TYPE_A_NUMBER; a note field (ORBIT's
   ring notes) reads names and numbers through noteNumber. The last good value survives a refusal
   (13-16's shape): the refused text stays with aria-invalid until a keystroke validates or the knob
-  moves from outside. X-08 kept: a Lua channel shows the firmware's 0-based literal, LUA_CHANNEL_CUE
-  its description and title. 44px, square; the error ink on a refused boundary and its line only.
+  moves from outside. A card's channel reads 1..16 since change 17B (model.ts hands this field the
+  shown numbers, the wire keeps 0..15); a zero-based run would still carry LUA_CHANNEL_CUE as its
+  description and title. 44px, square; the error ink on a refused boundary and its line only.
   Decided at 13.1-07 (13.1-CONTEXT D-09); see .planning/phases/13.1-bench-corrections-four/13.1-07-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -56,6 +57,8 @@
   /** The knob's raw literals; the readout's twin, present when every option is an integer. */
   const literals = $derived(knob.literals ?? []);
   const label = $derived(midiFieldLabel(knob));
+  /** The refusal's noun: an output's Channel is a channel whatever its id (change 17B: ORBIT's ring1Channel). */
+  const offeredAs = $derived(knob.role === "channel" ? "channel" : knob.id);
   /** Section 7's one comparison. */
   const changed = $derived(knob.index !== knob.default);
   /** A Lua entry's channel (an output block's Channel too, change 17): the contiguous run that starts at the firmware's 0; a preset's starts at 1 and gets no cue (W-16). */
@@ -126,7 +129,7 @@
     const index = typedIndex(literals, text);
     if (index === undefined) {
       refused = text;
-      problem = offeredLine(knob.id, literals);
+      problem = offeredLine(offeredAs, literals);
       return;
     }
     accept(index);

@@ -1807,7 +1807,7 @@ describe("the tuning UI's structural rules", () => {
     expect(source).toContain("typedIndex(literals, text)");
     expect(source).toContain("onchange(knob.id, index)");
     expect(source, "the refusal is not the offered line").toContain(
-      "problem = offeredLine(knob.id, literals)",
+      "problem = offeredLine(offeredAs, literals)",
     );
     expect(source).toContain("problem = TYPE_A_NUMBER");
     expect(source).toContain("invalid={problem !== undefined}");
@@ -2577,6 +2577,14 @@ describe("the tuning UI's structural rules", () => {
       });
       expect(byKnob("cc")).toMatchObject({ role: "number", widget: "stepper" });
       expect(byKnob("channel")).toMatchObject({ role: "channel" });
+      // Change 17B: a card's channel READS 1..16 (the readout, the rows, the typed field's
+      // literals); the knob's own literals, and so the wire, stay 0..15.
+      expect(byKnob("channel")?.readout).toBe("1");
+      expect(byKnob("channel")?.literals).toEqual(
+        Array.from({ length: 16 }, (_, i) => String(i + 1)),
+      );
+      expect(byKnob("channel")?.values.map((v) => v.label)[15]).toBe("16");
+      expect(ARC.knobs.find((k) => k.id === "channel")?.values[0]).toBe("0");
       expect(byKnob("shape")?.role).toBeUndefined();
       expect(
         groupBySection(view.knobs)

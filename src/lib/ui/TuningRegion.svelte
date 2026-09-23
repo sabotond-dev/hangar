@@ -248,7 +248,7 @@
   );
   /**
    * Same channel for all (change 17): a select over Per output and the channels, in the rows' own
-   * numbering (the firmware's 0-based literal on a Lua card, X-08); it shows the channel every
+   * numbering (1..16 on a card since change 17B, the wire's 0..15 underneath); it shows the channel every
    * output shares, or Per output when they differ. Its default is where it stands, so its reset
    * box never lights: Per output is not a value to go back to, it is the absence of one.
    */

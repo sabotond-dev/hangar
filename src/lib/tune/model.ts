@@ -51,6 +51,7 @@ import { applyKnob, baseStateFor, resetAll } from "./state";
 import { isControllerNumber, rollable, surpriseIndices } from "./surprise";
 import {
   integerReadout,
+  integerRun,
   isColourLattice,
   meterView,
   positionText,
@@ -301,7 +302,16 @@ function knobViews(
       knob.kind === "note" && isControllerNumber(knob) ? "amount" : knob.kind;
     // Change 17: a knob in a MIDI output's block is worded by its role there (Type, Receive).
     const part = roles.get(knob.id);
-    const widget = widgetFor(kind, knob.options, knob.id, part?.role);
+    // Change 17B (section 17's decision, 2026-09-23): a card's MIDI channel READS 1..16, the
+    // DAW's numbering, as the Sandbox's does; the literal written to the wire stays the firmware's
+    // 0..15. The words, the readout and the typed field's literals read `shown`; the index is the
+    // knob's own, so the stamp and the Lua do not move.
+    const shown =
+      (knob.id === "channel" || part?.role === "channel") &&
+      integerRun(knob.options)?.min === 0
+        ? knob.options.map((literal) => String(Number(literal) + 1))
+        : knob.options;
+    const widget = widgetFor(kind, shown, knob.id, part?.role);
     const index = indices[knob.id];
     const named = splitUnit(knob.label);
     const head = {
@@ -318,21 +328,21 @@ function knobViews(
         kind === "note"
           ? (wordFor("note", knob.options[index] ?? "") ??
             integerReadout(knob.options, index))
-          : integerReadout(knob.options, index),
+          : integerReadout(shown, index),
     };
     return {
       ...head,
       // The raw literals ride with the readout and only with it: present
       // exactly when every option is an integer, for the typed field's
       // mapping back to an index (view.ts `typedIndex` / `nearestRung`).
-      literals: head.readout === undefined ? undefined : knob.options,
+      literals: head.readout === undefined ? undefined : shown,
       // The lattice's 4,096 come from the shared cache; every other knob
       // resolves its own handful. See `colourViews`.
       values:
         widget === "colour" && isColourLattice(knob.options)
           ? colourViews(knob.options)
-          : knob.options.map((_, at) =>
-              valueView(kind, widget, knob.options, at, knob.id, part?.role),
+          : shown.map((_, at) =>
+              valueView(kind, widget, shown, at, knob.id, part?.role),
             ),
       index,
       default: knob.default,

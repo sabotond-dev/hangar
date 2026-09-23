@@ -435,7 +435,7 @@ test.describe("turning a knob", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("a CC number typed into the MIDI output field moves the knob to that value, one the knob does not offer is refused in the field with the offered values named and the last good value kept, and a Lua channel says it counts from 0", async ({
+  test("a CC number typed into the MIDI output field moves the knob to that value, one the knob does not offer is refused in the field with the offered values named and the last good value kept, and a card's channel reads 1..16 (change 17B)", async ({
     page,
   }) => {
     // 13.1-07, 13.1-CONTEXT D-09 (bench line 7, screenshot 2), in a browser:
@@ -572,29 +572,21 @@ test.describe("turning a knob", () => {
     await expect(field).toHaveAttribute("data-changed", "false");
     await expect(reset).toBeDisabled();
 
-    // THE CHANNEL FIELD ON A LUA ENTRY: the firmware's zero-based literal
-    // (X-08) under the PDF's label, with the cue beneath it and in its
-    // description - 13.1-CONTEXT question 5 is open, and this is what keeps
-    // the asked state from being a silent off-by-one until it is answered.
+    // THE CHANNEL FIELD ON A CARD (change 17B, section 17's decision): it READS 1..16, the
+    // DAW's numbering, as the Sandbox's does - the literal written stays the firmware's 0..15 -
+    // so the zero-based cue (X-08's, 13.1-07) is gone from the field and its label.
     const channelInput = page.getByTestId("midi-field-channel-input");
-    await expect(channelInput).toHaveValue(channel!.values[channel!.default]);
-    expect(channel!.values[0], "a Lua channel list starts at 0").toBe("0");
-    // The cue is read, not painted (change 16: no helper prose in the rows):
-    // in the DOM for a screen reader, in the field's description, and the
-    // label's title for a pointer.
-    const cue = page.getByTestId("midi-field-channel-cue");
-    await expect(cue).toBeAttached();
-    await expect(cue).toHaveText(LUA_CHANNEL_CUE);
+    expect(channel!.values[0], "the wire's channel list starts at 0").toBe("0");
+    await expect(channelInput).toHaveValue(
+      String(Number(channel!.values[channel!.default]) + 1),
+    );
+    await expect(page.getByTestId("midi-field-channel-cue")).toHaveCount(0);
     await expect(
       page.getByTestId("midi-field-channel").locator("label"),
-    ).toHaveAttribute("title", LUA_CHANNEL_CUE);
-    await expect(channelInput).toHaveAttribute(
-      "aria-describedby",
-      await cue.getAttribute("id"),
-    );
+    ).not.toHaveAttribute("title", LUA_CHANNEL_CUE);
     await expect(
       page.getByTestId("midi-field-cc-cue"),
-      "the cue is the channel's alone",
+      "no cue on the number",
     ).toHaveCount(0);
 
     expect(consoleErrors).toEqual([]);
@@ -628,7 +620,8 @@ test.describe("turning a knob", () => {
     await typeSelect.selectOption({ label: "CC" });
     await recomputed(page);
     await expect(page.getByTestId("midi-field-cc")).toBeVisible();
-    // CHANNEL: typed 4; Same channel for all shows it (the one output shares it).
+    // CHANNEL: typed 4 - the fourth channel, index 3 (change 17B: the rows read 1..16); Same
+    // channel for all shows it (the one output shares it).
     const channel = page.getByTestId("midi-field-channel-input");
     const same = page.getByTestId("knob-midiSameChannel").locator("select");
     await expect(same).toHaveValue("1");
@@ -638,9 +631,9 @@ test.describe("turning a knob", () => {
     await recomputed(page);
     await expect(page.getByTestId("midi-field-channel")).toHaveAttribute(
       "data-index",
-      "4",
+      "3",
     );
-    await expect(same).toHaveValue("5");
+    await expect(same).toHaveValue("4");
     // SAME CHANNEL FOR ALL: 9 writes every output's channel.
     await expect(
       page.getByTestId("knob-midiSameChannel").locator("option"),
@@ -648,7 +641,11 @@ test.describe("turning a knob", () => {
     await same.selectOption({ label: "9" });
     await recomputed(page);
     await expect(channel).toHaveValue("9");
-    await expect(same).toHaveValue("10");
+    await expect(page.getByTestId("midi-field-channel")).toHaveAttribute(
+      "data-index",
+      "8",
+    );
+    await expect(same).toHaveValue("9");
     // RECEIVE: On by default, Off one click.
     const receive = page.getByTestId("knob-midiReceive");
     await expect(receive).toHaveAttribute("data-index", "1");
