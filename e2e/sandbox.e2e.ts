@@ -38,7 +38,8 @@
 // shared-controller mark, the names toggle, a recent colour's chip, the Play
 // monitor; the twelfth, change 15, the tool rail - its column at 1280 x 720 in
 // two stacks, one at 900 tall, a strip above the inspector on a phone, Save
-// copy on the plate's status line.) THE PUT-BACK HALF LEFT AT
+// copy on the plate's status line; and change 18's Latch walk - two buttons set Off together,
+// a finger slid from one onto the other in Play handed over.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -69,6 +70,7 @@ import {
 } from "../src/lib/device/install-copy";
 import { EVENT_SETUP, EVENT_TIMER, EVENT_UTILITY } from "../src/lib/protocol";
 import { DRAFTS_KEY } from "../src/lib/store/schema";
+import { LATCH, LATCH_HELPER } from "../src/lib/sandbox/copy";
 import { BRIGHTNESS_RANGE } from "../src/lib/tune/inspector-copy";
 import {
   HANGAR_FORMAT_LETTERS,
@@ -1595,6 +1597,101 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await expect(page.getByTestId("field-channel-y")).toHaveValue("9");
 
     expect(consoleErrors, "no console error on the MIDI walk").toEqual([]);
+  });
+
+  test("the Latch walk (change 18): two buttons set Latch Off together - the row last under Behavior, On by default with its helper as the label's title, Off over the set as one entry, Undo and Redo, one finger slid from the first onto the second in Play handed over (the monitor shows the second going on) - and the draft recovered on a reload", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+    const latch = page.getByTestId("field-latch");
+
+    // B, two clicks, V: two buttons, the second selected; Latch On, its helper the label's title.
+    await plate.focus();
+    await page.keyboard.press("b");
+    await clickCell(plate, 0, 0);
+    await clickCell(plate, 3, 0);
+    await page.keyboard.press("v");
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 2");
+    await expect(latch).toHaveAttribute("data-value", "true");
+    await expect(
+      page.getByTitle(LATCH_HELPER).filter({ hasText: LATCH }),
+    ).toHaveCount(1);
+    const secondCc = await page.getByTestId("field-cc").inputValue();
+
+    // THE SET: Button 1, then Shift and Button 2; Off writes both as one entry.
+    await clickCell(plate, 0, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    const box = await plate.boundingBox();
+    if (box === null) throw new Error("the plate has no box");
+    const pitch = box.width / 9;
+    await plate.click({
+      position: { x: 3.5 * pitch, y: 0.5 * pitch },
+      modifiers: ["Shift"],
+    });
+    await expect(page.getByTestId("inspector-count")).toHaveText("2 elements");
+    await expect(latch).toHaveAttribute("data-value", "true");
+    await latch.getByText("Off").click();
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    await expect(latch).toHaveAttribute("data-value", "false");
+    await page.getByTestId("undo").click();
+    await expect(latch).toHaveAttribute("data-value", "true");
+    await page.getByTestId("redo").click();
+    await expect(latch).toHaveAttribute("data-value", "false");
+
+    // PLAY: one finger pressed on Button 1 and slid across the empty cell onto Button 2 - the
+    // preview hands it over, and the monitor shows Button 2's controller going on.
+    await page.getByTestId("segment-play").click();
+    await page.waitForFunction(
+      () => {
+        const c = document.querySelector(
+          '[data-testid="pad-canvas-sandbox-preview"]',
+        ) as HTMLCanvasElement | null;
+        return c !== null && c.width === 9;
+      },
+      undefined,
+      { timeout: 30_000 },
+    );
+    // The plate measured again: Play moves it (the mode line, the monitor under it).
+    const live = await plate.boundingBox();
+    if (live === null) throw new Error("no plate in Play");
+    await page.mouse.move(live.x + 0.5 * pitch, live.y + 0.5 * pitch);
+    await page.mouse.down();
+    await page.waitForTimeout(150);
+    await page.mouse.move(live.x + 3.5 * pitch, live.y + 0.5 * pitch, {
+      steps: 6,
+    });
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    await expect(
+      page
+        .getByTestId("play-monitor-line")
+        .filter({ hasText: `CC ${secondCc} ch 1 → 127` }),
+    ).not.toHaveCount(0, { timeout: 10_000 });
+    await page.getByTestId("segment-edit").click();
+    await expect(sandbox).toHaveAttribute("data-mode", "edit");
+
+    // THE DRAFT: reloaded, both buttons read Off.
+    await page.waitForTimeout(400);
+    await page.reload();
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    const again = page.getByTestId("surface-plate");
+    await clickCell(again, 0, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
+    await expect(page.getByTestId("field-latch")).toHaveAttribute(
+      "data-value",
+      "false",
+    );
+    await clickCell(again, 3, 0);
+    await expect(page.getByTestId("inspector-name")).toHaveText("Button 2");
+    await expect(page.getByTestId("field-latch")).toHaveAttribute(
+      "data-value",
+      "false",
+    );
+
+    expect(consoleErrors, "no console error on the Latch walk").toEqual([]);
   });
 
   test("the selection walk (change 13A): Shift+click selects two under one group outline, a marquee selects the three it touches, Ctrl+C then Ctrl+V pastes them by the placement rule with auto-numbered names, Ctrl+X cuts them as one Undo, a channel typed over two writes both and reads Mixed when they differ, and a locked element refuses a drag and a delete with its line", async ({
