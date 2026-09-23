@@ -288,6 +288,17 @@ describe("the Lua host", () => {
     const host = await createLuaHost({ sim: blank(), setup: probes });
     expect(host.errors).toEqual([]);
 
+    // `tim` (change 17B): the touch element's own Timer body, run by the Setup synchronously and
+    // arming nothing - a card with no running Timer pulls its receive callback in this way.
+    const pulled = await createLuaHost({
+      sim: blank(),
+      setup: "--[[@cb]]self:tim() if TT~=1 then error('tim ran no Timer') end",
+      timer: "--[[@cb]]TT=1",
+    });
+    expect(pulled.errors).toEqual([]);
+    expect(pulled.timerArmed, "a pull-in arms no Timer").toBe(false);
+    pulled.close();
+
     const keys = host.globalKeys();
     for (const name of HOST_GLOBALS) {
       expect(keys, `${name} is exported but absent from _G`).toContain(name);
@@ -495,7 +506,9 @@ describe("the Lua host", () => {
     // wrong order - or after Setup - rejects in createLuaHost with
     // "attempt to call a nil value (method 'tim')" or "G is nil" instead of
     // reaching an assertion. Its second line asserts the stand-in did not
-    // leak: the touch element's `self` has no `tim`.
+    // leak: the touch element's `self:tim()` (a host method since change
+    // 17B, the touch Timer's pull-in) runs the TOUCH Timer - none here, a
+    // no-op - and never the system body, so the marker is not re-made.
     const TIMER = "--[[@cb]]TM={1} function G(s,i)B[i]=1 end";
     const SYSTEM = "--[[@cb]]B={} self:tim()";
     const host = await createLuaHost({
@@ -504,7 +517,7 @@ describe("the Lua host", () => {
       systemTimer: TIMER,
       setup:
         '--[[@cb]]if type(G)~="function" then error("G is "..type(G)) end ' +
-        'if self.tim then error("the system stand-in leaked into self") end ' +
+        'TM=nil self:tim() if TM then error("the system stand-in leaked into self") end TM={1} ' +
         "self.touch_cb=function(s,i,e,x,y)G(s,i)end",
     });
     try {

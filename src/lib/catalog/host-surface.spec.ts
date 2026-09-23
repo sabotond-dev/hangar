@@ -406,7 +406,14 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
           // A scan that found nothing proves nothing. An event with text in it
           // calls at least a colour and a phase, so two is a floor no real
           // configuration can sit under; an entry that stores no Timer (MORPH)
-          // renders the empty string and is exempted by the same rule.
+          // renders the empty string and is exempted by the same rule. A Timer
+          // PULLED IN by its Setup (change 17B: `self:tim()`, never armed) that
+          // only makes the receive callback calls one painter from inside it,
+          // so its floor is one - and it must be exactly that shape.
+          const pulledIn =
+            event === "timer" &&
+            !text.includes("gtt(") &&
+            text.includes("midirx_cb=function");
           if (text !== "") {
             expect(
               calls.length,
@@ -414,7 +421,7 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
                 `${calls.length} call sites in ${text.length} characters, ` +
                 "which means the scanner stopped seeing this event rather " +
                 "than the event being clean",
-            ).toBeGreaterThanOrEqual(2);
+            ).toBeGreaterThanOrEqual(pulledIn ? 1 : 2);
           }
         }
       }
@@ -568,17 +575,20 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     // it in the SYSTEM element's Setup or Timer, where no card is on screen to
     // show it. BOTH STRINGS ARE SCANNED since 12.1-02.
     //
-    // THE ONE CALL THE CLASSIFIER MUST REFUSE, AND WHY IT IS RIGHT TO. 255/0
-    // closes with `self:tim()`: the system element calling its OWN Timer
-    // method, which is what defines the 255/6 half on a page load. `tim` is
-    // not a host `self:` method and must not become one - the touch element's
-    // `self` has no `tim` the host installs, and an ENTRY writing `self:tim()`
-    // would be calling its own Timer body from its Setup, which no entry does
-    // and which this gate would rightly refuse. The host reaches the system
-    // Timer through `LuaHostOptions.systemTimer`, as a stand-in `self` (see
-    // `lua-host.ts` systemPair()), not through SELF_PRELUDE. So the call is
-    // asserted to be present exactly once and REFUSED, and the scan runs over
-    // the string with it removed. `library.spec.ts` test 4 pins its position.
+    // THE ONE CALL THAT NAMES ANOTHER ELEMENT'S METHOD. 255/0 closes with
+    // `self:tim()`: the system element calling its OWN Timer method, which is
+    // what defines the 255/6 half on a page load; the host reaches it through
+    // `LuaHostOptions.systemTimer`, as a stand-in `self` (`lua-host.ts`
+    // systemPair()). Until change 17B no ENTRY called `self:tim()` and this
+    // gate refused it. Since 17B `tim` IS a host `self:` method - the touch
+    // element's own Timer body, run once from its Setup, the pull-in the
+    // Sandbox's first probe lit on a module (sandbox/emit.ts PULL_IN_TIMER) -
+    // so a card with no running Timer (CONSOLE, STRIP, LUMEN) keeps its receive
+    // callback in the Timer text and pulls it in without arming a Timer (an
+    // armed Timer would make the card "animated" at tick 0). The library's call
+    // now resolves; it is still asserted present exactly once, and the scan
+    // runs over the string with it removed. `library.spec.ts` test 4 pins its
+    // position.
     const timCall = "self:tim()";
     expect(
       TOUCH_LIBRARY.split(timCall).length - 1,
@@ -587,10 +597,9 @@ describe("the host surface a hand-authored entry may call (D-07)", () => {
     const [tim] = resolveCalls(timCall);
     expect(
       tim.ok,
-      "self:tim() resolved as a host method; the system Timer is reached " +
-        "through systemTimer and must not join SELF_PRELUDE",
-    ).toBe(false);
-    expect(SELF_METHODS, "tim joined the host's self: methods").not.toContain(
+      "self:tim() is the touch element's Timer pull-in since change 17B",
+    ).toBe(true);
+    expect(SELF_METHODS, "tim is a host self: method (change 17B)").toContain(
       "tim",
     );
 

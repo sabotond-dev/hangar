@@ -156,6 +156,7 @@ export const HOST_SELF_METHODS = [
   "tev",
   "txv",
   "tyv",
+  "tim",
 ] as const;
 
 /** One bare Grid call, as the VM sees it: everything in, anything out. */
@@ -176,6 +177,10 @@ const SELF_PRELUDE = [
   "self.tev = function(s) return __hangar_tfield(1) end",
   "self.txv = function(s) return __hangar_tfield(2) end",
   "self.tyv = function(s) return __hangar_tfield(3) end",
+  // The touch element's Timer event as a method (change 17B), as the module has it: a Setup that
+  // calls `self:tim()` runs the Timer body once, synchronously, arming nothing - the pull-in the
+  // Sandbox's first probe lit (sandbox/emit.ts PULL_IN_TIMER). With no Timer event, a no-op.
+  "self.tim = function(s) if __hangar_timer then __hangar_timer() end end",
 ].join("\n");
 
 // Reads self.touch_cb at call time and invokes it with self first: `self.touch_cb = function(s, i, e, x, y) ... end`.
