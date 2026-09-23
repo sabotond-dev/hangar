@@ -13984,4 +13984,23 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("TRACKPAD COMET: no MIDI to send or receive - the Timer assigns midirx_cb=nil over a previous landing's on its first call (the Setup, byte for byte TRACKPAD's, has 5 free), the mouse unchanged; one control, the pad", async () => {
+    const { host } = await openCard("trackpad-comet", {}, true);
+    try {
+      host.run(3);
+      expect(host.midiIn(REPORT, 0, 176, 16, 100), "no callback").toBe(false);
+      host.touchDown(0, 400, 400);
+      host.run(2);
+      host.touchMove(0, 500, 450);
+      host.run(2);
+      host.touchUp(0, 500, 450);
+      host.run(4);
+      expect(host.hid.length, "the pointer moved").toBeGreaterThan(0);
+      expect(host.midi).toEqual([]);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+  }, 60000);
 });

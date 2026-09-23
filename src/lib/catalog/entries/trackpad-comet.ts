@@ -6,8 +6,10 @@
 // call while the recipe holds a contact, the library's `G` draws the finger on layer 0 and `D`
 // re-arms the nearest cell on layer 1 through `N` - GHOST's comet shape - so a moving finger
 // leaves a trail at full length at any speed and a still one holds a lit head. Knobs, all in the
-// Timer: @C, @H, @T, @S. Setup 903 of 908 at every knob state (5 free), Timer 427 at the picker
-// corner (424 at the defaults); restsBlack true. Asked 2026-09-17 (BENCH-2026-09-16.txt section
+// Timer: @C, @H, @T, @S. Setup 903 of 908 at every knob state (5 free), Timer 443 at the picker
+// corner (440 at the defaults); restsBlack true. No MIDI: the Timer assigns `s.midirx_cb=nil`
+// on every call (change 17B - the Setup, TRACKPAD's byte for byte, has 5 free; a previous
+// landing's receive callback never survives this one). Asked 2026-09-17 (BENCH-2026-09-16.txt section
 // 4); the name is provisional, the user's to set.
 //
 // MECHANISM
@@ -71,7 +73,7 @@ const SETUP =
   "--[[@cb]]self:txma(1023)self:tyma(1023)gmbs(3,0)self.r=0 local function z(s)s.p={}s.n=0 s.k=0 s.m=0 s.w=0 s.j=0 s.q=0 end z(self)self.touch_cb=function(s,i,e,x,y)if s.q>25 then z(s)end s.q=0 local o,g,f,h=true,0,0,0 while o and g<24 do g=g+1 local c,t=s.p[i],e==3 or e>=5 if e==4 or e>7 or not c and not t then if not c then s.n=s.n+1 s.k=glim(s.k,s.n,9)end c={x,y}s.p[i]=c s.j=4 end if t then if c then s.p[i]=nil s.n=s.n-1 s.j=4 if s.n<1 then if s.r<1 and e>4 and s.m<s.k*120 then gmbs(glim(s.k,1,2),1)s.r=4 end gtt(0,20)z(s)end end else local u,v=x-c[1],y-c[2]c[1]=x c[2]=y s.m=s.m+math.abs(u)+math.abs(v)if s.n>1 then s.w=s.w+v else f=f+u h=h+v end end o=s:touch_pop()i=s:tid()e=s:tev()x=s:txv()y=s:tyv()end if s.j>0 then s.j=s.j-1 elseif s.n>1 then local d=(s.w+64)//128 if d~=0 then s.w=s.w-d*128 s.m=999 gmms(3,-d)end else gmms(1,glim(f,-63,63))gmms(2,glim(h,-63,63))s.u,s.v=f,h end end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self if s.n then if s.r>0 then s.r=s.r-1 if s.r<1 then gmbs(3,0)end end s.q=s.q+1 if s.q==100 then gmbs(3,0)end if not s.i then s.i=1 for n=0,80 do glc(glag(0,n),1,@C,1)end end local k=s.q<26 and(@S or s.n<2)for i,o in pairs(B)do if not(k and s.p[i])then V(o)B[i]=nil end end if k then for i,c in pairs(s.p)do local x,y=c[1]//8,c[2]//8 G(s,i,1,x,y,0,@H)D(N(x,y),1,@T*6)end end end";
+  "--[[@cb]]gtt(0,20)local s=self s.midirx_cb=nil if s.n then if s.r>0 then s.r=s.r-1 if s.r<1 then gmbs(3,0)end end s.q=s.q+1 if s.q==100 then gmbs(3,0)end if not s.i then s.i=1 for n=0,80 do glc(glag(0,n),1,@C,1)end end local k=s.q<26 and(@S or s.n<2)for i,o in pairs(B)do if not(k and s.p[i])then V(o)B[i]=nil end end if k then for i,c in pairs(s.p)do local x,y=c[1]//8,c[2]//8 G(s,i,1,x,y,0,@H)D(N(x,y),1,@T*6)end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
