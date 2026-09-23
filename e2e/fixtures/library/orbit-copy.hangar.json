@@ -9,7 +9,10 @@
     "id": "copy:orbit:fixture",
     "name": "Orbit copy",
     "source": "orbit",
-    "knobIndices": [4, 1, 1, 2, 3, 1, 2, 1, 2, 60, 62, 64, 67, 1],
+    "knobIndices": [
+      4, 1, 1, 2, 3, 1, 2, 1, 2, 60, 62, 64, 67, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+      0, 1
+    ],
     "createdAt": "2026-09-18T09:30:00.000Z",
     "editedAt": "2026-09-18T09:30:00.000Z"
   },
@@ -69,6 +72,50 @@
     {
       "id": "channel",
       "options": 16
+    },
+    {
+      "id": "type1",
+      "options": 2
+    },
+    {
+      "id": "receive1",
+      "options": 2
+    },
+    {
+      "id": "type2",
+      "options": 2
+    },
+    {
+      "id": "channel2",
+      "options": 16
+    },
+    {
+      "id": "receive2",
+      "options": 2
+    },
+    {
+      "id": "type3",
+      "options": 2
+    },
+    {
+      "id": "channel3",
+      "options": 16
+    },
+    {
+      "id": "receive3",
+      "options": 2
+    },
+    {
+      "id": "type4",
+      "options": 2
+    },
+    {
+      "id": "channel4",
+      "options": 16
+    },
+    {
+      "id": "receive4",
+      "options": 2
     }
   ]
 }

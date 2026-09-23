@@ -13315,4 +13315,100 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("ORBIT: each ring is an output on its own Type (Note or CC), Channel and Number - at the defaults every step's note-off and a set step's note-on on channel 0 as before - and each receives: a note-on of the ring's arms its step at the playhead and lights the marker, never clears one, so its own notes echoed back change nothing; a swipe arming every cell it crosses is by design", async () => {
+    /** Ring d's step t's pad cell, the Setup's own rotation. */
+    const cellOf = (d: number, t: number): number => {
+      let [a, b] = [d, (t % (d * 2)) - d];
+      for (let j = 0; j < Math.floor(t / (d * 2)); j++) [a, b] = [-b, a];
+      return a + 4 + (b + 4) * 9;
+    };
+    const marker = (sim: PadSim, d: number, t: number): number =>
+      sim.layer(hwOfCell(cellOf(d, t)), 1).pha;
+    {
+      const { host, sim } = await openCard("orbit", {}, true);
+      try {
+        // The Setup assigned nil over the previous landing's callback; the Timer makes ORBIT's own.
+        expect(host.midiIn(REPORT, 0, 144, 36, 100)).toBe(false);
+        host.run(40);
+        expect(host.midi.length).toBeGreaterThan(0);
+        expect(
+          host.midi.every(
+            (m) => m.ch === 0 && (m.cmd === 128 || m.cmd === 144),
+          ),
+          "the defaults: note-offs and note-ons on channel 0",
+        ).toBe(true);
+        // Step the rings until ring 1's last-played step is unset, then play its note.
+        let t = -1;
+        for (let n = 0; n < 200 && t < 0; n++) {
+          host.tick();
+          const k = host.selfNumber("k") ?? 0;
+          const at = (((k - 1) % 8) + 8) % 8;
+          if (marker(sim, 1, at) === 0) t = at;
+        }
+        expect(t, "an unset step on ring 1").toBeGreaterThanOrEqual(0);
+        const sent = host.midi.length;
+        // Mismatches first: a note-off, velocity 0, another channel, a neighbour, another note.
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 0, 128, 36, 64],
+          [REPORT, 0, 144, 36, 0],
+          [REPORT, 1, 144, 36, 100],
+          [14, 0, 144, 36, 100],
+          [REPORT, 0, 144, 37, 100],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(marker(sim, 1, t)).toBe(0);
+        expect(host.midiIn(REPORT, 0, 144, 36, 100)).toBe(true);
+        expect(marker(sim, 1, t), "the step is armed at the playhead").toBe(
+          255,
+        );
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        // Its own note echoed back re-arms nothing new and clears nothing.
+        host.midiIn(REPORT, 0, 144, 36, 100);
+        expect(marker(sim, 1, t)).toBe(255);
+        // Eight steps later ring 1 plays the armed step: its note-on is on the wire.
+        host.run(8 * 2 * 8);
+        expect(wire(host.midi, sent)).toContain("0:144:36:100");
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Ring 2 as a controller on wire channel 4: its gate is the controller at 0, then 100 on a set
+    // step; a received controller above 0 arms. Ring 3's Receive Off.
+    {
+      const { host, sim } = await openCard("orbit", {
+        type2: "176",
+        channel2: "4",
+        receive3: "0",
+      });
+      const ring3 = () =>
+        Array.from({ length: 24 }, (_, t) => marker(sim, 3, t)).join(",");
+      try {
+        host.run(60);
+        const ring2 = wire(host.midi).filter((m) => m.startsWith("4:"));
+        expect(ring2.length).toBeGreaterThan(0);
+        expect(
+          ring2.every((m) => m === "4:176:38:0" || m === "4:176:38:100"),
+          ring2.slice(0, 4).join(" "),
+        ).toBe(true);
+        expect(ring2).toContain("4:176:38:100");
+        expect(host.midiIn(REPORT, 4, 176, 38, 1)).toBe(true);
+        // At a moment ring 3's playhead step is unset, its note arms nothing: Receive Off.
+        let unset = false;
+        for (let n = 0; n < 200 && !unset; n++) {
+          host.tick();
+          const k = host.selfNumber("k") ?? 0;
+          unset = marker(sim, 3, (((k - 1) % 24) + 24) % 24) === 0;
+        }
+        expect(unset).toBe(true);
+        const before = ring3();
+        host.midiIn(REPORT, 0, 144, 42, 100);
+        expect(ring3(), "ring 3 with Receive Off arms nothing").toBe(before);
+        expect(host.errors).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });

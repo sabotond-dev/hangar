@@ -125,8 +125,11 @@ const flat = doc.replace(/\s+/g, " ");
  * 40 -> 41 on 2026-09-23 (sections 17 and 18, change 17B): the pull-in - CONSOLE,
  * LUMEN and MORPH store a Timer their Setup runs once (`self:tim()`) to make the
  * receive callback - four clauses (a)-(d), and a dated paragraph after row 40's.
+ *
+ * 41 -> 42 the same day (change 17B): ORBIT's receive - a received note arms its
+ * ring's step at the playhead - four clauses (a)-(d) and a dated paragraph.
  */
-const ROW_COUNT = 41;
+const ROW_COUNT = 42;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

@@ -10,9 +10,11 @@
 // bytes are the envelope; `Delete` is undoable for the session. The two
 // fixtures are committed beside this test under e2e/fixtures/library/:
 // orbit-copy.hangar.json is a real export written by transfer.ts against the
-// catalog as it stood on 2026-09-18 (its `rack` is orbit's fourteen knobs; a
-// resized knob turns this import `older` and this title red, which is the
-// point), and somebody-elses.json carries `app: "grid-editor"`.
+// catalog as it stood on 2026-09-18 (its `rack` was orbit's fourteen knobs;
+// re-exported through transfer.ts at change 17B, 2026-09-23, when ORBIT's four
+// ring outputs grew the rack to twenty-five - the fourteen indices kept, the
+// eleven new knobs at their defaults; a resized knob turns this import `older`
+// and this title red, which is the point), and somebody-elses.json carries `app: "grid-editor"`.
 //
 // The store is seeded by hand in the record's own shape (schema.ts), the way
 // first-experience.e2e.ts plants the intro's draft.
@@ -167,7 +169,10 @@ test.describe("My configs, with no hardware attached", () => {
       kind: "playground",
       name: "Orbit copy",
       source: "orbit",
-      knobIndices: [4, 1, 1, 2, 3, 1, 2, 1, 2, 60, 62, 64, 67, 1],
+      knobIndices: [
+        4, 1, 1, 2, 3, 1, 2, 1, 2, 60, 62, 64, 67, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+        0, 1,
+      ],
     });
 
     // BACK: the copy is a `Saved` row beside the `Draft` row - two words for
@@ -207,7 +212,7 @@ test.describe("My configs, with no hardware attached", () => {
     expect(exported.schema).toBe(1);
     expect(exported.kind).toBe("playground");
     expect(exported.record.name).toBe("Orbit copy");
-    expect(exported.rack.length).toBe(14);
+    expect(exported.rack.length).toBe(25);
 
     // DELETE, then UNDO, for the session.
     await saved.getByTestId("library-delete").click();

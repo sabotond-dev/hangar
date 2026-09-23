@@ -436,3 +436,36 @@ the readout is the bare number. Costs at the RGB444 picker corner: Setup 846 -> 
 Timer 404 -> **411** (497 free); 850 / 390 at the defaults - the +7 the form was costed at. The
 captured EUCLID default vector (`tempo: 3`) is the defaults again under ORBIT (`stamp.spec.ts`),
 since index 3 is the 110 ms step once more.
+
+## Change 17B, 2026-09-23: four rings, four outputs, a received note arms its step (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+ORBIT is the brief's own example: each ring already had its note, so each ring is an output - "Ring 1".."Ring 4",
+triggers - with Type (Note / CC), Channel, Number (the ring's note knob, 0..127 - unchanged, a note field reading
+`C#3` or `49`) and Receive.
+
+- **Knobs.** The fourteen stay where they were; `channel` is Ring 1's Channel (reads 1..16). Appended ring by ring:
+  `type1 receive1`, then `typeD channelD receiveD` for rings 2..4 (tokens `@T1..@T4`, `@C2..@C4`, `@RX1..@RX4`; `@T1`
+  is not a prefix of `@TRAIL`). Twenty-five knobs, fourteen outside the outputs (the sync cards' cap). The rack grew, so
+  EUCLID's captured wild stamp stays `unreadable` (change 8 already); `e2e/fixtures/library/orbit-copy.hangar.json` is
+  re-exported through transfer.ts against the twenty-five-knob rack (its fourteen indices kept, the eleven new at their
+  defaults), `library.e2e.ts` re-aimed.
+- **The send.** The Timer builds three tables once - notes `n`, types `y`, channels `h` - and each step sends
+  `s:gms(h[d],y[d]*3//2-88,n[d],0)`, then on a set step `s:gms(h[d],y[d],n[d],100)`. Under CC a ring is a gate (the
+  controller at 100 on a set step, 0 every step). At the defaults the wire is ORBIT's before the change, message for
+  message.
+- **The receive.** A host note-on (a controller above 0 under CC) on a ring's type, channel and note ARMS that ring's
+  step at the playhead - the step it last played, `(s.k-1)%(d*8)` - and lights its marker: live step recording from a
+  keyboard or a DAW. Decided over "toggle" and over "nothing": a toggle would let a DAW's MIDI thru echoing ORBIT's own
+  notes CLEAR every step it played; arming never clears, so the echo lands on steps already set and changes nothing.
+  A note-off, velocity 0, another channel, another note, a neighbour's traffic do nothing; nothing is sent. The Setup
+  assigns `s.midirx_cb=nil` (39 free after it) and the Timer makes ORBIT's callback on its first call, once per install
+  (`s.j`, the touch callback it was made beside) - ARC's route.
+- **Latch: swipe by design** - a finger swiped across the rings toggles one step per cell it crosses (`Q`'s change
+  signal), the gesture the card was built around (lua-smoke.spec.ts "arms one cell per cell a swipe crosses").
+- **Cost:** Setup 850 / 853 -> 866 / 869 (defaults / corner; 39 free), Timer 390 / 411 -> 761 / 777 (131 free). Audition row 42.
+  frames.json and the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "ORBIT: each ring is an output ...": no callback before the first Timer call over a
+  previous landing's, ORBIT's after; the defaults' note-offs and note-ons on channel 0; at a moment ring 1's playhead
+  step is unset, five mismatches arm nothing, its note arms it (the marker lit), nothing sent back, the echo changes
+  nothing, and eight ring cycles later the armed step's note-on is on the wire; Ring 2 as a controller gate on wire
+  channel 4 (38 at 0 and 100); Ring 3's Receive Off arms nothing at an unset playhead step.

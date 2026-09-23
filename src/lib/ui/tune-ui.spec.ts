@@ -1414,6 +1414,18 @@ describe("the tuning UI's structural rules", () => {
       "note3",
       "note4",
       "channel",
+      // Change 17B: the four rings' Type, Channel and Receive (the panel draws them by output).
+      "type1",
+      "receive1",
+      "type2",
+      "channel2",
+      "receive2",
+      "type3",
+      "channel3",
+      "receive3",
+      "type4",
+      "channel4",
+      "receive4",
     ]);
     expect(grouped.sync.map((k) => k.id)).toEqual(["sync", "division"]);
     expect(grouped.look.length).toBe(4);
@@ -1622,8 +1634,8 @@ describe("the tuning UI's structural rules", () => {
     }
     expect(
       split,
-      "the shelf's widget split moved: 167 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row; CONSOLE the Faders Type a select, Receive a words row; GHOST two axis blocks, each Type a select; LUMEN the Hue and Depth blocks; MORPH four corner blocks)",
-    ).toEqual({ colour: 39, words: 39, select: 20, stepper: 69 });
+      "the shelf's widget split moved: 178 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row; CONSOLE the Faders Type a select, Receive a words row; GHOST two axis blocks, each Type a select; LUMEN the Hue and Depth blocks; MORPH four corner blocks; ORBIT four ring blocks)",
+    ).toEqual({ colour: 39, words: 47, select: 20, stepper: 72 });
   });
 
   it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {

@@ -7,8 +7,11 @@
 // markers (lit from Setup), layer 2 a bright head per ring with a short decay. Tap or swipe a ring
 // cell to toggle that step. Fourteen knobs (TUNE-01's six lifted by the user's word): @BPM (both
 // events; a 16th is 15000//@BPM ms), @PULSES, @R1C..@R4C, @TRAIL, @SYNC (both events), @DIV,
-// @N1..@N4, @CH. Setup 853 of 908 at the picker corner (850 at the defaults), Timer 411 (390).
-// History: docs/entries/orbit.md (08-06 .. 12.1-03 as EUCLID; change 8's forms, costs and the clock idiom).
+// @N1..@N4, @CH - and since change 17B four MIDI outputs, Ring 1..4, each @Td (Note / CC), a
+// channel (@CH for ring 1, @C2..@C4), its note @Nd and @RXd. Setup 869 of 908 at the picker
+// corner (866 at the defaults), Timer 777 (761).
+// History: docs/entries/orbit.md (08-06 .. 12.1-03 as EUCLID; change 8's forms, costs and the clock
+// idiom; change 17B's outputs).
 //
 // MECHANISM
 //   - Setup: layer 1 the fixed 255,90,0 at phase 0 (the markers), layer 2 at phase 0 with no colour
@@ -17,7 +20,8 @@
 //     the cell m = a+4+(b+4)*9; `self.c[d][t]` = m, `self.i[m]` = d*32+t (the pad cell -> ring
 //     position map; nil for the centre alone), `self.p[d][t]` = t*h[d]//n ~= (t-1)*h[d]//n (the
 //     Euclidean test, h = {@PULSES}), lit at 255 where true. `s.k` the step, `s.q` the clock count,
-//     `s.r` the run flag. `grxm(2,@SYNC and 3 or 0)` routes MIDIRTM to Lua under External only, then
+//     `s.r` the run flag. `s.midirx_cb=nil` (change 17B: the Timer makes ORBIT's own on its first
+//     call). `grxm(2,@SYNC and 3 or 0)` routes MIDIRTM to Lua under External only, then
 //     `gtt(0,15000//@BPM)` - a 16th at the BPM knob (change 8b).
 //   - The step routine is the Timer's `local function f(s)`, published as `s.f` on every call: k =
 //     s.k, then for each ring t = k%(d*8): the head cell takes its ring's colour (`c`, twelve
@@ -36,11 +40,23 @@
 //     `Q` REMEMBERS IS THE PAD CELL, before the self.i lookup.
 //   - No `R` (it holds no note per contact and paints nothing of its own on layer 0).
 //
-// WHAT IT SENDS
-//   Per ring per step: s:gms(@CH,128,n[d],0,0) then, if the step is set, s:gms(@CH,144,n[d],100,0) -
-//   n = {@N1,@N2,@N3,@N4}, inner to outer, 36 38 42 46 at the defaults (kick, snare, closed hat,
-//   open hat by General MIDI), each note exactly one step long. Under External the same, on the
-//   DAW's clock; nothing is sent while stopped.
+// WHAT IT SENDS (each ring its own output since change 17B)
+//   Per ring per step: s:gms(h[d],y[d]*3//2-88,n[d],0) then, if the step is set,
+//   s:gms(h[d],y[d],n[d],100) - n = {@N1..@N4}, inner to outer, 36 38 42 46 at the defaults (kick,
+//   snare, closed hat, open hat by General MIDI), y the rings' types {@T1..@T4} (144 a note, 176 a
+//   controller: `y*3//2-88` is the note-off 128, or the controller again at 0), h their channels
+//   {@CH,@C2,@C3,@C4}. Each note exactly one step long; under CC the ring is a gate, 100 then 0.
+//   Under External the same, on the DAW's clock; nothing is sent while stopped. At the defaults
+//   every ring is a note on channel 0: the wire ORBIT sent before, message for message.
+// WHAT IT RECEIVES (change 17B; @RXd the header INSTR per ring, 13 On, 0 Off)
+//   A host note-on (a controller above 0 under CC) on ring d's type, channel and number ARMS the
+//   ring's step at the playhead - the step it last played, (s.k-1)%(d*8) - and lights its marker:
+//   live step recording from a keyboard or a DAW. A note-off, a zero, another channel or number
+//   does nothing, and RX NEVER CLEARS a step, so ORBIT's own notes echoed back by a DAW's MIDI thru
+//   land on steps already set and change nothing. Nothing is sent. The callback is made by the
+//   TIMER once per install (`s.j` the touch callback it was made beside; the Setup has 39 free) and
+//   acts only while that is still the element's. The latch: a swipe toggling every cell it crosses
+//   is the gesture (a step per cell) - swipe by design.
 //
 // TRAPS
 //   - THE TRAIL'S DECAY PAIR IS THE HOUSE IDIOM: glpfs(a,2,252,256-252//@TRAIL,0) lands on phase
@@ -48,7 +64,7 @@
 //     that reason. decay-idiom.spec.ts holds the arithmetic and the usable timeouts.
 //   - NEVER A KEEPER ON LAYER 2: it carries a decaying trail.
 //   - @BPM AND @SYNC APPEAR IN BOTH EVENTS and both must move together.
-//   - THE STEP ROUTINE LIVES IN THE TIMER because the Setup has 55 free and the routine costs ~300;
+//   - THE STEP ROUTINE LIVES IN THE TIMER because the Setup had 55 free and the routine costs ~300;
 //     the clock callback reaches it through `s.f`, a field READ (a field CALL is refused by
 //     host-surface.spec.ts). `local f=s.f if ... and f then f(s)end` is that read.
 //   - THE PREVIEW HAS NO CLOCK: `sync` declares `previewIndex: 0`, so the browser renders Internal
@@ -62,13 +78,25 @@
 //   - THE LUA CARRIES NO COMMENTS beyond the nine-character marker: compressScript keeps them.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
-import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import {
+  previewFor,
+  type CatalogEntry,
+  type CatalogSource,
+  type LuaKnob,
+  type MidiOutput,
+} from "../types";
+import {
+  CHANNEL_VALUES,
+  RECEIVE_ON_INDEX,
+  RECEIVE_VALUES,
+  TRIGGER_STATUSES,
+} from "../../tune/midi";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glp(a,2,0)end local s=self s.c={}s.p={}s.i={}s.k=0 s.q=0 local h={@PULSES}for d=1,4 do local n=d*8 local u={}local v={}for t=0,n-1 do local a,b=d,t%(d*2)-d for j=1,t//(d*2)do a,b=-b,a end local m=a+4+(b+4)*9 u[t]=m s.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end s.c[d]=u s.p[d]=v end s.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end s.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,m),1,s.p[d][t]and 255 or 0)end grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)";
+  "--[[@cb]]for a=0,80 do glc(a,1,255,90,0,1)glp(a,1,0)glp(a,2,0)end local s=self s.c={}s.p={}s.i={}s.k=0 s.q=0 local h={@PULSES}for d=1,4 do local n=d*8 local u={}local v={}for t=0,n-1 do local a,b=d,t%(d*2)-d for j=1,t//(d*2)do a,b=-b,a end local m=a+4+(b+4)*9 u[t]=m s.i[m]=d*32+t v[t]=t*h[d]//n~=(t-1)*h[d]//n if v[t]then glp(glag(0,m),1,255)end end s.c[d]=u s.p[d]=v end s.rtmrx_cb=function(s,h,b)if b==250 then s.k=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end s.touch_cb=function(s,i,e,x,y)local m=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not m then return end local v=s.i[m]if not v then return end local d=v//32 local t=v%32 s.p[d][t]=not s.p[d][t]glp(glag(0,m),1,s.p[d][t]and 255 or 0)end s.midirx_cb=nil grxm(2,@SYNC and 3 or 0)gtt(0,15000//@BPM)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local function f(s)local c={@R1C,@R2C,@R3C,@R4C}local n={@N1,@N2,@N3,@N4}local k=s.k s.k=(k+1)%96 for d=1,4 do local t=k%(d*8)local a=glag(0,s.c[d][t])glc(a,2,c[d*3-2],c[d*3-1],c[d*3],1)glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(@CH,128,n[d],0,0)if s.p[d][t]then s:gms(@CH,144,n[d],100,0)end end end s.f=f if @SYNC then return end f(s)";
+  "--[[@cb]]gtt(0,15000//@BPM)local s=self X(s,20)local n,y,h={@N1,@N2,@N3,@N4},{@T1,@T2,@T3,@T4},{@CH,@C2,@C3,@C4}local function f(s)local c={@R1C,@R2C,@R3C,@R4C}local k=s.k s.k=(k+1)%96 for d=1,4 do local t=k%(d*8)local a=glag(0,s.c[d][t])glc(a,2,c[d*3-2],c[d*3-1],c[d*3],1)glpfs(a,2,252,256-252//@TRAIL,0)glt(a,2,@TRAIL)s:gms(h[d],y[d]*3//2-88,n[d],0)if s.p[d][t]then s:gms(h[d],y[d],n[d],100)end end end s.f=f if s.j~=s.touch_cb then s.j=s.touch_cb local r,j={@RX1,@RX2,@RX3,@RX4},s.j s.midirx_cb=function(s,e,v)local q,w=v[2],v[4]if q==128 then w=0 end if s.touch_cb==j and w>0 then for d=1,4 do if e[1]==r[d]and q==y[d]and v[1]==h[d]and v[3]==n[d]then local t=(s.k-1)%(d*8)s.p[d][t]=true glp(glag(0,s.c[d][t]),1,255)end end end end end if @SYNC then return end f(s)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -86,10 +114,54 @@ const NOTES: readonly string[] = Array.from({ length: 128 }, (_, n) =>
   String(n),
 );
 
-/** The sixteen zero-based channels, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058). */
-const CHANNELS: readonly string[] = Array.from({ length: 16 }, (_, n) =>
-  String(n),
-);
+/**
+ * Ring d's knobs past the fourteen (change 17B): its Type, its Channel (ring 1's is the old
+ * `channel`) and its Receive, appended ring by ring so a record's older indices land where they
+ * were. The ring's Number is its note knob, `note<d>`.
+ */
+function ringKnobs(d: number): LuaKnob[] {
+  const knobs: LuaKnob[] = [
+    {
+      id: `type${d}`,
+      label: `Ring ${d} MIDI type`,
+      kind: "mode",
+      token: `@T${d}`,
+      values: TRIGGER_STATUSES,
+      default: 0,
+    },
+  ];
+  if (d > 1)
+    knobs.push({
+      id: `channel${d}`,
+      label: `Ring ${d} MIDI channel`,
+      kind: "amount",
+      token: `@C${d}`,
+      values: CHANNEL_VALUES,
+      default: 0,
+    });
+  knobs.push({
+    id: `receive${d}`,
+    label: `Ring ${d} MIDI receive`,
+    kind: "mode",
+    token: `@RX${d}`,
+    values: RECEIVE_VALUES,
+    default: RECEIVE_ON_INDEX,
+  });
+  return knobs;
+}
+
+/** Ring d's output: a trigger - its note-on on a set step, its note-off every step. */
+const ringOutput = (d: number): MidiOutput => ({
+  id: `ring${d}`,
+  name: `Ring ${d}`,
+  kind: "trigger",
+  tokens: {
+    type: `@T${d}`,
+    channel: d === 1 ? "@CH" : `@C${d}`,
+    number: `@N${d}`,
+    receive: `@RX${d}`,
+  },
+});
 
 export const ORBIT: CatalogEntry = {
   id: "orbit",
@@ -239,14 +311,20 @@ export const ORBIT: CatalogEntry = {
     },
     {
       id: "channel",
-      label: "MIDI channel",
+      label: "Ring 1 MIDI channel",
       kind: "amount",
       token: "@CH",
-      // ZERO-BASED, the first argument of gms. TWICE, both in the Timer.
-      values: CHANNELS,
+      // Ring 1's Channel since change 17B (every ring's before it). ZERO-BASED, the first argument
+      // of gms; the rows read 1..16. Once, in the Timer's channel table.
+      values: CHANNEL_VALUES,
       default: 0,
     },
+    ...[1, 2, 3, 4].flatMap(ringKnobs),
   ],
+
+  // Four outputs (change 17B), one per ring - its Type (Note / CC), Channel, Number (the ring's
+  // note) and Receive (a received note arms the ring's step at the playhead).
+  outputs: [1, 2, 3, 4].map(ringOutput),
 
   // The same fourteen indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
@@ -265,6 +343,10 @@ export const ORBIT: CatalogEntry = {
     note3: 42,
     note4: 46,
     channel: 0,
+    // The rings' knobs past the fourteen (change 17B), at their own defaults.
+    ...Object.fromEntries(
+      [1, 2, 3, 4].flatMap(ringKnobs).map((knob) => [knob.id, knob.default]),
+    ),
   },
 
   // FALSE: Setup lights the generated pulse cells on layer 1. frames.spec.ts checks it.
