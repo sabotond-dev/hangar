@@ -1,0 +1,612 @@
+# 13.2 gate --after change-17a --against change-17a --check 678
+HEAD b40ce7a (b40ce7a61a93097662cb38282c98b607c66665ac); dirty (src e2e scripts docs) 1; free memory 3.27 GB; 2026-09-23T12:22:24Z
+before-record HEAD db5a3c53c231296d2a25071e8774fb3a29a521fc
+
+## the wire
+3031 strings from 20 Lua entries + 7 presets + library + defaults + Sandbox page 3
+WIRE SET 6acf32aee1ab097f195c584ccb5577ce0744b9258d78541433ecc77d63893742
+589 Sandbox strings from 31 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL c43fa145b5b1ebd5531352403aba4e6d1c296f26e03ca59e09dd4013d24201de
+589 Sandbox strings from 31 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 05388336c02bc8d7c3366fa9330e4e2015f576ef6a090489d5a95cd2bb849385
+
+## the strings
+213 files; 3248 distinct literals (7717 occurrences); 8 copy modules; 345 data-testids
+literal census sha256 38026024d09bd3ab0bae9ae55f9f5b7098d16e132b115450df6a5179d86537c5
+copy exports   sha256 e2f4afa01d858b947e358ff0f39998f4495cd449001e82d81042671391b9c29e
+data-testids   sha256 39d4dc3b93248b2b728154f784d1dd220653ace71fabe6d007ff7fc8c058a333
+- 1 -> 0	" ? `${CC_NUMBER} (X)` : CC_NUMBER,\n          undefined,\n          undefined,\n        )}\n        {#if region.kind === "
+- 1 -> 0	"${}local a=glag(0,n)"
+- 1 -> 0	"--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 if p<s.h then s.n=(s.n*75+74)%65537 end s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v,c=@SHAPE,8+(s.u+32)//64*9 if c~=s.c then glp(glag(0,s.c),1,0)glp(glag(0,c),1,255)s.c=c end s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end"
+- 7 -> 6	"10"
+- 7 -> 6	"11"
+- 13 -> 12	"12"
+- 5 -> 6	"13"
+- 5 -> 4	"14"
+- 16 -> 15	"15"
+- 2 -> 5	"224"
+- 6 -> 7	"@CC"
+- 15 -> 16	"@CH"
+- 1 -> 0	"A relative mode sends one step per detent, and Min and Max don’t apply."
+- 1 -> 2	"CC"
+- 1 -> 0	"CC number (Y)"
+- 12 -> 13	"Channel"
+- 1 -> 0	"D(s,r,19,r[6],a)D(s,r,20,r[7],b)end"
+- 1 -> 0	"D(s,r,z+3,r[6]+k,a)D(s,r,z+4,r[7]%128+k,b)end end"
+- 1 -> 0	"Every finger sends on its own pair: finger 2 on the CC numbers two up, finger 3 four up. Each finger has its own crosshair."
+- 1 -> 0	"I[4]=function(s,i,r,x,y,o)local f,a,b=r[14],${},${}"
+- 1 -> 0	"I[5]=function(s,i,r,x,y)local m,u,v=r[14],x-r[15],y-r[16]"
+- 2 -> 3	"Note"
+- 3 -> 4	"Off"
+- 2 -> 3	"On"
+- 1 -> 0	"Output"
+- 1 -> 3	"Pitch bend"
+- 1 -> 0	"R=function(s,i)local r=J[S[i]]S[i]=nil F[i]=nil if not r then return end "
+- 1 -> 0	"R=function(s,i)local r=J[S[i]]S[i]=nil if r then local t,f=r[5],r[14]"
+- 1 -> 0	"S=S or{}F=F or{}I=I or{}"
+- 1 -> 3	"Type"
+- 15 -> 18	"blank"
+- 6 -> 7	"boolean"
+- 109 -> 108	"button"
+- 22 -> 39	"cc"
+- 34 -> 45	"channel"
+- 10 -> 11	"control"
+- 1 -> 0	"else r[17]=glim((r[17]or 0)+k,0,127)D(s,r,19,r[6],r[17])end end end F[i]=a "
+- 1 -> 0	"else s:gms(r[8],176,r[6],r[12],0)end r[17]=nil Q(r)end"
+- 1 -> 0	"elseif t==3 then if f%2<1 and r[17]then K(s,r)end else r[21]=nil Q(r)end end"
+- 1 -> 0	"elseif t==4 then I[4](s,i,r)else Q(r)end end F[i]=nil end"
+- 2 -> 3	"end"
+- 4 -> 5	"fader-h"
+- 4 -> 5	"fader-v"
+- 11 -> 12	"field"
+- 1 -> 3	"field-output"
+- 1 -> 0	"function D(s,r,n,c,v)v=r[12]+(r[13]-r[12])*v//127 "
+- 1 -> 0	"function K(s,r)if r[14]//2%2>0 then s:gms(r[8],128,r[6],0,0)"
+- 3 -> 1	"header and tables"
+- 2 -> 3	"helper first type-helper"
+- 1 -> 0	"if f%2>0 then if o then F[i]={a,b}return end local k=f//2%2>0 and 127 or 64 "
+- 1 -> 0	"if v~=r[n]then r[n]=v s:gms(r[8],176,c,v,0)end end"
+- 1 -> 0	"if x then local a,b=${},${}"
+- 1 -> 0	"if x then p=r[5]<2 and ${}or ${}"
+- 1 -> 2	"kind"
+- 21 -> 24	"knob"
+- 11 -> 12	"label type-micro"
+- 1 -> 0	"local a=math.deg(math.atan(v,u))//1 "
+- 1 -> 0	"local c=N(x,y)if c~=r[21]then r[21]=c "
+- 14 -> 15	"max"
+- 5 -> 6	"message type-helper"
+- 14 -> 15	"min"
+- 40 -> 43	"mode"
+- 61 -> 64	"note"
+- 16 -> 21	"number"
+- 2 -> 3	"numeric"
+- 10 -> 12	"option"
+- 1 -> 5	"output"
+- 57 -> 58	"play"
+- 1 -> 0	"r[12]=r[12]or 0 r[13]=r[13]or 127 r[14]=r[14]or 0"
+- 1 -> 0	"r[17]=true s:gms(r[8],f//2%2>0 and 144 or 176,r[6],r[13],0)"
+- 23 -> 24	"row"
+- 12 -> 13	"rows"
+- 1 -> 0	"s:gms(r[8],176,r[6],m==1 and k%128 or m==2 and 64+k or k>0 and k or 64-k,0)"
+- 8 -> 11	"select"
+- 13 -> 15	"setup"
+- 39 -> 40	"sr-only"
+- 13 -> 12	"timer"
+- 82 -> 84	"true"
+- 6 -> 9	"words"
+- 34 -> 43	"xy"
++ 0 -> 1	"${} output ${}"
++ 0 -> 1	"${}-colour-input"
++ 0 -> 1	"${}-colour-input-helper"
++ 0 -> 1	"${}-output-y"
++ 0 -> 1	"${}-receive"
++ 0 -> 1	"${}: ${} is in two roles"
++ 0 -> 1	"${}: ${} names no knob (${})"
++ 0 -> 1	"${}: Receive is not Off and On"
++ 0 -> 1	"${}: no Channel"
++ 0 -> 1	"${}: no Type"
++ 0 -> 1	"${}: the Channel is not the sixteen channels"
++ 0 -> 1	"${}: the Number is not 0..127"
++ 0 -> 1	"${}: the Type's literals are not its types"
++ 0 -> 1	"${}: the id is not unique"
++ 0 -> 1	",\n      COLOR_INPUT_SWITCH,\n      undefined,\n      SWITCH_WORDS,\n      String(input !== undefined),\n      (value) => {\n        colourTyped = undefined;\n        oncolourinput?.(\n          value === "
++ 0 -> 1	"--[[@cb]]T={}C=0 S={}F={}"
++ 0 -> 1	"--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 if p<s.h then s.n=(s.n*75+74)%65537 end s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v,c=@SHAPE,8+(s.u+32)//64*9 if c~=s.c then glp(glag(0,s.c),1,0)glp(glag(0,c),1,255)s.c=c end local o,t=glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127),@TYPE s.l=o s:gms(@CH,t,t==208 and o or t>223 and 0 or @CC,t==208 and 0 or o)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end if s.k~=s.touch_cb then s.k=s.touch_cb s.midirx_cb=function(s,h,v)if s.k==s.touch_cb and h[1]==@RX and v[1]==@CH and v[2]==@TYPE and(@TYPE>207 or v[3]==@CC)then local w=@TYPE==208 and v[3]or v[4]if w~=s.l then s.u=-((w-127)*512//127)end end end end"
++ 0 -> 2	"144"
++ 0 -> 2	"176"
++ 0 -> 2	"192"
++ 0 -> 3	"208"
++ 0 -> 2	"@RX"
++ 0 -> 2	"@TYPE"
++ 0 -> 1	"A CC on this channel sets an element’s color: the first CC is the first element in the list, the next CC the second. 0 restores its own color, 1 to 126 go round the hue wheel, 127 is white."
++ 0 -> 1	"A relative mode sends one CC step per detent, so Type, Min and Max don’t apply and the knob doesn’t receive."
++ 0 -> 1	"CP"
++ 0 -> 2	"Channel pressure"
++ 0 -> 1	"Color input"
++ 0 -> 1	"D(s,r,19,r[6],a)D(s,r,20,r[7],b,r[15])end"
++ 0 -> 1	"D(s,r,z+3,r[6]+k,a)D(s,r,z+4,r[7]%128+k,b,r[15])end end"
++ 0 -> 1	"Every finger sends on its own pair: finger 2 on the CC numbers two up, finger 3 four up. Each finger has its own crosshair. A pad with more than one touch doesn’t receive."
++ 0 -> 1	"First CC"
++ 0 -> 1	"I=I or{}"
++ 0 -> 1	"I[4]=function(s,i,r,x,y,o)local f,a,b,c=r[14]"
++ 0 -> 1	"I[5]=function(s,i,r,x,y)local m,a=r[14]if x then local u,v=x-r[15],y-r[16]"
++ 0 -> 1	"LFO"
++ 0 -> 1	"MIDI receive"
++ 0 -> 1	"MIDI type"
++ 0 -> 1	"Number"
++ 0 -> 1	"PB"
++ 0 -> 1	"Per output"
++ 0 -> 1	"Pitch bend and channel pressure carry no number. A pitch bend sends the value as its high byte, so 64 is the center."
++ 0 -> 1	"Program change"
++ 0 -> 1	"R=function(s,i)local r=J[S[i]]S[i],F[i],T[i]=nil if not r then return end "
++ 0 -> 1	"R=function(s,i)local r=J[S[i]]S[i],T[i]=nil if r then local t,f=r[5],r[14]"
++ 0 -> 2	"Receive"
++ 0 -> 1	"Receive colors"
++ 0 -> 1	"S={}F={}"
++ 0 -> 1	"Same channel for all"
++ 0 -> 1	"Sets every output below to one channel. Per output leaves each on its own."
++ 0 -> 1	"When your DAW sends this element’s message, the element takes the value and shows it. Nothing is sent back."
++ 0 -> 1	"When your DAW sends this output’s message, the card takes the value and shows it. Its own messages coming back are ignored."
++ 0 -> 1	"X axis"
++ 0 -> 1	"Y axis"
++ 0 -> 1	"a,b=(r[17]or 0)//127,(r[18]or 0)//127 "
++ 0 -> 1	"a=math.deg(math.atan(v,u))//1 "
++ 0 -> 1	"axis-x"
++ 0 -> 1	"axis-y"
++ 0 -> 1	"c=r[1]+(a*(r[3]-1)+63)//127+(r[2]+r[4]-1-(b*(r[4]-1)+63)//127)*9 end "
++ 0 -> 1	"channel-y"
++ 0 -> 7	"channelY"
++ 0 -> 2	"colour-input"
++ 0 -> 4	"continuous"
++ 0 -> 1	"else r[16+j]=k>4 and p or p*127 D(nil,r,18+j,0,p)I[k](nil,0,r)end end end end end end"
++ 0 -> 1	"else r[17]=glim((r[17]or 0)+k,0,127)D(s,r,19,r[6],r[17])end end end F[i]=a end "
++ 0 -> 1	"else s:gms(r[8]%16,176,r[6],r[12])end r[17]=nil Q(r)end"
++ 0 -> 1	"elseif t==3 then if f%2<1 and r[17]then K(s,r)end else r[21]=nil Q(r)end end E=R"
++ 0 -> 1	"elseif t==4 then I[4](s,i,r)else Q(r)end end F[i]=nil end E=R"
++ 0 -> 1	"f(self, {${}, 0, 0}, {${}, ${}, ${}, ${}}) return true"
++ 0 -> 1	"field-output-y"
++ 0 -> 1	"field-receive"
++ 0 -> 1	"field:surface:colour-input"
++ 0 -> 1	"for _,r in pairs(J)do ${} end"
++ 0 -> 1	"for _,r in pairs(J)do local k=r[5]if k and r[8]<64 then "
++ 0 -> 1	"for j,o in pairs(k==4 and{r[8],r[15]or r[8]}or{r[8]})do "
++ 0 -> 1	"for m=0,80 do if math.abs(M[m])==e then local g=glag(0,m)"
++ 0 -> 1	"for q=12,14 do r[q]=r[q]or q%2*127 end"
++ 0 -> 1	"function ${}(s,h,v)if h[1]~=13 or s.touch_cb~=${} then return end "
++ 0 -> 1	"function A(r,x,y)return ${},${}end"
++ 0 -> 1	"function D(s,r,n,c,v,h)v=r[12]+(r[13]-r[12])*v//127 "
++ 0 -> 1	"function K(s,r)if r[8]%128>95 then s:gms(r[8]%16,128,r[6],0)"
++ 0 -> 1	"function Z(e,w)local r=J[e]if r then local x,y,z=r[9],r[10],r[11]"
++ 0 -> 1	"glc(g,1,x,y,z,1)glc(g,2,x,y,z,1)end end end end"
++ 0 -> 1	"if c~=r[21]then r[21]=c "
++ 0 -> 1	"if f%2>0 and x then if o then F[i]={a,b}return end local k=f//2%2>0 and 127 or 64 "
++ 0 -> 1	"if k==3 then r[17]=u~=r[12]and u>0 or nil Q(r,r[17]and function()return 255 end)"
++ 0 -> 1	"if o==q and(o>31 or n==r[5+j])then "
++ 0 -> 1	"if s then s:gms(h%16,176+t*16,t==2 and v or c,t==2 and 0 or v)end end end"
++ 0 -> 1	"if t==176 and v[1]==${} then Z(${},w)end "
++ 0 -> 1	"if v~=r[n]then r[n]=v h=h or r[8]local t=h//16%4 "
++ 0 -> 1	"if w>0 then x,y,z=x*${}//255,y*${}//255,z*${}//255 end "
++ 0 -> 1	"if w>126 then x,y,z=255,255,255 elseif w>0 then local a,q=math.abs,(w-1)*1536//126 "
++ 0 -> 1	"if x then a,b=A(r,x,y)c=N(x,y)else "
++ 0 -> 1	"if x then local a,b=A(r,x,y)"
++ 0 -> 1	"if x then local a,b=A(r,x,y)p=r[5]<2 and b or a "
++ 0 -> 1	"lfo"
++ 0 -> 1	"local a=glag(0,n)"
++ 0 -> 1	"local f = self.midirx_cb if type(f) ~= \"function\" then return false end "
++ 0 -> 1	"local p=d~=0 and glim((u-r[12])*127//d,0,127)or 0 "
++ 0 -> 1	"local q=v[1]+t-176 "
++ 0 -> 1	"local t,n,w=v[2],v[3],v[4]if t==128 then t,w=144,0 end "
++ 0 -> 1	"local u,d=o//16==2 and n or w,r[13]-r[12]"
++ 0 -> 1	"midi-output"
++ 0 -> 1	"midiReceive"
++ 0 -> 1	"midiSameChannel"
++ 0 -> 1	"midiType"
++ 0 -> 1	"n+${}"
++ 0 -> 1	"n-${}"
++ 0 -> 2	"outputY"
++ 0 -> 6	"pitchbend"
++ 0 -> 5	"pressure"
++ 0 -> 1	"r[17]=true s:gms(r[8]%16,176-r[8]%128//96*32,r[6],r[13])"
++ 0 -> 10	"receive"
++ 0 -> 1	"s:gms(r[8]%16,176,r[6],m==1 and k%128 or m==2 and 64+k or k>0 and k or 64-k)"
++ 0 -> 1	"self.midirx_cb=${}"
++ 0 -> 1	"self.midirx_cb=nil"
++ 0 -> 3	"subhead type-micro"
++ 0 -> 2	"trigger"
++ 0 -> 8	"type"
++ 0 -> 1	"x,y,z=glim(a(q-768)-256,0,255),glim(512-a(q-512),0,255),glim(512-a(q-1024),0,255)end "
+
+## the comment lines
+214 files; 55298 lines, 36652 code, 14301 comment, 4345 blank, 4284 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/arc.ts | 235 | 271 | 115 | 129 | 96 | 105 |
+| src/lib/catalog/types.ts | 197 | 222 | 89 | 100 | 11 | 11 |
+| src/lib/sandbox/conflicts.ts | 78 | 99 | 14 | 15 | 10 | 9 |
+| src/lib/sandbox/copy.ts | 415 | 434 | 113 | 118 | 14 | 14 |
+| src/lib/sandbox/cost.ts | 235 | 239 | 41 | 43 | 12 | 12 |
+| src/lib/sandbox/editor.ts | 1600 | 1723 | 252 | 267 | 13 | 13 |
+| src/lib/sandbox/emit.ts | 310 | 372 | 78 | 92 | 12 | 12 |
+| src/lib/sandbox/history.ts | 134 | 135 | 27 | 27 | 12 | 12 |
+| src/lib/sandbox/library-trim.ts | 82 | 90 | 22 | 30 | 10 | 11 |
+| src/lib/sandbox/model.ts | 450 | 552 | 133 | 168 | 12 | 12 |
+| src/lib/sandbox/runtime.ts | 491 | 741 | 165 | 268 | 12 | 9 |
+| src/lib/sim/lua-host.ts | 805 | 831 | 212 | 220 | 12 | 12 |
+| src/lib/store/schema.ts | 521 | 596 | 132 | 154 | 15 | 15 |
+| src/lib/tune/inspector-copy.ts | 277 | 298 | 121 | 127 | 16 | 16 |
+| src/lib/tune/midi.ts (new) | - | 176 | - | 37 | - | 9 |
+| src/lib/tune/model.ts | 976 | 991 | 244 | 246 | 13 | 13 |
+| src/lib/tune/view.ts | 874 | 919 | 243 | 256 | 16 | 16 |
+| src/lib/ui/MidiField.svelte | 327 | 328 | 35 | 35 | 15 | 15 |
+| src/lib/ui/TuningRegion.svelte | 751 | 875 | 117 | 130 | 14 | 14 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 1526 | 1780 | 95 | 112 | 15 | 15 |
+| src/lib/ui/sandbox/SurfaceEditor.svelte | 1587 | 1596 | 168 | 169 | 17 | 17 |
+| src/routes/sandbox/[draftId]/+page.svelte | 1376 | 1379 | 109 | 109 | 15 | 15 |
+| **totals (213 -> 214 files)** | 53898 | 55298 | 13974 | 14301 | 4269 | 4284 |
+
+22 file(s) moved
+
+## check and lint
+check: 1790166181532 COMPLETED 678 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 1
+  
+  > hangar@0.0.1 lint
+  > prettier --check . && eslint .
+  
+  Checking formatting...
+  [[33mwarn[39m] docs/MIDI.md
+  [[33mwarn[39m] Code style issues found in the above file. Run Prettier with --write to fix.
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 96 files, 1036 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp b40ce7a
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: fc1e0f8604c5438ba146d4e5c9294aaac6c66ffada86ce39ba8d0a3b3dd7a0f2 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 fc1e0f8604c5438ba146d4e5c9294aaac6c66ffada86ce39ba8d0a3b3dd7a0f2
+SCOPED CSS sha256 b828168415971ff294b26ebc073dd34bbcacdaf265d13584d34f870a9982bd33
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 2ea0fefdd63ee1dd05f8514d55ffbc0ceefd8e43df7f9d36f55c06ec00019893 (73 files)
+
+## the titles
+TITLES sha256 01badcea94496c16dd6067b6bd41d105cb642ea8b0b7f1b80035a1aa3fc84cb9 (1037 vitest titles incl. todo, 117 playwright runs)
+
+## src/ against the before-record's HEAD db5a3c53c231296d2a25071e8774fb3a29a521fc
+git diff --name-status: 31 modified, 1 added, 0 deleted, 0 renamed
+  A	src/lib/tune/midi.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-17a
+wire moved: set 654e202ec732d689fcfdd8ff6a4dff85e4dbc8f813b728ccb586c48c8da119c1 -> 6acf32aee1ab097f195c584ccb5577ce0744b9258d78541433ecc77d63893742; full 1c4acf19cdcb829d98347095433da40c1a33e0e22e6fdf936ea6933a8a45be5a -> c43fa145b5b1ebd5531352403aba4e6d1c296f26e03ca59e09dd4013d24201de
+  ~ E/arc/defaults/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/corner/timer aa567409588f6d96 -> 737618314bf967c1
+  ~ E/arc/knob swirlColour=0/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob swirlColour=1/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob swirlColour=2/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob swirlColour=3/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob swirlColour=4/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob arms=0/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob arms=1/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob arms=2/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob heartColour=0/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob heartColour=1/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob heartColour=2/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob heartColour=3/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob heartColour=4/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob cc=0/timer 59f1cc9f0cd6365f -> b7fd56b52470a678
+  ~ E/arc/knob cc=1/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob cc=2/timer 061280e1fd878e5a -> 7be86dfeeea9f405
+  ~ E/arc/knob cc=3/timer 128dc944913ec00c -> 59727ef0acbae14e
+  ~ E/arc/knob cc=4/timer acf2b3469faff4d3 -> 666195937fadc237
+  ~ E/arc/knob channel=0/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob channel=1/timer 05ce1e81da4633a0 -> 834d5db344f25048
+  ~ E/arc/knob channel=2/timer 285c475ae65e61ba -> 0a85bf446e15d7cf
+  ~ E/arc/knob channel=3/timer a9866986f47e74d6 -> ffd017ebbc35d1bc
+  ~ E/arc/knob channel=4/timer 483839d65146f5a6 -> 998312187841a25f
+  ~ E/arc/knob channel=5/timer 3e161457c4b30ed1 -> 3c67f4dda58c5179
+  ~ E/arc/knob channel=6/timer 16db3b9741b39455 -> 4f86cb4b88343f89
+  ~ E/arc/knob channel=7/timer 211b46cedeae0375 -> dd667c97b2b2a009
+  ~ E/arc/knob channel=8/timer f0b692f8062c1b3d -> 749cde33fd405ff5
+  ~ E/arc/knob channel=9/timer c9669ee2f1808ef6 -> 2e4609267751605e
+  ~ E/arc/knob channel=10/timer 18274a38a4836d48 -> 3215a69ef709d1d3
+  ~ E/arc/knob channel=11/timer 2601f12c255b66c3 -> bfa2d60c49e27acf
+  ~ E/arc/knob channel=12/timer a69c7a36ff0da629 -> 0f003a9bbe88ba2d
+  ~ E/arc/knob channel=13/timer 8862b449f081b3cc -> e09f04bd1abe4dd4
+  ~ E/arc/knob channel=14/timer a5b7d0207813f09f -> 997fb3628dd7c3c2
+  ~ E/arc/knob channel=15/timer d206586328064824 -> 72873f71633bc7c0
+  ~ E/arc/knob shape=0/timer 7638884340eff31e -> 2872d9100bf068f5
+  ~ E/arc/knob shape=1/timer b550143cfd237789 -> 9fd3ed255ccfa263
+  ~ E/arc/knob shape=2/timer 0ef144112d344a28 -> 3724b622acc917c1
+  ~ E/arc/knob shape=3/timer 34ba1293ae0a541f -> 31f885425844b787
+  ~ E/arc/knob shape=4/timer 96057bd9e876353c -> b0d59bb35042510c
+  ~ E/arc/knob shape=5/timer 00a9b74521cc48dd -> c0dbf4d2b88e9548
+  - E/arc/cross-product (36000 states)
+  ~ S/page3/landed/systemTimer 56121ca8076ecf64 -> faf402737463ec8e
+  ~ S/page3/landed/system a49cd670681ba1ec -> e269196a6f5eb70b
+  ~ S/page3/landed/systemUtility 3ec7ebf259308249 -> 3c7255b52d564c87
+  ~ S/page3/landed/setup c559f5ae41f24232 -> bf7e28991c5c5e01
+  ~ S/page3/landed/timer d45147bdea1f897a -> 42e0579d2f9cb400
+  ~ S/page3/emitted/setup c559f5ae41f24232 -> bf7e28991c5c5e01
+  ~ S/page3/emitted/timer d45147bdea1f897a -> 42e0579d2f9cb400
+  ~ S/page3/emitted/mapmode 3ec7ebf259308249 -> 3c7255b52d564c87
+  ~ S/page3/emitted-at-corner/setup c559f5ae41f24232 -> bf7e28991c5c5e01
+  ~ S/page3/emitted-at-corner/timer d45147bdea1f897a -> 42e0579d2f9cb400
+  ~ S/page3/emitted-at-corner/mapmode 3ec7ebf259308249 -> 3c7255b52d564c87
+  ~ S/page3/emitted-2-slots/setup 658478ef59d8c568 -> 90f2dd18c118b423
+  ~ S/page3/emitted-2-slots/timer 4d7a506061009d9c -> 0f562f599f23718f
+  + E/arc/knob cc=5/setup
+  + E/arc/knob cc=5/timer
+  + E/arc/knob cc=6/setup
+  + E/arc/knob cc=6/timer
+  + E/arc/knob cc=7/setup
+  + E/arc/knob cc=7/timer
+  + E/arc/knob cc=8/setup
+  + E/arc/knob cc=8/timer
+  + E/arc/knob cc=9/setup
+  + E/arc/knob cc=9/timer
+  + E/arc/knob cc=10/setup
+  + E/arc/knob cc=10/timer
+  + E/arc/knob cc=11/setup
+  + E/arc/knob cc=11/timer
+  + E/arc/knob cc=12/setup
+  + E/arc/knob cc=12/timer
+  + E/arc/knob cc=13/setup
+  + E/arc/knob cc=13/timer
+  + E/arc/knob cc=14/setup
+  + E/arc/knob cc=14/timer
+  + E/arc/knob cc=15/setup
+  + E/arc/knob cc=15/timer
+  + E/arc/knob cc=16/setup
+  + E/arc/knob cc=16/timer
+  + E/arc/knob cc=17/setup
+  + E/arc/knob cc=17/timer
+  + E/arc/knob cc=18/setup
+  + E/arc/knob cc=18/timer
+  + E/arc/knob cc=19/setup
+  + E/arc/knob cc=19/timer
+  + E/arc/knob cc=20/setup
+  + E/arc/knob cc=20/timer
+  + E/arc/knob cc=21/setup
+  + E/arc/knob cc=21/timer
+  + E/arc/knob cc=22/setup
+  + E/arc/knob cc=22/timer
+  + E/arc/knob cc=23/setup
+  + E/arc/knob cc=23/timer
+  + E/arc/knob cc=24/setup
+  + E/arc/knob cc=24/timer
+  + E/arc/knob cc=25/setup
+  + E/arc/knob cc=25/timer
+  + E/arc/knob cc=26/setup
+  + E/arc/knob cc=26/timer
+  + E/arc/knob cc=27/setup
+  + E/arc/knob cc=27/timer
+  + E/arc/knob cc=28/setup
+  + E/arc/knob cc=28/timer
+  + E/arc/knob cc=29/setup
+  + E/arc/knob cc=29/timer
+  + E/arc/knob cc=30/setup
+  + E/arc/knob cc=30/timer
+  + E/arc/knob cc=31/setup
+  + E/arc/knob cc=31/timer
+  + E/arc/knob cc=32/setup
+  + E/arc/knob cc=32/timer
+  + E/arc/knob cc=33/setup
+  + E/arc/knob cc=33/timer
+  + E/arc/knob cc=34/setup
+  + E/arc/knob cc=34/timer
+  + E/arc/knob cc=35/setup
+  + E/arc/knob cc=35/timer
+  + E/arc/knob cc=36/setup
+  + E/arc/knob cc=36/timer
+  + E/arc/knob cc=37/setup
+  + E/arc/knob cc=37/timer
+  + E/arc/knob cc=38/setup
+  + E/arc/knob cc=38/timer
+  + E/arc/knob cc=39/setup
+  + E/arc/knob cc=39/timer
+  + E/arc/knob cc=40/setup
+  + E/arc/knob cc=40/timer
+  + E/arc/knob cc=41/setup
+  + E/arc/knob cc=41/timer
+  + E/arc/knob cc=42/setup
+  + E/arc/knob cc=42/timer
+  + E/arc/knob cc=43/setup
+  + E/arc/knob cc=43/timer
+  + E/arc/knob cc=44/setup
+  + E/arc/knob cc=44/timer
+  + E/arc/knob cc=45/setup
+  + E/arc/knob cc=45/timer
+  + E/arc/knob cc=46/setup
+  + E/arc/knob cc=46/timer
+  + E/arc/knob cc=47/setup
+  + E/arc/knob cc=47/timer
+  + E/arc/knob cc=48/setup
+  + E/arc/knob cc=48/timer
+  + E/arc/knob cc=49/setup
+  + E/arc/knob cc=49/timer
+  + E/arc/knob cc=50/setup
+  + E/arc/knob cc=50/timer
+  + E/arc/knob cc=51/setup
+  + E/arc/knob cc=51/timer
+  + E/arc/knob cc=52/setup
+  + E/arc/knob cc=52/timer
+  + E/arc/knob cc=53/setup
+  + E/arc/knob cc=53/timer
+  + E/arc/knob cc=54/setup
+  + E/arc/knob cc=54/timer
+  + E/arc/knob cc=55/setup
+  + E/arc/knob cc=55/timer
+  + E/arc/knob cc=56/setup
+  + E/arc/knob cc=56/timer
+  + E/arc/knob cc=57/setup
+  + E/arc/knob cc=57/timer
+  + E/arc/knob cc=58/setup
+  + E/arc/knob cc=58/timer
+  + E/arc/knob cc=59/setup
+  + E/arc/knob cc=59/timer
+  + E/arc/knob cc=60/setup
+  + E/arc/knob cc=60/timer
+  + E/arc/knob cc=61/setup
+  + E/arc/knob cc=61/timer
+  + E/arc/knob cc=62/setup
+  + E/arc/knob cc=62/timer
+  + E/arc/knob cc=63/setup
+  + E/arc/knob cc=63/timer
+  + E/arc/knob cc=64/setup
+  + E/arc/knob cc=64/timer
+  + E/arc/knob cc=65/setup
+  + E/arc/knob cc=65/timer
+  + E/arc/knob cc=66/setup
+  + E/arc/knob cc=66/timer
+  + E/arc/knob cc=67/setup
+  + E/arc/knob cc=67/timer
+  + E/arc/knob cc=68/setup
+  + E/arc/knob cc=68/timer
+  + E/arc/knob cc=69/setup
+  + E/arc/knob cc=69/timer
+  + E/arc/knob cc=70/setup
+  + E/arc/knob cc=70/timer
+  + E/arc/knob cc=71/setup
+  + E/arc/knob cc=71/timer
+  + E/arc/knob cc=72/setup
+  + E/arc/knob cc=72/timer
+  + E/arc/knob cc=73/setup
+  + E/arc/knob cc=73/timer
+  + E/arc/knob cc=74/setup
+  + E/arc/knob cc=74/timer
+  + E/arc/knob cc=75/setup
+  + E/arc/knob cc=75/timer
+  + E/arc/knob cc=76/setup
+  + E/arc/knob cc=76/timer
+  + E/arc/knob cc=77/setup
+  + E/arc/knob cc=77/timer
+  + E/arc/knob cc=78/setup
+  + E/arc/knob cc=78/timer
+  + E/arc/knob cc=79/setup
+  + E/arc/knob cc=79/timer
+  + E/arc/knob cc=80/setup
+  + E/arc/knob cc=80/timer
+  + E/arc/knob cc=81/setup
+  + E/arc/knob cc=81/timer
+  + E/arc/knob cc=82/setup
+  + E/arc/knob cc=82/timer
+  + E/arc/knob cc=83/setup
+  + E/arc/knob cc=83/timer
+  + E/arc/knob cc=84/setup
+  + E/arc/knob cc=84/timer
+  + E/arc/knob cc=85/setup
+  + E/arc/knob cc=85/timer
+  + E/arc/knob cc=86/setup
+  + E/arc/knob cc=86/timer
+  + E/arc/knob cc=87/setup
+  + E/arc/knob cc=87/timer
+  + E/arc/knob cc=88/setup
+  + E/arc/knob cc=88/timer
+  + E/arc/knob cc=89/setup
+  + E/arc/knob cc=89/timer
+  + E/arc/knob cc=90/setup
+  + E/arc/knob cc=90/timer
+  + E/arc/knob cc=91/setup
+  + E/arc/knob cc=91/timer
+  + E/arc/knob cc=92/setup
+  + E/arc/knob cc=92/timer
+  + E/arc/knob cc=93/setup
+  + E/arc/knob cc=93/timer
+  + E/arc/knob cc=94/setup
+  + E/arc/knob cc=94/timer
+  + E/arc/knob cc=95/setup
+  + E/arc/knob cc=95/timer
+  + E/arc/knob cc=96/setup
+  + E/arc/knob cc=96/timer
+  + E/arc/knob cc=97/setup
+  + E/arc/knob cc=97/timer
+  + E/arc/knob cc=98/setup
+  + E/arc/knob cc=98/timer
+  + E/arc/knob cc=99/setup
+  + E/arc/knob cc=99/timer
+  + E/arc/knob cc=100/setup
+  + E/arc/knob cc=100/timer
+  + E/arc/knob cc=101/setup
+  + E/arc/knob cc=101/timer
+  + E/arc/knob cc=102/setup
+  + E/arc/knob cc=102/timer
+  + E/arc/knob cc=103/setup
+  + E/arc/knob cc=103/timer
+  + E/arc/knob cc=104/setup
+  + E/arc/knob cc=104/timer
+  + E/arc/knob cc=105/setup
+  + E/arc/knob cc=105/timer
+  + E/arc/knob cc=106/setup
+  + E/arc/knob cc=106/timer
+  + E/arc/knob cc=107/setup
+  + E/arc/knob cc=107/timer
+  + E/arc/knob cc=108/setup
+  + E/arc/knob cc=108/timer
+  + E/arc/knob cc=109/setup
+  + E/arc/knob cc=109/timer
+  + E/arc/knob cc=110/setup
+  + E/arc/knob cc=110/timer
+  + E/arc/knob cc=111/setup
+  + E/arc/knob cc=111/timer
+  + E/arc/knob cc=112/setup
+  + E/arc/knob cc=112/timer
+  + E/arc/knob cc=113/setup
+  + E/arc/knob cc=113/timer
+  + E/arc/knob cc=114/setup
+  + E/arc/knob cc=114/timer
+  + E/arc/knob cc=115/setup
+  + E/arc/knob cc=115/timer
+  + E/arc/knob cc=116/setup
+  + E/arc/knob cc=116/timer
+  + E/arc/knob cc=117/setup
+  + E/arc/knob cc=117/timer
+  + E/arc/knob cc=118/setup
+  + E/arc/knob cc=118/timer
+  + E/arc/knob cc=119/setup
+  + E/arc/knob cc=119/timer
+  + E/arc/knob cc=120/setup
+  + E/arc/knob cc=120/timer
+  + E/arc/knob cc=121/setup
+  + E/arc/knob cc=121/timer
+  + E/arc/knob cc=122/setup
+  + E/arc/knob cc=122/timer
+  + E/arc/knob cc=123/setup
+  + E/arc/knob cc=123/timer
+  + E/arc/knob cc=124/setup
+  + E/arc/knob cc=124/timer
+  + E/arc/knob cc=125/setup
+  + E/arc/knob cc=125/timer
+  + E/arc/knob cc=126/setup
+  + E/arc/knob cc=126/timer
+  + E/arc/knob cc=127/setup
+  + E/arc/knob cc=127/timer
+  + E/arc/knob midiType=0/setup
+  + E/arc/knob midiType=0/timer
+  + E/arc/knob midiType=1/setup
+  + E/arc/knob midiType=1/timer
+  + E/arc/knob midiType=2/setup
+  + E/arc/knob midiType=2/timer
+  + E/arc/knob midiReceive=0/setup
+  + E/arc/knob midiReceive=0/timer
+  + E/arc/knob midiReceive=1/setup
+  + E/arc/knob midiReceive=1/timer
+  + E/arc/cross-product (576 states)
+FAIL: the wire

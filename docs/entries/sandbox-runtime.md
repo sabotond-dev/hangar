@@ -598,3 +598,53 @@ takes its slot; a mouse is one pointer and cannot show two. Multitouch is proved
 (`runtime.spec.ts` test 15: two fingers on both pairs with independent positions, the lowest free
 slot, the third finger ignored, the union and a lifted finger's cross gone, Relative per finger,
 five fingers on five pairs with a sixth ignored and the middle slot retaken).
+
+## MIDI types, MIDI RX and the colour input (2026-09-23, change 17A; `BENCH-2026-09-16.txt` section 17)
+
+Every Sandbox element sends by its **Type** on its **Channel** (an XY pad's Y axis on its own), and **receives** by
+default; the surface may take its colours from the DAW. The model, the wire and the rules are `docs/MIDI.md`
+section 3; this section is the runtime's ledger.
+
+**The row.** The eighth column is the CHANNEL WORD - the wire channel, plus 16 times the type's code (CC 0, Channel
+pressure 2, Pitch bend 3, a button's Note -2), plus 128 when the element does not receive (Receive off, a relative
+knob, a pad with more than one touch). A controller that receives is the bare channel, the column before change 17,
+so a default row is byte-identical; a pitch bend's controller column is 0; an XY pad's Y axis word is the fifteenth
+column when it differs from the X axis's. The button's note left the flag word (bit 1) for the word's code, so a note
+button with no other option loses its forced tail (`,0,127,2`, 8 characters) for one character on its word. Measured
+against a flag-word bit (+10 on an otherwise-default row) and a column of its own (+2 to +4 on every row).
+
+**The texts, before -> after** (characters, canonical): `R` 227 -> 232 (it forgets the stamp and is the expiry: `E=R`,
+the library's `E` no longer landed); `O` 323 -> 273 (the tail defaults left it for the Timer's head); `D` 100 -> 174
+(the send by the channel word, silent with no element); `K` 114 -> 115; `I[1]` 503 -> 420 and `I[4]` 502 -> 537 (the
+positions through the new `A`, 133; the pad and the knob redraw with no finger); `I[3]` 298 -> 295; `I[5]` 608 -> 602;
+`Q` 111; new `Y` 539 (the receive callback; 580 with the colour input's call) and `Z` 337 (the hue wheel; 392 dimmed).
+The multitouch variant: `R` 234 -> 243, `O` 392, `I[4]` 601 -> 509. The runtime alone with every branch 2,795 -> 2,908,
+without the knob 2,208 -> 2,305, the knob's share 603; the receive half beside every branch +540.
+
+**The heads moved out of the Setup.** Sixteen elements at their dearest defaults left the Setup 16 characters (892 at
+five slots), and RX adds three statements there by the obvious route; so none of them is the Setup's: the contact
+tables `S={}F={}` are the trimmed 255/0's head (`TRIMMED_HEAD`, `--[[@cb]]T={}C=0 S={}F={}`: 255/0 842 -> 460 at 10B ->
+363 now) - the Setup's only under two or three slots; the tail defaults are a loop at the head of the touch Timer
+(`TAIL_DEFAULTS_LOOP`, whose first run is inside the Setup's own `self:tim()`); the receive assignment
+(`self.midirx_cb=Y`, or `=nil` when nothing receives) is at the Timer's end, every run. Each slot's head is `I=I or{}`
+(8, was 24). So the dearest sixteen still land at **892** at five slots and the cap floor from an empty surface is still
+**11** of the dearest faders; from twelve it is **14** (was 15: the dearest channel word, a channel pressure on 16 with
+Receive off, 175, is one digit more).
+
+**The Setup is the fifth slot** under five slots: a part may stand between its data half and its pull-ins, and when
+first fit decreasing leaves a part over, an exact depth-first search (bounded by the room left and by 20,000 tries;
+under a millisecond on page 3) looks for a placement. **Page 3** (a fader, a pad, a knob, a button, every one
+receiving): 255/6 893, 255/0 908, 255/4 852, Timer 906, Setup 900 - it fits, with 73 characters left across its five
+strings (before 847 / 908 / 834 / 783 / 489); placement R:Timer O:255/6 Q:Setup D:Setup A:Timer K:Setup I[1]:Timer
+I[3]:255/4 I[4]:255/0 I[5]:255/6 Y:255/4. The cost of that: page 3 has room for **one** more dearest fader (it had
+room for many). With every element's Receive off it is 893 / 908 / 907 / 716 and the Setup 497 again. Every kind
+combination fits five slots with every element receiving; beside a multitouch pad the same three are over as at change
+11 (`vbxk`, `hbxk`, `vhbxk`). With the colour input on, the three combinations that carry a fader, a button, a pad and
+a knob are over (page 3 with the colour input: the Timer 1,239); fewer kinds fit.
+
+**What RX does per kind** (`runtime.spec.ts` tests 17 to 20): a fader's held fine position and bar (a relative fader
+continues from it, a spring fader holds it until its next release); a button's on-flag and light (on above 0 and not
+its min); a one-touch pad's matching axis and the crosshair at the held pair; an absolute knob's position and arc.
+The value is kept as the last one sent, so nothing is echoed. A neighbour's traffic (INSTR 14), another channel,
+another number, a program change on a note's number, and a stale callback (another landing's touch callback installed)
+are ignored.

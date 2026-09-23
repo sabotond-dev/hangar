@@ -3699,3 +3699,132 @@ Recorded:
 - Built in two serial parts on Opus: 17A the shared pieces (the send and receive helpers, the
   knob model and stamp for per-output MIDI, the tuning panel's MIDI block) and the whole Sandbox;
   17B the twenty-seven playground cards, one commit per card.
+
+**Done - change 17A, 2026-09-23 (the shared pieces, the whole Sandbox, ARC; nothing asked, every
+decision recorded).** Eight commits before the docs, no push, no device, no deploy: `6b3fe11`
+feat(sandbox) the runtime; `d5e51fe` feat(sandbox) the inspector; `bd3dad3` feat(tune) the
+playground's MIDI outputs and ARC's LFO; `3eec7fa` fix(sandbox) the Color input's switch an entry
+of its own, an integer ladder a run in any order; `576cccf` test the two e2e walks and
+`QUICK_TESTS` 1036; `d1b2a1e` fix three comments Tailwind read as `row-1`; `b40ce7a`
+docs(audition) row 40; `bc3f400` fix(census) the census reads an output knob by its role; then
+this paragraph with `docs/MIDI.md` (new: 17B's manual), `docs/TESTING.md`'s "2026-09-23 change
+17A", the dated sections in `docs/entries/sandbox-runtime.md` and `docs/entries/arc.md`, ARC's rows
+in `docs/TUNING-REVIEW.md`, and the gate records `gate/change-17a.*` (before, at `db5a3c5`, the main
+tree clean) and `gate/change-17a-after.*` (at `b40ce7a`).
+
+**The firmware, read.** Voice MIDI reaches Lua by default (`init.lua`'s `grxm(MIDIVOICE,
+FORWARD|HANDLE_EXTERNAL)`; no `grxm` of ours needed, REALTIME stays off); `decode.lua`'s
+`pass_midi` calls every element's `midirx_cb(self,{instr,sx,sy},{ch,cmd,p1,p2})` - instr 13 the
+host, 14 a neighbour's sends passing through; `gmrr` does not reach a touch element, so the
+callback is assigned by hand (BOTOR's route); and nothing clears `midirx_cb` between landings, so
+every callback guards itself on the touch callback it was made beside and is inert after another
+landing. Whether host MIDI reaches the TOUCH element's callback on a module at all is unbenched -
+row 10's open question, and audition row 40's.
+
+**The send.** Types: CC 176, Pitch bend 224, Channel pressure 208 on a continuous output; Note 144
+and CC on a trigger; Program change 192 only on a trigger with no off (`once`) - no Sandbox button
+has none, so the Sandbox offers Note and CC. Wire per type: CC `number, value`; Pitch bend `0,
+value` (7-bit: 64 is exactly the centre, 8192 - chosen over `v*129` so a spring fader or an LFO
+rests on no bend; 127 is 16256); Channel pressure `value, 0`; Note `number, velocity`, off `128,
+number, 0`. In the Sandbox the helper is `D`, by the row's channel word: `function
+D(s,r,n,c,v,h)v=r[12]+(r[13]-r[12])*v//127 if v~=r[n]then r[n]=v h=h or r[8]local t=h//16%4 if s
+then s:gms(h%16,176+t*16,t==2 and v or c,t==2 and 0 or v)end end end` (174 characters, was 100;
+`s` nil stores without sending - the receive's no-echo). On a card the send is inline:
+`local o,t=<value>,@TYPE s.l=o s:gms(@CH,t,t==208 and o or t>223 and 0 or @CC,t==208 and 0 or o)`.
+
+**The row encoding.** The eighth column is the CHANNEL WORD: wire channel + 16 x the type's code
+(CC 0, Channel pressure 2, Pitch bend 3, Note -2) + 128 when the element does not receive. A
+receiving controller is the bare channel, byte-identical to before; the dearest word is 175 (one
+digit more). The XY pad's Y word is column 15 when it differs; a pitch bend's controller column is
+0. The button's note left the flag word (a note button with nothing else loses its forced
+`,0,127,2` tail, -8, for one character). Measured against a flag bit (+10 on an otherwise-default
+row) and a column of its own (+2 to +4 on every row).
+
+**The receive** (`Y`, 539 characters; assigned `self.midirx_cb=Y` at the end of the touch Timer,
+every run, `=nil` when nothing receives): host traffic only, and only while this surface's `O` is
+the element's touch callback; a note-off folds into a note-on at 0; the message becomes a word
+(`channel + status - 176`) matched whole against each receiving row's word (both axes of a pad),
+and for a CC or a note the number too; the value (a pressure's first byte, anything else's second)
+maps back through min..max. Per kind: a fader's held fine position and bar (a relative fader
+continues from it, a spring fader shows it until its next release); a button's on-flag and light
+(on above 0 and not its min); a one-touch XY pad's axis and the crosshair at the held pair; an
+absolute knob's position and arc. A relative knob and a multitouch pad do not receive (no kept
+position; transient slots) and show no Receive row. Nothing is echoed: the received value becomes
+the last value sent. On ARC the received value is the LFO's CENTRE - the offset fader moves to
+`s.u=-((w-127)*512//127)`, exact at depth 0 at seven measured values - and the callback, made by the
+Timer once per install (ARC's Setup is 806 of 908) keyed on `s.k=s.touch_cb`, ignores its own last
+value `s.l` (the echo guard for a card that sends at 50 Hz).
+
+**The colour input** (a surface setting, off by default, in the no-selection panel: Receive colors,
+Channel, First CC): a CC on its channel numbered `first + n - 1` recolours element n (the surface's
+order, a blank included) on layers 1 and 2 - 0 its own colour back, 1..126 a hue wheel in six
+sectors (1 red, 22 yellow, 43 green, 64 cyan, 85 blue, 106 magenta), 127 white, dimmed by the
+surface's brightness. `Z` 337 characters (392 dimmed) plus 41 in `Y`. A palette index was measured
+out: 128 RGB triples are about ten times the wheel's text.
+
+**The playground's model (17B's contract, `docs/MIDI.md` section 4).** An entry declares
+`outputs: [{id, name, kind: "continuous" | "trigger", once?, tokens: {type, channel, number?,
+receive?}}]`, each token naming an ordinary knob built from `tune/midi.ts`'s ladders: Type the
+status bytes (`CONTINUOUS_STATUSES` 176 224 208, `TRIGGER_STATUSES` 144 176, `ONCE_STATUSES` + 192),
+Channel `CHANNEL_VALUES` 0..15, Number `numberValues(kept)` - 0..127 with the card's old rungs first
+in their old order so a saved copy keeps its value - and Receive `RECEIVE_VALUES` 0 / 13 (the header
+the callback answers, so Off and On cost the same Lua), On by default. The stamp needs nothing new:
+each knob is an index; a 128-rung Number is a wide knob, two base-32 characters, so a grown card's
+older links land unreadable (the known pattern). New knobs are appended, so saved copies' older
+indices hold. The panel draws Same channel for all (a select: Per output, or the shared channel,
+writing every output's channel), then a block per output under its name - Type (a select at three
+words, a segmented pair at two), Channel, Number (gone under Pitch bend or Channel pressure), Receive
+- then any unassigned MIDI knob. `outputProblems` (catalog.spec) refuses a bad declaration.
+
+**The library and the system slots.** `library.ts` untouched: a shared matcher and sender (about 90
++ 150 characters) fit neither library half (255/0 had 66 free, 255/6 35) and 255/4 is a card's
+page-next; inline per card costs ~45 more on the send and ~160 on the receive. No catalog card's
+system record moved; the Sandbox's own trimmed 255/0 moved (460 -> 363: its head now carries the
+contact tables `S={}F={}`, `E` no longer landed - the release is the expiry, `E=R`).
+
+**Budgets, before -> after.** Sandbox page 3, every element receiving: 255/6 847 -> 893, 255/0 908
+-> 908, 255/4 834 -> 852, Timer 783 -> 906, Setup 489 -> 900 (the Setup is the fifth bin under five
+slots, first fit decreasing then an exact search; 73 characters left, room for ONE more dearest
+fader); every Receive off 893 / 908 / 907 / 716 / 497. The dearest sixteen 892 -> 892 at five slots;
+the CAP FLOOR 11 -> 11 dearest faders from an empty surface, 15 -> 14 from twelve. Every kind
+combination fits five slots receiving; beside a multitouch pad the same three are over as at change
+11; with the colour input on, the three combinations carrying a fader, a button, a pad and a knob
+are over. ARC Setup 803 / 806 unmoved, Timer 410 / 437 -> 714 / 743; the lua-entries sweep 1,804 ->
+2,001 combinations, worst 906 of 908 unmoved; the sweep file **4 / 19**.
+
+**Screenshots** (the scratchpad; vite preview on 4174, stopped by port through PowerShell; 5173
+untouched): `shots/sandbox/`, `shots/sandbox2/` and `shots/arc/` at 1440 x 900, 1280 x 720 and
+393 x 852, each with a `-tall` cut. Fixed on seeing them: ARC's Type as a segmented row stacked
+1 + 1 + 1 (130 tall) - a Type of three words is a select; an XY pad's shared Min / Max / Receive
+under the Y axis read as the Y axis's - moved above the axis blocks. Left: "Channel pressure" sits
+against the select's arrow at 173px; ARC's channels read 0..15 (the card's numbering, X-08) where
+the Sandbox's read 1..16.
+
+**Counts, carried + delta:** quick 96 / 1028 + 1 todo -> **96 / 1036 + 1 todo** (+8: runtime 17 to
+20, sandbox-ui 29, tune-ui 15, lua-smoke two), green twice at `--maxWorkers=2`; check 677 -> **678**;
+lint clean; e2e 100 / 115 -> **102 / 117**; audition rows 39 -> **40**; utilities **44 -> 44**;
+catalog **27**; testids 341 -> **345**; copy exports +18 -2; OG and the four fixtures unmoved; `src/`
+31 modified, 1 added (`tune/midi.ts`). **The gate:** the wire set `654e202e…` -> `6acf32ae…`, the
+full `1c4acf19…` -> `c43fa145…`, the sandbox set `3bdb5974…` -> `05388336…` - moved by design (ARC's
+Timer records and its new knobs; `S/page3`; +6 Sandbox fixtures); SCOPED CSS `b2a15f74…` ->
+`b8281684…` by name (the two `.subhead` rules, `.rows > .subhead:first-child`); the census, the copy
+exports, the testids, the titles and the JS moved as `docs/TESTING.md` states; the script exits 1 at
+the wire by design. **Chunks** by files on the final build: c3 **27**, c4 **24**, c5 **11** passed.
+
+**Departures from the brief:** the colour input is OFF by default (a controller always listening
+on a channel a DAW uses for its own feedback would recolour unasked); a relative knob has no Type
+and no Receive, a multitouch pad no Receive; the Sandbox's receive assignment is in the touch TIMER,
+every run, not the Setup (the Setup had no room at page 3's cost), and ARC's likewise from its Timer
+once per install; ARC's received value is the centre, not the LFO's output; the Sandbox's cost
+representative is now a channel pressure with Receive off (the dearest word); `scripts/knob-census.mjs`
+fixed (not in the brief); STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) the colour input off by default - right? (2) Same channel for all
+and the card channels read 0..15 while the Sandbox reads 1..16: renumber the cards' channels 1..16
+in 17B? (3) Pitch bend as 7-bit with 64 the exact centre, or full 14-bit range with the centre off
+by 64? (4) the preset (compiler) cards assign no callback, so a previous landing's stays live -
+17B appending `self.midirx_cb=nil` moves every preset card's wire: accept? (5) page 3 now has room
+for one more dearest fader: acceptable, or should Receive default off on a surface near the budget?
+(6) ARC echo: a DAW that echoes controller feedback while the LFO runs - is the `s.l` guard enough,
+or should RX on a free-running output default Off? (7) the hue wheel rather than a palette - right?
+(8) a button's received "on" is above 0 and not its min - right for a button whose min is not 0?

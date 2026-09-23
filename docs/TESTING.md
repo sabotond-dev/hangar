@@ -7463,3 +7463,116 @@ reset expectation named Brightness alone where the swatch row carries one too; f
 source commit); c4 by its five files **23 passed** (the Sandbox's twelve walks on the new shape,
 first run); c5 by its four files **11 passed** (radius's three circles). c1 and c2 not run: no
 install, session or browse title reads the Sandbox's inspector.
+
+## 2026-09-23 change 17A - MIDI types, per-axis channels, MIDI RX and the colour input in the Sandbox; the playground's per-output MIDI blocks, ARC first
+
+`BENCH-2026-09-16.txt` section 17 (the user's answers: RX syncs value, LEDs and colours; common types only; per
+output; system slots allowed). Part 17A: the shared pieces, the whole Sandbox and ARC; 17B moves the other twenty-six
+cards, one commit each, against `docs/MIDI.md` (new - the model, the wire per type, the receive rules, the colour
+input, the output declaration and its stamp encoding, ARC's Lua recipe). Source commits before the docs, no push, no
+device, no deploy: `6b3fe11` feat(sandbox) the runtime (the channel word, `D` by type, `Y` the receive callback, `Z`
+the hue wheel, the Setup as the fifth bin and the exact packing search, the trimmed head, `LuaHost.midiIn`);
+`d5e51fe` feat(sandbox) the inspector (Type, the XY pad's two axis blocks, Receive, the Color input, multi-edit, the
+remembered defaults, the conflicts by channel and number); `bd3dad3` feat(tune) the playground's MIDI outputs
+(`tune/midi.ts`, the blocks, Same channel for all, ARC's LFO output); `3eec7fa` fix(sandbox) the Color input's switch
+an entry of its own, an integer ladder a run in any order; `576cccf` test the two e2e walks and `QUICK_TESTS` 1036;
+`d1b2a1e` fix three test comments Tailwind read as the utility `row-1`; `b40ce7a` docs(audition) row 40; `bc3f400`
+fix(census) the knob census reads an output knob by its role; then this section, `docs/MIDI.md`, the dated sections
+in `docs/entries/sandbox-runtime.md` and `docs/entries/arc.md`, ARC's rows in `docs/TUNING-REVIEW.md`, the Done
+paragraph "17A" under section 17, and the gate records `gate/change-17a.*` (before, at `db5a3c5`, the main tree
+clean) and `gate/change-17a-after.*` (at `b40ce7a`).
+
+**What the suites prove, new and moved.**
+
+- `runtime.spec.ts` +4 (17 to 20) and test 14 re-aimed. 17: the types on the wire - a controller, a channel pressure
+  (value, 0) and a pitch bend (0, value; 64 the centre) on the fader, the knob and each XY axis on its own channel; a
+  button's Note / CC and its off. 18: MIDI RX - the host's message on an element's type, channel and number sets the
+  value and redraws the picture (the fader's bar, the button's light, the pad's crosshair at the received pair, the
+  knob's arc), a relative fader continues from it, nothing is echoed; a neighbour's traffic (INSTR 14), another
+  channel, another number, a program change on a note's number, Receive off, a relative knob, a multitouch pad and a
+  stale callback ignored. 19: the colour input - a controller on its channel from its first recolours element n on
+  layers 1 and 2 (0 back, 1..126 the wheel, 127 white), a blank too, dimmed by the surface's brightness, one past
+  the last ignored. 20: an older draft (no type, axis or Receive field) sends exactly what it sent and receives. 14:
+  the trimmed 255/0 keeps its own head of the two contact tables.
+- `emit.spec.ts`: the QUIET blank test and test 5 re-aimed (page 3 fits five slots with every element receiving;
+  five at three slots), the pins moved with the texts.
+- `sandbox-ui.spec.ts` +1 (29: every output's Type through the editor - a continuous kind's three, a button's two, a
+  relative knob a controller alone - the XY pad's Y Type and channel, Receive, the Color input, each one Undo and
+  refused where it does not apply; the remembered defaults and multi-edit carry them; the profile export writes them)
+  and four pins moved (the MIDI section's rows).
+- `tune-ui.spec.ts` +1 (15: an entry's outputs resolve to blocks with each knob's role; Type and Receive worded by
+  role; Same channel for all; the widget split 39 colour / 31 words / 11 select / 59 stepper), the literal cc list
+  re-aimed to 0..127.
+- `lua-smoke.spec.ts` +2 ("ARC's MIDI output and MIDI RX": the three types on the wire at channel 4, the defaults'
+  wire as before; the centre received and sent back exactly at seven values, the fader's lit cell, the ignores,
+  Receive Off).
+- `catalog.spec.ts` counts a card's knob cap without its outputs' knobs and runs `outputProblems` on every entry;
+  `knobs.lua.spec.ts` names `arc.cc` (128) among the wide knobs; `surprise.spec.ts` 35 MIDI destinations (Randomize
+  preserves the output knobs); `stamp-roundtrip.sweep.spec.ts` wide 4 -> 5; `audition.spec.ts` rows 40;
+  `scripts/gate/sandbox-fixtures.mjs` +6 fixtures (`runtime/types`, `runtime/receive-types`, `runtime/deaf`,
+  `runtime/colours`, `runtime/colours-dim`, `emit/page3-quiet-blanks`).
+- e2e +2 titles. `sandbox.e2e.ts` "the MIDI walk (change 17)": a fader to Pitch bend on channel 5 (its number field
+  gone, Receive On kept), an XY pad's Y axis to Channel pressure on channel 9 under its own sub-head, the Color input
+  switched on with nothing selected - each read back from the draft. `tuning.e2e.ts` "ARC's MIDI output (change 17)":
+  the LFO block, Type a select that takes the Number row away on Pitch bend, a typed Channel, Same channel for all
+  showing and setting it, Receive Off / On - every move recompiled. Re-aimed: ARC's typed-CC walk (0..127; 200
+  refused with "A controller number here is 0 to 127."; the boxes walk by value); `rack-grid.e2e.ts` (`sectionsOf`
+  splits at a sub-head; ARC's rows with the MIDI block; the Sandbox's labels gain Type and Receive; pairs by document
+  order).
+
+**Budgets, before -> after** (characters under the pinned `compressScript` after `initLuaFormatter()`, the RGB444
+picker corner). Sandbox page 3 (a fader, a pad, a knob, a button, every one receiving) 255/6 847 -> 893, 255/0 908 ->
+908, 255/4 834 -> 852, Timer 783 -> 906, Setup 489 -> 900 (73 left across five; one more dearest fader fits); with
+every Receive off 893 / 908 / 907 / 716 and the Setup 497. The trimmed 255/0 460 -> 363. The dearest sixteen at five
+slots 892 -> 892; the cap floor from an empty surface 11 -> 11 dearest faders, from twelve 15 -> 14. Every kind
+combination fits five slots with every element receiving; beside a multitouch pad the same three are over as at
+change 11; with the colour input on, the three combinations carrying a fader, a button, a pad and a knob are over
+(page 3's Timer 1,239). ARC Setup 803 / 806 (defaults / corner) unmoved, Timer 410 / 437 -> 714 / 743. The
+lua-entries sweep 1,804 -> 2,001 combinations, worst 906 of 908 unmoved (not ARC's); the sweep file 4 / 19.
+
+**Screenshots** (the scratchpad, not the tree; vite preview on 4174, never 5173, stopped by port through PowerShell
+after): `shots/sandbox/{1440x900,1280x720,393x852}-{fader,fader-bend,xy,none}.png` and `-tall.png`;
+`shots/sandbox2/*` after the XY pad's reorder; `shots/arc/{...}-{arc,arc-bend}.png` and `-tall.png`. Seen and fixed
+before the commits: ARC's Type as a segmented row stacked 1 + 1 + 1 (130 tall) at the rack's width - a role Type of
+three or more is a select; an XY pad's shared Min / Max / Receive under the Y axis's sub-head read as the Y axis's -
+moved above the two axis blocks. Seen and left: "Channel pressure" sits against the select's arrow at the 173px
+control (it fits, with no room to spare); ARC's Same channel for all and Channel read 0-based (the card's rows'
+numbering, X-08) where the Sandbox's Channel is 1..16.
+
+**Counts, carried + delta:** quick 96 / 1028 + 1 todo -> **96 / 1036 + 1 todo** (+0 / +8), green twice at
+`--maxWorkers=2` (run A on the tree before the test commit `576cccf`; run B the gate's quick term at `b40ce7a`, `check-counts` 96 /
+1036 / 1 todo, exit 0); check 677 -> **678** (+1, `tune/midi.ts`); lint clean (the gate's lint term read
+`docs/MIDI.md` unformatted - written after the source commits and formatted before this commit; `prettier --check`
+over the tree clean now); e2e 100 / 115 -> **102 / 117** (+2 / +2); audition rows 39 -> **40**; utilities **44 -> 44**
+(0 disappeared, 0 appeared); catalog **27**; testids 341 -> **345**; copy exports +18 -2 (`sandbox/copy.ts` +13:
+`OUTPUT_TYPE`, `TYPE_PITCH_BEND`, `TYPE_PRESSURE`, `TYPE_HELPER`, `TYPE_SHORT`, `X_AXIS`, `Y_AXIS`, `RECEIVE`,
+`RECEIVE_HELPER`, `COLOR_INPUT`, `COLOR_INPUT_SWITCH`, `FIRST_CC`, `COLOR_INPUT_HELPER`; -2: `OUTPUT`, `CC_NUMBER_Y`;
+`tune/inspector-copy.ts` +5: `OUTPUT_ROLE_LABELS`, `SAME_CHANNEL`, `PER_OUTPUT`, `SAME_CHANNEL_HELPER`,
+`RECEIVE_HELPER`); OG 27 files / 159,169 B / `9becd682…` and the four fixtures unmoved; `src/` 31 modified, 1 added
+(`src/lib/tune/midi.ts`), 0 deleted, 0 renamed against `db5a3c5`; `src/vendor`, the manifest, `Knob.svelte`,
+`ColourPicker.svelte` unmoved; `library.ts`, `pad-sim.ts`, `sequence.ts`, `firmware-oracle.spec.ts` and every entry
+but ARC untouched.
+
+**The gate's terms** (`--before change-17a` at `db5a3c5`; `--after change-17a --against change-17a --check 678` at
+`b40ce7a`): **the wire moves by design** - the set `654e202e…` -> `6acf32ae…` (2,775 -> 3,031 strings), the full
+`1c4acf19…` -> `c43fa145…`, the sandbox set `3bdb5974…` -> `05388336…` (25 -> 31 fixtures, 475 -> 589 strings). What
+moved in the set: ARC's Timer records (every single-knob position's Timer; its Setups equal), the new `cc=5..127`,
+`midiType` and `midiReceive` records, the cross-product sampled (36,000 states -> 576: past the million-state ceiling
+every knob enters at its first, default and last position, change 8's rule); `S/page3` (landed, emitted, at the
+corner and under two slots; its system records `systemTimer`, `system`, `systemUtility` move because the trimmed
+255/0 and the Sandbox's mapmode moved - no catalog card's system record moved: `library.ts` untouched). The census
+`7daf68b2…` -> `38026024…` (3,157 -> 3,248 literals, 7,483 -> 7,717 occurrences); the copy exports `9d3640cb…` ->
+`e2f4afa0…`; the testids `b89c69d9…` -> `39d4dc3b…` (341 -> 345); the SCOPED CSS `b2a15f74…` -> `b8281684…` (by name:
+`TuningRegion.svelte` `.subhead`; `RegionInspector.svelte` `.subhead` and `.rows > .subhead:first-child`; nothing
+else), the raw `d104bbf0…` -> `fc1e0f86…`; utilities 44 -> 44 (`block grid outline ring sr-only` named by markup
+intact); the titles `afef833c…` -> `01badcea…` (1,037 vitest titles incl. todo; 115 -> 117 playwright runs); the JS
+`f619c486…` -> `2ea0fefd…` (73 files); comment lines 213 -> 214 files, 53,898 -> 55,298 lines. The script exits 1 at
+the wire by design (the wire was meant to move); the refuse-list stat is empty.
+
+**Chunks** (`scripts/gate/e2e-chunks.sh` by files, a fresh detached wrangler dev on 4173 each, stopped through
+PowerShell, HTTP 000 after each; 5173 untouched; the gate's build at `b40ce7a`): c3 by three files (`tuning`,
+`tuning-webkit`, `rack-grid`) **27 passed**; c5 by its four files (`artifacts`, `radius`, `skeleton`, `smoke`) **11
+passed**; c4 by its five files (`catalog`, `fidelity`, `first-experience`, `library`, `sandbox`) **24 passed** - 62 across the three, all at the first run on the final build. Earlier the
+same day on the tree before `3eec7fa`: c3 27, c4 24, c5 11 (the Sandbox walk's first runs had the Color input's switch
+coalescing with the typed first CC into one history entry - fixed in `3eec7fa`). c1 and c2 not run: no install, session or browse title reads a MIDI
+field.

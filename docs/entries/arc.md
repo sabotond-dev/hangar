@@ -357,3 +357,34 @@ OG is 6,786 -> 6,889 bytes, 70 of 81 lit. `lua-smoke.spec.ts`: the 40th test is 
 orders, the code-9 release, the stop tap on cell 40 and not on the column); the wobble test now
 reads the swirl's 72 cells and keeps its stop finger down through the wobble (a MOVE from a lifted
 contact is nobody's under per-contact roles - the old handler had no contact state to say so).
+
+## Change 17A, 2026-09-23: the LFO output - Type, Channel, Number, Receive (`BENCH-2026-09-16.txt` section 17)
+
+ARC is the first card on the per-output MIDI model (`docs/MIDI.md` section 4): one output, `lfo`, named "LFO",
+continuous, its four knobs the MIDI section's block under Same channel for all.
+
+- **Knobs.** `@TYPE` (`midiType`, CC / Pitch bend / Channel pressure as the status bytes 176 / 224 / 208, a select)
+  and `@RX` (`midiReceive`, Off / On as the header INSTR 0 / 13, On by default) are added LAST, so a saved copy's six
+  older indices land on the knobs they were. `@CC` grows from five rungs to all of 0..127, its five old ones (1, 16,
+  20, 74, 102) first in their old order, so a saved copy's CC index keeps its controller; it is a wide knob now (two
+  stamp characters), so ARC's older LINKS land unreadable - the known pattern of a grown rack. `@CH` is unchanged.
+- **The send.** `local o,t=<the value>,@TYPE s.l=o s:gms(@CH,t,t==208 and o or t>223 and 0 or @CC,t==208 and 0 or o)`:
+  a controller on `@CC`; a pitch bend `0, o` (64 is the centre, 8192 - an LFO on pitch rests on no bend); a channel
+  pressure `o, 0`. `s.l` is the last value sent. At the defaults the wire is ARC's before change 17: CC 16 on channel 0.
+- **The receive.** The host's message on the output's type, channel and (a controller) number sets the LFO's
+  **centre**: the offset fader moves to `s.u=-((w-127)*512//127)` - the inverse of the offset `63-s.u*127//512`,
+  rounded up so that at depth 0 the value comes back exactly (0, 1, 63, 64, 100, 126 and 127 measured) - and the Timer
+  repaints the fader's lit cell as it always did when `s.u` moves. Chosen over the LFO's own value, which a 50 Hz
+  oscillator overwrites at once: a DAW's automation of an LFO is its centre. A value equal to `s.l` is ARC's own coming
+  back and is ignored (the echo guard for a card that sends continuously). Receive Off answers no header.
+- **Where it lives.** The Setup is 806 of 908 at the corner, too full for a callback, so the TIMER makes it once per
+  install: `if s.k~=s.touch_cb then s.k=s.touch_cb s.midirx_cb=function(s,h,v)...end end` - every install makes a new
+  touch callback, so a re-install with another channel makes a new receive callback, and the callback acts only while
+  `s.k` is still the element's touch callback (inert after another card's landing). `s.k` and `s.l` are the two new
+  state names.
+- **Cost.** Setup 803 / 806 (defaults / corner) unmoved; Timer 410 / 437 -> 714 / 743 (194 / 165 free). The lua-entries
+  sweep 1,804 -> 2,001 combinations, worst 906 of 908 unmoved (not ARC's).
+- **Proved.** `lua-smoke.spec.ts` "ARC's MIDI output and MIDI RX": the three types on channel 4 on the wire (16,64 /
+  0,64 / 64,0 at depth 0), the defaults' wire as before, the centre received and sent back exactly at seven values,
+  the fader's lit cell at row 2 for 100, its own value, another channel, another number and a neighbour's traffic
+  ignored, a pitch bend and a channel pressure received on channel 9, Receive Off ignoring all.
