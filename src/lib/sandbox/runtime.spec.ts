@@ -1975,7 +1975,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     const wire = (from: number): string[] =>
       host.midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
     try {
-      // The fader at its row-1 LED, 101 (test 1): a pitch bend on channel 5 - 0, then 101.
+      // The fader at its LED in row 1, 101 (test 1): a pitch bend on channel 5 - 0, then 101.
       step(host, "down", 0, at(1, 1));
       step(host, "up", 0, at(1, 1));
       expect(wire(0)).toEqual(["4:224:0:101"]);
@@ -2040,13 +2040,13 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
         host.midiIn(REPORT, 0, 176, 99, 64),
         "the Timer assigns the callback",
       ).toBe(true);
-      // The fader: 101 is position 101, the bar four rows of six (as a finger at the row-1 LED).
+      // The fader: 101 is position 101, the bar four rows of six (as a finger at the LED in row 1).
       host.midiIn(REPORT, 0, 176, FILTER.cc, 101);
       host.tick();
       expect(lit(sim, FILTER).length).toBe(8);
       expect(phase(sim, 0, 1)).toBe(0);
       expect(phase(sim, 0, 2)).toBe(255);
-      // Nothing echoed - and the received value is the last one sent: a press at the row-1 LED
+      // Nothing echoed - and the received value is the last one sent: a press at the LED in row 1
       // sends nothing, a move to the top sends 127.
       expect(host.midi).toEqual([]);
       step(host, "down", 0, at(1, 1));
