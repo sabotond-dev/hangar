@@ -874,15 +874,16 @@ const consoleEntry = (): CatalogEntry => entryById("console");
 /**
  * The phase a MUTED CONSOLE column paints its body at, on layer 2 alone.
  *
- * console.ts's P() writes `glp(a,2,8-r<h and 90 or 0)` in the muted branch: a
- * dim body under a lit @MUTEC cap, and layer 1 forced to 0. It is RESTATED
+ * console.ts's P() writes `(j>1 and 90 or 0)` for a muted body cell that is lit
+ * (change 17B folded the two layers into one loop, j the layer): a dim body on
+ * layer 2 under a lit @MUTEC cap, and layer 1 forced to 0. It is RESTATED
  * here rather than imported, because the entry ships one Lua string and not a
  * table of constants - and it is held against that string by the assertion
  * below, so a change to the dim level stops the test instead of quietly
  * making its picture assertion vacuous.
  */
 const MUTED_BODY_PHASE = 90;
-const MUTED_BODY_CALL = `glp(a,2,8-r<h and ${MUTED_BODY_PHASE} or 0)`;
+const MUTED_BODY_CALL = `(j>1 and ${MUTED_BODY_PHASE} or 0)`;
 
 /** A knob's SELECTED value, as a number. Derived, never restated. */
 function knobValueOf(entry: CatalogEntry, knobId: string): number {
@@ -1730,9 +1731,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
       // which is the whole point of the reversal, because the wire is now
       // silent for the move this stage is about. A muted column paints its
       // body on LAYER 2 ONLY, at phase 90 where `8-r < h` and 0 elsewhere
-      // (console.ts's P(): `elseif m then glc(a,2,@MUTEC,1)glp(a,1,0)
-      // glp(a,2,8-r<h and 90 or 0)end`), so the count of 90s in rows 1..8 IS
-      // the stored level.
+      // (console.ts's P(): `glc(a,r<1 and j or 2,@MUTEC,1)` and, lit, `(j>1
+      // and 90 or 0)` - change 17B), so the count of 90s in rows 1..8 IS the
+      // stored level.
       expect(
         entry.source.kind === "lua" && entry.source.setup,
         "console: the muted branch no longer paints its body with " +
@@ -12970,6 +12971,122 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       } finally {
         host.close();
       }
+    }
+  }, 60000);
+
+  it("CONSOLE: the Faders output sends each fader on its Type - a controller from the first number (wrapping past 127), a pitch bend or channel pressure per fader on its own channel from the first - and exactly as before at the defaults; it receives a fader's level and repaints it, sends nothing back, ignores the rest; a finger keeps the fader it landed on and the cap swipe stays", async () => {
+    /** Fader c's lit body cells on layer 1 - its level. */
+    const level = (sim: PadSim, c: number): number => {
+      let n = 0;
+      for (let r = 1; r <= 8; r++)
+        if (sim.layer(hwOfCell(r * 9 + c), 1).pha === 255) n++;
+      return n;
+    };
+    /** One contact down on (column, row), moved through `path`, then up. */
+    const drag = (
+      host: Awaited<ReturnType<typeof openCard>>["host"],
+      path: readonly (readonly [number, number])[],
+    ): void => {
+      const at = ([c, r]: readonly [number, number]) =>
+        [ledCentre(c, "x"), ledCentre(r, "y")] as const;
+      host.touchDown(0, ...at(path[0]));
+      host.tick();
+      for (const p of path.slice(1)) {
+        host.touchMove(0, ...at(p));
+        host.tick();
+      }
+      host.touchUp(0, ...at(path[path.length - 1]));
+      host.tick();
+    };
+    // THE DEFAULTS: fader 3 to the top sends controller 19 on channel 0, as before.
+    {
+      const { host, sim } = await openCard("console", {}, true);
+      try {
+        // The receive callback is the Timer body PULLED IN by the Setup: no Timer is armed.
+        expect(host.timerArmed, "the pull-in arms nothing").toBe(false);
+        host.run(2);
+        drag(host, [
+          [3, 8],
+          [3, 4],
+          [3, 1],
+        ]);
+        expect(wire(host.midi)).toEqual([
+          "0:176:19:0",
+          "0:176:19:72",
+          "0:176:19:127",
+        ]);
+        expect(level(sim, 3)).toBe(7);
+        // THE LATCH: land on fader 5 at row 6, slide across onto fader 7 and down - only fader 5
+        // moves; fader 7 keeps its 4. The cap row reached by a fader finger is its top.
+        const from = host.midi.length;
+        drag(host, [
+          [5, 6],
+          [6, 6],
+          [7, 6],
+          [7, 3],
+          [7, 0],
+        ]);
+        expect(wire(host.midi, from)).toEqual([
+          "0:176:21:36",
+          "0:176:21:90",
+          "0:176:21:127",
+        ]);
+        expect([level(sim, 5), level(sim, 7)]).toEqual([7, 4]);
+        // RX: the host's controller 18 at 54 sets fader 2 to 3 and sends nothing; the stale
+        // callback is gone (the Timer made CONSOLE's own).
+        const quiet = host.midi.length;
+        expect(host.midiIn(REPORT, 0, 176, 18, 54)).toBe(true);
+        expect(level(sim, 2)).toBe(3);
+        for (const [instr, ch, cmd, p1, p2] of [
+          [14, 0, 176, 18, 127], // a neighbour's
+          [REPORT, 1, 176, 18, 127], // another channel
+          [REPORT, 0, 176, 25, 127], // past the ninth fader
+          [REPORT, 0, 224, 0, 127], // another type
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(level(sim, 2)).toBe(3);
+        expect(host.midiIn(REPORT, 0, 176, 16, 127)).toBe(true);
+        expect(level(sim, 0), "every step round trips").toBe(7);
+        expect(host.midi.length, "nothing is echoed").toBe(quiet);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // A PITCH BEND and A CHANNEL PRESSURE per fader from channel 5 (wire 4); a CC bank from 120
+    // wraps its ninth fader to 0; each receives on its own shape.
+    for (const [type, cc, sent, rx] of [
+      ["224", "16", "7:224:0:127", [7, 224, 0, 18]],
+      ["208", "16", "7:208:127:0", [7, 208, 18, 0]],
+      ["176", "120", "4:176:0:127", [4, 176, 123, 18]],
+    ] as const) {
+      const { host, sim } = await openCard("console", {
+        midiType: type,
+        channel: "4",
+        cc,
+      });
+      try {
+        host.run(2);
+        drag(host, [
+          [type === "176" ? 8 : 3, 8],
+          [type === "176" ? 8 : 3, 1],
+        ]);
+        expect(wire(host.midi).at(-1), `type ${type}`).toBe(sent);
+        expect(host.midiIn(REPORT, rx[0], rx[1], rx[2], rx[3])).toBe(true);
+        expect(level(sim, 3), `type ${type}: fader 3 received 18`).toBe(1);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // RECEIVE OFF: the callback answers no header.
+    const { host, sim } = await openCard("console", { midiReceive: "0" });
+    try {
+      host.run(2);
+      host.midiIn(REPORT, 0, 176, 18, 127);
+      expect(level(sim, 2)).toBe(4);
+    } finally {
+      host.close();
     }
   }, 60000);
 });

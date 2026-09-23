@@ -288,3 +288,52 @@ compressScript does not strip them: a trailing comment was measured surviving
 verbatim into the budget. Everything worth saying about this configuration is
 said here, in TypeScript, where it costs nothing.
 ```
+
+## Change 17B, 2026-09-23: the Faders output, MIDI RX, the latch (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+CONSOLE moves onto the per-output MIDI model (`docs/MIDI.md` section 4) with ONE output, `faders`, named "Faders",
+continuous: the nine strips are one bank, the way a DAW maps a mixer, rather than nine blocks of four rows each.
+
+- **Knobs.** `@CC` (`cc`, "First controller") is the Number: all of 0..127 with its four old rungs (16, 48, 80, 102)
+  first, so a saved copy's index keeps its controller; fader c sends on `(@CC+c)%128`, so a first controller past 119
+  wraps the bank to 0 rather than send a data byte over 127. `@CH` (`channel`) is the Channel, all sixteen in order
+  (it was four: 0, 1, 9, 15 - a saved copy at index 2 or 3 reopens on channel 3 or 4 as the rows read them, because
+  Same channel for all needs the sixteen in order; its kind moved `mode` -> `amount`, so no rung is worded Off).
+  `@TYPE` (`midiType`, CC / Pitch bend / Channel pressure) and `@RX` (`midiReceive`, On) are appended last. The rack
+  grew and `@CC` is a wide knob now, so CONSOLE's captured wild stamp lands `unreadable` (the known pattern); its null
+  default record still carries no stamp.
+- **The send** (`M(c,v)`): a controller on `(@CH, (@CC+c)%128, v)`; under a pitch bend or a channel pressure fader c
+  goes on its OWN channel `(@CH+c)%16` - the Mackie layout: nine faders on one channel as one pitch bend would be one
+  message - pitch bend `0, v` (64 the centre), pressure `v, 0`. `@CH+t//177*c` is that rule in eleven characters
+  (`t//177` is 0 for a controller, 1 for the other two). At the defaults the wire is CONSOLE's before the change,
+  message for message (controller 16 + c on channel 0, the eight levels, the mute's 0 and its unmute).
+- **The receive** (Timer, pulled in): the host's message on the output's type - a controller on `@CH` numbered
+  `@CC..@CC+8`, or a pitch bend / channel pressure on channels `@CH..@CH+8` - sets that fader to the nearest of its
+  eight steps (`(w*7+63)//127`; every value the fader sends comes back to its own step) and repaints it; a muted fader
+  keeps its mute and shows the level dimly, as a finger's move while muted does. Nothing is sent back. Receive Off
+  answers no header; a neighbour's traffic (INSTR 14), another channel, another type and a number past the ninth fader
+  are ignored.
+- **Where it lives - the pull-in.** The Setup was 807 of 908 at the corner; the latch and the typed send take it to
+  890, and the receive (240) fits nowhere in it. A one-shot Timer armed by the Setup would make the callback, but an
+  armed Timer is what the preview reads as motion: frames.json's tick-0 flag moved and the listing's derivation turned
+  CONSOLE from `static` to `animated` (both seen, then refused). So the callback lives in the TIMER text and the Setup
+  closes with `s:tim()`: the module runs a touch element's Timer body as a method (the Sandbox's first probe,
+  `sandbox/emit.ts` PULL_IN_TIMER), synchronously, arming nothing. The host models it since `33fc889`. The Timer never
+  runs as a Timer. The Setup keeps `self` as an upvalue (`local s,t=self,@TYPE`) so one `@TYPE` literal serves the send
+  and the receive, `P` loops its two layers (`@MUTEC` once instead of three times), and `L(c,h,q)` - the level, sent
+  when `q` - serves the finger and the receive; `self.l` hands it to the Timer's callback.
+- **The latch (section 18).** A finger that landed on a fader body drove whatever column it slid into (`Q` returns the
+  new cell). Now the onset records what the contact landed on (`s.o[i]`: its column, or `false` on a cap): a fader
+  contact drives THAT column for the whole gesture, its level from the row it is on (`glim(8-r,0,7)` - the cap row
+  reads as the top); a cap contact toggles each cap it crosses along the mute row (11-07's swipe, the user's ask,
+  kept) and nothing in the bodies. **Latch: fault fixed** (the bodies); the cap row's swipe is by design.
+- **Cost** (RGB444 picker corner, pinned `compressScript`): Setup 784 / 807 -> 880 / 890 (defaults / corner; 18
+  free), Timer 0 -> 237 / 240. frames.json and the OG image unmoved: the picture at rest is the same forty-five cells,
+  and no Timer is armed.
+- **Proved.** `lua-smoke.spec.ts` "CONSOLE: the Faders output ...": no Timer armed after the Setup; the defaults'
+  wire for fader 3 exactly as before; a finger landed on fader 5 slid across onto fader 7 and down to the cap row moves
+  fader 5 alone (7 and 4 lit); the host's controller 18 at 54 sets fader 2 to 3 and 16 at 127 fader 0 to 7, nothing
+  echoed, four mismatches ignored; a pitch bend and a channel pressure from channel 5 (wire 4) on fader 3's channel
+  8, a controller bank from 120 wrapping its ninth fader to 0, each received back; Receive Off. The existing CONSOLE
+  cases (the whole travel, the muted fader, the swipe across the mute row, the resting finger) unchanged but for the
+  restated muted-body call, which now reads `(j>1 and 90 or 0)`.

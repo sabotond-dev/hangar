@@ -90,6 +90,7 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "orbit.note3 (128)",
       "orbit.note4 (128)",
       "arc.cc (128)",
+      "console.cc (128)",
     ];
 
     // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).
