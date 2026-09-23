@@ -138,8 +138,8 @@ export const SWITCH_ON = "On";
 export const TOGGLE = "Toggle";
 export const TOGGLE_HELPER =
   "Toggled, a press turns it on and the next press turns it off. Otherwise it sends on while held.";
-/** The XY pad's second controller. */
-export const CC_NUMBER_Y = "CC number (Y)";
+// CC_NUMBER_Y (`CC number (Y)`) and OUTPUT (`Output`) ARE RETIRED BY NAME, 2026-09-23 (change 17): an
+// XY pad's Y axis is a block of its own (`Y_AXIS`) and every output's word is OUTPUT_TYPE below.
 
 // ---------------------------------------------------------------------------
 // The change 10B options (BENCH-2026-09-16.txt section 10, answers 6 to 11), D-05's register.
@@ -158,7 +158,7 @@ export const KNOB_MODE_WORDS = {
   "relative-sign": "Relative (sign magnitude)",
 } as const;
 export const KNOB_RELATIVE_HELPER =
-  "A relative mode sends one step per detent, and Min and Max don’t apply.";
+  "A relative mode sends one CC step per detent, so Type, Min and Max don’t apply and the knob doesn’t receive.";
 /** A relative fader's or XY pad's speed (answer 7c). */
 export const SPEED = "Speed";
 export const SPEED_HALF = "Half";
@@ -170,10 +170,29 @@ export const SPRING = "Spring";
 export const SPRING_HELPER =
   "On release the fader returns to the spring value and sends it.";
 export const SPRING_VALUE = "Spring value";
-/** A button's output and its note (answer 10). */
-export const OUTPUT = "Output";
+/** A button's output and its note (answer 10); since change 17 every output's Type (the button's two words, a continuous kind's three). */
+export const OUTPUT_TYPE = "Type";
 export const OUTPUT_CC = "CC";
 export const OUTPUT_NOTE = "Note";
+export const TYPE_PITCH_BEND = "Pitch bend";
+export const TYPE_PRESSURE = "Channel pressure";
+export const TYPE_HELPER =
+  "Pitch bend and channel pressure carry no number. A pitch bend sends the value as its high byte, so 64 is the center.";
+/** The plate's word for an output with no number (change 17): a pitch bend, a channel pressure. */
+export const TYPE_SHORT = { pitchbend: "PB", pressure: "CP" } as const;
+/** An XY pad's two outputs (change 17), each with its own Type, number and channel. */
+export const X_AXIS = "X axis";
+export const Y_AXIS = "Y axis";
+/** MIDI RX (change 17, answers 1i and 1ii). */
+export const RECEIVE = "Receive";
+export const RECEIVE_HELPER =
+  "When your DAW sends this element’s message, the element takes the value and shows it. Nothing is sent back.";
+/** The surface's Color input (change 17, answer 1iii). */
+export const COLOR_INPUT = "Color input";
+export const COLOR_INPUT_SWITCH = "Receive colors";
+export const FIRST_CC = "First CC";
+export const COLOR_INPUT_HELPER =
+  "A CC on this channel sets an element’s color: the first CC is the first element in the list, the next CC the second. 0 restores its own color, 1 to 126 go round the hue wheel, 127 is white.";
 export const NOTE_NUMBER = "Note";
 export const NOTE_HELPER =
   "A name or a number: C#3 or 49. On sends the note at Max as its velocity; off sends note-off.";
@@ -186,7 +205,7 @@ export const GROUP_HELPER =
 /** An XY pad's fingers (change 11, BENCH-2026-09-16.txt section 11, answers 1a and 2a). */
 export const TOUCHES = "Touches";
 export const TOUCHES_HELPER =
-  "Every finger sends on its own pair: finger 2 on the CC numbers two up, finger 3 four up. Each finger has its own crosshair.";
+  "Every finger sends on its own pair: finger 2 on the CC numbers two up, finger 3 four up. Each finger has its own crosshair. A pad with more than one touch doesn’t receive.";
 /** The refusal when the last finger's pair would pass 127 - on the count, or on a controller typed too high for it. */
 export const touchesCcRange = (touches: number, ceiling: number): string =>
   `With ${touches} touches a CC number is 0 to ${ceiling}, so the last finger stays inside 127.`;

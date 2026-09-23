@@ -774,10 +774,12 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // AN OUT-OF-RANGE CONTROLLER: refused; the model holds 1; the field
     // shows the typed text with the field's own message. (The geometry
     // fields went at change 10A; the three MIDI fields are the typed route.)
+    // Change 17: an XY pad's Y axis channel.
     expect(NUMERIC_FIELDS).toEqual([
       "cc",
       "cc2",
       "channel",
+      "channelY",
       "min",
       "max",
       "springValue",
@@ -1324,8 +1326,11 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(source).toContain("<BrightnessField");
     expect(source).toContain("onchange={(next) => onbrightness?.(next)}");
     expect(source).toContain("onreset={() => onbrightness?.(255)}");
-    expect(source, "no selection lists Appearance, then New elements").toMatch(
-      /if [(]!any[)]\s*return \[\s*\{ title: APPEARANCE, content: appearance \},\s*\{ title: NEW_ELEMENTS, content: defaults \},\s*\];/,
+    expect(
+      source,
+      "no selection lists Appearance, the Color input (change 17), then New elements",
+    ).toMatch(
+      /if [(]!any[)]\s*return \[\s*\{ title: APPEARANCE, content: appearance \},\s*\{ title: COLOR_INPUT, content: colourInput \},\s*\{ title: NEW_ELEMENTS, content: defaults \},\s*\];/,
     );
     const route = code(ROUTE);
     expect(route).toContain(
@@ -1835,7 +1840,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "onmode={(mode) => void editor?.setRegionMode(mode)}",
       "onspeed={(speed) => editor?.setSpeed(speed)}",
       "onspring={(spring) => editor?.setSpring(spring)}",
-      "onoutput={(output) => editor?.setOutput(output)}",
+      "onoutput={(output) => void editor?.setOutput(output)}",
       "ongroup={(group) => editor?.setGroup(group)}",
     ])
       expect(route, wire).toContain(wire);
@@ -2626,11 +2631,12 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     editor.editNumber("min", "10");
     editor.commitField();
 
-    // MIXED: channel differs (3 and 1), min differs, max agrees (127), cc
-    // differs (and with it the note, which is the cc read as a name).
+    // MIXED: channel differs (3 and 1) - and with it the Y axis channel, which
+    // is the channel on a kind without a Y axis (change 17) - min differs, max
+    // agrees (127), cc differs (and with it the note, the cc read as a name).
     editor.toggleSelect(f2.id);
     const state = editor.state();
-    expect(state.mixed).toEqual(["cc", "channel", "min", "note"]);
+    expect(state.mixed).toEqual(["cc", "channel", "channelY", "min", "note"]);
     expect(state.texts.channel).toBe("");
     expect(state.texts.max).toBe("127");
     expect(editor.fieldText("min")).toBe("");
@@ -4543,5 +4549,181 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(layout.indexOf('data-testid="shell-tools-column"')).toBeLessThan(
       layout.indexOf('data-testid="shell-inspector-column"'),
     );
+  });
+
+  it("29. the MIDI output (change 17): every output's Type through the editor - a continuous kind's three, a button's two, a relative knob a controller alone - an XY pad's Y axis Type and channel, Receive, the surface's Color input, each one Undo and refused in Play or off its kind; the remembered defaults carry them; the shared-controller pass reads the types and the Y channel; the panel's rows per kind and the route's wiring", () => {
+    const { editor } = fresh();
+    // A FADER: Pitch bend, then Channel pressure; a note refused; one entry each.
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.cancel();
+    const fader = editor.surface.regions[0];
+    const placed = editor.state().depth;
+    expect(editor.setOutput("pitchbend")).toBe(true);
+    expect(byId(editor, fader.id).output).toBe("pitchbend");
+    expect(editor.setOutput("note"), "a fader offers no note").toBe(false);
+    expect(editor.setOutput("pressure")).toBe(true);
+    expect(editor.state().depth).toBe(placed + 2);
+    expect(editor.setOutputY("pitchbend"), "a fader has no Y axis").toBe(false);
+    expect(editor.editNumber("channelY", "9")).toBe(false);
+    // Receive: off, one entry; the same value no entry.
+    expect(editor.setReceive(false)).toBe(true);
+    expect(byId(editor, fader.id).receive).toBe(false);
+    expect(editor.setReceive(false)).toBe(true);
+    expect(editor.state().depth).toBe(placed + 3);
+    for (let i = 0; i < 3; i += 1) expect(editor.undo()).toBe(true);
+    expect(byId(editor, fader.id)).not.toHaveProperty("output");
+    expect(byId(editor, fader.id)).not.toHaveProperty("receive");
+    // An XY PAD: the Y axis on its own type and channel; the channel typed, refused out of range.
+    editor.choose("xy");
+    editor.clickCell(4, 0);
+    editor.cancel();
+    const pad = editor.surface.regions[1];
+    editor.select(pad.id);
+    expect(editor.setOutputY("pressure")).toBe(true);
+    expect(editor.editNumber("channelY", "17")).toBe(false);
+    expect(editor.fields.channelY?.message).toBe(CHANNEL_RANGE);
+    expect(editor.editNumber("channelY", "9")).toBe(true);
+    editor.commitField();
+    expect(byId(editor, pad.id)).toMatchObject({
+      outputY: "pressure",
+      channelY: 9,
+    });
+    expect(editor.state().texts.channelY).toBe("9");
+    // A BUTTON: CC and Note only.
+    editor.choose("button");
+    editor.clickCell(8, 8);
+    editor.cancel();
+    const button = editor.surface.regions[2];
+    editor.select(button.id);
+    expect(editor.setOutput("pitchbend"), "a button offers no bend").toBe(
+      false,
+    );
+    expect(editor.setOutput("note")).toBe(true);
+    // A KNOB in a relative mode: a controller alone.
+    editor.choose("knob");
+    editor.clickCell(0, 6);
+    editor.cancel();
+    const knob = editor.surface.regions[3];
+    editor.select(knob.id);
+    expect(editor.setRegionMode("relative-twos")).toBe(true);
+    expect(editor.setOutput("pitchbend")).toBe(false);
+    // Receive over a set with a blank: refused.
+    editor.choose("blank");
+    editor.clickCell(8, 0);
+    editor.cancel();
+    const blank = editor.surface.regions[4];
+    editor.select(fader.id);
+    editor.toggleSelect(blank.id);
+    expect(editor.setReceive(false)).toBe(false);
+    // THE COLOR INPUT: a surface edit, coalesced under one key, refused out of range or in Play.
+    editor.select(fader.id);
+    const before = editor.state().depth;
+    expect(editor.setColourInput({ channel: 16, cc: 100 })).toBe(true);
+    expect(editor.setColourInput({ channel: 16, cc: 101 })).toBe(true);
+    editor.commitField();
+    expect(editor.surface.colourInput).toEqual({ channel: 16, cc: 101 });
+    expect(editor.state().depth).toBe(before + 1);
+    expect(editor.setColourInput({ channel: 17, cc: 0 })).toBe(false);
+    expect(editor.setColourInput({ channel: 1, cc: 128 })).toBe(false);
+    expect(editor.setColourInput(undefined)).toBe(true);
+    expect(editor.surface).not.toHaveProperty("colourInput");
+    expect(editor.undo()).toBe(true);
+    expect(editor.surface.colourInput).toEqual({ channel: 16, cc: 101 });
+    editor.setMode("play");
+    expect(editor.setColourInput(undefined)).toBe(false);
+    editor.setMode("edit");
+
+    // THE REMEMBERED DEFAULTS: the type, the Y axis and Receive stick; a type the kind does not
+    // offer is never applied.
+    expect(REMEMBERED_FIELDS.fader).toEqual(
+      expect.arrayContaining(["output", "receive"]),
+    );
+    expect(REMEMBERED_FIELDS.xy).toEqual(
+      expect.arrayContaining(["output", "outputY", "channelY", "receive"]),
+    );
+    expect(REMEMBERED_FIELDS.knob).toEqual(
+      expect.arrayContaining(["output", "receive"]),
+    );
+    expect(REMEMBERED_FIELDS.button).toEqual(
+      expect.arrayContaining(["output", "receive"]),
+    );
+    expect(
+      withKindDefaults(fader, { output: "pitchbend", receive: false }),
+    ).toMatchObject({ output: "pitchbend", receive: false });
+    expect(withKindDefaults(fader, { output: "note" })).not.toHaveProperty(
+      "output",
+    );
+    expect(
+      withKindDefaults(pad, { outputY: "pressure", channelY: 4 }),
+    ).toMatchObject({ outputY: "pressure", channelY: 4 });
+
+    // THE SHARED-CONTROLLER PASS: a pitch bend and a channel pressure are no controller; the Y
+    // axis is compared on its own channel.
+    const a = { ...fader, cc: 30, channel: 1 };
+    const b = { ...fader, id: "b", name: "B", cc: 30, channel: 1 };
+    expect(findConflicts([a, b]).length).toBe(1);
+    expect(findConflicts([a, { ...b, output: "pitchbend" as const }])).toEqual(
+      [],
+    );
+    const p = {
+      ...pad,
+      cc: 40,
+      cc2: 30,
+      channel: 2,
+      channelY: 1,
+      outputY: undefined,
+    };
+    expect(findConflicts([a, p]).map((c) => [c.cc, c.channel])).toEqual([
+      [30, 1],
+    ]);
+    expect(findConflicts([a, { ...p, channelY: 2 }])).toEqual([]);
+
+    // THE PANEL: a fader's Type is a select over three words and its number goes with a pitch
+    // bend; a pad's two axis blocks; a button's segmented Type; Receive; the Color input.
+    const f = editor.surface.regions[0];
+    editor.select(f.id);
+    let html = inspector(editor);
+    expect(html).toContain('data-testid="field-output"');
+    expect(html).toContain(">Pitch bend</option>");
+    expect(html).toContain(">Channel pressure</option>");
+    expect(html).toContain('data-testid="field-receive"');
+    expect(html).toContain('data-testid="field-cc"');
+    editor.setOutput("pitchbend");
+    html = inspector(editor);
+    expect(html, "a pitch bend has no number").not.toContain(
+      'data-testid="field-cc"',
+    );
+    editor.select(pad.id);
+    html = inspector(editor);
+    for (const id of [
+      "axis-x",
+      "axis-y",
+      "field-output",
+      "field-output-y",
+      "field-channel",
+      "field-channel-y",
+      "field-receive",
+    ])
+      expect(html, id).toContain(`data-testid="${id}"`);
+    expect(html).not.toContain('data-testid="field-cc2"');
+    editor.select(knob.id);
+    html = inspector(editor);
+    expect(html, "a relative knob: no Type, no Receive").not.toContain(
+      'data-testid="field-output"',
+    );
+    expect(html).not.toContain('data-testid="field-receive"');
+    editor.select(undefined);
+    html = inspector(editor);
+    expect(html).toContain('data-testid="colour-input"');
+    expect(html).toContain('data-testid="colour-input-channel"');
+    expect(html).toContain('data-testid="colour-input-cc"');
+    const route = code(ROUTE);
+    for (const wiring of [
+      "onoutputy={(output) => void editor?.setOutputY(output)}",
+      "onreceive={(receive) => void editor?.setReceive(receive)}",
+      "oncolourinput={(input) => void editor?.setColourInput(input)}",
+    ])
+      expect(route, wiring).toContain(wiring);
   });
 });

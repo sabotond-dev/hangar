@@ -6,8 +6,8 @@
 // a pointer event. The selector is the default tool: a click selects alone, Shift toggles, a click
 // on empty clears, a marquee is `selectTouching`; `choose(kind)` arms a kind for every `clickCell`
 // (Alt+click fills) until `cancel()`. Every structural command takes the set as one, one entry:
-// `moveSelectedTo`, `nudgeSelected`, `editNumber` and the setters, `paste` / `duplicate` (by
-// placementFor), and 13B's `alignSelected` / `distributeSelected` / `transformSurface` / `renameElement`.
+// `moveSelectedTo`, `nudgeSelected`, `editNumber` and the setters (change 17's `setOutput`, `setOutputY`,
+// `setReceive`, `setColourInput`), `paste` / `duplicate`, and 13B's align / distribute / transform / rename.
 // Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -16,6 +16,7 @@ import type { ClipboardContent } from "./clipboard";
 import {
   NO_DEFAULTS,
   SCHEMA_VERSION,
+  type ColourInput,
   type KindDefaults,
   type SandboxDefaults,
 } from "../store/schema";
@@ -65,6 +66,7 @@ import {
   CHANNEL_MAX,
   CHANNEL_MIN,
   CONTINUOUS_MODES,
+  CONTINUOUS_TYPES,
   GROUP_MAX,
   KNOB_MODES,
   LAST_CELL,
@@ -82,13 +84,15 @@ import {
   lockedOf,
   maxOf,
   minOf,
+  channelYOf,
   orientationOf,
   outputOf,
   springValueOf,
   touchesOf,
+  typesOf,
   type Box,
-  type ButtonOutput,
   type ElementKind,
+  type MidiType,
   type Orientation,
   type Region,
   type RegionMode,
@@ -111,12 +115,14 @@ export type Placement =
 /**
  * The typed fields the inspector renders, in the model's names: the three MIDI fields, and
  * since change 10B the min, the max, a fader's spring value and a button's note - the note
- * is the `cc` field read and typed as a name or a number (view.ts's noteNumber).
+ * is the `cc` field read and typed as a name or a number (view.ts's noteNumber) - and since
+ * change 17 an XY pad's Y axis channel.
  */
 export type NumericField =
   | "cc"
   | "cc2"
   | "channel"
+  | "channelY"
   | "min"
   | "max"
   | "springValue"
@@ -126,6 +132,7 @@ export const NUMERIC_FIELDS: readonly NumericField[] = [
   "cc",
   "cc2",
   "channel",
+  "channelY",
   "min",
   "max",
   "springValue",
@@ -279,16 +286,47 @@ export { NO_DEFAULTS };
 
 /**
  * The fields that stick per kind (change 13B, suggestion 8): the ones the readings named, and
- * only on the kind that has them. The controller, the colour, the orientation, the name and
- * the geometry never stick; a blank has nothing to remember.
+ * only on the kind that has them - since change 17 the type (an XY pad's per axis, and its Y
+ * channel) and Receive too. The controller, the colour, the orientation, the name and the
+ * geometry never stick; a blank has nothing to remember.
  */
 export const REMEMBERED_FIELDS: Readonly<
   Record<ElementKind, readonly (keyof KindDefaults)[]>
 > = {
-  fader: ["channel", "min", "max", "mode", "speed", "spring", "springValue"],
-  xy: ["channel", "min", "max", "mode", "speed", "touches"],
-  knob: ["channel", "min", "max", "mode"],
-  button: ["channel", "min", "max", "latch", "output", "group", "note"],
+  fader: [
+    "channel",
+    "min",
+    "max",
+    "mode",
+    "speed",
+    "spring",
+    "springValue",
+    "output",
+    "receive",
+  ],
+  xy: [
+    "channel",
+    "min",
+    "max",
+    "mode",
+    "speed",
+    "touches",
+    "output",
+    "outputY",
+    "channelY",
+    "receive",
+  ],
+  knob: ["channel", "min", "max", "mode", "output", "receive"],
+  button: [
+    "channel",
+    "min",
+    "max",
+    "latch",
+    "output",
+    "group",
+    "note",
+    "receive",
+  ],
   blank: [],
 };
 
@@ -325,6 +363,11 @@ export function withKindDefaults(
       const offered = region.kind === "knob" ? KNOB_MODES : CONTINUOUS_MODES;
       if (!offered.includes(value as RegionMode)) continue;
     }
+    // Change 17: only a type the kind offers (a button's two, a continuous kind's three).
+    if (field === "output" && !typesOf(region).includes(value as MidiType))
+      continue;
+    if (field === "outputY" && !CONTINUOUS_TYPES.includes(value as MidiType))
+      continue;
     out[field] = value;
   }
   let next = out as Region;
@@ -903,6 +946,12 @@ export class SandboxEditor {
           if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
           patch = { channel: n };
           break;
+        case "channelY":
+          // Change 17: an XY pad's Y axis on its own channel; every member a pad.
+          if (!this.allOfKind("xy")) return false;
+          if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
+          patch = { channelY: n };
+          break;
         case "min":
         case "max":
         case "springValue":
@@ -1046,6 +1095,8 @@ export class SandboxEditor {
         return region.cc2 === undefined ? "" : String(region.cc2);
       case "channel":
         return String(region.channel);
+      case "channelY":
+        return String(channelYOf(region));
       case "min":
         return String(minOf(region));
       case "max":
@@ -1157,13 +1208,85 @@ export class SandboxEditor {
     this.emit();
   }
 
-  /** A button's CC / Note output; the `cc` field is the note under Note. */
-  setOutput(output: ButtonOutput): void {
-    if (!this.allOfKind("button")) return;
-    if (this.selectedRegions.every((r) => outputOf(r) === output)) return;
+  /**
+   * The output's Type (change 17): a button's CC / Note (the `cc` field is the note under Note),
+   * a fader's, a knob's or an XY pad's X axis CC / Pitch bend / Channel pressure. One entry;
+   * refused unless every member offers the type (model.ts `typesOf`: a relative knob a controller alone).
+   */
+  setOutput(output: MidiType): boolean {
+    const regions = this.selectedRegions;
+    if (regions.length === 0) return false;
+    if (!regions.every((r) => typesOf(r).includes(output))) return false;
+    if (regions.every((r) => (r.output ?? "cc") === output)) return true;
     this.applyPatch({ output }, "option");
     this._fields = {};
     this.emit();
+    return true;
+  }
+
+  /** An XY pad's Y axis Type (change 17): CC / Pitch bend / Channel pressure; one entry. */
+  setOutputY(output: MidiType): boolean {
+    if (!this.allOfKind("xy") || !CONTINUOUS_TYPES.includes(output))
+      return false;
+    if (this.selectedRegions.every((r) => (r.outputY ?? "cc") === output))
+      return true;
+    this.applyPatch({ outputY: output }, "option");
+    this._fields = {};
+    this.emit();
+    return true;
+  }
+
+  /** Receive (change 17): MIDI RX on or off on every member; a blank has none. One entry. */
+  setReceive(receive: boolean): boolean {
+    const regions = this.selectedRegions;
+    if (regions.length === 0 || regions.some(isPaintOnly)) return false;
+    if (regions.every((r) => (r.receive !== false) === receive)) return true;
+    this.applyPatch({ receive }, "option");
+    this.emit();
+    return true;
+  }
+
+  /**
+   * The surface's Color input (change 17): a channel 1..16 and a first CC 0..127, or undefined for
+   * off. A surface edit like the brightness - one entry, coalesced under one key so a typed value
+   * is one Undo; refused in Play or out of range; the same value is no entry.
+   */
+  setColourInput(input: ColourInput | undefined): boolean {
+    if (this._mode === "play") return false;
+    if (
+      input !== undefined &&
+      !(
+        Number.isInteger(input.channel) &&
+        input.channel >= CHANNEL_MIN &&
+        input.channel <= CHANNEL_MAX &&
+        Number.isInteger(input.cc) &&
+        input.cc >= CC_MIN &&
+        input.cc <= CC_MAX
+      )
+    )
+      return false;
+    const now = this._surface.colourInput;
+    if (
+      now?.channel === input?.channel &&
+      now?.cc === input?.cc &&
+      (now === undefined) === (input === undefined)
+    )
+      return true;
+    const after: Surface = { ...this._surface };
+    if (input === undefined)
+      delete (after as { colourInput?: ColourInput }).colourInput;
+    else (after as { colourInput?: ColourInput }).colourInput = { ...input };
+    this.record(
+      "colour-input",
+      this._surface,
+      after,
+      this.selectedId,
+      "field:surface:colour-input",
+      this._selection,
+    );
+    this._surface = after;
+    this.emit();
+    return true;
   }
 
   /**

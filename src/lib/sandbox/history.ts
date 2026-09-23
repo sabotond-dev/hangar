@@ -32,7 +32,8 @@ export type EditKind =
   | "lock"
   | "align"
   | "distribute"
-  | "transform";
+  | "transform"
+  | "colour-input";
 
 export type HistoryEntry = {
   readonly kind: EditKind;

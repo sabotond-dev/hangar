@@ -2,17 +2,18 @@
 // elements that send the same controller number on the same channel. Pure, on the regions: what
 // each region SENDS is read off the same fields the emitter reads (model.ts) - a fader, a knob and
 // a CC button their controller; an XY pad both axes for every finger (`cc + 2(n-1)`,
-// `cc2 + 2(n-1)`); a note button and a blank nothing, a note is not a controller. A pair is
-// reported once per shared (channel, controller), in the surface's order, never refused: the
-// user may want two elements on one controller. The inspector lists the pairs, the plate marks
-// the members.
+// `cc2 + 2(n-1)`), the Y axis on its own channel (change 17); a note button, an output typed
+// a pitch bend or a channel pressure (change 17) and a blank nothing - none is a controller. A pair
+// is reported once per shared (channel, controller), in the surface's order, never refused.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
+  channelYOf,
   fingerController,
   isPaintOnly,
-  outputOf,
   touchesOf,
+  typeOf,
+  typeYOf,
   type Region,
 } from "./model";
 
@@ -26,37 +27,57 @@ export type Conflict = {
   readonly channel: number;
 };
 
-/** The controller numbers a region sends, in finger order; empty for a blank or a note button. */
-export function controllersOf(region: Region): readonly number[] {
+/** One controller a region sends: its channel (1..16) and its number. */
+export type Controller = { readonly channel: number; readonly cc: number };
+
+/** The controllers a region sends, in finger order (an XY pad's X then Y per finger); empty for a blank, a note button, a pitch bend or a channel pressure. */
+export function sendsOf(region: Region): readonly Controller[] {
   if (isPaintOnly(region)) return [];
-  if (region.kind === "button") {
-    return outputOf(region) === "note" ? [] : [region.cc];
-  }
-  if (region.kind !== "xy") return [region.cc];
-  const out: number[] = [];
+  if (region.kind !== "xy")
+    return typeOf(region) === "cc"
+      ? [{ channel: region.channel, cc: region.cc }]
+      : [];
+  const out: Controller[] = [];
   for (let finger = 1; finger <= touchesOf(region); finger += 1) {
-    out.push(fingerController(region.cc, finger));
-    out.push(fingerController(region.cc2 ?? 0, finger));
+    if (typeOf(region) === "cc")
+      out.push({
+        channel: region.channel,
+        cc: fingerController(region.cc, finger),
+      });
+    if (typeYOf(region) === "cc")
+      out.push({
+        channel: channelYOf(region),
+        cc: fingerController(region.cc2 ?? 0, finger),
+      });
   }
   return out;
 }
 
+/** The controller numbers a region sends, in finger order (`sendsOf` without the channels). */
+export function controllersOf(region: Region): readonly number[] {
+  return sendsOf(region).map((c) => c.cc);
+}
+
 /** Every pair sharing a (channel, controller), each pair once per shared controller, in the surface's order. */
 export function findConflicts(regions: readonly Region[]): readonly Conflict[] {
-  const sends = regions.map((r) => new Set(controllersOf(r)));
+  const key = (c: Controller): string => `${c.channel}:${c.cc}`;
+  const sends = regions.map((r) => sendsOf(r));
+  const keys = sends.map((s) => new Set(s.map(key)));
   const out: Conflict[] = [];
   for (let i = 0; i < regions.length; i += 1) {
     for (let j = i + 1; j < regions.length; j += 1) {
-      if (regions[i].channel !== regions[j].channel) continue;
-      for (const cc of sends[i]) {
-        if (!sends[j].has(cc)) continue;
+      const seen = new Set<string>();
+      for (const c of sends[i]) {
+        const k = key(c);
+        if (seen.has(k) || !keys[j].has(k)) continue;
+        seen.add(k);
         out.push({
           aId: regions[i].id,
           bId: regions[j].id,
           a: regions[i].name,
           b: regions[j].name,
-          cc,
-          channel: regions[i].channel,
+          cc: c.cc,
+          channel: c.channel,
         });
       }
     }

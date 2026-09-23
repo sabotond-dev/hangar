@@ -23,6 +23,7 @@
     MATRIX_LINE,
     NOTHING_SELECTED,
     PLATE_NAME,
+    TYPE_SHORT,
     cellLine,
     elementsLine,
     placeInstruction,
@@ -42,11 +43,15 @@
     boundingBox,
     cellIndex,
     colourByte,
+    hasNumber,
     lockedOf,
     outputOf,
     springOf,
     springPosition,
     toDisplay,
+    typeOf,
+    typeYOf,
+    type MidiType,
     type Region,
   } from "$lib/sandbox/model";
   import { noteName } from "$lib/tune/view";
@@ -180,6 +185,10 @@
   const restOf = (r: Region): number =>
     springOf(r) ? springPosition(r) / 127 : REST_VALUE;
 
+  /** An output's number as the plate draws it (change 17): the controller, or the type's short word where it has none (a pitch bend, a channel pressure). */
+  const numberOf = (type: MidiType, cc: number): string =>
+    hasNumber(type) ? String(cc) : TYPE_SHORT[type as keyof typeof TYPE_SHORT];
+
   /** The controller numeral a kind shows (change 13C's toggle): a button's note by name, an XY pad's pair, a blank none. */
   function numeralOf(r: Region): string | undefined {
     switch (r.kind) {
@@ -188,9 +197,9 @@
       case "button":
         return outputOf(r) === "note" ? noteName(r.cc) : String(r.cc);
       case "xy":
-        return `${r.cc} ${r.cc2 ?? 0}`;
+        return `${numberOf(typeOf(r), r.cc)} ${numberOf(typeYOf(r), r.cc2 ?? 0)}`;
       default:
-        return String(r.cc);
+        return numberOf(typeOf(r), r.cc);
     }
   }
 
@@ -949,7 +958,7 @@
                 x={f.cx}
                 y={f.bottom - PITCH * 0.45}
                 font-size={LABEL}
-                style:fill>{r.cc}</text
+                style:fill>{numberOf(typeOf(r), r.cc)}</text
               >
             {:else}
               {@const gLeft = f.left + PITCH * 0.3}
@@ -984,7 +993,7 @@
                 x={f.cx}
                 y={f.cy + PITCH * 0.42}
                 font-size={LABEL}
-                style:fill>{r.cc}</text
+                style:fill>{numberOf(typeOf(r), r.cc)}</text
               >
             {/if}
             <text

@@ -3,12 +3,12 @@
   the name (a count over a set, change 13A), the units chip, then four titled sections on the
   rack's grid (change 16c): Identity (the name with the lock box in its lock column, the type as
   a fact, Orientation on faders), Behavior (Mode, Speed, Spring and its value; Touches; Toggle and
-  Group; a knob's Mode), MIDI output (Output and Note on a button; CC, Channel, Min, Max),
-  Appearance (Swatch.svelte, BrightnessField.svelte), then the pinned Duplicate / Delete. Every
+  Group; a knob's Mode), MIDI output (Type, the number, Channel, Min, Max, Receive; an XY pad's
+  axes as two blocks - change 17), Appearance, then the pinned Duplicate / Delete. Every
   field is one row - label | control | reset | lock - its control filling the column at 44: a text
   field, a fact, a segmented control of two words, a select past two, Stepper.svelte over a range;
   a helper is the label's title and a description; a set's differing field reads MIXED and has an
-  Arrange row (13B); no selection lists Shared controllers (13C) and New elements; Play locks all.
+  Arrange row (13B); no selection lists Shared controllers (13C), Color input (17) and New elements.
   Decided at 13-16 (Bible section 8; D-21); see .planning/phases/13-gui-overhaul/13-16-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -33,7 +33,6 @@
     BEHAVIOR,
     BUTTON_MIN_MAX_HELPER,
     CC_NUMBER,
-    CC_NUMBER_Y,
     CHANNEL,
     COLOUR_LABEL,
     CONFLICTS,
@@ -72,9 +71,9 @@
     ORIENTATION,
     ORIENTATION_HORIZONTAL,
     ORIENTATION_VERTICAL,
-    OUTPUT,
     OUTPUT_CC,
     OUTPUT_NOTE,
+    OUTPUT_TYPE,
     PLAY_LOCKS_FIELDS,
     RECENT_COLOURS,
     RECENT_COLOURS_HELPER,
@@ -96,6 +95,20 @@
     TOUCHES,
     TOUCHES_HELPER,
     TYPE,
+    TYPE_HELPER,
+    TYPE_PITCH_BEND,
+    TYPE_PRESSURE,
+    X_AXIS,
+    Y_AXIS,
+    RECEIVE,
+    RECEIVE_HELPER,
+    COLOR_INPUT,
+    COLOR_INPUT_HELPER,
+    COLOR_INPUT_SWITCH,
+    FIRST_CC,
+    CC_RANGE,
+    CHANNEL_RANGE,
+    WHOLE_NUMBER,
     conflictLine,
     deleteElements,
     elementsLine,
@@ -139,7 +152,14 @@
     springOf,
     springValueOf,
     touchesOf,
-    type ButtonOutput,
+    CONTINUOUS_TYPES,
+    channelYOf,
+    hasNumber,
+    receiveOf,
+    typeOf,
+    typeYOf,
+    type ColourInput,
+    type MidiType,
     type Orientation,
     type Region,
     type RegionMode,
@@ -164,6 +184,9 @@
     onspeed,
     onspring,
     onoutput,
+    onoutputy,
+    onreceive,
+    oncolourinput,
     ongroup,
     ontouches,
     onlocked,
@@ -192,7 +215,14 @@
     onmode?: (mode: RegionMode) => void;
     onspeed?: (speed: Speed) => void;
     onspring?: (spring: boolean) => void;
-    onoutput?: (output: ButtonOutput) => void;
+    /** The output's Type (change 17): a button's CC / Note, a continuous kind's (an XY pad's X axis) CC / Pitch bend / Channel pressure. */
+    onoutput?: (output: MidiType) => void;
+    /** An XY pad's Y axis Type (change 17). */
+    onoutputy?: (output: MidiType) => void;
+    /** Receive (change 17): MIDI RX on or off, one entry. */
+    onreceive?: (receive: boolean) => void;
+    /** The surface's Color input (change 17): a channel and a first CC, or undefined for off. */
+    oncolourinput?: (input: ColourInput | undefined) => void;
     ongroup?: (group: number) => void;
     /** An XY pad's touch count, 1..5 (change 11); the editor refuses a count the controllers cannot carry. */
     ontouches?: (touches: number) => void;
@@ -227,6 +257,10 @@
   const speedId = `${uid}-speed`;
   const springId = `${uid}-spring`;
   const outputId = `${uid}-output`;
+  const outputYId = `${uid}-output-y`;
+  const receiveId = `${uid}-receive`;
+  const colourSwitchId = `${uid}-colour-input`;
+  const colourHelperId = `${uid}-colour-input-helper`;
   const groupId = `${uid}-group`;
   const touchesId = `${uid}-touches`;
   const lockedHelperId = `${uid}-locked-helper`;
@@ -320,6 +354,7 @@
     cc: "cc",
     cc2: "cc2",
     channel: "channel",
+    channelY: "channel-y",
     min: "min",
     max: "max",
     springValue: "spring-value",
@@ -331,6 +366,7 @@
     cc: [CC_MIN, CC_MAX],
     cc2: [CC_MIN, CC_MAX],
     channel: [CHANNEL_MIN, CHANNEL_MAX],
+    channelY: [CHANNEL_MIN, CHANNEL_MAX],
     min: [VALUE_MIN, VALUE_MAX],
     max: [VALUE_MIN, VALUE_MAX],
     springValue: [VALUE_MIN, VALUE_MAX],
@@ -355,6 +391,18 @@
     value: o,
     label: o === "cc" ? OUTPUT_CC : OUTPUT_NOTE,
   }));
+  /** A continuous output's three types (change 17, answer 2): a select, as one word is long. */
+  const TYPE_WORDS: readonly Word[] = CONTINUOUS_TYPES.map((t) => ({
+    value: t,
+    label:
+      t === "pitchbend"
+        ? TYPE_PITCH_BEND
+        : t === "pressure"
+          ? TYPE_PRESSURE
+          : OUTPUT_CC,
+  }));
+  /** The Color input's first values when it is switched on (change 17): the last channel, CC 0 up. */
+  const COLOUR_INPUT_START: ColourInput = { channel: CHANNEL_MAX, cc: CC_MIN };
   /** A checkbox's two states as two words (change 16c): Spring, Toggle. */
   const SWITCH_WORDS: readonly Word[] = [
     { value: "false", label: SWITCH_OFF },
@@ -425,6 +473,8 @@
         return first.cc2;
       case "channel":
         return first.channel;
+      case "channelY":
+        return channelYOf(first);
       case "min":
         return minOf(first);
       case "max":
@@ -448,6 +498,63 @@
     else onnumber(field, text);
   }
 
+  /** Receive's row (change 17): shown unless a member cannot hold a received value - a blank, a relative knob, a pad with more than one touch (model.ts `receivesOf`). */
+  const canReceive = $derived(
+    any &&
+      !members.some(
+        (r) =>
+          r.kind === "blank" ||
+          (r.kind === "knob" && isRelative(r)) ||
+          touchesOf(r) > 1,
+      ),
+  );
+
+  /** The Color input's typed fields (change 17): the text while one is being typed, and its refusal. */
+  type ColourField = "channel" | "cc";
+  let colourTyped = $state<
+    { field: ColourField; text: string; problem?: string } | undefined
+  >(undefined);
+  const colourRange = (field: ColourField): readonly [number, number] =>
+    field === "channel" ? [CHANNEL_MIN, CHANNEL_MAX] : [CC_MIN, CC_MAX];
+  /** A keystroke applies a whole number in range at once (the brightness field's rule); Enter and blur are the history's boundary. */
+  function typeColour(field: ColourField, text: string, committed: boolean) {
+    const input = view.surface.colourInput;
+    if (input === undefined) return;
+    if (committed) {
+      oncommit();
+      if (colourTyped?.problem === undefined) colourTyped = undefined;
+      return;
+    }
+    const trimmed = text.trim();
+    if (!/^[0-9]+$/.test(trimmed)) {
+      colourTyped = { field, text, problem: WHOLE_NUMBER };
+      return;
+    }
+    const n = Number.parseInt(trimmed, 10);
+    const [lo, hi] = colourRange(field);
+    if (n < lo || n > hi) {
+      colourTyped = {
+        field,
+        text,
+        problem: field === "channel" ? CHANNEL_RANGE : CC_RANGE,
+      };
+      return;
+    }
+    colourTyped = { field, text };
+    oncolourinput?.({ ...input, [field]: n });
+  }
+  /** A step box or an arrow: the next value in the range, applied. */
+  function stepColour(field: ColourField, rank: number): void {
+    const input = view.surface.colourInput;
+    if (input === undefined) return;
+    const [lo, hi] = colourRange(field);
+    colourTyped = undefined;
+    oncolourinput?.({
+      ...input,
+      [field]: Math.min(hi, Math.max(lo, lo + rank)),
+    });
+  }
+
   function onkeydown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -460,6 +567,7 @@
     if (!any)
       return [
         { title: APPEARANCE, content: appearance },
+        { title: COLOR_INPUT, content: colourInput },
         { title: NEW_ELEMENTS, content: defaults },
       ];
     const out: InspectorSection[] = [];
@@ -888,19 +996,20 @@
   </div>
 {/snippet}
 
+<!-- Change 17: every output's Type, Number and Channel. A continuous kind's Type is a select (Pitch bend and Channel pressure carry no number, so the number row goes with them); a button's the two-word segmented control; an XY pad's two outputs are two blocks under their axis's sub-head, each its own Type, number and channel. -->
 {#snippet midi()}
   <div class="rows">
     {#if sharedKind === "button"}
       {@const output = shared(outputOf)}
-      <!-- Output first (answer 10): CC or Note; the number field follows the choice - over a set, only when every member is on Note (the controller is each one's own). -->
+      <!-- Type first (answer 10): CC or Note; the number field follows the choice - over a set, only when every member is on Note (the controller is each one's own). -->
       {@render segmented(
         outputId,
         "field-output",
-        OUTPUT,
+        OUTPUT_TYPE,
         undefined,
         OUTPUT_WORDS,
         output,
-        (value) => onoutput?.(value as ButtonOutput),
+        (value) => onoutput?.(value as MidiType),
         undefined,
       )}
       {#if output === "note"}
@@ -911,20 +1020,64 @@
       {@render numeric("channel", CHANNEL, undefined, undefined)}
       {@render numeric("min", MIN, BUTTON_MIN_MAX_HELPER, undefined)}
       {@render numeric("max", MAX, BUTTON_MIN_MAX_HELPER, helperId("min"))}
+    {:else if sharedKind === "xy"}
+      {@const typeX = shared(typeOf)}
+      {@const typeY = shared(typeYOf)}
+      <!-- The pad's shared rows first - Min and Max serve both axes, Receive the pad - then its two outputs, each under its axis. -->
+      {@render numeric("min", MIN, MIN_MAX_HELPER, undefined)}
+      {@render numeric("max", MAX, MIN_MAX_HELPER, helperId("min"))}
+      {#if canReceive}
+        {@render receiveRow()}
+      {/if}
+      <p class="subhead type-micro" data-testid="axis-x">{X_AXIS}</p>
+      {@render selectRow(
+        outputId,
+        "field-output",
+        OUTPUT_TYPE,
+        TYPE_HELPER,
+        TYPE_WORDS,
+        typeX,
+        (value) => onoutput?.(value as MidiType),
+        undefined,
+      )}
+      {#if region !== undefined && hasNumber(typeOf(region))}
+        {@render numeric("cc", CC_NUMBER, undefined, undefined)}
+      {/if}
+      {@render numeric("channel", CHANNEL, undefined, undefined)}
+      <p class="subhead type-micro" data-testid="axis-y">{Y_AXIS}</p>
+      {@render selectRow(
+        outputYId,
+        "field-output-y",
+        OUTPUT_TYPE,
+        TYPE_HELPER,
+        TYPE_WORDS,
+        typeY,
+        (value) => onoutputy?.(value as MidiType),
+        undefined,
+      )}
+      {#if region !== undefined && hasNumber(typeYOf(region))}
+        {@render numeric("cc2", CC_NUMBER, undefined, undefined)}
+      {/if}
+      {@render numeric("channelY", CHANNEL, undefined, undefined)}
     {:else if any}
       {@const relativeKnob = members.some(
         (r) => r.kind === "knob" && isRelative(r),
       )}
-      {#if region !== undefined}
-        {@render numeric(
-          "cc",
-          region.kind === "xy" ? `${CC_NUMBER} (X)` : CC_NUMBER,
-          undefined,
+      <!-- A fader's or a knob's Type - not under a knob's relative modes, which send relative CC steps. -->
+      {#if sharedKind !== undefined && !relativeKnob}
+        {@render selectRow(
+          outputId,
+          "field-output",
+          OUTPUT_TYPE,
+          TYPE_HELPER,
+          TYPE_WORDS,
+          shared(typeOf),
+          (value) => onoutput?.(value as MidiType),
           undefined,
         )}
-        {#if region.kind === "xy"}
-          {@render numeric("cc2", CC_NUMBER_Y, undefined, undefined)}
-        {/if}
+      {/if}
+      {#if region !== undefined && hasNumber(typeOf(region))}
+        {@render numeric("cc", CC_NUMBER, undefined, undefined)}
       {/if}
       {@render numeric("channel", CHANNEL, undefined, undefined)}
       <!-- Min and Max (answer 6a) - not under a knob's relative modes, where a detent is a step. -->
@@ -932,6 +1085,93 @@
         {@render numeric("min", MIN, MIN_MAX_HELPER, undefined)}
         {@render numeric("max", MAX, MIN_MAX_HELPER, helperId("min"))}
       {/if}
+    {/if}
+    {#if canReceive && sharedKind !== "xy"}
+      {@render receiveRow()}
+    {/if}
+  </div>
+{/snippet}
+
+<!-- Receive (change 17, answers 1i and 1ii): Off / On, on by default. -->
+{#snippet receiveRow()}
+  {@const receive = shared(receiveOf)}
+  {@render segmented(
+    receiveId,
+    "field-receive",
+    RECEIVE,
+    RECEIVE_HELPER,
+    SWITCH_WORDS,
+    receive === undefined ? undefined : String(receive),
+    (value) => onreceive?.(value === "true"),
+    undefined,
+  )}
+{/snippet}
+
+<!-- The surface's Color input (change 17, answer 1iii), with nothing selected: Off / On, then its channel and first CC as the rack's steppers. -->
+{#snippet colourInput()}
+  {@const input = view.surface.colourInput}
+  <p class="helper first type-helper" id={colourHelperId}>
+    {COLOR_INPUT_HELPER}
+  </p>
+  <div class="rows">
+    {@render segmented(
+      colourSwitchId,
+      "colour-input",
+      COLOR_INPUT_SWITCH,
+      undefined,
+      SWITCH_WORDS,
+      String(input !== undefined),
+      (value) => {
+        colourTyped = undefined;
+        oncolourinput?.(
+          value === "true" ? (input ?? COLOUR_INPUT_START) : undefined,
+        );
+      },
+      undefined,
+    )}
+    {#if input !== undefined}
+      {#each [["channel", CHANNEL, input.channel], ["cc", FIRST_CC, input.cc]] as const as [field, label, value] (field)}
+        {@const [lo, hi] = colourRange(field)}
+        {@const typed = colourTyped?.field === field ? colourTyped : undefined}
+        {@const problemId = `${colourSwitchId}-${field}-message`}
+        <div class="field" class:invalid={typed?.problem !== undefined}>
+          <div class="row">
+            <label class="label type-micro" for={`${colourSwitchId}-${field}`}
+              >{label}</label
+            >
+            <div class="control">
+              <Stepper
+                id={`${colourSwitchId}-${field}`}
+                testid="colour-input-{field}"
+                inputTestid="colour-input-{field}"
+                value={typed?.text ?? String(value)}
+                rank={value - lo}
+                count={hi - lo + 1}
+                invalid={typed?.problem !== undefined}
+                describedBy={describedBy(
+                  typed?.problem !== undefined ? problemId : undefined,
+                  colourHelperId,
+                  lock,
+                )}
+                hint={false}
+                inputmode="numeric"
+                readonly={play}
+                ontext={(text, committed) => typeColour(field, text, committed)}
+                onrank={(rank) => stepColour(field, rank)}
+              />
+            </div>
+          </div>
+          {#if typed?.problem !== undefined}
+            <p
+              class="message type-helper"
+              id={problemId}
+              data-testid="colour-input-{field}-message"
+            >
+              {typed.problem}
+            </p>
+          {/if}
+        </div>
+      {/each}
     {/if}
   </div>
 {/snippet}
@@ -1415,6 +1655,18 @@
   /* A helper that opens a section sits on the title's rhythm, and the control under it takes the same gap. */
   .helper.first {
     margin-block: 0 12px;
+  }
+
+  /* An output block's sub-head inside MIDI output (change 17: an XY pad's X axis and Y axis): the eyebrow face in ink, the row's 4px start, a line of its own above its rows - the hairline rhythm's, no rule of its own. */
+  .subhead {
+    margin: 0;
+    padding-block: 16px 8px;
+    padding-inline-start: 4px;
+    color: var(--color-ink);
+  }
+
+  .rows > .subhead:first-child {
+    padding-block-start: 0;
   }
 
   /* The Arrange row (13B): eight square icon boxes, four to a line (the alignments, then the centres and the spacings) - a body of 385 held 7 + 1 (change 16c). */
