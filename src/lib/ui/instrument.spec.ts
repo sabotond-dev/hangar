@@ -235,10 +235,18 @@ const MONO_USES: ReadonlyArray<readonly [string, string, string]> = [
   ["Stepper.svelte", "change 16", "the typed value"],
   ["Swatch.svelte", "change 16", "the chip's three channels"],
   ["ColourPicker.svelte", "10-10", "the RGB triple - the fifth"],
+  // CHANGE 17C (2026-09-23, 17B's question 5 decided): an output block's head is a one-line
+  // summary whose values - the Type, the channel, the Number - are the house mono, as the brief
+  // for the fold asked; the output's name beside it stays the eyebrow face. The sixth.
+  [
+    "TuningRegion.svelte",
+    "change 17C",
+    "an output block's summary - the sixth",
+  ],
 ];
 
-/** Five uses across five files. */
-const MONO_COUNT = 5;
+/** Six uses across six files. */
+const MONO_COUNT = 6;
 
 const PILLED: ReadonlyArray<readonly [string, string, string]> = [
   // TWO ROWS LEFT AT 13.1-06 with the install column (13.1-CONTEXT D-06,
