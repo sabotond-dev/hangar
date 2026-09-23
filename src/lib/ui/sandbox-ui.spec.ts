@@ -1,8 +1,9 @@
-// The Sandbox's interface, twenty-eight tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by
+// The Sandbox's interface, thirty tests (7 and 8 by 13.1-03, 9 by change 5, 10 and 11 by
 // change 10A - the selector, the hotkeys, the move, the delete icon, the blank kind; 12 by 10B, 13
 // by change 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B; 21 to 27 by 13C - the menu,
 // the sheet, the Play monitor, the shared-controller pass, the view toggles, the recent colours, the
-// profile controls; 28 by change 15 - the tool rail), two halves each:
+// profile controls; 28 by change 15 - the tool rail; 29 by change 17 - the MIDI output; 30 by
+// change 18 - Latch), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -33,6 +34,8 @@ import {
   FLIP_VERTICAL,
   GROUP_HELPER,
   KIND_LABELS,
+  LATCH,
+  LATCH_HELPER,
   KNOB_MODE_WORDS,
   KNOB_RELATIVE_HELPER,
   LIST_EMPTY,
@@ -189,6 +192,7 @@ import {
   boundingBox,
   ccCeiling,
   flagsOf,
+  latchTouchOf,
   lockedOf,
   orientationOf,
   seventhOf,
@@ -1797,15 +1801,17 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(plainPanel).not.toContain('data-testid="field-speed"');
     expect(plainPanel).not.toContain('data-testid="field-spring-value"');
     expect(plainPanel).toContain(MODE_HELPER);
-    // The button: Toggle (never Latch), Group with None and eight, Output,
-    // the note field showing the name; under CC the controller field.
+    // The button: Toggle (never Latch - since change 18 that word is the finger's, one row of
+    // its own), Group with None and eight, Output, the note field showing the name; under CC the
+    // controller field.
     editor.select(button.id);
     panel = inspector(editor);
     expect(panel).toContain('data-testid="field-toggle"');
-    expect(panel).not.toContain("field-latch");
     expect(panel).toContain(TOGGLE);
     expect(panel).toContain(TOGGLE_HELPER);
-    expect(panel).not.toContain("Latch");
+    expect(count(panel, ">Toggle<")).toBe(1);
+    expect(count(panel, ">Latch<")).toBe(1);
+    expect(count(panel, 'data-testid="field-latch"')).toBe(1);
     expect(panel).toContain('data-testid="field-group"');
     expect(count(panel, "Group ")).toBe(8);
     expect(panel).toContain(GROUP_HELPER);
@@ -1833,8 +1839,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // The blank: no Behavior at all.
     editor.select(editor.surface.regions[4].id);
     expect(inspector(editor)).not.toContain("Behavior");
-    // The copy never says Latch; the route wires the five callbacks.
-    expect(code("src/lib/sandbox/copy.ts")).not.toContain("Latch");
+    // The copy says Latch once, change 18's row (never the toggle); the route wires the five callbacks.
+    expect(count(code("src/lib/sandbox/copy.ts"), '"Latch"')).toBe(1);
+    expect(LATCH).toBe("Latch");
     const route = code(ROUTE);
     for (const wire of [
       "onmode={(mode) => void editor?.setRegionMode(mode)}",
@@ -2803,7 +2810,7 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       /data-testid="field-orientation" data-value="" data-mixed="true"/,
     );
     expect(panel).not.toMatch(/name="[^"]*-orientation"[^>]*checked/);
-    // A fader and a button: the type reads Mixed, no Behavior, the shared MIDI fields stay.
+    // A fader and a button: the type reads Mixed, Behavior with Latch alone (change 18), the shared MIDI fields stay.
     editor.select(f1.id);
     editor.toggleSelect(button.id);
     panel = inspector(editor);
@@ -2811,7 +2818,10 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(panel).toMatch(
       /data-testid="field-kind" data-kind="mixed"[^>]*>Mixed</,
     );
-    expect(panel).not.toContain(">Behavior<");
+    expect(panel).toContain(">Behavior<");
+    expect(panel).toContain('data-testid="field-latch"');
+    expect(panel).not.toContain('data-testid="field-mode"');
+    expect(panel).not.toContain('data-testid="field-toggle"');
     expect(panel).toContain('data-testid="field-channel"');
     expect(panel).toContain('data-testid="field-min"');
     expect(panel).not.toContain('data-testid="field-orientation"');
@@ -4725,5 +4735,158 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "oncolourinput={(input) => void editor?.setColourInput(input)}",
     ])
       expect(route, wiring).toContain(wiring);
+  });
+
+  it("30. Latch (change 18): Off / On through the editor on every kind that takes touch, one entry, the same value no entry, refused with a blank in the set or in Play; a set of mixed kinds writes every member; the remembered defaults carry it; a draft with the field reads and a word refused whole; the panel's row last under Behavior on every kind but a blank - alone over mixed kinds - with its helper as the label's title; the route's wiring", () => {
+    const { editor } = fresh();
+    const placed: Region[] = [];
+    for (const [kind, col, row] of [
+      ["fader", 0, 0],
+      ["button", 3, 0],
+      ["knob", 5, 0],
+      ["xy", 3, 4],
+      ["blank", 8, 8],
+    ] as const) {
+      editor.choose(kind);
+      editor.clickCell(col, row);
+      editor.cancel();
+      placed.push(editor.surface.regions[editor.surface.regions.length - 1]);
+    }
+    const [fader, button, knob, pad, blank] = placed;
+    // EVERY KIND THAT TAKES TOUCH: Off is one entry, Off again none, On back one more.
+    for (const r of [fader, button, knob, pad]) {
+      editor.select(r.id);
+      const depth = editor.state().depth;
+      expect(latchTouchOf(byId(editor, r.id)), r.kind).toBe(true);
+      expect(editor.setLatchTouch(false), r.kind).toBe(true);
+      expect(byId(editor, r.id).latchTouch).toBe(false);
+      expect(editor.setLatchTouch(false)).toBe(true);
+      expect(editor.state().depth, r.kind).toBe(depth + 1);
+      expect(editor.setLatchTouch(true)).toBe(true);
+      expect(latchTouchOf(byId(editor, r.id))).toBe(true);
+      expect(editor.state().depth).toBe(depth + 2);
+      expect(editor.undo()).toBe(true);
+      expect(byId(editor, r.id).latchTouch).toBe(false);
+    }
+    // A blank takes no touch: refused alone and in a set, nothing recorded.
+    editor.select(blank.id);
+    let depth = editor.state().depth;
+    expect(editor.setLatchTouch(false)).toBe(false);
+    editor.select(fader.id);
+    editor.toggleSelect(blank.id);
+    expect(editor.setLatchTouch(true)).toBe(false);
+    expect(editor.state().depth).toBe(depth);
+    // A SET OF MIXED KINDS: one entry writes every member.
+    editor.select(fader.id);
+    editor.toggleSelect(button.id);
+    editor.toggleSelect(knob.id);
+    depth = editor.state().depth;
+    expect(editor.setLatchTouch(true)).toBe(true);
+    expect(editor.state().depth).toBe(depth + 1);
+    for (const r of [fader, button, knob])
+      expect(byId(editor, r.id).latchTouch, r.kind).toBe(true);
+    expect(byId(editor, pad.id).latchTouch).toBe(false);
+    // In Play: refused.
+    editor.setMode("play");
+    expect(editor.setLatchTouch(false)).toBe(false);
+    expect(byId(editor, fader.id).latchTouch).toBe(true);
+    editor.setMode("edit");
+    // THE REMEMBERED DEFAULTS: one element's Latch is its kind's; a multi-edit is not remembered.
+    for (const kind of ["fader", "button", "knob", "xy"] as const)
+      expect(REMEMBERED_FIELDS[kind], kind).toContain("latchTouch");
+    expect(REMEMBERED_FIELDS.blank).toEqual([]);
+    expect(rememberKind({ ...pad, latchTouch: false })).toMatchObject({
+      latchTouch: false,
+    });
+    expect(withKindDefaults(fader, { latchTouch: false })).toMatchObject({
+      latchTouch: false,
+    });
+    expect(withKindDefaults(blank, { latchTouch: false })).not.toHaveProperty(
+      "latchTouch",
+    );
+    editor.select(pad.id);
+    expect(editor.setLatchTouch(true)).toBe(true);
+    expect(editor.setLatchTouch(false)).toBe(true);
+    editor.choose("xy");
+    editor.clickCell(6, 4);
+    editor.cancel();
+    const next = editor.surface.regions[editor.surface.regions.length - 1];
+    expect(next.kind).toBe("xy");
+    expect(next.latchTouch, "the pad's last Latch, remembered").toBe(false);
+    expect(isSandboxDefaults(editor.defaults)).toBe(true);
+    expect(
+      isSandboxDefaults({ schema: 1, kinds: { xy: { latchTouch: 1 } } }),
+    ).toBe(false);
+    // THE SCHEMA: a draft with the field reads; a word that is not a boolean is refused whole.
+    const record = (latchTouch: unknown) => ({
+      schema: 1,
+      id: "sandbox:s-18",
+      name: "Strum",
+      kind: "sandbox",
+      source: "s-18",
+      createdAt: "2026-09-23T00:00:00.000Z",
+      editedAt: "2026-09-23T00:00:00.000Z",
+      surface: {
+        id: "s-18",
+        name: "Strum",
+        regions: [
+          {
+            id: "button-1",
+            name: "Strum 1",
+            kind: "button",
+            col: 0,
+            row: 8,
+            w: 1,
+            h: 1,
+            cc: 90,
+            channel: 1,
+            colour: [15, 15, 15],
+            ...(latchTouch === undefined ? {} : { latchTouch }),
+          },
+        ],
+      },
+    });
+    expect(isStoredRecord(record(undefined))).toBe(true);
+    expect(isStoredRecord(record(false))).toBe(true);
+    expect(isStoredRecord(record(true))).toBe(true);
+    expect(isStoredRecord(record("off"))).toBe(false);
+    expect(isStoredRecord(record(0))).toBe(false);
+    // THE PANEL: the row last under Behavior on every kind but a blank, its helper the label's title.
+    for (const r of [fader, button, knob, pad]) {
+      editor.select(r.id);
+      const html = inspector(editor);
+      expect(html, r.kind).toContain('data-testid="field-latch"');
+      expect(html).toContain(LATCH_HELPER);
+      expect(html).toMatch(
+        new RegExp(`title="${LATCH_HELPER}"[^>]*>${LATCH}</span>`),
+      );
+      const behavior = html.indexOf(">Behavior<");
+      const latch = html.indexOf('data-testid="field-latch"');
+      const midi = html.indexOf(">MIDI output<");
+      expect(behavior, r.kind).toBeGreaterThan(-1);
+      expect(latch, `${r.kind}: Latch under Behavior`).toBeGreaterThan(
+        behavior,
+      );
+      expect(latch, `${r.kind}: before MIDI output`).toBeLessThan(midi);
+    }
+    editor.select(pad.id);
+    expect(inspector(editor)).toMatch(
+      /data-testid="field-latch" data-value="false"/,
+    );
+    editor.select(fader.id);
+    expect(inspector(editor)).toMatch(
+      /data-testid="field-latch" data-value="true"/,
+    );
+    // Over a set that differs: Mixed, no word chosen.
+    editor.toggleSelect(pad.id);
+    expect(inspector(editor)).toMatch(
+      /data-testid="field-latch" data-value="" data-mixed="true"/,
+    );
+    editor.select(blank.id);
+    expect(inspector(editor)).not.toContain('data-testid="field-latch"');
+    // THE ROUTE.
+    expect(code(ROUTE)).toContain(
+      "onlatchtouch={(latchTouch) => void editor?.setLatchTouch(latchTouch)}",
+    );
   });
 });

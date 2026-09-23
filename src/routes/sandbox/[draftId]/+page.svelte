@@ -977,6 +977,7 @@
       onoutput={(output) => void editor?.setOutput(output)}
       onoutputy={(output) => void editor?.setOutputY(output)}
       onreceive={(receive) => void editor?.setReceive(receive)}
+      onlatchtouch={(latchTouch) => void editor?.setLatchTouch(latchTouch)}
       oncolourinput={(input) => void editor?.setColourInput(input)}
       ongroup={(group) => editor?.setGroup(group)}
       ontouches={(touches) => void editor?.setTouches(touches)}

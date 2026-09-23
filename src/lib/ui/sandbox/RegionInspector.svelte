@@ -3,7 +3,8 @@
   the name (a count over a set, change 13A), the units chip, then four titled sections on the
   rack's grid (change 16c): Identity (the name with the lock box in its lock column, the type as
   a fact, Orientation on faders), Behavior (Mode, Speed, Spring and its value; Touches; Toggle and
-  Group; a knob's Mode), MIDI output (Type, the number, Channel, Min, Max, Receive; an XY pad's
+  Group; a knob's Mode; Latch on every kind that takes touch, change 18 - alone over a set of
+  mixed kinds), MIDI output (Type, the number, Channel, Min, Max, Receive; an XY pad's
   axes as two blocks - change 17), Appearance, then the pinned Duplicate / Delete. Every
   field is one row - label | control | reset | lock - its control filling the column at 44: a text
   field, a fact, a segmented control of two words, a select past two, Stepper.svelte over a range;
@@ -50,6 +51,8 @@
     KIND_LABELS,
     KNOB_MODE_WORDS,
     KNOB_RELATIVE_HELPER,
+    LATCH,
+    LATCH_HELPER,
     LOCKED,
     LOCKED_HELPER,
     MAX,
@@ -142,6 +145,7 @@
     colourByte,
     groupOf,
     isRelative,
+    latchTouchOf,
     lockedOf,
     maxOf,
     minOf,
@@ -186,6 +190,7 @@
     onoutput,
     onoutputy,
     onreceive,
+    onlatchtouch,
     oncolourinput,
     ongroup,
     ontouches,
@@ -221,6 +226,8 @@
     onoutputy?: (output: MidiType) => void;
     /** Receive (change 17): MIDI RX on or off, one entry. */
     onreceive?: (receive: boolean) => void;
+    /** Latch (change 18): On keeps the finger, Off hands it over; one entry. */
+    onlatchtouch?: (latchTouch: boolean) => void;
     /** The surface's Color input (change 17): a channel and a first CC, or undefined for off. */
     oncolourinput?: (input: ColourInput | undefined) => void;
     ongroup?: (group: number) => void;
@@ -259,6 +266,7 @@
   const outputId = `${uid}-output`;
   const outputYId = `${uid}-output-y`;
   const receiveId = `${uid}-receive`;
+  const latchId = `${uid}-latch`;
   const colourSwitchId = `${uid}-colour-input`;
   const colourHelperId = `${uid}-colour-input-helper`;
   const groupId = `${uid}-group`;
@@ -575,8 +583,9 @@
     if (multi) out.push({ title: ARRANGE, content: arrange });
     // Identity (section 8): the name, the type and the lock, Orientation on faders (change 16c: a titled section on the grid).
     out.push({ title: IDENTITY, content: identity });
-    // Every sending kind has a Behavior since change 10B; a blank has none, and a set has one only when every member is one kind.
-    if (sharedKind !== undefined && sharedKind !== "blank")
+    // Every sending kind has a Behavior since change 10B; a blank has none. A set of one kind has its
+    // kind's rows; since change 18 a set of mixed kinds has one too, Latch alone - with no blank in it.
+    if (!members.some((r) => r.kind === "blank"))
       out.push({ title: BEHAVIOR, content: behavior });
     // A blank sends nothing: no MIDI output section (change 10A), and none with a blank in the set.
     if (!members.some((r) => r.kind === "blank"))
@@ -993,7 +1002,23 @@
         undefined,
       )}
     {/if}
+    {@render latchRow()}
   </div>
+{/snippet}
+
+<!-- Latch (change 18): Off / On, on by default - the last row of Behavior on every kind that takes touch. -->
+{#snippet latchRow()}
+  {@const latch = shared(latchTouchOf)}
+  {@render segmented(
+    latchId,
+    "field-latch",
+    LATCH,
+    LATCH_HELPER,
+    SWITCH_WORDS,
+    latch === undefined ? undefined : String(latch),
+    (value) => onlatchtouch?.(value === "true"),
+    undefined,
+  )}
 {/snippet}
 
 <!-- Change 17: every output's Type, Number and Channel. A continuous kind's Type is a select (Pitch bend and Channel pressure carry no number, so the number row goes with them); a button's the two-word segmented control; an XY pad's two outputs are two blocks under their axis's sub-head, each its own Type, number and channel. -->

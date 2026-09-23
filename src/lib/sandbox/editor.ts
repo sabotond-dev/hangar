@@ -7,7 +7,7 @@
 // on empty clears, a marquee is `selectTouching`; `choose(kind)` arms a kind for every `clickCell`
 // (Alt+click fills) until `cancel()`. Every structural command takes the set as one, one entry:
 // `moveSelectedTo`, `nudgeSelected`, `editNumber` and the setters (change 17's `setOutput`, `setOutputY`,
-// `setReceive`, `setColourInput`), `paste` / `duplicate`, and 13B's align / distribute / transform / rename.
+// `setReceive`, `setColourInput`; change 18's `setLatchTouch`), `paste` / `duplicate`, and 13B's align / distribute / transform / rename.
 // Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -287,8 +287,8 @@ export { NO_DEFAULTS };
 /**
  * The fields that stick per kind (change 13B, suggestion 8): the ones the readings named, and
  * only on the kind that has them - since change 17 the type (an XY pad's per axis, and its Y
- * channel) and Receive too. The controller, the colour, the orientation, the name and the
- * geometry never stick; a blank has nothing to remember.
+ * channel) and Receive too, and since change 18 Latch. The controller, the colour, the
+ * orientation, the name and the geometry never stick; a blank has nothing to remember.
  */
 export const REMEMBERED_FIELDS: Readonly<
   Record<ElementKind, readonly (keyof KindDefaults)[]>
@@ -303,6 +303,7 @@ export const REMEMBERED_FIELDS: Readonly<
     "springValue",
     "output",
     "receive",
+    "latchTouch",
   ],
   xy: [
     "channel",
@@ -315,8 +316,9 @@ export const REMEMBERED_FIELDS: Readonly<
     "outputY",
     "channelY",
     "receive",
+    "latchTouch",
   ],
-  knob: ["channel", "min", "max", "mode", "output", "receive"],
+  knob: ["channel", "min", "max", "mode", "output", "receive", "latchTouch"],
   button: [
     "channel",
     "min",
@@ -326,6 +328,7 @@ export const REMEMBERED_FIELDS: Readonly<
     "group",
     "note",
     "receive",
+    "latchTouch",
   ],
   blank: [],
 };
@@ -1242,6 +1245,18 @@ export class SandboxEditor {
     if (regions.length === 0 || regions.some(isPaintOnly)) return false;
     if (regions.every((r) => (r.receive !== false) === receive)) return true;
     this.applyPatch({ receive }, "option");
+    this.emit();
+    return true;
+  }
+
+  /** Latch (change 18): On keeps a finger on the element it landed on, Off hands it over - on every member; a blank takes no touch; refused in Play. One entry. */
+  setLatchTouch(latchTouch: boolean): boolean {
+    if (this._mode === "play") return false;
+    const regions = this.selectedRegions;
+    if (regions.length === 0 || regions.some(isPaintOnly)) return false;
+    if (regions.every((r) => (r.latchTouch !== false) === latchTouch))
+      return true;
+    this.applyPatch({ latchTouch }, "option");
     this.emit();
     return true;
   }

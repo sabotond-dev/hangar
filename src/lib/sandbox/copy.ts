@@ -129,11 +129,17 @@ export const ORIENTATION = "Orientation";
 export const ORIENTATION_VERTICAL = "Vertical";
 export const ORIENTATION_HORIZONTAL = "Horizontal";
 export const BEHAVIOR = "Behavior";
-// LATCH (`Latch`) and LATCH_HELPER ARE RETIRED BY NAME, 2026-09-18 (change 10B, the user's
-// "rename latch to toggle mode"): the field is TOGGLE below; the schema keeps `latch`.
+// LATCH (`Latch`) and LATCH_HELPER WERE RETIRED BY NAME, 2026-09-18 (change 10B, the user's
+// "rename latch to toggle mode"): the button's field is TOGGLE below; the schema keeps `latch`.
+// The word returns 2026-09-23 (change 18, the user's "Latch mode") for another setting, on every
+// kind that takes touch: whether a finger keeps the element it landed on (the schema's `latchTouch`).
 /** The two words of a switch (change 16c): Spring and Toggle are segmented controls, never a checkbox. */
 export const SWITCH_OFF = "Off";
 export const SWITCH_ON = "On";
+/** Latch (change 18, BENCH-2026-09-16.txt section 18): Off / On under Behavior, On by default. */
+export const LATCH = "Latch";
+export const LATCH_HELPER =
+  "On: the finger keeps this element until it lifts. Off: a sliding finger passes to the element it moves onto.";
 /** The button's toggle (change 10B; the schema's `latch`). */
 export const TOGGLE = "Toggle";
 export const TOGGLE_HELPER =
