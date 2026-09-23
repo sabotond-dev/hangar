@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { EVENT_BUDGET, type PadReserved } from "../../vendor/botor/_pad";
 import { byId, portedEntry, type CatalogEntry } from "../catalog";
+import { presetWire } from "../catalog/entries/ported-midi";
 import {
   compileState,
   costOf,
@@ -232,9 +233,19 @@ describe("the fit ladder and the over-budget block (TUNE-04, TUNE-05)", () => {
 
     // The line, the label and the savings are the compiler's, checked against
     // the plan this spec asks for itself rather than against a number typed
-    // here. No knob moved, so the tuner's plan is the unpinned one.
-    const plan = await fitState(resetAll(mustEntry("dial")), {
-      reserved: DIAL_RESERVE,
+    // here. No knob moved, so the tuner's plan is the unpinned one. DIAL is a
+    // WRAPPED preset since change 17C: the tuner's ladder holds back the
+    // outputs' rewrite beside the reserve (model.ts `ladderReserve`), so this
+    // plan does too - the wire's cost less the bare compile's, measured here.
+    const dial = mustEntry("dial");
+    const compiled = await compileState(resetAll(dial));
+    const bare = await costOf(compiled);
+    const wire = await costOf(presetWire(dial, compiled));
+    const plan = await fitState(resetAll(dial), {
+      reserved: {
+        setup: DIAL_RESERVE.setup + wire.setup.used - bare.setup.used,
+        timer: DIAL_RESERVE.timer + wire.timer.used - bare.timer.used,
+      },
     });
     expect(ladder!.label, "the line does not carry steps[0]'s own words").toBe(
       plan.steps[0].label,

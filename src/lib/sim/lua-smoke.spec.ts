@@ -14166,7 +14166,21 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
   /** Everything sent since `from`, as `ch:cmd:p1:p2`. */
   const wire = (midi: readonly HostMidi[], from = 0): string[] =>
     midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
-  /** One gesture, the same on every card: a press, a drag, a lift, a fast tap; the frames after each step. */
+  /**
+   * A full clockwise turn at radius 45 around the centre from twelve o'clock, in eighteen steps - the
+   * DIAL's gesture (outside its dead zone), and one more drag for every other card.
+   */
+  const TURN: readonly (readonly [number, number])[] = Array.from(
+    { length: 19 },
+    (_, k) => {
+      const a = Math.PI / 2 - (k * 2 * Math.PI) / 18;
+      return [
+        Math.round(64 + 45 * Math.cos(a)),
+        Math.round(64 + 45 * Math.sin(a)),
+      ] as const;
+    },
+  );
+  /** One gesture, the same on every card: a press, a drag, a lift, a turn, a fast tap; the frames after each step. */
   function gesture(
     host: Awaited<ReturnType<typeof openPreset>>["host"],
   ): string[] {
@@ -14188,6 +14202,16 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
     host.touchUp(0, 120, 110);
     host.run(30);
     snap();
+    host.touchDown(0, TURN[0][0], TURN[0][1]);
+    host.run(2);
+    for (const [x, y] of TURN.slice(1)) {
+      host.touchMove(0, x, y);
+      host.run(2);
+      snap();
+    }
+    host.touchUp(0, TURN[18][0], TURN[18][1]);
+    host.run(30);
+    snap();
     host.touchTap(0, 90, 40);
     host.run(30);
     snap();
@@ -14197,9 +14221,12 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
    * The wrapped card and the shelf's compiled card, the same gesture on both: the SAME frames at
    * every step (the rewrite touches no LED call) and, at the output defaults, the SAME messages.
    */
-  async function asShipped(id: string): Promise<void> {
-    const wrapped = await openPreset(id);
-    const shipped = await openPreset(id, {}, { raw: true });
+  async function asShipped(
+    id: string,
+    tuned?: Record<string, number>,
+  ): Promise<void> {
+    const wrapped = await openPreset(id, {}, { tuned });
+    const shipped = await openPreset(id, {}, { raw: true, tuned });
     try {
       expect(gesture(wrapped.host), `${id}: the picture moved`).toEqual(
         gesture(shipped.host),
@@ -14318,6 +14345,121 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
 
   it("STARFIELD: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair, nothing sent back; the first finger's claim is the latch", async () => {
     await xyCard("starfield", [255, 170, 34]);
+  }, 60000);
+
+  it("DIAL: the dial is one output on its own Type, Channel and Number - the shelf's Send and Channel become its Number and Channel - at the defaults the preset's relative controller 16 on channel 0 and its picture frame for frame, relative and absolute; an absolute dial receives: a host value is the level the next turn continues from, nothing sent back; a relative dial keeps no value and assigns nil; the first finger's claim is the latch", async () => {
+    await asShipped("dial");
+    await asShipped("dial", { mode: 1 });
+    /** Turn the first finger through `steps` of TURN from twelve o'clock; everything sent since `from`. */
+    const turn = (
+      host: Awaited<ReturnType<typeof openPreset>>["host"],
+      steps: number,
+      id = 0,
+    ): void => {
+      host.touchDown(id, TURN[0][0], TURN[0][1]);
+      host.run(2);
+      for (const [x, y] of TURN.slice(1, steps + 1)) {
+        host.touchMove(id, x, y);
+        host.run(2);
+      }
+      host.touchUp(id, TURN[steps][0], TURN[steps][1]);
+      host.run(4);
+    };
+    {
+      // Relative: steps around 64 on controller 16, channel 0; no receive over a previous one.
+      const { host } = await openPreset("dial", {}, { stale: true });
+      try {
+        turn(host, 6);
+        const sent = wire(host.midi);
+        expect(sent.length).toBeGreaterThan(0);
+        for (const m of sent) expect(m).toMatch(/^0:176:16:[0-9]+$/);
+        expect(
+          host.midiIn(REPORT, 0, 176, 16, 100),
+          "nil, not the stale one",
+        ).toBe(false);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      // Relative on a pitch bend, channel 6: the same steps, `0, value` on the bend.
+      const { host } = await openPreset("dial", {
+        midiType: "224",
+        channel: "5",
+      });
+      const shipped = await openPreset("dial", {}, { raw: true });
+      try {
+        turn(host, 6);
+        turn(shipped.host, 6);
+        expect(wire(host.midi)).toEqual(
+          shipped.host.midi.map((m) => `5:224:0:${m.p2}`),
+        );
+      } finally {
+        host.close();
+        shipped.host.close();
+      }
+    }
+    {
+      // Absolute: a host value is the level the next turn continues from; nothing sent back.
+      const { host } = await openPreset(
+        "dial",
+        { send: "44" },
+        { tuned: { mode: 1 }, stale: true },
+      );
+      try {
+        host.midiIn(REPORT, 1, 176, 44, 100);
+        host.midiIn(REPORT, 0, 176, 43, 100);
+        host.midiIn(14, 0, 176, 44, 100);
+        expect(host.midiIn(REPORT, 0, 176, 44, 100)).toBe(true);
+        expect(host.midi.length, "nothing sent back").toBe(0);
+        turn(host, 3);
+        const first = host.midi[0];
+        expect(first.cmd).toBe(176);
+        expect(first.p1).toBe(44);
+        expect(
+          Math.abs(first.p2 - 100),
+          `the turn continued from 100, not 64 (sent ${first.p2})`,
+        ).toBeLessThanOrEqual(8);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      // Absolute, Receive Off: the level stays the dial's own.
+      const { host } = await openPreset(
+        "dial",
+        { midiReceive: "0", midiType: "208" },
+        { tuned: { mode: 1 } },
+      );
+      try {
+        host.midiIn(REPORT, 0, 208, 100, 0);
+        turn(host, 3);
+        expect(host.midi[0].cmd).toBe(208);
+        expect(Math.abs(host.midi[0].p1 - 64)).toBeLessThanOrEqual(8);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      // The latch: a second finger circling while the first holds still sends nothing.
+      const { host } = await openPreset("dial");
+      try {
+        host.touchDown(0, TURN[0][0], TURN[0][1]);
+        host.run(2);
+        const from = host.midi.length;
+        host.touchDown(1, TURN[0][0], TURN[0][1] - 2);
+        host.run(2);
+        for (const [x, y] of TURN.slice(1, 7)) {
+          host.touchMove(1, x, y);
+          host.run(2);
+        }
+        expect(wire(host.midi, from)).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
   }, 60000);
 
   it("JOYSTICK: the X and Y axes are two outputs - the shelf's Bend and Send become their Types and X's Number - at the defaults the preset's pitch bend and controller 17 of 127-y with the spring's 64 / 64, its picture frame for frame; a rest follows its output's Type (a pitch bend on 64 whatever On lift says); each receives: a host value moves the parked dot to the held pair's cell, nothing sent back, the receive made by the Timer the Setup pulls in; the first finger's claim is the latch", async () => {

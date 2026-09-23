@@ -14,6 +14,7 @@
 import {
   compile as vendorCompile,
   fits as vendorFits,
+  type CompileResult,
   type FitPlan,
   type PadCost,
   type PadReserved,
@@ -223,9 +224,14 @@ export function needsLadder(cost: PadCost): boolean {
 /**
  * The synchronous fit test, and the ONE place HANGAR calls a vendored measuring function without an
  * await in front of it. PRECONDITION: `padReady()` has resolved; every caller awaits it through `$lib/pad` first.
+ * `wire` is a wrapped preset's rewrite (change 17C): the fit is the wire's, not the bare compile's.
  */
-function fitsAfterGate(state: PadState, reserved: PadReserved | undefined) {
-  return vendorFits(vendorCompile(state), reserved);
+function fitsAfterGate(
+  state: PadState,
+  reserved: PadReserved | undefined,
+  wire: (compiled: CompileResult) => CompileResult = (compiled) => compiled,
+) {
+  return vendorFits(wire(vendorCompile(state)), reserved);
 }
 
 /** An engine that owns something it has to give back. Only the Lua route does. */
@@ -449,12 +455,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
           timerLua: scaled(result.timerLua),
         };
   };
-  /**
-   * A wrapped preset's whole reachable space is proved in budget at build time (reachability.sweep.spec.ts
-   * costs every compiler state under the outputs' dearest literals), as a Lua entry's is - and the ladder
-   * measures the unwrapped compile, so it would answer a question about the wrong strings. Neither the
-   * ladder nor the roll's fit test runs on one (change 17C).
-   */
+  /** A wrapped preset (change 17C): its wire is the compiled pair through its outputs' rewrite. */
   const wrapped = isWrapped(entry);
 
   let destroyed = false;
@@ -704,6 +705,26 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   }
 
   /**
+   * What the compiler's ladder must hold back for: the caller's reserve, plus - on a wrapped preset
+   * (change 17C) - what the outputs' rewrite adds to this state's compile, measured (the wire's cost
+   * less the bare compile's). The ladder plans over the vendored compile, so the rewrite is a reserve
+   * to it: its steps' numbers and its resolved state are then the wire's.
+   */
+  async function ladderReserve(
+    state: PadState,
+  ): Promise<PadReserved | undefined> {
+    if (!wrapped) return options.reserved;
+    const compiled = await compileState(state);
+    const bare = await costOf(compiled);
+    const wire = await costOf(presetWire(entry, compiled, indices));
+    const base = options.reserved ?? { setup: 0, timer: 0 };
+    return {
+      setup: base.setup + wire.setup.used - bare.setup.used,
+      timer: base.timer + wire.timer.used - bare.timer.used,
+    };
+  }
+
+  /**
    * The ladder, and the ONE call site of fitState in the tuning model: the debounced measurement and
    * SURPRISE ME's exhausted roll both come through here. The guard is the last statement before the call.
    */
@@ -712,8 +733,9 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     measured: PadCost,
   ): Promise<FitPlan | undefined> {
     if (!needsLadder(measured)) return undefined;
+    const reserved = await ladderReserve(state);
     return await fitState(state, {
-      reserved: options.reserved,
+      reserved,
       pinned: moved?.knob.sheet as PadSheet | undefined,
     });
   }
@@ -735,7 +757,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       setup: result.setupLua,
       timer: result.timerLua,
     });
-    const plan = wrapped ? undefined : await ladderFor(state, measured);
+    const plan = await ladderFor(state, measured);
     if (stale(mine)) return;
     if (plan) {
       report(measured, plan);
@@ -952,9 +974,11 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         (candidate) =>
           // A Lua entry fits by construction (Phase 8 proved its whole knob
           // cross-product in budget), so its roll is one pass.
-          entry.preview === "lua" || wrapped
+          entry.preview === "lua"
             ? true
-            : fitsAfterGate(stateOf(candidate), reserved),
+            : fitsAfterGate(stateOf(candidate), reserved, (compiled) =>
+                presetWire(entry, compiled, candidate),
+              ),
         Math.random,
         held,
       );
@@ -973,13 +997,15 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         (held !== undefined && inScope.every((knob) => held.has(knob.id)));
       moved = undefined;
       moveTo(drawn);
-      if (!exhausted || allHeld || entry.preview === "lua" || wrapped)
-        return before;
+      if (!exhausted || allHeld || entry.preview === "lua") return before;
       if (knobs.length === 0) return before;
       // The UI spec's rule: Randomize has no failure state, so an exhausted
       // roll applies the ladder-resolved state rather than landing over budget.
       const state = stateNow();
-      const measured = await costOf(await compileState(state), reserved);
+      const measured = await costOf(
+        presetWire(entry, await compileState(state), indices),
+        reserved,
+      );
       if (destroyed) return undefined;
       const plan = await ladderFor(state, measured);
       if (destroyed) return undefined;

@@ -15,7 +15,11 @@
 // exactly the expected number of times, and no `gms(` may survive the rewrite, so a compiler
 // change that moves a send is a thrown error in ported-midi.spec.ts and the sweeps, never a
 // silently unrewritten wire. The inserted text is canonical (compressScript leaves it alone), so a
-// wrapped Setup keeps the compiled string's one-character-per-action rule (wire-pin.spec.ts).
+// wrapped Setup keeps the compiled string's one-character-per-action rule (wire-pin.spec.ts). The
+// meters, the landing and Randomize's fit test measure the rewritten pair (model.ts); the vendored
+// ladder plans over the bare compile with the rewrite's measured cost held back as a reserve
+// (model.ts `ladderReserve`), so its steps and its resolved state are the wire's - reachable only
+// under a reserve (/dev/tune/, the specs): reachability.sweep.spec.ts proves no visitor's state is over.
 //
 // WHAT THE PREVIEW SHOWS: the vendored PadSim runs the PadState, not this Lua, so the browser
 // paints exactly what the compiled preset paints - which is what the module paints, because the
@@ -364,12 +368,88 @@ const JOYSTICK: PresetMidi = {
   },
 };
 
+/**
+ * The compiler's dial sends at the shelf's Send (16) and Channel (1), both superseded: relative, a
+ * controller of 64 plus or minus the ticks turned; absolute, the accumulated level, sent on change.
+ */
+const DIAL_RELATIVE = "s:gms(0,176,16,glim(64+n,1,127),0)";
+const DIAL_ABSOLUTE = "s:gms(0,176,16,w,0)";
+
+/**
+ * DIAL (change 17C): the endless knob's one output. The shelf's Send becomes its Number and the
+ * shelf's Channel its Channel, each in its old rack position with its old rungs first. The receive
+ * is the ABSOLUTE dial's: a host value on the output sets the level `s.v` the next turn continues
+ * from (the card draws no level, so nothing repaints); a relative dial keeps no value - its sends
+ * are steps around 64 - and assigns `self.midirx_cb=nil`, the Sandbox's relative knob's rule.
+ */
+const DIAL: PresetMidi = {
+  knobs: [
+    {
+      id: "send",
+      label: "Dial controller",
+      kind: "amount",
+      token: "@CC",
+      values: numberValues(SEND_RUNGS),
+      default: 0,
+    },
+    {
+      id: "channel",
+      label: "MIDI channel",
+      kind: "amount",
+      token: "@CH",
+      values: CHANNEL_VALUES,
+      default: 0,
+    },
+    {
+      id: "midiType",
+      label: "MIDI type",
+      kind: "mode",
+      token: "@T",
+      values: CONTINUOUS_STATUSES,
+      default: 0,
+    },
+    {
+      id: "midiReceive",
+      label: "MIDI receive",
+      kind: "mode",
+      token: "@RX",
+      values: RECEIVE_VALUES,
+      default: RECEIVE_ON_INDEX,
+    },
+  ],
+  outputs: [
+    {
+      id: "dial",
+      name: "Dial",
+      kind: "continuous",
+      tokens: { type: "@T", channel: "@CH", number: "@CC", receive: "@RX" },
+    },
+  ],
+  supersedes: ["send", "channel"],
+  template: (setup, timer) => {
+    const card = "dial";
+    let out = exactly(card, setup, TOUCH, M + TOUCH);
+    const absolute = count(out, DIAL_ABSOLUTE) > 0;
+    out = absolute
+      ? exactly(card, out, DIAL_ABSOLUTE, "M(@T,@CH,@CC,w)")
+      : exactly(card, out, DIAL_RELATIVE, "M(@T,@CH,@CC,glim(64+n,1,127))");
+    // The absolute dial's level starts where the compiler starts it; nothing else knows s.v.
+    if (absolute) exactly(card, out, "self.v=64", "self.v=64");
+    out += absolute
+      ? "local k=self.touch_cb self.midirx_cb=function(s,e,v)if s.touch_cb==k and e[1]==@RX and v[1]==@CH and v[2]==@T and(@T>207 or v[3]==@CC)then s.v=v[@T//16%3+2]end end"
+      : "self.midirx_cb=nil";
+    noSendLeft(card, out, timer);
+    return { setup: out, timer };
+  },
+};
+
 /** The wrapped cards by catalog id. A card joins by one row here; ported.ts reads its knobs and outputs. */
 export const PRESET_MIDI: Readonly<Record<string, PresetMidi>> = {
   aurora: AURORA,
   pinwheel: PINWHEEL,
   starfield: STARFIELD,
   joystick: JOYSTICK,
+  dial: DIAL,
 };
 
 /** The selected literal of one output knob: the asked index when it is one, else the entry's default. */

@@ -1635,8 +1635,8 @@ describe("the tuning UI's structural rules", () => {
     }
     expect(
       split,
-      "the shelf's widget split moved: 283 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row; CONSOLE the Faders Type a select, Receive a words row; GHOST two axis blocks, each Type a select; LUMEN the Hue and Depth blocks; MORPH four corner blocks; ORBIT four ring blocks; POMODORO the Transport and Alarm blocks; QUADRANT four quadrant blocks; RADAR POINTS the Points Type a words row; RADAR the X and Y blocks; SNAKE the Bite and Death blocks; SONAR the Sequence Type and Receive words rows; STEPS eight track blocks; RADAR POINTS Receive a words row; STRIP the Fader and Crossfader blocks; WHEELS the Pitch and Mod wheel blocks; change 17C AURORA, PINWHEEL and STARFIELD the X and Y blocks; JOYSTICK the X and Y blocks, its Bend a words row gone)",
-    ).toEqual({ colour: 39, words: 88, select: 34, stepper: 122 });
+      "the shelf's widget split moved: 285 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row; CONSOLE the Faders Type a select, Receive a words row; GHOST two axis blocks, each Type a select; LUMEN the Hue and Depth blocks; MORPH four corner blocks; ORBIT four ring blocks; POMODORO the Transport and Alarm blocks; QUADRANT four quadrant blocks; RADAR POINTS the Points Type a words row; RADAR the X and Y blocks; SNAKE the Bite and Death blocks; SONAR the Sequence Type and Receive words rows; STEPS eight track blocks; RADAR POINTS Receive a words row; STRIP the Fader and Crossfader blocks; WHEELS the Pitch and Mod wheel blocks; change 17C AURORA, PINWHEEL and STARFIELD the X and Y blocks; JOYSTICK the X and Y blocks, its Bend a words row gone; DIAL the Dial block, its Type a select and Receive a words row)",
+    ).toEqual({ colour: 39, words: 89, select: 35, stepper: 122 });
   });
 
   it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {
@@ -2015,8 +2015,9 @@ describe("the tuning UI's structural rules", () => {
     expect(regionRaw).toContain("13-16");
     expect(regionRaw).toContain("Not a history, not a stack, not a tree");
 
-    // The behaviour, on a real tuner. dial carries `send` and `channel`
-    // beside three rollable knobs.
+    // The behaviour, on a real tuner. dial carries `send` and `channel` -
+    // since change 17C its output's Number and Channel, beside its Type and
+    // Receive - and two rollable knobs.
     await padReady();
     const views: TuneView[] = [];
     const tuner = await buildTuner({
@@ -2035,8 +2036,8 @@ describe("the tuning UI's structural rules", () => {
       const midi = before.knobs.filter((k) => isMidiDestination(k));
       expect(
         midi.map((k) => k.id).sort(),
-        "dial's MIDI destinations are send and channel",
-      ).toEqual(["channel", "send"]);
+        "dial's MIDI destinations are its output's four knobs",
+      ).toEqual(["channel", "midiReceive", "midiType", "send"]);
       // Move a MIDI knob by hand first, so "unmoved" is not "at default".
       const channel = midi.find((k) => k.id === "channel") as KnobView;
       tuner.set(channel.id, (channel.default + 3) % channel.values.length);
