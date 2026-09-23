@@ -877,14 +877,16 @@
 
   /*
     The head: a full-width button on the rack's grid (change 16b) - the output's name in the label
-    column (the eyebrow face, ink), the one-line summary in the control column (the house mono,
-    quiet), a chevron of straight lines in the last box column - 44px, square, no fill.
+    column (the eyebrow face, ink), the one-line summary from the control column's edge across the
+    reset column (the house mono, quiet; a head has no reset of its own, and at 1440 the summary
+    of a two-digit channel and a sharp needs the room), a chevron of straight lines in the last box
+    column - 44px, square, no fill.
   */
   .fold {
     appearance: none;
     display: grid;
     grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
-    grid-template-areas: "name summary . chevron";
+    grid-template-areas: "name summary summary chevron";
     column-gap: 8px;
     align-items: center;
     box-sizing: border-box;

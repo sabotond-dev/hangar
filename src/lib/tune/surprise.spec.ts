@@ -371,7 +371,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     ).toBe(unheldStamp);
   });
 
-  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is the knobs listed, on twenty-one entries (the count moves with change 17B's and 17C's outputs)", () => {
+  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is the knobs listed, on twenty-three entries (the count moves with change 17B's and 17C's outputs)", () => {
     // SECTION 7 (13-10): "Preserve MIDI destination, channel, routing, and
     // device target." The predicate is over the DESCRIPTOR - its id and its
     // label - and this test holds three things: what it excludes across the
