@@ -13893,4 +13893,95 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("STRIP: the Fader and Crossfader are two outputs, each on its own Type, Channel and Number - at the defaults 1 and 2 on channel 0 as before - and each receives: a host value moves the control and its light, nothing sent back; a contact keeps the control it landed on (already latched); the receive is pulled in, no Timer armed", async () => {
+    const BAR = [0, 200, 255];
+    /** The fader's lit cells: its colour on layer 1 in rows 0..7. */
+    const bar = (sim: PadSim): number => {
+      let n = 0;
+      for (let c = 0; c < 72; c++) {
+        const max = sim.layer(hwOfCell(c), 1).max;
+        if (max[0] === BAR[0] && max[1] === BAR[1] && max[2] === BAR[2]) n++;
+      }
+      return n;
+    };
+    /** The crossfader's lit cell on row 8 (phase 255, the rest 51). */
+    const cross = (sim: PadSim): number =>
+      [0, 1, 2, 3, 4, 5, 6, 7, 8].find(
+        (c) => sim.layer(hwOfCell(72 + c), 1).pha === 255,
+      ) ?? -1;
+    {
+      const { host, sim } = await openCard("strip", {}, true);
+      try {
+        expect(host.timerArmed, "the pull-in arms nothing").toBe(false);
+        expect(bar(sim), "the fader at rest").toBe(36);
+        // The fader: a finger landing in the body and sliding down onto the crossfader row keeps
+        // driving the fader (the latch the card already had).
+        host.touchDown(0, 500, 100);
+        host.tick();
+        host.touchMove(0, 500, 1000);
+        host.tick();
+        host.touchUp(0, 500, 1000);
+        host.tick();
+        const sent = wire(host.midi);
+        expect(
+          sent.every((m) => m.startsWith("0:176:1:")),
+          sent.join(" "),
+        ).toBe(true);
+        host.touchDown(1, 900, 1000);
+        host.tick();
+        host.touchUp(1, 900, 1000);
+        host.tick();
+        expect(wire(host.midi).at(-1)).toBe("0:176:2:112");
+        const quiet = host.midi.length;
+        // RX: the fader at 127 lights 72 cells (k = 8); the crossfader at 0 its first cell.
+        expect(host.midiIn(REPORT, 0, 176, 1, 127)).toBe(true);
+        expect(bar(sim)).toBe(72);
+        host.midiIn(REPORT, 0, 176, 2, 0);
+        expect(cross(sim)).toBe(0);
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 1, 176, 1, 0],
+          [14, 0, 176, 1, 0],
+          [REPORT, 0, 176, 3, 0],
+          [REPORT, 0, 224, 0, 0],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(bar(sim), "mismatches leave it").toBe(72);
+        expect(host.midi.length, "nothing sent back").toBe(quiet);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // The fader a pitch bend on wire channel 3, the crossfader a pressure on 5; the crossfader's
+    // Receive Off.
+    {
+      const { host, sim } = await openCard("strip", {
+        faderType: "224",
+        channel: "3",
+        crossType: "208",
+        crossChannel: "5",
+        crossReceive: "0",
+      });
+      try {
+        host.touchDown(0, 500, 100);
+        host.tick();
+        host.touchUp(0, 500, 100);
+        host.tick();
+        host.touchDown(1, 900, 1000);
+        host.tick();
+        host.touchUp(1, 900, 1000);
+        host.tick();
+        const sent = wire(host.midi);
+        expect(sent[0].startsWith("3:224:0:")).toBe(true);
+        expect(sent.at(-1)).toBe("5:208:112:0");
+        host.midiIn(REPORT, 3, 224, 0, 0);
+        expect(bar(sim)).toBe(0);
+        host.midiIn(REPORT, 5, 208, 0, 0);
+        expect(cross(sim), "Receive Off").toBe(7);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });

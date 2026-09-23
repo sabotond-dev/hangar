@@ -617,6 +617,7 @@ describe("the stamp: the envelope", () => {
         record.entry === "pomodoro" ||
         record.entry === "steps" ||
         record.entry === "ghost" ||
+        record.entry === "strip" ||
         record.entry === "sonar" ||
         record.entry === "snake" ||
         record.entry === "quadrant" ||

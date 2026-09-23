@@ -106,6 +106,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "steps.note7 (128)",
       "steps.note8 (128)",
       "console.cc (128)",
+      "strip.cc (128)",
+      "strip.crossCc (128)",
       "lumen.cc (128)",
       "lumen.yCc (128)",
       "snake.note (128)",

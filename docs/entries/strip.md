@@ -276,3 +276,34 @@ compressScript does not strip them: a trailing comment was measured surviving
 verbatim into the budget. Everything worth saying about this configuration is
 said here, in TypeScript, where it costs nothing.
 ```
+
+## Change 17B, 2026-09-23: the Fader and Crossfader outputs, each received; the pull-in (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+STRIP sent `@CC` for the fader and `@CC+1` for the crossfader on one channel. Per output (answer 3) the two controls
+are two outputs, "Fader" and "Crossfader", continuous, each with Type, Channel, Number and Receive.
+
+- **Knobs.** The Fader keeps the old two: `@CC` (`cc`, relabelled "Fader controller") all of 0..127 with its four old
+  rungs first, and `@CH` (`channel`, "Fader MIDI channel") all sixteen in order (it was 0, 1, 9, 15 under kind `mode`).
+  Appended: `@FT` `@FR` (the Fader's Type and Receive), `@XT` `@XCH` `@XCC` `@XR` (the Crossfader's; `@XCC` 2 by
+  default - the old `@CC+1`). Eleven knobs, three outside the outputs. STRIP's captured wild stamp lands `unreadable`
+  (a grown rack) where it landed `restored`; the trap that said "the rack is unchanged" is rewritten.
+- **The send.** `M(t,c,n,o)` by type; the fader `M(@FT,@CH,@CC,v)`, the crossfader `M(@XT,@XCH,@XCC,p)`. At the
+  defaults the wire is STRIP's before the change, message for message.
+- **The receive.** A host message on a control's type, channel and number sets its value and repaints it: the fader's
+  `v` and its bar (`k = w*9//128`), the crossfader's `p` and its marker (`c = w*9//128`). Both controls are absolute,
+  so the next touch takes the control from the finger. Nothing is sent back.
+- **Where it lives - the pull-in.** The Setup was 875 of 908 at the corner; the typed sends and the receive do not fit
+  beside the painters. STRIP is a still card (the listing says `static`), so the Timer is pulled in by `self:tim()` at
+  the end of the Setup and never armed: it holds the typed sender (`self.m`, taken as the Setup's upvalue `M` after the
+  pull-in), the rows' phase loop (moved from the Setup - it runs inside the Setup still, after the colours, and the
+  picture at tick 0 is the same) and the receive, repainting through `F` and `X` (handed over as `self.f`, `self.x`).
+  A first draft that kept the phase loop in the Setup sat at exactly 908 at the corner; moving it left 59 free.
+- **Latch: already latched** - `s.o[i]` fixes each contact's control at its onset (a fader finger that slides onto the
+  bottom row keeps driving the fader), the card's own rule since 11-13.
+- **Cost:** Setup 857 / 875 -> 829 / 849 (defaults / corner; 59 free), Timer 0 -> 470 / 476. frames.json and the OG
+  image unmoved. Row 41's pull-in question covers it; no new audition row.
+- **Proved.** `lua-smoke.spec.ts` "STRIP: the Fader and Crossfader ...": no Timer armed; the rest bar of 36 cells; a
+  fader finger slid onto the crossfader row sends controller 1 only; the crossfader at x 900 sends 2 = 112; the host's
+  fader 127 lights 72 cells and crossfader 0 moves the marker to the first cell, four mismatches ignored, nothing sent
+  back; the fader as a pitch bend on wire channel 3 and the crossfader as a pressure on 5, sent and received; the
+  crossfader's Receive Off.
