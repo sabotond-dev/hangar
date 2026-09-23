@@ -4066,3 +4066,14 @@ finger slips outside its box, which only ever reads as a fault on a rotary gestu
 18 found and did not fix - a one-cell-wide vertical fader (or one-cell-tall horizontal one) never
 sends on the module because 17A's `A` divides by the zero-length cross axis - is fixed: the
 runtime guards the cross axis, the cost stated per surface.
+
+17B's questions, decided 2026-09-23 (the user away; each open to the user's word): the latch rule
+stands on CHORUS (a pad slide no longer re-chords - the user's latch word covers it; a CHORUS
+"glide" option can come back on request); CHORUS, GHOST, POMODORO and SNAKE receive nothing -
+right, nothing there has a value to take; a sequencer arms the step that just played; CONSOLE
+keeps one bank output; WHEELS keeps its 14-bit pitch bend; the orphaned library `A` waits for the
+next library change. Two tuning-panel fixes go into 17C: (1) a Number row is worded by its
+output's Type - a note name under Note, a controller number under CC, hidden under Pitch bend and
+Channel pressure; (2) output blocks fold - each block a one-line summary ("Note · Ch 1 · C1 ·
+Receive") that opens on click, every block folded when a card has more than four outputs (STEPS'
+eight, ORBIT's four open), so a long MIDI section reads at a glance.
