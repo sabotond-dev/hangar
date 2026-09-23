@@ -117,8 +117,12 @@ const flat = doc.replace(/\s+/g, " ");
  * reversal refused, the note-off a step after every note-on, the two Step times,
  * the board cleared on Apply; the cost row moves 581 / 870 -> 871 / 732 and a
  * dated paragraph follows row 38's.
+ *
+ * 39 -> 40 on 2026-09-23 (BENCH-2026-09-16.txt section 17, change 17A): MIDI RX
+ * and the per-output types - row 40, Arc and any sandbox surface, five clauses
+ * (a)-(e); Arc's cost row moves its Timer 437 -> 743.
  */
-const ROW_COUNT = 39;
+const ROW_COUNT = 40;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
