@@ -17,11 +17,16 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { compile, type PadState } from "../../vendor/botor/_pad";
 import { padReady } from "../pad";
 import { compilerKnobs } from "../share/stamp";
-import { colourIndexOf, type PresetKnob } from "../tune/knobs.preset";
+import {
+  colourIndexOf,
+  presetKnobs,
+  type PresetKnob,
+} from "../tune/knobs.preset";
 import { applyKnob, baseStateFor } from "../tune/state";
 import { CATALOG, type CatalogEntry } from "./index";
 import {
   PRESET_MIDI,
+  SEND_RUNGS,
   WrapMissError,
   isWrapped,
   presetWire,
@@ -121,10 +126,12 @@ describe("the wrapped presets (change 17C, entries/ported-midi.ts)", () => {
             `${entry.id}: a send outside M`,
           ).toBe(1);
           expect(wired.setupLua).toContain("local function M(t,c,n,o)");
-          // Every card assigns its receive callback, or nil.
+          // Every card assigns its receive callback, or nil - from the Setup, or from the Timer it
+          // pulls in (`self:tim()`, 17B's route).
           expect(
             wired.setupLua.includes("self.midirx_cb=") ||
-              wired.timerLua.includes("self.midirx_cb="),
+              (wired.timerLua.includes("s.midirx_cb=") &&
+                wired.setupLua.endsWith("self:tim()")),
             `${entry.id}: no midirx_cb assignment`,
           ).toBe(true);
           examined += 1;
@@ -141,4 +148,32 @@ describe("the wrapped presets (change 17C, entries/ported-midi.ts)", () => {
     }
     expect(examined, "the states examined").toBeGreaterThan(entries.length);
   }, 120000);
+
+  it("takes a superseded shelf knob's place with the same id and keeps its rungs first: the Send's twelve controllers lead the Number, the Channel's sixteen are the Channel's in order", () => {
+    const takers = wrappedEntries().flatMap((entry) =>
+      (entry.supersedes ?? []).map((id) => ({
+        entry,
+        shelf: presetKnobs(entry.id).find((knob) => knob.id === id),
+        taker: entry.knobs.find((knob) => knob.id === id),
+      })),
+    );
+    for (const { entry, shelf, taker } of takers) {
+      expect(shelf, `${entry.id}: a shelf knob`).toBeDefined();
+      if (taker === undefined) continue;
+      if (shelf?.id === "send") {
+        expect(shelf.options).toEqual(SEND_RUNGS);
+        expect(taker.values.slice(0, SEND_RUNGS.length)).toEqual(SEND_RUNGS);
+        expect(taker.default, `${entry.id}: the Send's default`).toBe(
+          shelf.default,
+        );
+      }
+      if (shelf?.id === "channel") {
+        // The shelf's 1..16 are the wire's 0..15, index for index.
+        expect(taker.values.map((v) => String(Number(v) + 1))).toEqual(
+          shelf.options,
+        );
+        expect(taker.default).toBe(shelf.default);
+      }
+    }
+  });
 });

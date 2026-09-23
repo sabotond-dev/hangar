@@ -1635,8 +1635,8 @@ describe("the tuning UI's structural rules", () => {
     }
     expect(
       split,
-      "the shelf's widget split moved: 277 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row; CONSOLE the Faders Type a select, Receive a words row; GHOST two axis blocks, each Type a select; LUMEN the Hue and Depth blocks; MORPH four corner blocks; ORBIT four ring blocks; POMODORO the Transport and Alarm blocks; QUADRANT four quadrant blocks; RADAR POINTS the Points Type a words row; RADAR the X and Y blocks; SNAKE the Bite and Death blocks; SONAR the Sequence Type and Receive words rows; STEPS eight track blocks; RADAR POINTS Receive a words row; STRIP the Fader and Crossfader blocks; WHEELS the Pitch and Mod wheel blocks; change 17C AURORA, PINWHEEL and STARFIELD the X and Y blocks)",
-    ).toEqual({ colour: 39, words: 87, select: 32, stepper: 119 });
+      "the shelf's widget split moved: 283 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row; CONSOLE the Faders Type a select, Receive a words row; GHOST two axis blocks, each Type a select; LUMEN the Hue and Depth blocks; MORPH four corner blocks; ORBIT four ring blocks; POMODORO the Transport and Alarm blocks; QUADRANT four quadrant blocks; RADAR POINTS the Points Type a words row; RADAR the X and Y blocks; SNAKE the Bite and Death blocks; SONAR the Sequence Type and Receive words rows; STEPS eight track blocks; RADAR POINTS Receive a words row; STRIP the Fader and Crossfader blocks; WHEELS the Pitch and Mod wheel blocks; change 17C AURORA, PINWHEEL and STARFIELD the X and Y blocks; JOYSTICK the X and Y blocks, its Bend a words row gone)",
+    ).toEqual({ colour: 39, words: 88, select: 34, stepper: 122 });
   });
 
   it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {

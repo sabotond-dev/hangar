@@ -117,8 +117,53 @@ const pairReceive = (draw: string): string =>
   draw +
   "end end end";
 
+/**
+ * The shelf's Send rungs (knobs.preset.ts `SEND_OPTIONS`), restated as RADAR restates them: the
+ * Number that takes a Send's place keeps its twelve first, in their order, so a saved copy's index
+ * lands on the controller it was (ported-midi.spec.ts holds the two lists equal).
+ */
+export const SEND_RUNGS: readonly string[] = [
+  "16",
+  "20",
+  "24",
+  "28",
+  "32",
+  "36",
+  "40",
+  "44",
+  "48",
+  "52",
+  "64",
+  "80",
+];
+
+/** The X axis's Number: a fresh 0..127 at 16 (`xCc`), or the shelf's Send taken over (`send`). */
+const FRESH_X = { id: "xCc", values: numberValues(), default: 16 };
+const SEND_X = { id: "send", values: numberValues(SEND_RUNGS), default: 0 };
+
+/**
+ * The same receive, made by the TIMER once per install instead (RADAR's route, docs/MIDI.md section
+ * 6) for a card whose Setup has no room: keyed on the touch callback it was made beside (`s.j`),
+ * and pulled into the landing by `self:tim()` at the end of the Setup - the Timer body run once as
+ * a method (17B's pull-in), because a compiled card's first timed run is five minutes away.
+ */
+const timerPairReceive = (draw: string): string =>
+  "local s=self if s.j~=s.touch_cb then s.j=s.touch_cb s.u=64 s.w=64 local k=s.j s.midirx_cb=function(s,e,v)" +
+  MATCH +
+  "if s.touch_cb==k then local a,b=f(@XR,@XT,@CH,@XCC),f(@YR,@YT,@YCH,@YCC)" +
+  "if a then s.u=a end if b then s.w=b end if a or b then " +
+  draw +
+  "end end end end";
+
+/** The pull-in, appended to a Setup whose receive the Timer makes. */
+const PULL_IN = "self:tim()";
+
 /** The X and Y axes' eight knobs, RADAR's shape (entries/radar.ts): X on 16 and Y on 17, channel 1, both receiving. */
-function axisKnobs(xType: string, xCc: string, yType: string): LuaKnob[] {
+function axisKnobs(
+  xType: string,
+  xNumber: { id: string; values: readonly string[]; default: number },
+  yType: string,
+): LuaKnob[] {
   return [
     {
       id: "xType",
@@ -137,12 +182,12 @@ function axisKnobs(xType: string, xCc: string, yType: string): LuaKnob[] {
       default: 0,
     },
     {
-      id: xCc,
+      id: xNumber.id,
       label: "X controller",
       kind: "amount",
       token: "@XCC",
-      values: numberValues(),
-      default: 16,
+      values: xNumber.values,
+      default: xNumber.default,
     },
     {
       id: "xReceive",
@@ -230,7 +275,7 @@ const xyTemplate =
  * the finger itself makes, so the DAW's position looks like a finger there (RADAR's decision).
  */
 const AURORA: PresetMidi = {
-  knobs: axisKnobs("176", "xCc", "176"),
+  knobs: axisKnobs("176", FRESH_X, "176"),
   outputs: AXIS_OUTPUTS,
   supersedes: [],
   template: xyTemplate("aurora", "K(s.u,s.w,1,252)"),
@@ -243,7 +288,7 @@ const AURORA: PresetMidi = {
  * finger on the pad draws - so the DAW's position reads as the finger the card sends for.
  */
 const PINWHEEL: PresetMidi = {
-  knobs: axisKnobs("176", "xCc", "176"),
+  knobs: axisKnobs("176", FRESH_X, "176"),
   outputs: AXIS_OUTPUTS,
   supersedes: [],
   template: xyTemplate("pinwheel", "K(s.u,s.w,1,252,255,0,128)"),
@@ -255,10 +300,68 @@ const PINWHEEL: PresetMidi = {
  * finger itself makes (`K(x,y,1,252)` in the layer-1 colour the Setup sets, 255,170,34).
  */
 const STARFIELD: PresetMidi = {
-  knobs: axisKnobs("176", "xCc", "176"),
+  knobs: axisKnobs("176", FRESH_X, "176"),
   outputs: AXIS_OUTPUTS,
   supersedes: [],
   template: xyTemplate("starfield", "K(s.u,s.w,1,252)"),
+};
+
+/**
+ * The compiler's joystick sends at the shelf's Send (16) and Bend (x), both superseded: the X axis a
+ * pitch bend of the raw x, the Y axis controller 17 of `127-y` (invertY is pinned), on every live
+ * sample of the claiming finger; and, while the spring is on, the rests on the claimer's lift - the
+ * bend's 64 always, the controller's 64 (On lift Centre) or 0 (Zero).
+ */
+const JOY_LIVE = "s:gms(0,224,0,x,0)s:gms(0,176,17,127-y,0)";
+const JOY_REST_CENTRE = "s:gms(0,224,0,64,0)s:gms(0,176,17,64,0)";
+const JOY_REST_ZERO = "s:gms(0,224,0,64,0)s:gms(0,176,17,0,0)";
+
+/**
+ * JOYSTICK (change 17C): the stick's two axes as outputs. The shelf's Bend (which axis is the pitch
+ * bend) is superseded by the two Types - Bend left-right is X Pitch bend, the card's default; Bend
+ * up-down is Y Pitch bend; No bend is two controllers - and its Send by the X axis's Number. A rest
+ * follows its output's Type: a pitch bend rests on 64, the centre, whatever On lift says (the
+ * compiler's rule for the bend axis), anything else on On lift's 64 or 0. The receive moves the
+ * parked dot - the stick's position light - to the cell of the held pair (`N`, the Y value turned
+ * back through `127-`), so the DAW's position shows where the finger would be; the next touch
+ * clears it as it clears the parked dot, and a lift re-parks it at the rest cell. THE RECEIVE IS
+ * THE TIMER'S: the Setup with it measured 942 at the defaults, so the Timer (24) makes it and the
+ * Setup pulls the Timer in.
+ */
+const JOYSTICK: PresetMidi = {
+  knobs: axisKnobs("224", SEND_X, "176"),
+  outputs: AXIS_OUTPUTS,
+  supersedes: ["send", "bend"],
+  template: (setup, timer) => {
+    const card = "joystick";
+    let out = exactly(card, setup, TOUCH, M + TOUCH);
+    out = exactly(
+      card,
+      out,
+      JOY_LIVE,
+      "M(@XT,@CH,@XCC,x)M(@YT,@YCH,@YCC,127-y)",
+    );
+    const centre = count(out, JOY_REST_CENTRE);
+    const zero = count(out, JOY_REST_ZERO);
+    // On lift Off writes no rest; Centre and Zero write one, exactly once.
+    if (centre + zero > 1)
+      throw new WrapMissError(card, "a spring rest", centre + zero, 1);
+    out = out
+      .split(JOY_REST_CENTRE)
+      .join("M(@XT,@CH,@XCC,64)M(@YT,@YCH,@YCC,64)")
+      .split(JOY_REST_ZERO)
+      .join(
+        "M(@XT,@CH,@XCC,@XT>223 and 64 or 0)M(@YT,@YCH,@YCC,@YT>223 and 64 or 0)",
+      );
+    out += PULL_IN;
+    const made =
+      timer +
+      timerPairReceive(
+        "if s.l then glp(glag(0,s.l),1,0)end s.l=N(s.u,127-s.w)glp(glag(0,s.l),1,255)",
+      );
+    noSendLeft(card, out, made);
+    return { setup: out, timer: made };
+  },
 };
 
 /** The wrapped cards by catalog id. A card joins by one row here; ported.ts reads its knobs and outputs. */
@@ -266,6 +369,7 @@ export const PRESET_MIDI: Readonly<Record<string, PresetMidi>> = {
   aurora: AURORA,
   pinwheel: PINWHEEL,
   starfield: STARFIELD,
+  joystick: JOYSTICK,
 };
 
 /** The selected literal of one output knob: the asked index when it is one, else the entry's default. */

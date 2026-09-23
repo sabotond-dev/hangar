@@ -29,7 +29,8 @@ import {
 } from "../catalog/library";
 import { presetById } from "../catalog/presets";
 import { presetWire } from "../catalog/entries/ported-midi";
-import { resetAll } from "../tune/state";
+import { baseStateFor, resetAll } from "../tune/state";
+import { compilerKnobs } from "../share/stamp";
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, previewIndices, renderLua } from "./lua-pad-sim";
@@ -14131,13 +14132,24 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
   async function openPreset(
     id: string,
     over: Record<string, string> = {},
-    options: { stale?: boolean; raw?: boolean } = {},
+    options: {
+      stale?: boolean;
+      raw?: boolean;
+      /** Compiler knobs moved BY INDEX (knobs.preset.ts), the rest at the shelf's state. */
+      tuned?: Record<string, number>;
+    } = {},
   ) {
     const entry = entryById(id);
     const indices: Record<string, number> = { ...entry.defaults };
     for (const [knob, literal] of Object.entries(over))
       indices[knob] = literalIndex(entry, knob, literal);
-    const compiled = compile(resetAll(entry));
+    let state = resetAll(entry);
+    if (options.tuned !== undefined) {
+      state = baseStateFor(entry);
+      for (const knob of compilerKnobs(entry))
+        state = knob.apply(state, options.tuned[knob.id] ?? knob.default);
+    }
+    const compiled = compile(state);
     const { setupLua, timerLua } = options.raw
       ? compiled
       : presetWire(entry, compiled, indices);
@@ -14306,5 +14318,111 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
 
   it("STARFIELD: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair, nothing sent back; the first finger's claim is the latch", async () => {
     await xyCard("starfield", [255, 170, 34]);
+  }, 60000);
+
+  it("JOYSTICK: the X and Y axes are two outputs - the shelf's Bend and Send become their Types and X's Number - at the defaults the preset's pitch bend and controller 17 of 127-y with the spring's 64 / 64, its picture frame for frame; a rest follows its output's Type (a pitch bend on 64 whatever On lift says); each receives: a host value moves the parked dot to the held pair's cell, nothing sent back, the receive made by the Timer the Setup pulls in; the first finger's claim is the latch", async () => {
+    await asShipped("joystick");
+    /** The layer-1 cells lit - the parked dot, after a lift the only light. */
+    const lit1 = (sim: PadSim): number[] => {
+      const out: number[] = [];
+      for (let c = 0; c < 81; c++)
+        if (sim.layer(hwOfCell(c), 1).pha > 0) out.push(c);
+      return out;
+    };
+    const springAt = (word: string): number => {
+      const knob = compilerKnobs(entryById("joystick")).find(
+        (k) => k.id === "spring",
+      );
+      const at = knob?.options.indexOf(word) ?? -1;
+      if (at < 0) throw new Error(`no spring ${word}`);
+      return at;
+    };
+    {
+      const { host, sim } = await openPreset("joystick", {}, { stale: true });
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:224:0:40", "0:176:17:37"]);
+        host.touchUp(0, 40, 90);
+        host.run(40);
+        expect(wire(host.midi, 2), "the rests").toEqual([
+          "0:224:0:64",
+          "0:176:17:64",
+        ]);
+        expect(lit1(sim), "parked at the centre").toEqual([40]);
+        const sent = host.midi.length;
+        host.midiIn(REPORT, 1, 224, 0, 120);
+        host.midiIn(REPORT, 0, 176, 16, 120);
+        host.midiIn(14, 0, 224, 0, 120);
+        expect(lit1(sim), "another channel, number or header").toEqual([40]);
+        expect(host.midiIn(REPORT, 0, 224, 0, 120)).toBe(true);
+        host.midiIn(REPORT, 0, 176, 17, 10);
+        const moved = lit1(sim);
+        expect(moved, "one dot, moved right and down").toHaveLength(1);
+        expect(moved[0] % 9, "right of centre").toBeGreaterThan(4);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        // The next touch clears it, as it clears the parked dot.
+        host.touchDown(0, 64, 64);
+        host.tick();
+        expect(lit1(sim)).not.toContain(moved[0]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      // X a controller on 20, Y a pitch bend on channel 3, On lift Zero: X rests at 0, Y at 64.
+      const { host, sim } = await openPreset(
+        "joystick",
+        {
+          xType: "176",
+          send: "20",
+          yType: "224",
+          yChannel: "2",
+          xReceive: "0",
+        },
+        { tuned: { spring: springAt("zero") } },
+      );
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:176:20:40", "2:224:0:37"]);
+        host.touchUp(0, 40, 90);
+        host.run(40);
+        expect(wire(host.midi, 2)).toEqual(["0:176:20:0", "2:224:0:64"]);
+        const parked = lit1(sim);
+        host.midiIn(REPORT, 0, 176, 20, 120);
+        expect(lit1(sim), "X's Receive Off moves nothing").toEqual(parked);
+        host.midiIn(REPORT, 2, 224, 0, 120);
+        expect(lit1(sim)).not.toEqual(parked);
+        // The latch: a second finger sends nothing while the first holds.
+        const from = host.midi.length;
+        host.touchDown(0, 40, 90);
+        host.tick();
+        host.touchDown(1, 100, 10);
+        host.tick();
+        expect(wire(host.midi, from)).toEqual(["0:176:20:40", "2:224:0:37"]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      // On lift Off: no rest at all, whatever the Types.
+      const { host } = await openPreset(
+        "joystick",
+        { xType: "208" },
+        { tuned: { spring: springAt("off") } },
+      );
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        host.touchUp(0, 40, 90);
+        host.run(40);
+        expect(wire(host.midi)).toEqual(["0:208:40:0", "0:176:17:37"]);
+      } finally {
+        host.close();
+      }
+    }
   }, 60000);
 });
