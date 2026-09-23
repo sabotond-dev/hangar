@@ -1622,8 +1622,8 @@ describe("the tuning UI's structural rules", () => {
     }
     expect(
       split,
-      "the shelf's widget split moved: 140 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row)",
-    ).toEqual({ colour: 39, words: 31, select: 11, stepper: 59 });
+      "the shelf's widget split moved: 141 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row; change 17B each card's outputs, CHORUS's Type a words row)",
+    ).toEqual({ colour: 39, words: 32, select: 11, stepper: 59 });
   });
 
   it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {

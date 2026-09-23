@@ -4,11 +4,14 @@
 // vii), each a triad baked in Setup from a scale table over a chromatic root (@KEY, C3..B3); the
 // top row's two right-hand pads are Octave down and Octave up, each press moving the set by 12,
 // two octaves either way, the pad's brightness showing the shift. ONE CHORD AT A TIME; a press on
-// the sounding pad re-owns it; a slide is legato; a still chord is swept after two seconds. @INV
+// the sounding pad re-owns it; a finger keeps the pad it landed on until it lifts (change 18's
+// latch, landed at 17B: a slide onto the next pad no longer re-chords); a still chord is swept
+// after two seconds. @INV
 // Smart voices each chord as the inversion that moves the voices least from the previous one. A
 // blue / violet chessboard on the chord pads, green on the octave pads, the bloom on layer 2 from
-// the pad you hit. Knobs: @KEY, @SCALE, @INV, @BLOOMC, @VEL, @CH. Setup 779 / Timer 602 at the
-// corner; restsBlack false. History: docs/entries/chorus.md (11-02, 12-09, 12.1-04, change 7).
+// the pad you hit. Knobs: @KEY, @SCALE, @INV, @BLOOMC, @VEL, and the Chord output's @CH and @TYPE
+// (change 17B). Setup 798 / Timer 602 at the corner; restsBlack false. History:
+// docs/entries/chorus.md (11-02, 12-09, 12.1-04, change 7, change 17B).
 //
 // MECHANISM
 //   - The pad of cell n is `z=n%9//3+6-n//27*3`: z 0..2 the bottom row left to right, 3..5 the
@@ -21,9 +24,11 @@
 //     release convention - IDEMPOTENT: it returns unless `s.c` is the contact being expired, sends
 //     the three note-offs from `s.n`, clears s.z and s.c. `E` calls it on an end code, on a stale
 //     press by another contact, on the Timer sweep and on EVERY onset including a first press.
-//   - The callback: `local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end`;
-//     an octave pad moves `s.o` by `glim(s.o+z*2-15,-2,2)` on the onset edge only (`e==4 or
-//     e>8`: `Q` also returns on a cell change inside the pad) and returns - at +2 or -2 a further
+//   - The callback: `local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n or e~=4 and e<9
+//     then return end` - THE LATCH (change 17B, section 18): only the onset edge (`e==4 or e>8`)
+//     acts, so a cell change `Q` reports mid-gesture (a slide onto the next pad) moves nothing and
+//     the finger keeps the chord it landed on; `G` still draws it. An octave pad moves `s.o` by
+//     `glim(s.o+z*2-15,-2,2)` and returns - at +2 or -2 a further
 //     press in that direction is refused, not clamped into a wrong shift; the sounding chord keeps
 //     its notes. A chord pad: if z == s.z re-own (`s.c=i`) and return; if a chord is sounding,
 //     `R(s,s.c)` FIRST; then the voicing: for k = -@INV..@INV build candidate c, voice j =
@@ -50,14 +55,20 @@
 //     library's finger in WHITE on layer 0 (a literal, not a knob); `Q` before `G` because `Q`'s
 //     `E` clears the block through `V`. A new press REPLACES the bloom: layer 2 is one field.
 //
-// WHAT IT SENDS
-//   note-on   s:gms(@CH,144,b[j],@VEL,0) for j = 1..3, on a press on a new chord pad; b the
+// WHAT IT SENDS (the Chord output since change 17B, its Type @TYPE: 144 a note, 176 a controller)
+//   note-on   s:gms(@CH,@TYPE,b[j],@VEL,0) for j = 1..3, on a press on a new chord pad; b the
 //             chosen voicing, root position under Off, the closest of five under Smart, every
 //             note inside 16..109 by construction (48+4-12-24 at the bottom, 59+14+12+24 at
 //             the top), so no clamp is needed and none is written.
-//   note-off  s:gms(@CH,128,s.n[j],0,0) for j = 1..3, from `R` - before the new chord, on a
-//             lift, on a stale press, on the sweep. The receiver never hears two triads overlap.
-//   An octave pad sends nothing.
+//   note-off  s:gms(@CH,@TYPE*3//2-88,s.n[j],0,0) for j = 1..3, from `R` - before the new chord,
+//             on a lift, on a stale press, on the sweep. The receiver never hears two triads
+//             overlap. `@TYPE*3//2-88` is 128 under a note and 176 under a controller.
+//   Under CC the chord's three note numbers are its three controllers, @VEL on and 0 off (the
+//   Sandbox button's controller, three at a time). The output has no Number: the numbers are the
+//   chord's (@KEY, the scale, the voicing, the octave shift). An octave pad sends nothing.
+// WHAT IT RECEIVES (change 17B): nothing. A received note names no one pad - a chord's numbers move
+//   with the voicing and the octave shift - so the Chord has no Receive, and the Setup assigns
+//   `self.midirx_cb=nil`: a previous landing's callback never survives this one.
 //
 // TRAPS
 //   - THE BLOOM USES THE COMPUTED DECAY FORM, AND IT MUST: the starting phase is per cell, so a
@@ -74,8 +85,8 @@
 //   - THE ENTRY CARRIES NO EVENT-CODE GUARD OF ITS OWN beyond the octave pads' onset edge: the
 //     live test is inside `Q`, and touch-guard.spec.ts REQUIRES a body with no chain of its own
 //     to carry `Q(s,i,e,x,y)`.
-//   - @CH APPEARS TWICE, both in the Setup (the note-off in R, the note-on in the callback), so
-//     the two cannot drift; the Timer carries no MIDI.
+//   - @CH AND @TYPE APPEAR TWICE, both in the Setup (the note-off in R, the note-on in the
+//     callback), so the two cannot drift; the Timer carries no MIDI.
 //   - LAYER 0 IS THE ALERT LAYER: `G` re-asserts white on every call; `glc(...,1)` forces the
 //     min to 0.
 //   - THE KNOB IDS `key`, `scale`, `bloomColour`, `velocity`, `channel` DO NOT MOVE; `bloomSpeed`
@@ -87,9 +98,10 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { CHANNEL_VALUES, TRIGGER_STATUSES } from "../../tune/midi";
 
 const SETUP =
-  "--[[@cb]]local t={@SCALE}self.h={}for z=0,6 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.o=0 self.n=self.h[0]R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,128,s.n[j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n then return end local z=n%9//3+6-n//27*3 if z>6 then if e==4 or e>8 then s.o=glim(s.o+z*2-15,-2,2)end return end if z==s.z then s.c=i return end if s.z then R(s,s.c)end local h,p,b,m=s.h[z],s.n,0,999 for k=-@INV,@INV do local c,d={},0 for j=1,3 do c[j]=h[(j+k-1)%3+1]+((j+k-1)//3+s.o)*12 d=d+math.abs(c[j]-p[j])end if d<m or d==m and k==0 then m,b=d,c end end for j=1,3 do s:gms(@CH,144,b[j],@VEL,0)end s.z=z s.c=i s.n=b s.b=z end gtt(0,20)";
+  "--[[@cb]]local t={@SCALE}self.h={}for z=0,6 do local c={}for j=0,2 do local d=z+j*2 c[j+1]=@KEY+t[d%7+1]+d//7*12 end self.h[z]=c end self.o=0 self.n=self.h[0]R=function(s,i)if s.c==i then for j=1,3 do s:gms(@CH,@TYPE*3//2-88,s.n[j],0,0)end s.z=nil s.c=nil end end self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,255,255,255)if not n or e~=4 and e<9 then return end local z=n%9//3+6-n//27*3 if z>6 then s.o=glim(s.o+z*2-15,-2,2)return end if z==s.z then s.c=i return end if s.z then R(s,s.c)end local h,p,b,m=s.h[z],s.n,0,999 for k=-@INV,@INV do local c,d={},0 for j=1,3 do c[j]=h[(j+k-1)%3+1]+((j+k-1)//3+s.o)*12 d=d+math.abs(c[j]-p[j])end if d<m or d==m and k==0 then m,b=d,c end end for j=1,3 do s:gms(@CH,@TYPE,b[j],@VEL,0)end s.z=z s.c=i s.n=b s.b=z end self.midirx_cb=nil gtt(0,20)";
 
 const TIMER =
   "--[[@cb]]gtt(0,20)X(self,100)local s=self if not s.q then for n=0,80 do local a=glag(0,n)local z=n%9//3+6-n//27*3 if z<7 then if(n%9//3+n//27)%2==0 then glc(a,1,0,60,120,1)else glc(a,1,80,40,140,1)end glp(a,1,255)else glc(a,1,0,180,60,1)end glc(a,2,@BLOOMC,1)glp(a,2,0)end end if s.o~=s.q then s.q=s.o for n=3,26 do if n%9>2 then glp(glag(0,n),1,glim(40+(n%9//6*2-1)*s.o*100,40,240))end end end local z=s.b if z then s.b=nil local u,v=z%3*3+1,7-z//3*3 for n=0,80 do local p,q=n%9-u,n//9-v local w=glim(248-math.sqrt(p*p+q*q)*12//4*4,0,248)local a=glag(0,n)glpfs(a,2,w,4,0)glt(a,2,(256-w)//4)end end";
@@ -110,8 +122,9 @@ export const CHORUS: CatalogEntry = {
   // Change 7 (2026-09-18): the card offers no Randomize and no lock; the inspector reads this.
   rollable: false,
 
-  // Six knobs - the cap (D-12) - each one literal token substitution (TUNE-01); every default
-  // is the INDEX of the value that reproduces the canonical text.
+  // Seven knobs - six and, since change 17B, the Chord output's Type (the cap, D-12, counts a
+  // card's knobs outside its outputs) - each one literal token substitution (TUNE-01); every
+  // default is the INDEX of the value that reproduces the canonical text.
   knobs: [
     {
       id: "key",
@@ -193,31 +206,37 @@ export const CHORUS: CatalogEntry = {
       label: "MIDI channel",
       kind: "amount",
       token: "@CH",
-      // ZERO-BASED, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058). TWICE, both
-      // in the Setup - the note-off inside R and the note-on in the callback.
-      values: [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9",
-        "10",
-        "11",
-        "12",
-        "13",
-        "14",
-        "15",
-      ],
+      // ZERO-BASED, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058); the rows read
+      // it 1..16 (change 17B). TWICE, both in the Setup - the note-off inside R and the note-on in
+      // the callback. The Chord output's Channel.
+      values: CHANNEL_VALUES,
+      default: 0,
+    },
+    {
+      id: "midiType",
+      label: "MIDI type",
+      kind: "mode",
+      token: "@TYPE",
+      // The Chord output's type (change 17B): the status byte - 144 a note, 176 a controller - on
+      // the three note-ons; the off is @TYPE*3//2-88 (a note-off, or the controller at 0).
+      // Appended last so a record's older indices land on the knobs they were.
+      values: TRIGGER_STATUSES,
       default: 0,
     },
   ],
 
-  // The same six indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
+  // The one output (change 17B): the Chord, a trigger - its Type and Channel. No Number (the
+  // numbers are the chord's) and no Receive (docs/entries/chorus.md "Change 17B").
+  outputs: [
+    {
+      id: "chord",
+      name: "Chord",
+      kind: "trigger",
+      tokens: { type: "@TYPE", channel: "@CH" },
+    },
+  ],
+
+  // The same seven indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
     key: 0,
@@ -226,6 +245,7 @@ export const CHORUS: CatalogEntry = {
     bloomColour: 0,
     velocity: 2,
     channel: 0,
+    midiType: 0,
   },
 
   // FALSE: the chessboard and the octave pads are lit from the Timer's first call at 20 ms, so

@@ -259,3 +259,36 @@ values; the range check runs before the shape character). `frames.json`'s CHORUS
 is the Timer's first call, at 20 ms). `brightness.ts` gains no declaration: the three colour sites
 that moved into the Timer are literals the scanner already classes. The card sentence: "Seven
 chord pads, the lowest at the bottom-left, two octave pads, and a warm bloom from the pad you hit."
+
+## Change 17B, 2026-09-23: the Chord output, no receive, and the latch (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+CHORUS moves onto the per-output MIDI model (`docs/MIDI.md` section 4) with one output, `chord`, named "Chord", a
+trigger.
+
+- **Knobs.** `@TYPE` (`midiType`, Note / CC as the status bytes 144 / 176, a segmented pair) is appended LAST, so a
+  saved copy's six older indices land on the knobs they were; `@CH` (`channel`, already all sixteen) is the output's
+  Channel and reads 1..16 in the panel (the wire keeps 0..15). **No Number**: the numbers the Chord sends are the
+  chord's own - `@KEY`, the scale, the voicing and the octave shift pick them - so a Number knob would name nothing.
+  `@VEL` stays a Sound knob (the note-on value, not a destination). The rack grew by one knob: CHORUS's captured
+  wild stamp was already `unreadable` (change 7's replaced knob) and a seven-knob payload keeps it so; the null
+  default record still carries no stamp.
+- **The send.** Note-on `s:gms(@CH,@TYPE,b[j],@VEL,0)`, the release `s:gms(@CH,@TYPE*3//2-88,s.n[j],0,0)` -
+  `@TYPE*3//2-88` is 128 under a note and 176 under a controller, eleven characters against the 23 of
+  `@TYPE==144 and 128 or 176`. Under CC the chord's three note numbers are three controllers, the velocity on and 0
+  off: the Sandbox button's controller, three at a time. At the defaults the wire is CHORUS's before the change,
+  message for message (note-ons 144 and note-offs 128 on channel 0); the Setup's TEXT moved, so its records move.
+- **No receive.** A received note names no one pad - a chord's numbers move with the voicing and the octave shift,
+  and the same note is in three chords - so the Chord declares no Receive and the Setup assigns `self.midirx_cb=nil`
+  (section 17's decision: every card assigns its own callback or nil, so a previous landing's never survives).
+- **The latch (section 18).** The handler acted on every cell change `Q` reported, so a finger sliding from one chord
+  pad onto the next released the chord and played the next one - the fault the user saw on FOUR FADERS, here on
+  pads. Now `if not n or e~=4 and e<9 then return end`: only the onset edge (a press, or a fast tap) chooses a pad, a
+  contact keeps its chord until it lifts, `G` still draws the finger wherever it goes. The octave pads' own onset test
+  folded into it (7 characters saved: the latch is cheaper than the old guard). **Latch: fault fixed.**
+- **Cost** (the RGB444 picker corner under the pinned `compressScript`): Setup 777 / 779 -> 796 / 798 (defaults /
+  corner; 110 free), Timer 601 / 602 unmoved. frames.json and the OG image unmoved (the picture at rest is the
+  Timer's, untouched).
+- **Proved.** `lua-smoke.spec.ts` "CHORUS: the Chord output ...": at Note on channel 1 (wire 0) and CC on channel 6
+  (wire 5), the I chord's three numbers on and off exactly; a slide from pad I across onto pad ii sends nothing, the
+  lift releases I, a new press on ii plays ii; a message on the output's own status and channel finds no callback,
+  with a previous landing's callback installed before the Setup.

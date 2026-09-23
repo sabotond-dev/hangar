@@ -369,7 +369,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     ).toBe(unheldStamp);
   });
 
-  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is these thirty-five knobs on twenty entries", () => {
+  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is the knobs listed, on twenty entries (the count moves with change 17B's outputs)", () => {
     // SECTION 7 (13-10): "Preserve MIDI destination, channel, routing, and
     // device target." The predicate is over the DESCRIPTOR - its id and its
     // label - and this test holds three things: what it excludes across the
@@ -423,7 +423,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "faders: send, channel",
       "dial: send, channel",
       "orbit: note1, note2, note3, note4, channel",
-      "chorus: channel",
+      "chorus: channel, midiType",
       "arc: cc, channel, midiType, midiReceive",
       "ghost: cc, channel",
       "morph: ccBase, channel",
@@ -444,8 +444,8 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     expect(entries, "twenty entries carry a MIDI destination").toBe(20);
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
-      "thirty-five knobs are excluded",
-    ).toBe(35);
+      "the knobs excluded (change 17B: every output knob a card gains)",
+    ).toBe(36);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,

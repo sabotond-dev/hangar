@@ -12872,3 +12872,104 @@ describe("ARC's MIDI output and MIDI RX (change 17, BENCH-2026-09-16.txt section
     }
   }, 60000);
 });
+
+describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, BENCH-2026-09-16.txt sections 17 and 18)", () => {
+  /** The host's REPORT header: the traffic a receiving card answers. 14 is a neighbour's EXECUTE. */
+  const REPORT = 13;
+  /**
+   * A previous landing's receive callback, installed before the card's Setup runs: a card that
+   * assigns its own callback or nil leaves it unreachable, so a message reaching it fails the test.
+   */
+  const STALE =
+    "self.midirx_cb=function()error('a previous landing answered')end ";
+  /** A knob's index by its literal; a literal the knob does not offer fails the test. */
+  const literalIndex = (
+    entry: CatalogEntry,
+    id: string,
+    literal: string,
+  ): number => {
+    const at = entry.knobs.find((k) => k.id === id)?.values.indexOf(literal);
+    if (at === undefined || at < 0)
+      throw new Error(`${entry.id}.${id} has no ${literal}`);
+    return at;
+  };
+  /** A card at its defaults with knobs moved BY LITERAL, on the real library; `stale` lands a previous callback first. */
+  async function openCard(
+    id: string,
+    over: Record<string, string> = {},
+    stale = false,
+  ) {
+    const entry = entryById(id);
+    const indices: Record<string, number> = { ...entry.defaults };
+    for (const [knob, literal] of Object.entries(over))
+      indices[knob] = literalIndex(entry, knob, literal);
+    const { setup, timer } = renderLua(entry, indices);
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: stale ? STALE + setup : setup,
+      timer,
+    });
+    return { entry, host, sim };
+  }
+  /** Everything sent since `from`, as `ch:cmd:p1:p2`. */
+  const wire = (midi: readonly HostMidi[], from = 0): string[] =>
+    midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
+
+  it("CHORUS: the Chord output sends its three numbers on its Type and Channel - a note-on and note-off, or a controller at the velocity and at 0 - exactly as before at the defaults; it receives nothing and clears a previous landing's callback; a finger keeps the pad it landed on", async () => {
+    const entry = entryById("chorus");
+    const velocity = knobValueOf(entry, "velocity");
+    /** Chord pad z's centre on the measured map: column z%3*3+1, row 7-z//3*3. */
+    const padXY = (z: number): [number, number] => [
+      ledCentre((z % 3) * 3 + 1, "x"),
+      ledCentre(7 - Math.floor(z / 3) * 3, "y"),
+    ];
+    const I = [48, 52, 55]; // C major's I at the default key, root position
+    const ii = [50, 53, 57];
+    for (const [type, channel, on, off] of [
+      ["144", "0", 144, 128],
+      ["176", "5", 176, 176],
+    ] as const) {
+      const { host } = await openCard(
+        "chorus",
+        { midiType: type, channel },
+        true,
+      );
+      try {
+        const [x, y] = padXY(0);
+        host.touchDown(0, x, y);
+        host.run(2);
+        expect(wire(host.midi), `type ${type}: the I chord on`).toEqual(
+          I.map((n) => `${channel}:${on}:${n}:${velocity}`),
+        );
+        // THE LATCH: the same finger slides onto pad ii and past it - nothing more is sent.
+        const [x2, y2] = padXY(1);
+        for (let k = 1; k <= 6; k++) {
+          host.touchMove(0, x + ((x2 - x) * k) / 4, y);
+          host.run(1);
+        }
+        host.touchMove(0, x2, y2);
+        host.run(2);
+        expect(wire(host.midi).length, "a slide re-chords nothing").toBe(3);
+        host.touchUp(0, x2, y2);
+        host.run(2);
+        expect(wire(host.midi, 3), `type ${type}: the I chord off`).toEqual(
+          I.map((n) => `${channel}:${off}:${n}:0`),
+        );
+        // A second press on pad ii still plays ii.
+        host.touchDown(1, x2, y2);
+        host.run(2);
+        expect(wire(host.midi, 6)).toEqual(
+          ii.map((n) => `${channel}:${on}:${n}:${velocity}`),
+        );
+        // NO RECEIVE: the Setup assigned nil over the previous landing's callback.
+        expect(host.midiIn(REPORT, Number(channel), on, 48, 100)).toBe(false);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
+});
