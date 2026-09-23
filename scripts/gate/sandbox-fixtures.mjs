@@ -115,6 +115,31 @@ const EMIT_PAGE3_TOUCHES = surface("Page 3 touches", [
   EMIT_PAGE3.regions[3],
 ]);
 
+// runtime.spec.ts tests 17 to 19 (change 17): the types, RX and the colour input.
+const TYPES = surface("Types", [
+  { ...FILTER, output: "pitchbend", channel: 5 },
+  {
+    ...SPACE,
+    output: "pressure",
+    channel: 16,
+    outputY: "pitchbend",
+    channelY: 9,
+  },
+  { ...TURN, output: "pressure", channel: 2 },
+  { ...GO, output: "note", cc: 60, channel: 3 },
+  { ...WIDE, cc: 25 },
+]);
+const COLOURS = {
+  ...surface("Colours", [
+    { ...FILTER, colour: [0, 0, 15] },
+    SPACE,
+    rtRegion("Glow", "blank", 7, 7, 2, 2, 0, { colour: [0, 15, 0] }),
+  ]),
+  colourInput: { channel: 16, cc: 100 },
+};
+// emit.spec.ts test 7 (change 17): page 3's four with Receive off, and the two blanks.
+const EMIT_QUIET = EMIT_PAGE3.regions.map((r) => ({ ...r, receive: false }));
+
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
   // runtime.spec.ts
@@ -171,6 +196,19 @@ export const SANDBOX_FIXTURES = {
     TURN,
     GO,
   ]),
+  // runtime.spec.ts (change 17): the types, RX and the colour input - tests 17 to 19.
+  "runtime/types": TYPES,
+  "runtime/receive-types": surface("Receive types", [
+    { ...FILTER, output: "pitchbend", channel: 5 },
+    { ...SPACE, output: "pressure", channel: 16, outputY: "cc", channelY: 9 },
+  ]),
+  "runtime/deaf": surface("Deaf", [
+    { ...FILTER, receive: false },
+    { ...TURN, mode: "relative-twos" },
+    DUO,
+  ]),
+  "runtime/colours": COLOURS,
+  "runtime/colours-dim": { ...COLOURS, brightness: 128 },
   // emit.spec.ts
   "emit/page3": EMIT_PAGE3,
   "emit/one": surface("One", [EMIT_PAGE3.regions[0]]),
@@ -190,4 +228,9 @@ export const SANDBOX_FIXTURES = {
   "emit/page3-blanks": EMIT_PAGE3_BLANKS,
   "emit/page3-options": EMIT_PAGE3_OPTIONS,
   "emit/page3-touches": EMIT_PAGE3_TOUCHES,
+  "emit/page3-quiet-blanks": surface("Page 3 and blanks", [
+    ...EMIT_QUIET,
+    emRegion("Wash", "blank", 7, 7, 2, 2, { cc: 0, channel: 1 }),
+    emRegion("Dot", "blank", 0, 8, 1, 1, { cc: 0, channel: 1 }),
+  ]),
 };

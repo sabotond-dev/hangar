@@ -663,6 +663,32 @@ export class LuaHost {
     return called;
   }
 
+  /**
+   * One MIDI voice message to the configuration, as the firmware hands it (change 17, 2026-09-23):
+   * grid-fw `decode.lua` `pass_midi` calls `el:midirx_cb({instr, sx, sy}, {ch, cmd, p1, p2})` for
+   * every element that defines `midirx_cb`, the header's INSTR first - 13 (REPORT) for the host's
+   * traffic, 14 (EXECUTE) for a neighbour's sends passing through. Test-facing and SYNCHRONOUS, as
+   * `rtm` is: nothing schedules it, a spec drives it the way a DAW would. Returns false when the
+   * configuration defines no handler.
+   */
+  midiIn(
+    instr: number,
+    ch: number,
+    cmd: number,
+    p1: number,
+    p2: number,
+  ): boolean {
+    let called = false;
+    const n = (v: number): number => f2i(num(v));
+    this.guarded(() => {
+      called = this.engine.doStringSync(
+        `local f = self.midirx_cb if type(f) ~= "function" then return false end ` +
+          `f(self, {${n(instr)}, 0, 0}, {${n(ch)}, ${n(cmd)}, ${n(p1)}, ${n(p2)}}) return true`,
+      ) as boolean;
+    });
+    return called;
+  }
+
   touchMove(id: number, x: number, y: number): void {
     this.enqueue(id, EVT_MOVE, x, y);
   }

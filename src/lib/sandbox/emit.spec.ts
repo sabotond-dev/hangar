@@ -70,6 +70,8 @@ import { LANDING_SLOTS, landSurface } from "./land";
 import { TRIMMED_LIBRARY, TRIMMED_LIBRARY_TIMER } from "./library-trim";
 import {
   MULTITOUCH_TEXT,
+  SETUP_STATE,
+  TAIL_DEFAULTS_LOOP,
   TAIL_DEFAULTS_LUA,
   packRuntime,
   type SlotCount,
@@ -239,8 +241,11 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       expect(first.text).toBe(two.emitted.setup);
       setups.push({ name: s.name, two: two.setup.used, five: five.setup.used });
       // The Setup is the same text under three and five slots (both pull
-      // 255/4 in); the third pull-in's price is the second call.
-      expect(five.setup.used).toBe(three.setup.used);
+      // 255/4 in) but for the contact tables, which five slots make in the
+      // trimmed 255/0 (change 17), and unless five slots put runtime parts in
+      // it (the Setup is the packer's last slot); the third pull-in's price is the second call.
+      if (!five.emitted.runtime.placement.some((p) => p.slot === "setup"))
+        expect(five.setup.used).toBe(three.setup.used - SETUP_STATE.length);
       expect(
         three.setup.used - two.setup.used,
         "the third pull-in's price",
@@ -248,16 +253,27 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       // The Timer is the runtime packed for the surface's own branches
       // beside the sweep, canonical, and it is measured in runtime.spec.ts.
       expect(two.emitted.timer, `${s.name}: the Timer`).toBe(
-        packRuntime(two.emitted.branches, { slots: 2 }).timer,
+        packRuntime(two.emitted.branches, {
+          slots: 2,
+          receive: two.emitted.receive,
+        }).timer,
       );
       expect(two.timer.used).toBe(two.emitted.timer.length);
       // The colour corner is the dearest: the surface's own colours never
-      // cost more than the corner.
+      // cost more than the corner - across its five strings, since the
+      // Setup may carry runtime parts (change 17) and a cheaper J leaves it
+      // room for another.
       const own = await measureSurface(
         { ...s, regions: s.regions.map((r) => ({ ...r, colour: [0, 0, 0] })) },
         { slots: 5 },
       );
-      expect(own.setup.used).toBeLessThanOrEqual(five.setup.used);
+      const allFive = (m: typeof own) =>
+        m.setup.used +
+        m.timer.used +
+        (m.mapmode?.used ?? 0) +
+        (m.system?.used ?? 0) +
+        (m.systemTimer?.used ?? 0);
+      expect(allFive(own)).toBeLessThanOrEqual(allFive(five));
       lines.push(
         `${String(count).padStart(2)} elements: Setup ${two.setup.used} of ${EVENT_BUDGET} ` +
           `(${two.setup.free} free) at two slots, ${five.setup.used} at five; ` +
@@ -322,7 +338,13 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       speed: "full",
       spring: true,
       springValue: 100,
+      output: "pressure",
+      receive: false,
     });
+    // Change 17: the dearest channel word, a channel pressure on 16 with Receive off.
+    expect(regionRow(representativeRegion(1, 0, 0, { w: 1, h: 2 }))[7]).toBe(
+      175,
+    );
     expect(regionTail(representativeRegion(1, 0, 0, { w: 1, h: 2 }))).toEqual([
       127, 100, 7, 123,
     ]);
@@ -357,15 +379,22 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     });
     expect(lean.emitted.branches).toEqual(["fader-v"]);
     expect(fat.emitted.branches).toEqual(BRANCHES);
+    // The runtime across the four runtime slots and, since change 17, the
+    // Setup's share when it carries parts (the data half is the same text;
+    // the lean surface carries none there).
+    expect(lean.emitted.runtime.placement.some((p) => p.slot === "setup")).toBe(
+      false,
+    );
     const total = (m: typeof lean) =>
       (m.systemTimer?.used ?? 0) +
       (m.system?.used ?? 0) +
       (m.mapmode?.used ?? 0) +
-      m.timer.used;
+      m.timer.used +
+      (m.setup.used - lean.setup.used);
     const saving = total(fat) - total(lean);
     console.log(
       `Dead branches: four vertical faders' runtime at ${total(lean)} across the four runtime slots with the fader branch alone, ` +
-        `${total(fat)} with every branch - a saving of ${saving}; the Setup ${lean.setup.used} either way ` +
+        `${total(fat)} with every branch - a saving of ${saving}; the Setup's data half ${lean.setup.used} either way ` +
         `(the research's inline pair 697 / 1,166 / 469; 13-15's 805 / 1,333 / 528 - the inline contingency went with change 10B).`,
     );
     // The saving is the text of the branches that were not emitted: real,
@@ -375,7 +404,8 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       200,
     );
     expect([total(lean), total(fat), saving]).toEqual(PINNED.deadBranches);
-    expect(lean.setup.used).toBe(fat.setup.used);
+    expect(fat.emitted.parts.regionTable).toBe(lean.emitted.parts.regionTable);
+    expect(fat.emitted.parts.paint).toBe(lean.emitted.parts.paint);
     expect(lean.fits).toBe(true);
     for (const text of [lean.emitted.setup, fat.emitted.setup]) {
       expect(GridScript.checkSyntax(text)).toBe(true);
@@ -569,15 +599,18 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       "library.ts's exported names differ from 12.1-08b-SUMMARY.md's twenty-one",
     ).toEqual(summary);
     expect([...LIBRARY_CONVENTIONS]).toEqual(["R"]);
+    // The Setup's data half, under three slots: five may add runtime parts to
+    // it (change 17), which the runtime's own names test holds (runtime.spec.ts test 6).
     for (const { surface: s } of FIVE) {
-      const split = emitSurface(s, { slots: 5 });
+      const split = emitSurface(s, { slots: 3 });
       const text = split.setup;
       expect(
         GridScript.checkSyntax(text),
         `${s.name}: the pinned checker refuses the text`,
       ).toBe(true);
       const defined = capitalDefinitions(text);
-      // Nothing this emitter defines is a library name: `J` and `M` only.
+      // Nothing this emitter defines is a library name: `J` and `M`, and under
+      // fewer than five slots the contact tables `S F` (change 17).
       for (const d of defined) {
         expect(
           LIBRARY_GLOBALS.includes(d),
@@ -585,8 +618,9 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         ).toBe(false);
       }
       expect(defined, `${s.name}: its own names`).toEqual(
-        [...OWN_NAMES].sort(),
+        [...OWN_NAMES, "S", "F"].sort(),
       );
+      expect(emitSurface(s, { slots: 5 }).setup).not.toContain(SETUP_STATE);
       // The data half CALLS no capital name: the paint is glag/glc/glp.
       expect(capitalCalls(text), `${s.name}: capital calls`).toEqual([]);
     }
@@ -598,7 +632,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         PULL_IN_TIMER + PULL_IN_MAPMODE + `self.touch_cb=${RUNTIME_ENTRY}`,
       ),
     ).toBe(true);
-    expect(emitSurface(PAGE3, { slots: 3 }).setup).toBe(five);
+    expect(emitSurface(PAGE3, { slots: 3 }).setup).toContain(SETUP_STATE);
     expect(
       emitSurface(PAGE3).setup.endsWith(
         PULL_IN_TIMER + `self.touch_cb=${RUNTIME_ENTRY}`,
@@ -676,12 +710,14 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     // 7-8) and a 1 x 1 in another (col 0, row 8).
     const blank = region("Wash", "blank", 7, 7, 2, 2, { cc: 0, channel: 1 });
     const dot = region("Dot", "blank", 0, 8, 1, 1, { cc: 0, channel: 1 });
-    const withBlanks = surface("Page 3 and blanks", [
-      ...PAGE3.regions,
-      blank,
-      dot,
-    ]);
-    const plain = emitSurface(PAGE3, { slots: 5 });
+    // Receive Off on page 3's four (change 17): with every element receiving,
+    // page 3's five strings leave 73 characters between them (runtime.spec.ts
+    // test 7) and two blanks cost 72 - over with the packing; the blank's own
+    // price is the point here, and the runtime without the receive half packs
+    // as it did.
+    const QUIET = PAGE3.regions.map((r) => ({ ...r, receive: false }));
+    const withBlanks = surface("Page 3 and blanks", [...QUIET, blank, dot]);
+    const plain = emitSurface(surface("Page 3 quiet", QUIET), { slots: 5 });
     const painted = emitSurface(withBlanks, { slots: 5 });
 
     // THE FORM. A blank's row carries the colour at columns nine to eleven
@@ -735,7 +771,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     // on the first round, and the price of the two blanks is the two rows,
     // their two separators, the fallback, and one character - the minus
     // sign - for every cell the blanks cover (five here).
-    const before = await costOf(PAGE3, { slots: 5 });
+    const before = await costOf(surface("Page 3 quiet", QUIET), { slots: 5 });
     const after = await costOf(withBlanks, { slots: 5 });
     expect((await canonical(painted.setup)).rounds).toBe(0);
     expect(GridScript.checkSyntax(painted.setup)).toBe(true);
@@ -839,8 +875,9 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       flagsOf({ ...fader, mode: "relative", speed: "full", spring: true }),
     ).toBe(7);
     expect(flagsOf({ ...PAGE3.regions[1], mode: "relative" })).toBe(1);
+    // The note output rides in the channel word since change 17, not the flag word.
     expect(flagsOf({ ...PAGE3.regions[3], latch: true, output: "note" })).toBe(
-      3,
+      1,
     );
     expect(flagsOf({ ...PAGE3.regions[2], mode: "relative-offset" })).toBe(2);
     expect(
@@ -884,26 +921,26 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       spring: ",0,127,4,64".length,
       everything: ",127,100,7,127".length,
     });
-    // THE PACK. Page 3 with every option on packs the same as page 3 (the
-    // runtime is per KIND, not per option), and every option-laden string
-    // fits; the placement names each part's slot.
+    // THE PACK. Page 3 with every option on carries the same parts as page 3
+    // (the runtime is per KIND, not per option), and every option-laden string
+    // fits; the placement names each part's slot. Where they land moves with
+    // the Setup's size since change 17 (the Setup is the packer's last slot),
+    // so the options' price is read off the data half.
     const options = await measureSurface(atPickerCorner(PAGE3_OPTIONS), {
       slots: 5,
     });
     const plain = await measureSurface(atPickerCorner(PAGE3), { slots: 5 });
     expect(options.fits).toBe(true);
-    expect(options.timer.used).toBe(plain.timer.used);
-    expect(options.mapmode?.used).toBe(plain.mapmode?.used);
-    expect(options.system?.used).toBe(plain.system?.used);
-    expect(options.systemTimer?.used).toBe(plain.systemTimer?.used);
+    expect(options.emitted.runtime.parts).toEqual(plain.emitted.runtime.parts);
     expect(
       options.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`),
     ).toEqual(PINNED.page3Placement);
-    expect(options.setup.used - plain.setup.used).toBe(
-      PINNED.page3OptionsPrice,
-    );
+    expect(
+      options.emitted.parts.regionTable.length -
+        plain.emitted.parts.regionTable.length,
+    ).toBe(PINNED.page3OptionsPrice);
     console.log(
-      `page 3 with every option on: Setup ${plain.setup.used} -> ${options.setup.used} (+${options.setup.used - plain.setup.used}); the placement ${options.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`).join(" ")}`,
+      `page 3 with every option on: J ${plain.emitted.parts.regionTable.length} -> ${options.emitted.parts.regionTable.length} (+${options.emitted.parts.regionTable.length - plain.emitted.parts.regionTable.length}); the Setup ${plain.setup.used} -> ${options.setup.used}; the placement ${options.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`).join(" ")}`,
     );
     // THE LANDING: five strings in SLOTS' shape, the system halves the
     // trimmed library with the runtime parts (never the full library),
@@ -950,8 +987,9 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     expect(seventhOf({ ...pad, touches: 5 })).toBe(103 + 512);
     expect(seventhOf(PAGE3.regions[3])).toBe(0);
     expect(seventhOf({ ...PAGE3.regions[3], group: 4 })).toBe(4);
+    // The channel word 15 + 128: a pad with more than one touch does not receive (change 17).
     expect(regionRow({ ...pad, touches: 3 })).toEqual([
-      3, 0, 3, 3, 4, 102, 359, 15, 255, 255, 255,
+      3, 0, 3, 3, 4, 102, 359, 143, 255, 255, 255,
     ]);
     expect(regionTail({ ...pad, touches: 5 }), "no tail forced").toEqual([]);
     expect(flagsOf({ ...pad, touches: 5 })).toBe(0);
@@ -985,13 +1023,12 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     }
     expect(hasMultitouch(PAGE3.regions)).toBe(false);
     expect(hasMultitouch(PAGE3_TOUCHES.regions)).toBe(true);
-    // THE VARIANT'S SETUP: the paint reads the defaults once per row, the
-    // entry does not; the price at the corner, measured.
+    // THE VARIANT'S SETUP: since change 17 no paint reads the defaults (the
+    // Timer does, for every surface); the price at the corner, measured.
     const multi = emitSurface(PAGE3_TOUCHES, { slots: 5 });
     expect(multi.multitouch).toBe(true);
-    expect(multi.parts.paint).toContain(
-      `if r then ${TAIL_DEFAULTS_LUA} local a=`,
-    );
+    expect(multi.parts.paint).not.toContain(TAIL_DEFAULTS_LUA);
+    expect(multi.timer).toContain(TAIL_DEFAULTS_LOOP);
     expect(strings(multi)).toContain(MULTITOUCH_TEXT.entry);
     expect(strings(multi)).toContain(MULTITOUCH_TEXT.release);
     expect(strings(multi)).toContain(MULTITOUCH_TEXT.xy);
@@ -1010,7 +1047,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       { slots: 5 },
     );
     console.log(
-      `the touch count's price at the corner: Setup ${plain.setup.used} -> ${priced.setup.used} (+${priced.setup.used - plain.setup.used}: the defaults once in the paint; the pad's seventh column 103 -> 359); page 3 without the knob and the pad at three fingers: 255/6 ${priced.systemTimer?.used} + 255/0 ${priced.system?.used} + 255/4 ${priced.mapmode?.used} + Timer ${priced.timer.used}, ${priced.fits ? "fits" : "over"}`,
+      `the touch count's price at the corner: Setup ${plain.setup.used} -> ${priced.setup.used} (+${priced.setup.used - plain.setup.used}: the pad's seventh column 103 -> 359 and its channel word 15 -> 143, a multitouch pad not receiving); page 3 without the knob and the pad at three fingers: 255/6 ${priced.systemTimer?.used} + 255/0 ${priced.system?.used} + 255/4 ${priced.mapmode?.used} + Timer ${priced.timer.used}, ${priced.fits ? "fits" : "over"}`,
     );
     expect(priced.setup.used - plain.setup.used).toBe(PINNED.touchesSetupPrice);
     expect(priced.fits).toBe(true);
@@ -1037,32 +1074,38 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
 
 /** The figures pinned above, this tree, 2026-09-18 (change 10B). */
 const PINNED = {
-  /** The Setups at the corner under two slots, by element count. */
-  setups: { 1: 368, 4: 483, 8: 599, 12: 743, 16: 877 } as Record<
+  /** The Setups at the corner under two slots, by element count (change 17: the contact tables, eight, are the two-slot Setup's). */
+  setups: { 1: 376, 4: 491, 8: 607, 12: 751, 16: 885 } as Record<
     number,
     number
   >,
   sixteenFive: 892,
-  capFromTwelve: [15, "budget"] as [number, string],
+  /** Change 17: 15 -> 14, the dearest channel word's third digit (a channel pressure on 16 with Receive off, 175). */
+  capFromTwelve: [14, "budget"] as [number, string],
   /** Eleven of the dearest option-laden faders from an empty surface - the number the user no longer sees. */
   floorFromEmpty: [11, "budget"] as [number, string],
   /** M 169 (the research's 165), J at four rows 151 (13-15's 155 with the frame), the paint 128 (13-14's 101 plus layer 2's colour). */
   parts: [169, 151, 128],
-  deadBranches: [1845, 3372, 1527],
+  /** Change 17: the receive half beside every branch, and the Setup's share of it. */
+  deadBranches: [2402, 3970, 1568],
+  /** Change 17: the Setup the fifth slot, the exact search placing what first fit could not. */
   page3Placement: [
-    "R:systemTimer",
-    "O:system",
-    "Q:timer",
-    "D:system",
-    "K:timer",
+    "R:timer",
+    "O:systemTimer",
+    "Q:setup",
+    "D:mapmode",
+    "A:setup",
+    "K:setup",
     "I[1]:mapmode",
     "I[3]:mapmode",
-    "I[4]:timer",
+    "I[4]:system",
     "I[5]:systemTimer",
+    "Y:timer",
   ],
-  page3OptionsPrice: 36,
-  /** Change 11: the defaults in the paint, 49 and a space; the pad's seventh column 103 -> 359 keeps its three digits. */
-  touchesSetupPrice: 50,
-  /** Page 3 with the pad at three fingers AND the knob: the Timer over by this much (runtime.spec.ts test 16's 956). */
-  page3TouchesKnobOver: 48,
+  /** J's price for every option on: 36 at change 10B; 38 since change 17 (the note button's channel word -17, where its flag bit was). */
+  page3OptionsPrice: 38,
+  /** Change 17: the pad's seventh column 103 -> 359 keeps its three digits; its channel word 15 -> 143 (a multitouch pad does not receive) is one more. */
+  touchesSetupPrice: 1,
+  /** Page 3 with the pad at three fingers AND the knob: the Timer over by this much (runtime.spec.ts test 16). */
+  page3TouchesKnobOver: 168,
 };

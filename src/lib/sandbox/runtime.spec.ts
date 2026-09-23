@@ -37,9 +37,16 @@ import {
 import { padReady } from "../pad/ready";
 import { createLuaHost, type HostMidi, type LuaHost } from "../sim/lua-host";
 import { blankPadState } from "../sim/lua-pad-sim";
-import { EVENT_BUDGET, canonical, measureSurface } from "./cost";
+import {
+  EVENT_BUDGET,
+  atPickerCorner,
+  canonical,
+  measureSurface,
+} from "./cost";
 import {
   MARKER,
+  RECEIVE_NONE,
+  RECEIVE_ON,
   capitalCalls,
   capitalDefinitions,
   emitSurface,
@@ -52,6 +59,7 @@ import {
 import { GEOMETRY_COPY, validate } from "./geometry";
 import {
   TRIMMED_GLOBALS,
+  TRIMMED_HEAD,
   TRIMMED_LIBRARY,
   TRIMMED_LIBRARY_TIMER,
   TRIM_FREED_NAMES,
@@ -68,14 +76,17 @@ import {
   KNOB_STEPS_PER_TURN,
   KNOB_STEP_DEG,
   branchesUsed,
+  channelWord,
   fingerController,
   flagsOf,
   hasMultitouch,
   knobRingRaw,
+  receivesOf,
   scaleValue,
   seventhOf,
   springPosition,
   touchesOf,
+  typeOf,
   type Branch,
   type Region,
   type Surface,
@@ -85,11 +96,15 @@ import {
   ENTRY,
   KNOB_STEP_CAP,
   MULTITOUCH_TEXT,
+  RECEIVE_ENTRY,
   RUNTIME_CALLS,
   RUNTIME_NAMES,
+  RELEASE,
+  BRANCH_TEXT,
   SLOT_COLUMNS,
   STATE,
   TAIL_DEFAULTS_LUA,
+  colourPart,
   joinLua,
   packRuntime,
   runtimeParts,
@@ -224,6 +239,29 @@ const MULTITOUCH_FIXTURES: readonly Surface[] = [
   TWO_PADS,
   PAGE3_MULTI,
 ];
+
+/**
+ * A surface with one element per kind named (change 17): the ceiling in kinds under five slots is
+ * measured through the emitter, because every element receives by default - the receive half is
+ * packed beside the branches - and the Setup is the packer's last slot. A multitouch pad stands
+ * in for the XY pad under `multitouch`.
+ */
+function kindSurface(branches: readonly Branch[], multitouch = false): Surface {
+  const by: Record<Branch, Region> = {
+    "fader-v": FILTER,
+    "fader-h": WIDE,
+    button: GO,
+    xy: multitouch ? DUO : SPACE,
+    knob: TURN,
+  };
+  return surface(
+    branches.join(" "),
+    branches.map((b) => by[b]),
+  );
+}
+
+/** The Timer runs this many ticks after a landing before a test sends MIDI in (change 17): its every run assigns the receive callback, and one parked in 255/4 is defined after the first. */
+const RECEIVE_SETTLE = 12;
 
 /** True for a text carrying either entry - the single-touch `O` or the multitouch variant's. */
 const hasEntry = (text: string): boolean =>
@@ -708,6 +746,9 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
           texts.push({ name: `${s.name} 255/0`, text: e.system });
         if (e.systemTimer !== undefined)
           texts.push({ name: `${s.name} 255/6`, text: e.systemTimer });
+        // Change 17: the Setup is the packer's last slot under five.
+        if (e.runtime.placement.some((p) => p.slot === "setup"))
+          texts.push({ name: `${s.name} Setup (${slots})`, text: e.setup });
       }
     }
     let started = 0;
@@ -782,13 +823,18 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     }
     // THE NAMES. The runtime defines S F I R O Q D K: the five it always
     // had, and three the trim frees (library-trim.ts) - never a name the
-    // TRIMMED library still defines. It calls E N U X, every one a trimmed
-    // global; `G` no more (the pictures are its own).
+    // TRIMMED library still defines - and since change 17 E (as R), A, Y and
+    // Z, four more the trim frees; S and F are the trimmed head's now (or the
+    // Setup's under fewer slots). It calls N U X, every one a trimmed global;
+    // `G` no more (the pictures are its own).
     // Both runtimes - the single-touch and the multitouch variant (change 11) - hold to it.
     for (const multitouch of [false, true]) {
       const whole = joinLua([
         STATE,
-        ...runtimeParts(BRANCHES, multitouch).map((p) => p.lua),
+        ...runtimeParts(BRANCHES, multitouch, {
+          rows: true,
+          colour: { channel: 15, first: 100, brightness: 128 },
+        }).map((p) => p.lua),
         sweepCall(20),
       ]);
       const defined = capitalDefinitions(whole);
@@ -805,9 +851,11 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
           ).toBe(true);
         }
       }
-      expect(["Q", "D", "K"].every((n) => TRIM_FREED_NAMES.includes(n))).toBe(
-        true,
-      );
+      expect(
+        ["Q", "D", "K", "E", "A", "Y", "Z"].every((n) =>
+          TRIM_FREED_NAMES.includes(n),
+        ),
+      ).toBe(true);
       // `R` is the one name it defines that the library calls; it is a
       // convention, not a global the library exports.
       expect(LIBRARY_CONVENTIONS).toEqual(["R"]);
@@ -859,6 +907,16 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
         STATE,
         ...runtimeParts(BRANCHES.filter((b) => b !== "knob")).map((p) => p.lua),
       ]),
+    );
+    // The receive half (change 17): the callback, and the colour input beside it.
+    const withReceive = await canonical(
+      joinLua([
+        STATE,
+        ...runtimeParts(BRANCHES, false, { rows: true }).map((p) => p.lua),
+      ]),
+    );
+    lines.push(
+      `the receive half: ${withReceive.cost - five.cost} with every branch (Y alone), the colour input's Z ${colourPart(255).length}`,
     );
     const knobShare = five.cost - four.cost;
     lines.push(
@@ -924,21 +982,28 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       expect(three.fits, `${name}: the packer's word on three`).toBe(
         threeCosts.every((c) => c <= EVENT_BUDGET),
       );
-      const fivePack = packRuntime(branches, { slots: 5 });
-      const fiveCosts = await Promise.all(
-        slotTexts(fivePack).map(async ([, t]) => (await canonical(t)).cost),
-      );
-      if (!fiveCosts.every((c) => c <= EVENT_BUDGET))
-        overFive.push(`${name} ${fiveCosts.join("+")}`);
-      expect(fivePack.fits, `${name}: the packer's word on five`).toBe(
-        fiveCosts.every((c) => c <= EVENT_BUDGET),
-      );
+      // Five slots through a surface with one element per kind, every one receiving (change 17).
+      const m5 = await measureSurface(atPickerCorner(kindSurface(branches)), {
+        slots: 5,
+      });
+      const fiveCosts = [
+        m5.systemTimer?.used ?? 0,
+        m5.system?.used ?? 0,
+        m5.mapmode?.used ?? 0,
+        m5.timer.used,
+        m5.setup.used,
+      ];
+      if (!m5.fits) overFive.push(`${name} ${fiveCosts.join("+")}`);
+      expect(
+        m5.emitted.runtime.fits,
+        `${name}: the packer's word on five`,
+      ).toBe(m5.fits);
       const total = fiveCosts.reduce((a, b) => a + b, 0);
       if (total > fiveWorst.used)
         fiveWorst = {
           name,
           used: total,
-          free: 4 * EVENT_BUDGET - total,
+          free: 5 * EVENT_BUDGET - total,
         };
     }
     lines.push(
@@ -948,7 +1013,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     lines.push(`three slots, fits: ${fitsThree.join(", ") || "none"}`);
     lines.push(`three slots, over: ${overThree.join(", ") || "none"}`);
     lines.push(
-      `five slots, over: ${overFive.length === 0 ? "none - every combination fits" : overFive.join(", ")}; the dearest ${fiveWorst.name} at ${fiveWorst.used} of ${4 * EVENT_BUDGET} across the four runtime slots`,
+      `five slots (one element per kind, every one receiving, the Setup the last slot), over: ${overFive.length === 0 ? "none - every combination fits" : overFive.join(", ")}; the dearest ${fiveWorst.name} at ${fiveWorst.used} of ${5 * EVENT_BUDGET} across the five strings`,
     );
     // The PDF's own page 3 under the three, with the free characters per slot.
     const p2 = await measureSurface(PAGE3, { slots: 2 });
@@ -974,6 +1039,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     // moves the assertion, which is the point.
     expect(five.cost).toBe(PINNED.five);
     expect(four.cost).toBe(PINNED.four);
+    expect(withReceive.cost - five.cost).toBe(PINNED.receive);
     expect(knobShare).toBe(PINNED.knobShare);
     expect(smallest.timer.used).toBe(PINNED.oneFaderTwoSlots);
     expect(p2.timer.used).toBe(PINNED.page3Two);
@@ -1188,8 +1254,10 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
   });
 
   it("11. the button (answers 9b, 10): a note output sends note-on at the max and a note-off (status 128) on release or on the second press under Toggle; a radio group is exclusive across three buttons, each member's off sent as it goes dark", async () => {
-    expect(flagsOf({ ...GO, output: "note" })).toBe(2);
-    expect(flagsOf({ ...GO, output: "note", latch: true })).toBe(3);
+    // The note output rides in the channel word since change 17 (code -2), not the flag word.
+    expect(flagsOf({ ...GO, output: "note" })).toBe(0);
+    expect(flagsOf({ ...GO, output: "note", latch: true })).toBe(1);
+    expect(channelWord({ ...GO, output: "note" })).toBe(-32);
     expect(regionRow(RADIO[0])[6], "the group is the seventh column").toBe(1);
     const { host, sim } = await open(NOTES);
     try {
@@ -1408,29 +1476,29 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     }
   });
 
-  it("14. the trimmed library (answer 12): 255/0 keeps the head, the map, U E X N and the call, 255/6 the marker alone, both canonical and sliced from library.ts's parts; every fixture runs on them under five slots with a press, a move and a lift on each region and no error", async () => {
-    expect(
-      TRIMMED_LIBRARY.startsWith("--[[@cb]]H={}T={}C=0 P={}B={}L=0 KX={"),
-    ).toBe(true);
+  it("14. the trimmed library (answer 12; change 17): 255/0 keeps its own head of the two tables it reads, the map, U X N and the call, 255/6 the marker alone, both canonical and sliced from library.ts's parts; every fixture runs on them under five slots with a press, a move and a lift on each region and no error", async () => {
+    // Change 17: the head is the trim's own (T and C, what X reads, and the runtime's contact
+    // tables S and F, fresh on every landing) and E is the runtime's.
+    expect(TRIMMED_LIBRARY.startsWith(`${TRIMMED_HEAD}KX={`)).toBe(true);
+    expect(TRIMMED_HEAD).toBe("--[[@cb]]T={}C=0 S={}F={}");
     expect(TRIMMED_LIBRARY.endsWith(" self:tim()")).toBe(true);
     expect(TRIMMED_LIBRARY_TIMER).toBe(MARKER);
-    expect(TOUCH_LIBRARY).toContain(TRIMMED_LIBRARY.slice(0, 200));
-    for (const fn of ["U", "E", "X", "N"])
+    expect(TOUCH_LIBRARY).toContain(
+      TRIMMED_LIBRARY.slice(TRIMMED_HEAD.length, 200),
+    );
+    for (const fn of ["U", "X", "N"])
       expect(TRIMMED_LIBRARY).toContain(`function ${fn}(`);
-    for (const fn of ["W", "Q", "V", "G", "Z", "Y", "K", "A", "D"])
+    for (const fn of ["E", "W", "Q", "V", "G", "Z", "Y", "K", "A", "D"])
       expect(TRIMMED_LIBRARY + TRIMMED_LIBRARY_TIMER).not.toContain(
         `function ${fn}(`,
       );
     expect(TRIMMED_GLOBALS).toEqual([
-      "B",
       "C",
-      "E",
-      "H",
+      "F",
       "KX",
       "KY",
-      "L",
       "N",
-      "P",
+      "S",
       "T",
       "U",
       "X",
@@ -1440,8 +1508,10 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       setup: TOUCH_LIBRARY.length - TRIMMED_LIBRARY.length,
       timer: TOUCH_LIBRARY_TIMER.length - MARKER.length,
     });
-    expect(TRIM_FREES).toEqual({ setup: 382, timer: 864 });
-    expect([TOUCH_LIBRARY.length, TRIMMED_LIBRARY.length]).toEqual([842, 460]);
+    // 842 -> 460 at change 10B; -> 363 at change 17 (the head's H P B L out and S F in, 8 less;
+    // E, 88 and its join; the head's space before the map).
+    expect(TRIM_FREES).toEqual({ setup: 479, timer: 864 });
+    expect([TOUCH_LIBRARY.length, TRIMMED_LIBRARY.length]).toEqual([842, 363]);
     console.log(
       `the trim: 255/0 ${TOUCH_LIBRARY.length} -> ${TRIMMED_LIBRARY.length} (${TRIM_FREES.setup} freed), 255/6 ${TOUCH_LIBRARY_TIMER.length} -> ${TRIMMED_LIBRARY_TIMER.length} (${TRIM_FREES.timer} freed)`,
     );
@@ -1697,7 +1767,11 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
   it("16. the multitouch variant, measured (change 11): three texts swapped, canonical; the entry inside 255/0's room; every kind combination beside a multitouch pad fits five slots but the one with every kind, which is over on the Timer and refused; a one-finger pad emits byte-identical strings", async () => {
     const lines: string[] = [];
     // THE TEXTS: fixed points, and their lengths against the single-touch three.
-    const single = { release: 249, entry: 323, xy: 502 };
+    const single = {
+      release: RELEASE.length,
+      entry: ENTRY.length,
+      xy: BRANCH_TEXT.xy.length,
+    };
     const measured: Record<string, number> = {};
     for (const [name, text] of Object.entries(MULTITOUCH_TEXT)) {
       const c = await canonical(text);
@@ -1724,13 +1798,12 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       "O",
       "Q",
       "D",
+      "A",
       "I[1]",
       "I[4]",
     ]);
     const five = await canonical(joinLua([STATE, ...multi.map((p) => p.lua)]));
-    lines.push(
-      `the multitouch runtime alone with every branch: ${five.cost} (the single-touch 2795)`,
-    );
+    lines.push(`the multitouch runtime alone with every branch: ${five.cost}`);
     expect(five.cost).toBe(PINNED_MULTITOUCH.five);
     // THE CEILING IN KINDS beside a multitouch pad, on five slots: the pad
     // with every subset of the other kinds through the packer, fits / over.
@@ -1754,19 +1827,23 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       const branches = BRANCHES.filter(
         (b) => b === "xy" || others.some((o, i) => o === b && mask & (1 << i)),
       );
-      const packed = packRuntime(branches, { slots: 5, multitouch: true });
-      const texts = [
-        packed.systemTimer,
-        packed.system,
-        packed.mapmode,
-        packed.timer,
-      ].filter((t): t is string => t !== undefined);
-      const costs = await Promise.all(
-        texts.map(async (t) => (await canonical(t)).cost),
+      // Through a surface (change 17): the pad, and every other kind receiving.
+      const m = await measureSurface(
+        atPickerCorner(kindSurface(branches, true)),
+        { slots: 5 },
       );
-      const inside = costs.every((c) => c <= EVENT_BUDGET);
-      expect(packed.fits, `${label(branches)}: the packer's word`).toBe(inside);
-      (inside ? fits : over).push(`${label(branches)} ${costs.join("+")}`);
+      const costs = [
+        m.systemTimer?.used,
+        m.system?.used,
+        m.mapmode?.used,
+        m.timer.used,
+        m.setup.used,
+      ];
+      expect(
+        m.emitted.runtime.fits,
+        `${label(branches)}: the packer's word`,
+      ).toBe(m.fits);
+      (m.fits ? fits : over).push(`${label(branches)} ${costs.join("+")}`);
     }
     lines.push(`five slots with a multitouch pad, fits: ${fits.join(", ")}`);
     lines.push(`five slots with a multitouch pad, over: ${over.join(", ")}`);
@@ -1789,9 +1866,8 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       p5.setup.used,
     ]).toEqual(PINNED_MULTITOUCH.page3Five);
     console.log(lines.join(String.fromCharCode(10)));
-    expect(p5.setup.used - plainPage3.setup.used).toBe(
-      PINNED_MULTITOUCH.page3SetupPrice,
-    );
+    // Neither paint carries the tail defaults since change 17 (the Timer's): the data halves differ by the pad's row alone.
+    expect(p5.emitted.parts.paint).toBe(plainPage3.emitted.parts.paint);
     // The same four elements without the knob, or without the button, fit.
     for (const s of [
       surface("No knob", [FILTER, DUO, GO]),
@@ -1804,8 +1880,9 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
         `${s.name}: 255/6 ${m.systemTimer?.used} + 255/0 ${m.system?.used} + 255/4 ${m.mapmode?.used} + Timer ${m.timer.used}, fits`,
       );
     }
-    // The Setup's price for the variant: the tail defaults once in the paint,
-    // and the seventh column's count on the pad's row - never a forced tail.
+    // The Setup's price for the variant: the seventh column's count on the pad's row - never a
+    // forced tail - and, since change 17, the channel word's receive bit (a one-finger pad
+    // receives, a multitouch pad does not); the tail defaults and the receive assignment are the Timer's.
     const dup = (touches: number) =>
       emitSurface(surface("d", [{ ...DUO, touches }]), { slots: 5 });
     expect(dup(1).setup).toBe(
@@ -1813,7 +1890,9 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
         .setup,
     );
     expect(dup(1).parts.paint).not.toContain(TAIL_DEFAULTS_LUA);
-    expect(dup(2).parts.paint).toContain(TAIL_DEFAULTS_LUA);
+    expect(dup(2).parts.paint).not.toContain(TAIL_DEFAULTS_LUA);
+    expect(dup(1).timer).toContain(RECEIVE_ON);
+    expect(dup(2).timer).toContain(RECEIVE_NONE);
     expect(regionRow({ ...DUO, touches: 1 })[6]).toBe(51);
     expect(regionRow({ ...DUO, touches: 2 })[6]).toBe(51 + 128);
     expect(regionRow({ ...DUO, touches: 5 })[6]).toBe(51 + 512);
@@ -1844,12 +1923,377 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       ].join("\n"),
     );
   }, 180000);
+
+  it("17. the types on the wire (change 17, answer 2): the channel word carries the type and Receive; a controller, a channel pressure (the value, then 0) and a pitch bend (0, then the value - 64 is the centre 8192) on the fader, the knob and each XY axis on its own channel; a button's note on and off; a relative knob a controller whatever its type", async () => {
+    // The row: the channel word is the bare wire channel for a controller that receives (the
+    // column before change 17), plus 16 times the type's code, plus 128 when it does not receive.
+    expect(channelWord(FILTER)).toBe(0);
+    expect(channelWord({ ...FILTER, output: "pitchbend", channel: 5 })).toBe(
+      52,
+    );
+    expect(channelWord({ ...FILTER, output: "pressure", channel: 16 })).toBe(
+      47,
+    );
+    expect(channelWord({ ...GO, output: "note", channel: 3 })).toBe(-30);
+    expect(channelWord({ ...FILTER, receive: false })).toBe(128);
+    expect(channelWord({ ...GO, output: "note", receive: false })).toBe(96);
+    // A relative knob keeps no position (never receives) and sends relative controller steps.
+    expect(channelWord({ ...TURN, mode: "relative-twos" })).toBe(128);
+    expect(
+      channelWord({ ...TURN, mode: "relative-twos", output: "pitchbend" }),
+    ).toBe(128);
+    expect(
+      typeOf({ ...TURN, mode: "relative-twos", output: "pitchbend" }),
+    ).toBe("cc");
+    // A pad with more than one touch does not receive either.
+    expect(receivesOf(DUO)).toBe(false);
+    expect(receivesOf(SPACE)).toBe(true);
+    // A pitch bend's controller column is its first byte, 0; the Y axis on a word of its own is
+    // the fifteenth column, forcing the tail - absent when it is the X axis's.
+    expect(regionRow({ ...FILTER, output: "pitchbend" })[5]).toBe(0);
+    expect(regionTail({ ...SPACE, outputY: "pressure", channelY: 9 })).toEqual([
+      0, 127, 0, 40,
+    ]);
+    expect(regionTail({ ...SPACE, channelY: 1 })).toEqual([]);
+    expect(regionTail(SPACE)).toEqual([]);
+    expect(regionRow({ ...SPACE, outputY: "pitchbend" })[6]).toBe(0);
+
+    const TYPES = surface("Types", [
+      { ...FILTER, output: "pitchbend", channel: 5 },
+      {
+        ...SPACE,
+        output: "pressure",
+        channel: 16,
+        outputY: "pitchbend",
+        channelY: 9,
+      },
+      { ...TURN, output: "pressure", channel: 2 },
+      { ...GO, output: "note", cc: 60, channel: 3 },
+      { ...WIDE, cc: 25 },
+    ]);
+    const { host } = await open(TYPES);
+    const wire = (from: number): string[] =>
+      host.midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
+    try {
+      // The fader at its row-1 LED, 101 (test 1): a pitch bend on channel 5 - 0, then 101.
+      step(host, "down", 0, at(1, 1));
+      step(host, "up", 0, at(1, 1));
+      expect(wire(0)).toEqual(["4:224:0:101"]);
+      // The pad at (4,1), 63 on both axes: X a channel pressure on 16 (the value first), Y a
+      // pitch bend on 9.
+      let from = host.midi.length;
+      step(host, "down", 0, at(4, 1));
+      step(host, "up", 0, at(4, 1));
+      expect(wire(from)).toEqual(["15:208:63:0", "8:224:0:63"]);
+      // The button, a note on 3: note-on at the max, note-off (128, 0) on the lift.
+      from = host.midi.length;
+      step(host, "down", 0, at(7, 0));
+      step(host, "up", 0, at(7, 0));
+      expect(wire(from)).toEqual(["2:144:60:127", "2:128:60:0"]);
+      // The knob, a channel pressure on 2: every value sent the pressure's way.
+      from = host.midi.length;
+      step(host, "down", 0, ringPoint(TURN, 90));
+      turn(host, TURN, 90, 250);
+      step(host, "up", 0, ringPoint(TURN, 250));
+      const knob = host.midi.slice(from);
+      expect(knob.length).toBeGreaterThan(5);
+      expect(
+        knob.every((m) => m.ch === 1 && m.cmd === 208 && m.p2 === 0),
+        wire(from).join(" "),
+      ).toBe(true);
+      // The controller beside them, unchanged: the horizontal fader's right LED is 127.
+      from = host.midi.length;
+      step(host, "down", 0, at(3, 7));
+      expect(wire(from)).toEqual(["0:176:25:127"]);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+    // A relative knob with a pitch bend stored sends its relative controller steps all the same.
+    {
+      const { host: h2 } = await open(
+        surface("Relative type", [
+          { ...TURN, mode: "relative-twos", output: "pitchbend" },
+        ]),
+      );
+      try {
+        step(h2, "down", 0, ringPoint(TURN, 90));
+        turn(h2, TURN, 90, 130);
+        expect(h2.midi.length).toBeGreaterThan(0);
+        expect(h2.midi.every((m) => m.cmd === 176 && m.p1 === TURN.cc)).toBe(
+          true,
+        );
+        expect(h2.errors, h2.errors.join(" | ")).toEqual([]);
+      } finally {
+        h2.close();
+      }
+    }
+  });
+
+  it("18. MIDI RX (change 17, answers 1i and 1ii): a host message on an element's type, channel and number sets its value and redraws its picture - the fader's bar, the button's light, the XY pad's crosshair at the received pair, the knob's arc - and is never echoed; a neighbour's traffic, another channel, another number, Receive off and a relative knob are ignored; a note-off folds into 0; the next touch continues from the received value", async () => {
+    const REPORT = 13;
+    const { host, sim } = await open(PAGE3);
+    try {
+      // The Timer assigns the callback on its every run (a callback parked in 255/4 on the second).
+      host.run(RECEIVE_SETTLE);
+      expect(
+        host.midiIn(REPORT, 0, 176, 99, 64),
+        "the Timer assigns the callback",
+      ).toBe(true);
+      // The fader: 101 is position 101, the bar four rows of six (as a finger at the row-1 LED).
+      host.midiIn(REPORT, 0, 176, FILTER.cc, 101);
+      host.tick();
+      expect(lit(sim, FILTER).length).toBe(8);
+      expect(phase(sim, 0, 1)).toBe(0);
+      expect(phase(sim, 0, 2)).toBe(255);
+      // Nothing echoed - and the received value is the last one sent: a press at the row-1 LED
+      // sends nothing, a move to the top sends 127.
+      expect(host.midi).toEqual([]);
+      step(host, "down", 0, at(1, 1));
+      expect(sent(host.midi, FILTER.cc)).toEqual([]);
+      step(host, "move", 0, at(1, 0));
+      expect(sent(host.midi, FILTER.cc)).toEqual([127]);
+      step(host, "up", 0, at(1, 0));
+      // Ignored: a neighbour's EXECUTE (14), another channel, another number.
+      host.midiIn(14, 0, 176, FILTER.cc, 0);
+      host.midiIn(REPORT, 1, 176, FILTER.cc, 0);
+      host.midiIn(REPORT, 0, 176, FILTER.cc + 50, 0);
+      host.tick();
+      expect(lit(sim, FILTER).length, "the bar at the top, untouched").toBe(12);
+      // The XY pad: X 127 then Y 0 - the crosshair through the bottom-right cell.
+      host.midiIn(REPORT, 0, 176, SPACE.cc, 127);
+      host.midiIn(REPORT, 0, 176, SPACE.cc2 ?? -1, 0);
+      host.tick();
+      expect(lit(sim, SPACE)).toEqual(["2,0", "2,1", "0,2", "1,2", "2,2"]);
+      // The knob, absolute: 127 lights the whole arc (seven cells), 0 the low cell alone.
+      host.midiIn(REPORT, 0, 176, TURN.cc, 127);
+      host.tick();
+      expect(lit(sim, TURN).length).toBe(7);
+      host.midiIn(REPORT, 0, 176, TURN.cc, 0);
+      host.tick();
+      expect(lit(sim, TURN)).toEqual(["0,2"]);
+      // The button (a controller, momentary): 127 lights it, 0 puts it out.
+      host.midiIn(REPORT, 0, 176, GO.cc, 127);
+      host.tick();
+      expect(lit(sim, GO).length).toBe(4);
+      host.midiIn(REPORT, 0, 176, GO.cc, 0);
+      host.tick();
+      expect(lit(sim, GO)).toEqual([]);
+      expect(host.midi, "nothing echoed").toEqual(
+        host.midi.filter((m) => m.p1 === FILTER.cc),
+      );
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+    // A note button: a note-on lights it, a note-off (status 128, any velocity) folds into 0.
+    {
+      const { host, sim } = await open(NOTES);
+      try {
+        host.run(RECEIVE_SETTLE);
+        host.midiIn(REPORT, 0, 144, 60, 100);
+        host.tick();
+        expect(lit(sim, GO).length).toBe(4);
+        host.midiIn(REPORT, 0, 128, 60, 64);
+        host.tick();
+        expect(lit(sim, GO)).toEqual([]);
+        host.midiIn(REPORT, 0, 144, 60, 90);
+        host.midiIn(REPORT, 0, 144, 60, 0);
+        host.tick();
+        expect(lit(sim, GO), "a note-on at 0 is off").toEqual([]);
+        // A program change on the same channel and number is no note.
+        host.midiIn(REPORT, 0, 192, 60, 0);
+        host.tick();
+        expect(lit(sim, GO)).toEqual([]);
+        expect(host.midi).toEqual([]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Min and max: the received value maps back to a position - 50 of 20..80 is position 63,
+    // three rows of six.
+    {
+      const { host, sim } = await open(SCALED);
+      try {
+        host.run(RECEIVE_SETTLE);
+        host.midiIn(REPORT, 0, 176, FILTER.cc, 50);
+        host.tick();
+        expect(lit(sim, FILTER).length).toBe(6);
+        expect(host.midi).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Relative: the next touch continues from the received value (test 9's gesture sends 13 and
+    // 38 from 0; from 100 it sends 113, then 127, clamped).
+    {
+      const { host } = await open(RELATIVE_HALF);
+      try {
+        host.run(RECEIVE_SETTLE);
+        host.midiIn(REPORT, 0, 176, FILTER.cc, 100);
+        step(host, "down", 0, at(0, 3));
+        step(host, "move", 0, at(0, 2));
+        step(host, "move", 0, at(0, 0));
+        expect(sent(host.midi, FILTER.cc)).toEqual([113, 127]);
+      } finally {
+        host.close();
+      }
+    }
+    // A pitch bend receives on its status and ignores the number; a channel pressure reads its
+    // first byte; a Y axis on its own channel.
+    {
+      const { host, sim } = await open(
+        surface("Receive types", [
+          { ...FILTER, output: "pitchbend", channel: 5 },
+          {
+            ...SPACE,
+            output: "pressure",
+            channel: 16,
+            outputY: "cc",
+            channelY: 9,
+          },
+        ]),
+      );
+      try {
+        host.run(RECEIVE_SETTLE);
+        host.midiIn(REPORT, 4, 224, 0, 127);
+        host.tick();
+        expect(lit(sim, FILTER).length).toBe(12);
+        host.midiIn(REPORT, 15, 208, 0, 0);
+        host.midiIn(REPORT, 8, 176, SPACE.cc2 ?? -1, 127);
+        host.tick();
+        expect(lit(sim, SPACE)).toEqual(["0,0", "1,0", "2,0", "0,1", "0,2"]);
+        expect(host.midi).toEqual([]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Receive off, a relative knob and a multitouch pad: nothing moves; with nothing receiving
+    // the Setup says so and no callback is installed.
+    {
+      const s = surface("Deaf", [
+        { ...FILTER, receive: false },
+        { ...TURN, mode: "relative-twos" },
+        DUO,
+      ]);
+      expect(emitSurface(s, { slots: 5 }).timer).toContain(RECEIVE_NONE);
+      const { host, sim } = await open(s);
+      try {
+        host.run(RECEIVE_SETTLE);
+        expect(host.midiIn(REPORT, 0, 176, FILTER.cc, 127)).toBe(false);
+        host.tick();
+        expect(lit(sim, FILTER)).toEqual([]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  });
+
+  it("19. the colour input (change 17, answer 1iii): a controller on its channel numbered from its first recolours that element on layers 1 and 2 - 0 its own colour, 1..126 the hue wheel, 127 white - a blank too; dimmed by the surface's brightness; one past the surface and another channel do nothing", async () => {
+    const REPORT = 13;
+    const BLANK = region("Glow", "blank", 7, 7, 2, 2, 0, {
+      colour: [0, 15, 0],
+    });
+    const s: Surface = {
+      ...surface("Colours", [{ ...FILTER, colour: [0, 0, 15] }, SPACE, BLANK]),
+      colourInput: { channel: 16, cc: 100 },
+    };
+    const colourAt = (sim: PadSim, col: number, row: number, layer: 1 | 2) =>
+      sim.layer(screenToHw(col, row), layer).max.join(",");
+    const { host, sim } = await open(s);
+    try {
+      host.run(RECEIVE_SETTLE);
+      expect(colourAt(sim, 0, 0, 1)).toBe("0,0,255");
+      // 1: the wheel's first hue, red; on both layers of every cell of element 1.
+      host.midiIn(REPORT, 15, 176, 100, 1);
+      host.tick();
+      expect(colourAt(sim, 0, 0, 1)).toBe("255,0,0");
+      expect(colourAt(sim, 1, 5, 2)).toBe("255,0,0");
+      expect(colourAt(sim, 3, 0, 1), "element 2 untouched").toBe("255,255,255");
+      // A third of the way round: 43 is green's sector.
+      host.midiIn(REPORT, 15, 176, 100, 43);
+      host.tick();
+      expect(colourAt(sim, 0, 0, 1)).toBe("0,255,0");
+      // 127 white, 0 the element's own colour back.
+      host.midiIn(REPORT, 15, 176, 100, 127);
+      host.tick();
+      expect(colourAt(sim, 0, 0, 1)).toBe("255,255,255");
+      host.midiIn(REPORT, 15, 176, 100, 0);
+      host.tick();
+      expect(colourAt(sim, 0, 0, 1)).toBe("0,0,255");
+      // The blank, element 3: its cells are its index negated in M, and they recolour too.
+      host.midiIn(REPORT, 15, 176, 102, 85);
+      host.tick();
+      expect(colourAt(sim, 8, 8, 1)).toBe("0,0,255");
+      // One past the surface, another channel: nothing, and no error.
+      host.midiIn(REPORT, 15, 176, 103, 1);
+      host.midiIn(REPORT, 14, 176, 100, 1);
+      host.tick();
+      expect(colourAt(sim, 0, 0, 1)).toBe("0,0,255");
+      expect(host.midi).toEqual([]);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+    // At brightness 128 a received colour is dimmed as the paint's are.
+    {
+      const { host, sim } = await open({ ...s, brightness: 128 });
+      try {
+        host.run(RECEIVE_SETTLE);
+        host.midiIn(REPORT, 15, 176, 100, 127);
+        host.tick();
+        expect(colourAt(sim, 0, 0, 1)).toBe("128,128,128");
+      } finally {
+        host.close();
+      }
+    }
+    // The text: the call's literals in Y, the hue wheel in Z, both canonical.
+    const e = emitSurface(s, { slots: 5 });
+    const y = e.runtime.parts.find((p) => p.name === RECEIVE_ENTRY)?.lua ?? "";
+    expect(y).toContain("if t==176 and v[1]==15 then Z(n-99,w)end");
+    expect((await canonical(colourPart(255))).rounds).toBe(0);
+    expect((await canonical(colourPart(128))).rounds).toBe(0);
+    expect(e.runtime.parts.map((p) => p.name)).toContain("Z");
+    expect(
+      emitSurface(
+        { ...s, colourInput: undefined },
+        { slots: 5 },
+      ).runtime.parts.map((p) => p.name),
+    ).not.toContain("Z");
+  });
+
+  it("20. an older draft (change 17): no type, per-axis or Receive field - its rows' channel columns are the bare wire channel as before, it sends exactly what it sent (tests 1 to 16 on the same fixtures), and RX is on: the Timer gains the receive assignment and the runtime the callback", () => {
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
+      for (const r of s.regions) {
+        if (r.kind === "blank") continue;
+        const receiving = receivesOf(r);
+        expect(regionRow(r)[7], `${s.name} ${r.name}`).toBe(
+          r.channel -
+            1 +
+            (r.kind === "button" && r.output === "note" ? -32 : 0) +
+            (receiving ? 0 : 128),
+        );
+      }
+      const e = emitSurface(s, { slots: 5 });
+      const anyReceives = s.regions.some(receivesOf);
+      expect(e.timer, s.name).toContain(
+        anyReceives ? RECEIVE_ON : RECEIVE_NONE,
+      );
+      expect(
+        e.runtime.parts.some((p) => p.name === RECEIVE_ENTRY),
+        s.name,
+      ).toBe(anyReceives);
+    }
+  });
 });
 
 /** The figures test 16 pins, this tree, 2026-09-18 (change 11). */
 const PINNED_MULTITOUCH = {
-  texts: { release: 234, entry: 392, xy: 601 },
-  five: 2970,
+  texts: { release: 243, entry: 392, xy: 509 },
+  five: 3010,
   /** Every subset of the other kinds beside the pad but the three that carry a fader, the button AND the knob. */
   fits: [
     "x",
@@ -1867,23 +2311,26 @@ const PINNED_MULTITOUCH = {
     "bxk",
   ],
   over: ["vbxk", "hbxk", "vhbxk"],
-  /** 255/6, 255/0, 255/4, the Timer (over by 48), the Setup. */
-  page3Five: [869, 876, 846, 956, 540] as (number | undefined)[],
-  /** The 49-character defaults and a space in the paint, one digit more on the pad's seventh column. */
-  page3SetupPrice: 51,
-  setupPriceOnePad: 51,
+  /** 255/6, 255/0, 255/4, the Timer (over by 170), the Setup (change 17: the receive half, the Setup the fifth slot). */
+  page3Five: [863, 880, 852, 1076, 893] as (number | undefined)[],
+  /** Change 17: the tail defaults and the receive assignment are the Timer's, so the price is one digit on the pad's seventh column and two on its channel word (a multitouch pad does not receive: 128). */
+  setupPriceOnePad: 3,
 };
 
-/** The figures pinned by test 7, this tree, 2026-09-18 (change 10B; re-pinned at 10C - `R` 22 shorter). */
+/** The figures pinned by test 7, this tree (change 10B; 10C - `R` 22 shorter; change 17, 2026-09-23 - the types, the receive half, `A`, `E=R`, the Setup the fifth slot). */
 const PINNED = {
-  five: 2795,
-  four: 2208,
-  knobShare: 587,
-  oneFaderTwoSlots: 1321,
-  page3Two: 2825,
-  page3Three: [2010, 847] as [number, number | undefined],
-  page3Five: [847, 908, 834, 783, 489] as (number | undefined)[],
-  /** Two slots carry no kind at all since change 10B; three carry one kind alone, or a fader with a button, or a button with an XY pad (10C). */
+  /** `Y` beside every branch. */
+  receive: 540,
+  five: 2908,
+  four: 2305,
+  knobShare: 603,
+  /** Two slots: the receive half packed with the runtime (the fader receives). */
+  oneFaderTwoSlots: 2007,
+  page3Two: 3560,
+  page3Three: [2683, 893] as [number, number | undefined],
+  /** 255/6, 255/0, 255/4, the Timer, the Setup (which carries `Q`, `A` and `K` since change 17). */
+  page3Five: [893, 908, 852, 906, 900] as (number | undefined)[],
+  /** Two slots carry no kind at all since change 10B; three (the runtime alone, no receive half) one kind alone since change 17. */
   fitsTwo: [] as string[],
-  fitsThree: ["v", "h", "vh", "b", "vb", "hb", "vhb", "x", "bx", "k"],
+  fitsThree: ["v", "h", "vh", "b", "x", "k"],
 };

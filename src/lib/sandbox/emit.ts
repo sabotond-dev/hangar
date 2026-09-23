@@ -1,13 +1,13 @@
 // The Sandbox's emitter: a surface -> the touch Setup, the touch Timer, 255/4 under three slots
 // and, under five (change 10B), the two trimmed system halves carrying the runtime's overflow.
-// The Setup is the data half: the region table `J` (one row per region: its BOX in cells, its
-// kind, controller, channel and colour, then the change 10B tail - min, max, the flag word, a
-// spring position or a knob's centre - written only past the last non-default), the `[0]`-indexed
-// 81-entry cell map `M` (geometry.ts's own array), the paint, the pull-in call(s) that run the
-// runtime's slot(s), and `self.touch_cb=O` AFTER them so `O` exists when it is named. A blank
-// (change 10A) is paint only: its row is the colour alone, its cells in `M` its index NEGATED.
-// The runtime is runtime.ts's, packed per surface with only the branches its kinds need, in the
-// multitouch variant only with a Touches > 1 pad (change 11). Names `J M` (emit.spec.ts test 5). History: docs/entries/sandbox-runtime.md.
+// The Setup is the data half: the region table `J` (a row per region: its BOX in cells, its kind,
+// controller, second controller, CHANNEL WORD - the channel, the type and Receive, change 17 - and
+// colour, then the change 10B tail, an XY pad's Y axis word past it), the 81-entry cell map `M`,
+// the paint, the pull-in call(s), and `self.touch_cb=O` after them; under five slots the packer's
+// last slot for runtime parts. A blank (change 10A) is paint only: its row the colour alone, its
+// cells in `M` its index NEGATED. The runtime is runtime.ts's, packed per surface with only the
+// branches its kinds need (the multitouch variant with a Touches > 1 pad, change 11; the receive
+// half with a receiving element or the colour input, change 17). Names `J M`. docs/MIDI.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { brightnessOf, scaleChannel } from "../catalog/brightness";
@@ -15,18 +15,24 @@ import { sensorAt } from "../catalog/calibration";
 import { buildCellMap, type CellMap } from "./geometry";
 import {
   BRANCHES,
+  RECEIVE_OFF_BIT,
   SURFACE_CELLS,
   branchesUsed,
+  channelWord,
   colourByte,
+  colourInputOf,
   flagsOf,
   hasMultitouch,
   isPaintOnly,
   maxOf,
   minOf,
+  receivesOf,
   seventhOf,
   springOf,
   springPosition,
   typeCodeOf,
+  typeOf,
+  typeYOf,
   wireChannel,
   type Branch,
   type Region,
@@ -35,15 +41,25 @@ import {
 import {
   DEFAULT_SWEEP_CALLS,
   MARKER,
+  RECEIVE_NONE,
+  RECEIVE_ON,
   RUNTIME_ENTRY,
-  TAIL_DEFAULTS_LUA,
+  SETUP_STATE,
   packRuntime,
   sweepCall,
   type PackedRuntime,
+  type ReceiveOptions,
   type SlotCount,
 } from "./runtime";
 
-export { MARKER, RUNTIME_ENTRY, DEFAULT_SWEEP_CALLS, BRANCHES };
+export {
+  MARKER,
+  RUNTIME_ENTRY,
+  DEFAULT_SWEEP_CALLS,
+  BRANCHES,
+  RECEIVE_ON,
+  RECEIVE_NONE,
+};
 
 /** The names this emitter defines. Test 5 holds them apart from the library's. */
 export const OWN_NAMES: readonly string[] = ["J", "M"];
@@ -86,10 +102,14 @@ export type Emitted = {
     readonly paint: string;
     readonly pullIn: string;
     readonly callback: string;
+    /** `self.midirx_cb=Y` or `self.midirx_cb=nil` (change 17) - the Timer's, not the Setup's (runtime.ts). */
+    readonly receive: string;
   };
   readonly branches: readonly Branch[];
   /** True when the runtime is the multitouch variant (change 11). */
   readonly multitouch: boolean;
+  /** The receive half the runtime carries (change 17), or undefined when nothing receives and the colour input is off. */
+  readonly receive: ReceiveOptions | undefined;
   readonly map: CellMap;
 };
 
@@ -133,22 +153,39 @@ export function regionTail(region: Region): number[] {
   const columns = [minOf(region), maxOf(region), flagsOf(region)];
   if (springOf(region)) return [...columns, springPosition(region)];
   if (region.kind === "knob") return [...columns, ...knobCentre(region)];
+  // Change 17: an XY pad's Y axis on a channel word of its own - written only when it differs
+  // from the X axis's (the receive bit aside), so an older draft's pad has no fifteenth column.
+  if (region.kind === "xy") {
+    const y = channelWord(region, "y");
+    if (y !== channelWord(region) % RECEIVE_OFF_BIT) return [...columns, y];
+  }
   let end = columns.length;
   while (end > 0 && columns[end - 1] === TAIL_DEFAULTS[end - 1]) end -= 1;
   return columns.slice(0, end);
 }
 
-/** A region's row: `{col,row,w,h,t,cc,c7,ch,r,g,b}` and the tail - the seventh column is the XY pad's second controller (with its touch count on top, change 11: model.ts `seventhOf`) or the button's radio group, the eighth the wire channel 0..15, nine to eleven the colour; every number at its exact width. A blank has no row of numbers (`blankRow`). */
+/**
+ * A region's row: `{col,row,w,h,t,cc,c7,ch,r,g,b}` and the tail - the sixth column the
+ * controller (0 under a pitch bend, change 17: the send's first byte), the seventh the XY pad's
+ * second controller (0 under a pitch bend Y axis; its touch count on top, change 11: model.ts
+ * `seventhOf`) or the button's radio group, the eighth the CHANNEL WORD (model.ts `channelWord`:
+ * the wire channel, the type, the receive bit - a controller that receives is the bare channel),
+ * nine to eleven the colour; every number at its exact width. A blank has no row (`blankRow`).
+ */
 export function regionRow(region: Region, brightness: number = 255): number[] {
   if (isPaintOnly(region)) {
     throw new Error("a blank has no numeric row: renderRegionTable paints it");
   }
+  const seventh =
+    region.kind === "xy" && typeYOf(region) === "pitchbend"
+      ? seventhOf(region) - (region.cc2 ?? 0)
+      : seventhOf(region);
   return [
     ...geometryOf(region),
     typeCodeOf(region),
-    region.cc,
-    seventhOf(region),
-    wireChannel(region.channel),
+    typeOf(region) === "pitchbend" ? 0 : region.cc,
+    seventh,
+    channelWord(region),
     ...colourColumns(region, brightness),
     ...regionTail(region),
   ];
@@ -201,18 +238,14 @@ export function renderCellMap(
  * (change 10B) only move layer 2's phase. A bare loop, not a function: nothing
  * ever clears layer 1, so no caller would ever re-paint, and the wrapper's
  * sixteen characters buy nothing. With a blank on the surface the lookup falls
- * through to the negated index. Under the multitouch variant (change 11) the
- * loop also reads the tail defaults into every row it visits (+46, once), so
- * the variant's entry carries none and fits 255/0 beside the trimmed library.
+ * through to the negated index. The tail defaults are not read here since
+ * change 17 (change 11's variant had them): the Setup is where the cap is
+ * measured, and the entry and the receive callback read them themselves.
  */
-function renderPaint(
-  restPhase: number,
-  withBlanks: boolean,
-  multitouch: boolean,
-): string {
+function renderPaint(restPhase: number, withBlanks: boolean): string {
   return (
     `for n=0,80 do local r=J[M[n]]${withBlanks ? "or J[-M[n]]" : ""}if r then ` +
-    `${multitouch ? `${TAIL_DEFAULTS_LUA} ` : ""}local a=glag(0,n)` +
+    "local a=glag(0,n)" +
     `glc(a,1,r[9],r[10],r[11],1)glp(a,1,${restPhase})glc(a,2,r[9],r[10],r[11],1)end end`
   );
 }
@@ -259,14 +292,42 @@ export function emitSurface(
   );
   const blanks = blankIndices(surface.regions);
   const cellMap = renderCellMap(built.map, blanks);
-  const paint = renderPaint(restPhase, blanks.size > 0, multitouch);
+  const paint = renderPaint(restPhase, blanks.size > 0);
   const pullIn = renderPullIn(slots);
+  // Change 17: the receive half - the rows when a region receives, the colour input when it is on.
+  const colour = colourInputOf(surface);
+  const rows = surface.regions.some(receivesOf);
+  const receiveOptions: ReceiveOptions | undefined =
+    rows || colour !== undefined
+      ? {
+          rows,
+          colour:
+            colour === undefined
+              ? undefined
+              : {
+                  channel: wireChannel(colour.channel),
+                  first: colour.cc,
+                  brightness: brightnessOf(surface.brightness),
+                },
+        }
+      : undefined;
+  const receive = receiveOptions === undefined ? RECEIVE_NONE : RECEIVE_ON;
 
-  // The paint ends in `end` and what follows starts with a name, so one
-  // separator; every other seam is `}` against a name and needs none.
-  const setup =
-    MARKER + regionTable + cellMap + paint + " " + pullIn + CALLBACK;
-  const packed = packRuntime(branches, { slots, sweepCalls, multitouch });
+  // The Setup's data half and its closing half. The paint ends in `end` and what follows starts
+  // with a name, so one separator; every other seam is `}` or `)` against a name. Under five slots
+  // the contact tables are the trimmed 255/0's (library-trim.ts) and the Setup is the packer's last
+  // slot (change 17): parts it takes stand between the two halves, behind their own head.
+  const head =
+    MARKER + regionTable + cellMap + (slots === 5 ? "" : SETUP_STATE) + paint;
+  const tail = pullIn + CALLBACK;
+  const packed = packRuntime(branches, {
+    slots,
+    sweepCalls,
+    multitouch,
+    receive: receiveOptions,
+    setup: slots === 5 ? { head, tail } : undefined,
+  });
+  const setup = packed.setup ?? head + " " + tail;
 
   return {
     setup,
@@ -275,9 +336,10 @@ export function emitSurface(
     systemTimer: packed.systemTimer,
     system: packed.system,
     runtime: packed,
-    parts: { regionTable, cellMap, paint, pullIn, callback: CALLBACK },
+    parts: { regionTable, cellMap, paint, pullIn, callback: CALLBACK, receive },
     branches,
     multitouch,
+    receive: receiveOptions,
     map: built.map,
   };
 }

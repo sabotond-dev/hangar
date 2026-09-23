@@ -12,7 +12,9 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
   BUTTON_OUTPUTS,
+  CONTINUOUS_TYPES,
   ELEMENT_KINDS,
+  MIDI_TYPES,
   GROUP_MAX,
   ORIENTATIONS,
   REGION_MODES,
@@ -21,7 +23,9 @@ import {
   SURFACE_SIZE,
   TOUCHES_MAX,
   type ButtonOutput,
+  type ColourInput,
   type ElementKind,
+  type MidiType,
   type Orientation,
   type Region,
   type RegionMode,
@@ -31,7 +35,9 @@ import {
 
 export {
   BUTTON_OUTPUTS,
+  CONTINUOUS_TYPES,
   ELEMENT_KINDS,
+  MIDI_TYPES,
   GROUP_MAX,
   ORIENTATIONS,
   REGION_MODES,
@@ -40,7 +46,9 @@ export {
   SURFACE_SIZE,
   TOUCHES_MAX,
   type ButtonOutput,
+  type ColourInput,
   type ElementKind,
+  type MidiType,
   type Orientation,
   type Region,
   type RegionMode,
@@ -122,9 +130,104 @@ export function springValueOf(region: Region): number {
   return Math.min(hi, Math.max(lo, region.springValue ?? 64));
 }
 
-/** A button's output: a controller unless set. */
+/** A button's output: a controller unless set (a continuous kind's type is `typeOf`'s). */
 export const outputOf = (region: Region): ButtonOutput =>
-  region.kind === "button" ? (region.output ?? "cc") : "cc";
+  region.kind === "button" && region.output === "note" ? "note" : "cc";
+
+// ---------------------------------------------------------------------------
+// The change 17 MIDI output (BENCH-2026-09-16.txt section 17; docs/MIDI.md): every sending
+// element's Type, Channel and Number, an XY pad's per axis, and Receive.
+
+/**
+ * The types a region's output offers, in the interface's order: a button's two, a continuous
+ * kind's three (answer 2, "common only") - except a knob in a relative mode, whose detents are
+ * relative controller steps (answer 11d), so its one type is a controller; a blank none.
+ */
+export function typesOf(region: Region): readonly MidiType[] {
+  if (region.kind === "blank") return [];
+  if (region.kind === "button") return BUTTON_OUTPUTS;
+  if (region.kind === "knob" && isRelative(region)) return ["cc"];
+  return CONTINUOUS_TYPES;
+}
+
+/** The region's (X axis's) type: its own when the kind offers it, a controller otherwise. */
+export function typeOf(region: Region): MidiType {
+  const type = region.output ?? "cc";
+  return typesOf(region).includes(type) ? type : "cc";
+}
+
+/** An XY pad's Y axis type; a controller on every other kind. */
+export const typeYOf = (region: Region): MidiType =>
+  region.kind === "xy" && CONTINUOUS_TYPES.includes(region.outputY ?? "cc")
+    ? (region.outputY ?? "cc")
+    : "cc";
+
+/** An XY pad's Y axis channel, 1..16: its own, or the X axis's (an older draft's one channel serves both). */
+export const channelYOf = (region: Region): number =>
+  region.kind === "xy" ? (region.channelY ?? region.channel) : region.channel;
+
+/** A type that carries a number (a controller, a note); pitch bend and channel pressure do not. */
+export const hasNumber = (type: MidiType): boolean =>
+  type === "cc" || type === "note";
+
+/** Receive, the setting: on unless set off. */
+export const receiveOf = (region: Region): boolean => region.receive !== false;
+
+/**
+ * Whether the region answers host MIDI on the module: the setting, on a kind that holds a value a
+ * DAW can set - never a blank (sends nothing), a knob in a relative mode (keeps no position) or a
+ * pad with more than one touch (its fingers are transient, and a slot's cell column is its
+ * occupancy - runtime.ts). The emitter sets the row's receive-off bit for every other region.
+ */
+export function receivesOf(region: Region): boolean {
+  if (!receiveOf(region) || region.kind === "blank") return false;
+  if (region.kind === "knob" && isRelative(region)) return false;
+  return touchesOf(region) === TOUCHES_MIN;
+}
+
+/**
+ * A type's code in the channel word: the status is `176 + 16 * code` - a controller 0, a channel
+ * pressure 2, a pitch bend 3, a note -2 (144; a button's alone). So a received message's word is
+ * its channel plus its status less 176, whatever the type (runtime.ts `Y`).
+ */
+export const TYPE_CODES: Readonly<Record<MidiType, number>> = {
+  cc: 0,
+  note: -2,
+  pressure: 2,
+  pitchbend: 3,
+};
+
+/** The status byte a type sends on (the channel added on the wire). */
+export const STATUS_OF: Readonly<Record<MidiType, number>> = {
+  cc: 176,
+  note: 144,
+  pressure: 208,
+  pitchbend: 224,
+};
+
+/** The channel word's receive-off bit: a region that does not receive is 128 higher (every receiving word is under 64). */
+export const RECEIVE_OFF_BIT = 128;
+
+/**
+ * The CHANNEL WORD, the row's eighth column (and an XY pad's fifteenth, its Y axis): the wire
+ * channel 0..15, plus 16 times the type's code, plus 128 when the region does not receive - so a
+ * controller on channel 1 that receives is 0, exactly the column before change 17. Measured
+ * against a flag bit and a column of its own (emit.spec.ts test 10): the channel column is always
+ * written, so the word costs nothing at the defaults and one character at most beyond them.
+ */
+export function channelWord(region: Region, axis: "x" | "y" = "x"): number {
+  const channel = axis === "y" ? channelYOf(region) : region.channel;
+  const type = axis === "y" ? typeYOf(region) : typeOf(region);
+  return (
+    wireChannel(channel) +
+    16 * TYPE_CODES[type] +
+    (axis === "x" && !receivesOf(region) ? RECEIVE_OFF_BIT : 0)
+  );
+}
+
+/** The surface's Colour input, or undefined while it is off. */
+export const colourInputOf = (surface: Surface): ColourInput | undefined =>
+  surface.colourInput;
 
 /** A button's radio group, 1..8; 0 is none (answer 9b). */
 export const groupOf = (region: Region): number =>
@@ -195,9 +298,10 @@ export function springPosition(region: Region): number {
 /**
  * The row's flag word (column 14), one integer per region, kind by kind: a fader's bit 0 is
  * relative, bit 1 full speed, bit 2 spring; an XY pad's bits 0 and 1 the same (its touch count
- * rides in the seventh column, `seventhOf`); a button's bit 0 is toggle (`latch`), bit 1 a note
- * output; a knob's is its mode's index 0..3 (absolute, two's complement, binary offset, sign
- * magnitude). 0 for every default, so the column is omitted.
+ * rides in the seventh column, `seventhOf`); a button's bit 0 is toggle (`latch`) - its note
+ * output moved to the channel word in change 17 (`channelWord`, code 1); a knob's is its mode's
+ * index 0..3 (absolute, two's complement, binary offset, sign magnitude). 0 for every default, so
+ * the column is omitted.
  */
 export function flagsOf(region: Region): number {
   switch (region.kind) {
@@ -212,9 +316,7 @@ export function flagsOf(region: Region): number {
         (isRelative(region) ? 1 : 0) + (speedOf(region) === "full" ? 2 : 0)
       );
     case "button":
-      return (
-        (region.latch === true ? 1 : 0) + (outputOf(region) === "note" ? 2 : 0)
-      );
+      return region.latch === true ? 1 : 0;
     case "knob":
       return Math.max(0, KNOB_MODES.indexOf(modeOf(region) ?? "absolute"));
     case "blank":

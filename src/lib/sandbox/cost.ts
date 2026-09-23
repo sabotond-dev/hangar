@@ -149,7 +149,9 @@ export function representativeShape(surface: Surface): {
  * The dearest region of that shape: a vertical fader, cc 127, channel 16, at the corner, with
  * every change 10B option on at its widest literal - min 127, max 100 (both three digits, the
  * direction inverted), relative at full speed with the spring on, the spring at 100 (its
- * position lands at 123, three digits) - the fourteen-character tail `,127,100,7,123`.
+ * position lands at 123, three digits) - the fourteen-character tail `,127,100,7,123`; and
+ * since change 17 the dearest channel word: a channel pressure (its controller column stays
+ * 127, where a pitch bend's is 0) with Receive off, 15 + 32 + 128 = 175, three digits.
  */
 export function representativeRegion(
   index: number,
@@ -174,6 +176,8 @@ export function representativeRegion(
     speed: "full",
     spring: true,
     springValue: 100,
+    output: "pressure",
+    receive: false,
   };
 }
 

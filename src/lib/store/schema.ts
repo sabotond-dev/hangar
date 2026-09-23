@@ -153,6 +153,34 @@ export type ButtonOutput = "cc" | "note";
 
 export const BUTTON_OUTPUTS: readonly ButtonOutput[] = ["cc", "note"];
 
+/**
+ * A MIDI output's message type (change 17, 2026-09-23): a controller, a note (a button's only), a
+ * pitch bend or a channel pressure (a continuous kind's; docs/MIDI.md). The field that carries it
+ * is still `output` - a button's two words and a continuous kind's three share it - so a draft
+ * written before change 17 reads exactly as it did: absent is a controller.
+ */
+export type MidiType = "cc" | "note" | "pitchbend" | "pressure";
+
+export const MIDI_TYPES: readonly MidiType[] = [
+  "cc",
+  "note",
+  "pitchbend",
+  "pressure",
+];
+
+/** The three types a continuous output offers: a fader, a knob, an XY pad's either axis (answer 2, "common only"). */
+export const CONTINUOUS_TYPES: readonly MidiType[] = [
+  "cc",
+  "pitchbend",
+  "pressure",
+];
+
+/**
+ * The surface's Colour input (change 17, answer 1iii): a controller on `channel` numbered
+ * `cc + n - 1` recolours the surface's n-th element. Absent is off.
+ */
+export type ColourInput = { readonly channel: number; readonly cc: number };
+
 /** A radio group is 1..8; 0 (or absent) is no group. */
 export const GROUP_MAX = 8;
 
@@ -176,6 +204,12 @@ export const TOUCHES_MAX = 5;
  * 127 is not a region. `locked` (change 13A) is EDITOR state - a locked
  * element is not moved, resized or deleted - absent is unlocked, and it is
  * never a row column: the emitter reads named fields and never this one.
+ * Change 17 (2026-09-23): `output` is every sending kind's message type (a
+ * button's `cc` / `note`, a continuous kind's `cc` / `pitchbend` /
+ * `pressure`), `outputY` and `channelY` an XY pad's Y axis (absent: a
+ * controller on the X axis's channel), `receive` MIDI RX (absent: on). A
+ * draft written before them reads as a controller on the region's channel
+ * with RX on.
  */
 export type Region = {
   readonly id: string;
@@ -197,10 +231,13 @@ export type Region = {
   readonly speed?: Speed;
   readonly spring?: boolean;
   readonly springValue?: number;
-  readonly output?: ButtonOutput;
+  readonly output?: MidiType;
   readonly group?: number;
   readonly touches?: number;
   readonly locked?: boolean;
+  readonly outputY?: MidiType;
+  readonly channelY?: number;
+  readonly receive?: boolean;
 };
 
 /**
@@ -213,6 +250,8 @@ export type Surface = {
   readonly name: string;
   readonly regions: readonly Region[];
   readonly brightness?: number;
+  /** The DAW's colours (change 17): absent is off. */
+  readonly colourInput?: ColourInput;
 };
 
 /**
@@ -279,10 +318,13 @@ export type KindDefaults = {
   readonly spring?: boolean;
   readonly springValue?: number;
   readonly latch?: boolean;
-  readonly output?: ButtonOutput;
+  readonly output?: MidiType;
   readonly group?: number;
   readonly touches?: number;
   readonly note?: number;
+  readonly outputY?: MidiType;
+  readonly channelY?: number;
+  readonly receive?: boolean;
 };
 
 /** The envelope under hangar.sandbox-defaults.v1: one record per kind that has any. */
@@ -390,10 +432,28 @@ export function isRegion(value: unknown): value is Region {
   if (value.spring !== undefined && typeof value.spring !== "boolean") {
     return false;
   }
+  // Change 17: a known type, a continuous one on the Y axis, a channel 1..16 - on any kind, as
+  // `output` always was (a fader carrying a button's word read, and reads, as a controller:
+  // sandbox/model.ts's readers decide what a kind honours, so a draft is never refused for it).
   if (
     value.output !== undefined &&
-    !BUTTON_OUTPUTS.includes(value.output as ButtonOutput)
+    !MIDI_TYPES.includes(value.output as MidiType)
   ) {
+    return false;
+  }
+  if (
+    value.outputY !== undefined &&
+    !CONTINUOUS_TYPES.includes(value.outputY as MidiType)
+  ) {
+    return false;
+  }
+  if (
+    value.channelY !== undefined &&
+    !(isInt(value.channelY) && value.channelY >= 1 && value.channelY <= 16)
+  ) {
+    return false;
+  }
+  if (value.receive !== undefined && typeof value.receive !== "boolean") {
     return false;
   }
   if (
@@ -422,10 +482,22 @@ export function isRegion(value: unknown): value is Region {
   return colour.every(isInt);
 }
 
+/** The Colour input (change 17): a channel 1..16 and a first controller 0..127, or absent. */
+const isColourInputField = (value: unknown): boolean =>
+  value === undefined ||
+  (isObject(value) &&
+    isInt(value.channel) &&
+    value.channel >= 1 &&
+    value.channel <= 16 &&
+    isInt(value.cc) &&
+    value.cc >= 0 &&
+    value.cc <= 127);
+
 function isSurface(value: unknown): value is Surface {
   if (!isObject(value)) return false;
   if (!isString(value.id) || !isString(value.name)) return false;
   if (!isBrightnessField(value.brightness)) return false;
+  if (!isColourInputField(value.colourInput)) return false;
   return Array.isArray(value.regions) && value.regions.every(isRegion);
 }
 
@@ -500,11 +572,14 @@ export function isKindDefaults(value: unknown): value is KindDefaults {
     inRange(value.note, 0, 127) &&
     inRange(value.group, 0, GROUP_MAX) &&
     inRange(value.touches, 1, TOUCHES_MAX) &&
+    inRange(value.channelY, 1, 16) &&
     oneOf(value.mode, REGION_MODES) &&
     oneOf(value.speed, SPEEDS) &&
-    oneOf(value.output, BUTTON_OUTPUTS) &&
+    oneOf(value.output, MIDI_TYPES) &&
+    oneOf(value.outputY, CONTINUOUS_TYPES) &&
     bool(value.spring) &&
-    bool(value.latch)
+    bool(value.latch) &&
+    bool(value.receive)
   );
 }
 
