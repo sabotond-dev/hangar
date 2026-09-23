@@ -1,4 +1,4 @@
-// The runtime's tests (13-15; change 10B added seven, change 11 two), most in a REAL Lua VM: every string in
+// The runtime's tests (13-15; change 10B added seven, change 11 two, change 18 two), most in a REAL Lua VM: every string in
 // runtime.ts was run through `createLuaHost` before it was measured and before a figure was
 // pinned. The host is opened as the module runs a landing: under five slots the TRIMMED system
 // halves with the runtime parts they carry (`system`, `systemTimer` off the emit), under fewer
@@ -54,6 +54,7 @@ import {
   knobCentre,
   regionRow,
   regionTail,
+  renderRegionTable,
   type EmitOptions,
 } from "./emit";
 import { GEOMETRY_COPY, validate } from "./geometry";
@@ -79,7 +80,11 @@ import {
   channelWord,
   fingerController,
   flagsOf,
+  HAND_OVER_BIT,
+  handsOver,
+  hasHandOver,
   hasMultitouch,
+  latchTouchOf,
   knobRingRaw,
   receivesOf,
   scaleValue,
@@ -94,6 +99,7 @@ import {
 import {
   ARM,
   ENTRY,
+  HAND_OVER_TEXT,
   KNOB_STEP_CAP,
   MULTITOUCH_TEXT,
   RECEIVE_ENTRY,
@@ -107,6 +113,7 @@ import {
   colourPart,
   joinLua,
   packRuntime,
+  entryText,
   runtimeParts,
   slotColumn,
   sweepCall,
@@ -241,6 +248,56 @@ const MULTITOUCH_FIXTURES: readonly Surface[] = [
 ];
 
 /**
+ * The change 18 fixtures (tests 21 and 22; tests 6, 7 and 14 run them beside the rest): two
+ * vertical faders side by side (two wide: `A` divides by the width less one, docs/entries/sandbox-runtime.md), at the default and with Latch Off; a strum row of four
+ * one-cell buttons Off with an empty cell before the last; an Off button, an On button and an Off
+ * button in a row; an Off fader, an Off spring fader and an Off button across empty plate; page 3
+ * with every element Off; and a Touches-2 pad Off beside an Off button. Controllers 80..95 meet
+ * no other region's.
+ */
+const OFF = { latchTouch: false } as const;
+const LANE_A = region("Lane A", "fader", 0, 0, 2, 6, 80);
+const LANE_B = region("Lane B", "fader", 2, 0, 2, 6, 81);
+const LANES = surface("Lanes", [LANE_A, LANE_B]);
+const LANES_OFF = surface("Lanes off", [
+  { ...LANE_A, ...OFF },
+  { ...LANE_B, ...OFF },
+]);
+const STRUM = surface(
+  "Strum",
+  [0, 1, 2, 4].map((col, k) =>
+    region(`Strum ${k + 1}`, "button", col, 8, 1, 1, 90 + k, OFF),
+  ),
+);
+const WAIT = surface("Wait", [
+  region("Leave", "button", 0, 8, 1, 1, 90, OFF),
+  region("Keep", "button", 1, 8, 1, 1, 91),
+  region("Past", "button", 2, 8, 1, 1, 92, OFF),
+]);
+const ROAM = surface("Roam", [
+  { ...LANE_A, ...OFF },
+  region("Spring", "fader", 5, 0, 2, 6, 82, { spring: true, ...OFF }),
+  region("Far", "button", 3, 6, 1, 1, 90, OFF),
+]);
+const PAGE3_OFF = surface(
+  "Page 3 off",
+  PAGE3.regions.map((r) => ({ ...r, ...OFF })),
+);
+const MULTI_OFF = surface("Multitouch off", [
+  { ...DUO, ...OFF },
+  region("Beside", "button", 5, 4, 1, 1, 95, OFF),
+]);
+const LATCH_FIXTURES: readonly Surface[] = [
+  LANES,
+  LANES_OFF,
+  STRUM,
+  WAIT,
+  ROAM,
+  PAGE3_OFF,
+  MULTI_OFF,
+];
+
+/**
  * A surface with one element per kind named (change 17): the ceiling in kinds under five slots is
  * measured through the emitter, because every element receives by default - the receive half is
  * packed beside the branches - and the Setup is the packer's last slot. A multitouch pad stands
@@ -265,7 +322,10 @@ const RECEIVE_SETTLE = 12;
 
 /** True for a text carrying either entry - the single-touch `O` or the multitouch variant's. */
 const hasEntry = (text: string): boolean =>
-  text.includes(ENTRY) || text.includes(MULTITOUCH_TEXT.entry);
+  text.includes(ENTRY) ||
+  text.includes(MULTITOUCH_TEXT.entry) ||
+  text.includes(HAND_OVER_TEXT.entry) ||
+  text.includes(HAND_OVER_TEXT.entryMultitouch);
 
 /** The LED centre of a cell, in raw units, from the measured knots. */
 const at = (col: number, row: number): [number, number] => [KX[col], KY[row]];
@@ -736,7 +796,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
 
   it("6. passes both class gates over every emitted runtime text with the gates' own needles, defines only its own names - the trim's freed ones among them - and calls only the trimmed library's", () => {
     const texts: { name: string; text: string }[] = [];
-    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, ...LATCH_FIXTURES]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
         texts.push({ name: `${s.name} Timer (${slots})`, text: e.timer });
@@ -827,14 +887,25 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     // Z, four more the trim frees; S and F are the trimmed head's now (or the
     // Setup's under fewer slots). It calls N U X, every one a trimmed global;
     // `G` no more (the pictures are its own).
-    // Both runtimes - the single-touch and the multitouch variant (change 11) - hold to it.
-    for (const multitouch of [false, true]) {
+    // Every runtime - the single-touch and the multitouch variant (change 11), each with and
+    // without the hand-over entry (change 18) - holds to it.
+    for (const [multitouch, handOver] of [
+      [false, false],
+      [true, false],
+      [false, true],
+      [true, true],
+    ] as const) {
       const whole = joinLua([
         STATE,
-        ...runtimeParts(BRANCHES, multitouch, {
-          rows: true,
-          colour: { channel: 15, first: 100, brightness: 128 },
-        }).map((p) => p.lua),
+        ...runtimeParts(
+          BRANCHES,
+          multitouch,
+          {
+            rows: true,
+            colour: { channel: 15, first: 100, brightness: 128 },
+          },
+          handOver,
+        ).map((p) => p.lua),
         sweepCall(20),
       ]);
       const defined = capitalDefinitions(whole);
@@ -879,7 +950,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
   it("7. the measured cost: canonical under compressScript, the parts, and the ceiling in kinds under two slots, three and five - every combination fits five", async () => {
     const lines: string[] = [];
     // Every packed text is a fixed point of the minifier on the first round.
-    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, ...LATCH_FIXTURES]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
         for (const [name, text] of [
@@ -1517,8 +1588,8 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     );
     // Every fixture, under five slots, on the trimmed halves: the emitted
     // 255/0 and 255/6 open with the trimmed text, and a gesture on every
-    // region raises nothing - the change 11 fixtures too.
-    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES]) {
+    // region raises nothing - the change 11 and change 18 fixtures too.
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, ...LATCH_FIXTURES]) {
       const e = emitSurface(s, { slots: 5 });
       expect(e.system?.startsWith(TRIMMED_LIBRARY), s.name).toBe(true);
       expect(e.systemTimer?.startsWith(TRIMMED_LIBRARY_TIMER), s.name).toBe(
@@ -2288,7 +2359,435 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       ).toBe(anyReceives);
     }
   });
+
+  it("21. Latch (change 18): On, a finger slid from one fader onto the next still drives the first alone; Off, it hands over - the first keeps its bar where the finger left it and the second jumps to the finger - a strummed button row presses each in turn with its off on the way out and passes an empty cell, a finger onto empty plate is released and keeps nothing, a sliding finger waits on a held region and takes it once the holder lifts, and an On element it reaches keeps it", async () => {
+    /** A point one raw unit right of another - the same cell, a new sample (the host drops a sample identical to the contact's last, as the firmware does). */
+    const nudge = ([x, y]: readonly [number, number]): [number, number] => [
+      x + 1,
+      y,
+    ];
+    /** Every controller message on 80..99 in the order sent, as `cc:value`. */
+    const order = (midi: readonly HostMidi[]): string[] =>
+      midi
+        .filter((m) => m.cmd === 176 && m.p1 >= 80 && m.p1 < 100)
+        .map((m) => `${m.p1}:${m.p2}`);
+    // (1) ON, THE DEFAULT - today's rule, pinned: the finger lands on Lane A at its LED in row 4
+    //     and slides up and across into Lane B's cells; Lane A follows it to row 1, Lane B hears nothing.
+    {
+      const { host, sim } = await open(LANES);
+      try {
+        step(host, "down", 0, at(1, 4));
+        step(host, "move", 0, at(1, 3));
+        step(host, "move", 0, at(2, 2));
+        step(host, "move", 0, at(2, 1));
+        expect(sent(host.midi, LANE_A.cc), "Lane A keeps the finger").toEqual([
+          25, 50, 76, 101,
+        ]);
+        expect(sent(host.midi, LANE_B.cc), "Lane B hears nothing").toEqual([]);
+        expect(lit(sim, LANE_B)).toEqual([]);
+        step(host, "up", 0, at(2, 1));
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (2) OFF: the same slide hands over at the first sample in Lane B's cells - Lane A stops at
+    //     the value it had (50) and keeps its bar there, Lane B presses at the finger (76, then 101).
+    {
+      const { host, sim } = await open(LANES_OFF);
+      try {
+        step(host, "down", 0, at(1, 4));
+        step(host, "move", 0, at(1, 3));
+        step(host, "move", 0, at(2, 2));
+        step(host, "move", 0, at(2, 1));
+        expect(order(host.midi)).toEqual(["80:25", "80:50", "81:76", "81:101"]);
+        expect(
+          lit(sim, LANE_A),
+          "Lane A's bar where the finger left it: rows 4 and 5",
+        ).toEqual(["0,4", "1,4", "0,5", "1,5"]);
+        expect(lit(sim, LANE_B).length, "Lane B's bar: rows 2 to 5").toBe(8);
+        // Back into Lane A: it hands over again - Lane B keeps its bar, Lane A jumps to row 2.
+        step(host, "move", 0, at(1, 2));
+        expect(order(host.midi).slice(4)).toEqual(["80:76"]);
+        expect(lit(sim, LANE_B).length).toBe(8);
+        step(host, "up", 0, at(1, 2));
+        expect(
+          order(host.midi).slice(5),
+          "a fader's lift sends nothing",
+        ).toEqual([]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (3) A STRUM: four momentary buttons Off, an empty cell before the last; one finger across
+    //     them presses each in turn and sends its off as it leaves - the empty cell releases the
+    //     third and the fourth still takes the finger - and the lift is the last one's off.
+    {
+      const { host, sim } = await open(STRUM);
+      try {
+        step(host, "down", 0, at(0, 8));
+        for (const col of [1, 2, 3, 4]) step(host, "move", 0, at(col, 8));
+        expect(order(host.midi)).toEqual([
+          "90:127",
+          "90:0",
+          "91:127",
+          "91:0",
+          "92:127",
+          "92:0",
+          "93:127",
+        ]);
+        expect(phase(sim, 4, 8), "the fourth lit").toBe(255);
+        expect(phase(sim, 0, 8), "the first dark").toBe(0);
+        step(host, "up", 0, at(4, 8));
+        expect(order(host.midi).slice(7)).toEqual(["93:0"]);
+        expect(phase(sim, 4, 8)).toBe(0);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // The same row at the default: the first button keeps the finger until the lift.
+    {
+      const { host } = await open(
+        surface(
+          "Strum on",
+          STRUM.regions.map((r) => ({ ...r, latchTouch: undefined })),
+        ),
+      );
+      try {
+        step(host, "down", 0, at(0, 8));
+        for (const col of [1, 2, 3, 4]) step(host, "move", 0, at(col, 8));
+        step(host, "up", 0, at(4, 8));
+        expect(order(host.midi)).toEqual(["90:127", "90:0"]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (4) ONTO EMPTY PLATE: an Off fader's finger that leaves for empty cells is released (its bar
+    //     kept, nothing sent) and keeps nothing while it crosses them; it takes the next Off element
+    //     it reaches. An Off spring fader left for empty plate springs back as on a lift. A finger
+    //     that LANDED on empty plate takes nothing, whatever it crosses (the rule before change 18).
+    {
+      const { host, sim } = await open(ROAM);
+      try {
+        step(host, "down", 0, at(0, 4));
+        step(host, "move", 0, at(4, 4));
+        step(host, "move", 0, at(4, 1));
+        expect(order(host.midi)).toEqual(["80:25"]);
+        expect(lit(sim, ROAM.regions[0]).length, "the bar kept").toBe(2);
+        step(host, "move", 0, at(3, 6));
+        expect(order(host.midi)).toEqual(["80:25", "90:127"]);
+        step(host, "up", 0, at(3, 6));
+        expect(order(host.midi)).toEqual(["80:25", "90:127", "90:0"]);
+        // The spring fader: pressed at row 1, left for empty plate - its spring value (64) is sent.
+        step(host, "down", 1, at(5, 1));
+        step(host, "move", 1, at(7, 1));
+        expect(sent(host.midi, 82)).toEqual([101, 64]);
+        step(host, "up", 1, at(7, 1));
+        // Landed on empty: slides across the button and the fader and sends nothing.
+        const before = host.midi.length;
+        step(host, "down", 2, at(4, 6));
+        step(host, "move", 2, at(3, 6));
+        step(host, "move", 2, at(0, 2));
+        step(host, "up", 2, at(0, 2));
+        expect(host.midi.length, "a finger that landed on empty").toBe(before);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (5) A HELD REGION WAITS: finger 1 holds Keep (On); finger 0 slides from Leave (Off) onto
+    //     it - Leave's off goes, Keep is not pressed again, and the finger waits on nothing while
+    //     finger 1 holds it; finger 1 lifts, and finger 0's next sample takes Keep. Keep is On, so
+    //     it keeps finger 0 on the slide on into Past, which hears nothing.
+    {
+      const { host } = await open(WAIT);
+      try {
+        step(host, "down", 1, at(1, 8));
+        step(host, "down", 0, at(0, 8));
+        step(host, "move", 0, at(1, 8));
+        step(host, "move", 0, nudge(at(1, 8)));
+        expect(order(host.midi)).toEqual(["91:127", "90:127", "90:0"]);
+        step(host, "up", 1, at(1, 8));
+        expect(order(host.midi).slice(3)).toEqual(["91:0"]);
+        step(host, "move", 0, at(1, 8));
+        expect(order(host.midi).slice(4), "taken once free").toEqual([
+          "91:127",
+        ]);
+        step(host, "move", 0, at(2, 8));
+        step(host, "move", 0, at(3, 8));
+        expect(
+          order(host.midi).slice(5),
+          "Keep is On: Past hears nothing",
+        ).toEqual([]);
+        step(host, "up", 0, at(3, 8));
+        expect(order(host.midi).slice(5)).toEqual(["91:0"]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (6) A MULTITOUCH PAD Off beside an Off button: a finger on the pad holds it, so a finger
+    //     slid in from the button waits even with the second slot free; alone, it takes slot 1
+    //     (the pad's own pair); slid back out onto the button its cross goes and the button presses.
+    {
+      const { host, sim } = await open(MULTI_OFF);
+      try {
+        step(host, "down", 0, at(8, 5));
+        step(host, "down", 1, at(5, 4));
+        step(host, "move", 1, at(7, 4));
+        expect(sent(host.midi, 95)).toEqual([127, 0]);
+        expect(sent(host.midi, 52), "no second pair: the finger waits").toEqual(
+          [],
+        );
+        const padBefore = sent(host.midi, DUO.cc).length;
+        step(host, "up", 0, at(8, 5));
+        step(host, "move", 1, nudge(at(7, 4)));
+        expect(sent(host.midi, DUO.cc).length, "slot 1 taken").toBe(
+          padBefore + 1,
+        );
+        expect(lit(sim, DUO)).toEqual(["1,0", "0,1", "1,1", "2,1", "1,2"]);
+        step(host, "move", 1, at(5, 4));
+        expect(lit(sim, DUO), "the cross gone with the finger").toEqual([]);
+        expect(sent(host.midi, 95)).toEqual([127, 0, 127]);
+        step(host, "up", 1, at(5, 4));
+        expect(sent(host.midi, 95)).toEqual([127, 0, 127, 0]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (7) RX is untouched by the mark: page 3 with every element Off receives as page 3 does.
+    {
+      const { host, sim } = await open(PAGE3_OFF);
+      try {
+        host.run(RECEIVE_SETTLE);
+        host.midiIn(13, 0, 176, FILTER.cc, 101);
+        host.tick();
+        expect(lit(sim, FILTER).length).toBe(8);
+        expect(host.midi).toEqual([]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  });
+
+  it("22. Latch, measured (change 18): the hand-over entry and `Y`'s rows are texts swapped in - canonical, the two parts that differ - only when an element is Off; every fixture at On (the field absent or true) emits byte-identical strings; page 3 before and after on five slots; the ceiling in kinds with every element Off, beside a one-finger pad and beside a multitouch pad", async () => {
+    const lines: string[] = [];
+    // THE TEXTS: fixed points, and their price over the entries they replace.
+    const measured: Record<string, number> = {};
+    for (const [name, text] of Object.entries(HAND_OVER_TEXT)) {
+      const c = await canonical(text);
+      expect(c.rounds, `${name} is not canonical: ${c.text}`).toBe(0);
+      measured[name] = c.cost;
+    }
+    lines.push(
+      `the hand-over entry: O ${ENTRY.length} -> ${measured.entry} (+${measured.entry - ENTRY.length}); under multitouch ${MULTITOUCH_TEXT.entry.length} -> ${measured.entryMultitouch} (+${measured.entryMultitouch - MULTITOUCH_TEXT.entry.length})`,
+    );
+    expect(measured).toEqual(PINNED_LATCH.texts);
+    expect(entryText(false, false)).toBe(ENTRY);
+    expect(entryText(true, false)).toBe(MULTITOUCH_TEXT.entry);
+    // The parts: the same names and texts but `O` and `Y` (single-touch and multitouch alike).
+    for (const multitouch of [false, true]) {
+      const plain = runtimeParts(BRANCHES, multitouch, { rows: true });
+      const off = runtimeParts(BRANCHES, multitouch, { rows: true }, true);
+      expect(off.map((p) => p.name)).toEqual(plain.map((p) => p.name));
+      off.forEach((part, i) => {
+        if (part.name === "O" || part.name === RECEIVE_ENTRY)
+          expect(part.lua).not.toBe(plain[i].lua);
+        else expect(part.lua, part.name).toBe(plain[i].lua);
+      });
+    }
+    // BYTE-IDENTICAL AT ON: every earlier fixture with Latch absent or On (`true`) on every
+    // region emits exactly the strings it did, under every slot count - the row carries no mark
+    // and the entry is the one it was.
+    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, LANES]) {
+      expect(hasHandOver(s.regions), s.name).toBe(false);
+      const on: Surface = {
+        ...s,
+        regions: s.regions.map((r) => ({ ...r, latchTouch: true })),
+      };
+      for (const slots of [2, 3, 5] as const) {
+        const was = emitSurface(s, { slots });
+        const now = emitSurface(on, { slots });
+        for (const key of [
+          "setup",
+          "timer",
+          "mapmode",
+          "system",
+          "systemTimer",
+        ] as const)
+          expect(now[key], `${s.name} ${key} (${slots})`).toBe(was[key]);
+        expect(was.handOver).toBe(false);
+      }
+    }
+    // A blank takes no touch: Latch Off on one is read On - no mark, no variant.
+    const blankOff = surface("Blank off", [
+      FILTER,
+      region("Wash", "blank", 7, 7, 2, 2, 0, { latchTouch: false }),
+    ]);
+    expect(latchTouchOf(blankOff.regions[1])).toBe(true);
+    expect(emitSurface(blankOff, { slots: 5 }).setup).toBe(
+      emitSurface(
+        surface("Blank off", [
+          FILTER,
+          { ...blankOff.regions[1], latchTouch: undefined },
+        ]),
+        {
+          slots: 5,
+        },
+      ).setup,
+    );
+    // One element Off swaps the entry in; the bit rides that element's channel word alone.
+    const oneOff = emitSurface(
+      surface("One off", [FILTER, { ...GO, latchTouch: false }]),
+      { slots: 5 },
+    );
+    expect(oneOff.handOver).toBe(true);
+    expect(oneOff.parts.regionTable).toBe(
+      renderRegionTable([FILTER, { ...GO, latchTouch: false }]),
+    );
+    expect(regionRow({ ...GO, latchTouch: false })[7]).toBe(
+      regionRow(GO)[7] + HAND_OVER_BIT,
+    );
+    expect(regionRow({ ...FILTER, latchTouch: true })).toEqual(
+      regionRow(FILTER),
+    );
+    expect(
+      [
+        oneOff.setup,
+        oneOff.timer,
+        oneOff.mapmode,
+        oneOff.system,
+        oneOff.systemTimer,
+      ].join(" "),
+    ).toContain(HAND_OVER_TEXT.entry);
+    expect(handsOver({ ...GO, latchTouch: false })).toBe(true);
+    // PAGE 3 on five slots, every element receiving: at On, one element Off, and all four Off.
+    const five = async (s: Surface) => {
+      const m = await measureSurface(atPickerCorner(s), { slots: 5 });
+      return {
+        costs: [
+          m.systemTimer?.used,
+          m.system?.used,
+          m.mapmode?.used,
+          m.timer.used,
+          m.setup.used,
+        ],
+        fits: m.fits,
+        placement: m.emitted.runtime.placement
+          .map((p) => `${p.name}:${p.slot}`)
+          .join(" "),
+      };
+    };
+    const page3 = await five(PAGE3);
+    const page3Off = await five(PAGE3_OFF);
+    lines.push(
+      `page 3, five slots (255/6, 255/0, 255/4, Timer, Setup): at On ${page3.costs.join(" / ")} (${page3.fits ? "fits" : "over"}); every element Off ${page3Off.costs.join(" / ")} (${page3Off.fits ? "fits" : "over"}; ${page3Off.placement})`,
+    );
+    const single: string[] = [];
+    for (const r of PAGE3.regions) {
+      const m = await five(
+        surface(
+          `Page 3, ${r.name} off`,
+          PAGE3.regions.map((q) => (q === r ? { ...q, ...OFF } : q)),
+        ),
+      );
+      single.push(`${r.name} ${m.costs.join("/")} ${m.fits ? "fits" : "over"}`);
+    }
+    lines.push(`page 3 with one element Off: ${single.join("; ")}`);
+    // Page 3 with Receive off everywhere and every element Off: the receive half's room.
+    const quiet = await five(
+      surface(
+        "Page 3 quiet off",
+        PAGE3_OFF.regions.map((r) => ({ ...r, receive: false })),
+      ),
+    );
+    lines.push(
+      `page 3, every element Off and Receive off: ${quiet.costs.join(" / ")} (${quiet.fits ? "fits" : "over"})`,
+    );
+    expect(page3.costs).toEqual(PINNED.page3Five);
+    expect(page3Off.costs).toEqual(PINNED_LATCH.page3Off);
+    expect(page3Off.fits).toBe(PINNED_LATCH.page3OffFits);
+    expect(single).toEqual(PINNED_LATCH.page3Single);
+    expect(quiet.fits).toBe(true);
+    // THE CEILING IN KINDS, every element Off and receiving, on five slots: every combination,
+    // then every combination beside a multitouch pad (the two variants together).
+    const label = (branches: readonly Branch[]) =>
+      branches
+        .map(
+          (b) =>
+            ({
+              "fader-v": "v",
+              "fader-h": "h",
+              button: "b",
+              xy: "x",
+              knob: "k",
+            })[b],
+        )
+        .join("");
+    const offSurface = (s: Surface): Surface => ({
+      ...s,
+      regions: s.regions.map((r) => ({ ...r, ...OFF })),
+    });
+    const over: string[] = [];
+    for (let mask = 1; mask < 1 << BRANCHES.length; mask += 1) {
+      const branches = BRANCHES.filter((_, i) => mask & (1 << i));
+      const m = await measureSurface(
+        atPickerCorner(offSurface(kindSurface(branches))),
+        { slots: 5 },
+      );
+      expect(
+        m.emitted.runtime.fits,
+        `${label(branches)}: the packer's word`,
+      ).toBe(m.fits);
+      if (!m.fits) over.push(label(branches));
+    }
+    const others: Branch[] = ["fader-v", "fader-h", "button", "knob"];
+    const overMulti: string[] = [];
+    for (let mask = 0; mask < 1 << others.length; mask += 1) {
+      const branches = BRANCHES.filter(
+        (b) => b === "xy" || others.some((o, i) => o === b && mask & (1 << i)),
+      );
+      const m = await measureSurface(
+        atPickerCorner(offSurface(kindSurface(branches, true))),
+        { slots: 5 },
+      );
+      if (!m.fits) overMulti.push(label(branches));
+    }
+    lines.push(
+      `five slots, every element Off and receiving, over: ${over.join(", ") || "none"}; beside a multitouch pad, over: ${overMulti.join(", ") || "none"}`,
+    );
+    expect(over).toEqual(PINNED_LATCH.over);
+    expect(overMulti).toEqual(PINNED_LATCH.overMulti);
+    console.log(
+      ["Latch, measured (change 18, 2026-09-23):", ...lines].join("\n"),
+    );
+  }, 240000);
 });
+
+/** The figures test 22 pins, this tree, 2026-09-23 (change 18). */
+const PINNED_LATCH = {
+  /** The hand-over entry: 126 over `O` (273) and over the multitouch `O` (392) alike. */
+  texts: { entry: 399, entryMultitouch: 518 },
+  /** Page 3 receiving with every element Off: over - 81 characters were free across the five slots at On, and the entry wants 126, `Y`'s rows 6 and the four words 8. The Timer carries what fits nowhere (first fit's fallback). */
+  page3Off: [852, 908, 858, 1076, 905] as (number | undefined)[],
+  page3OffFits: false,
+  /** One element Off is the same entry, the same `Y` and one word: over whichever it is. */
+  page3Single: [
+    "Filter 852/908/858/1076/899 over",
+    "Space 852/908/858/1076/899 over",
+    "Turn 852/908/858/1076/899 over",
+    "Go 852/908/858/1076/899 over",
+  ],
+  /** Every element Off and receiving: the three combinations carrying a fader, the button, the pad and the knob - the three change 11 put over beside a multitouch pad. */
+  over: ["vbxk", "hbxk", "vhbxk"],
+  /** Beside a multitouch pad, every element Off: one more than at On (`vhxk`). */
+  overMulti: ["vhxk", "vbxk", "hbxk", "vhbxk"],
+};
 
 /** The figures test 16 pins, this tree, 2026-09-18 (change 11). */
 const PINNED_MULTITOUCH = {

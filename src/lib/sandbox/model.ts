@@ -210,8 +210,9 @@ export const RECEIVE_OFF_BIT = 128;
 
 /**
  * The CHANNEL WORD, the row's eighth column (and an XY pad's fifteenth, its Y axis): the wire
- * channel 0..15, plus 16 times the type's code, plus 128 when the region does not receive - so a
- * controller on channel 1 that receives is 0, exactly the column before change 17. Measured
+ * channel 0..15, plus 16 times the type's code, plus 128 when the region does not receive, plus
+ * 512 when it is Latch Off (change 18, `HAND_OVER_BIT`) - so a controller on channel 1 that
+ * receives and latches is 0, exactly the column before change 17. Measured
  * against a flag bit and a column of its own (emit.spec.ts test 10): the channel column is always
  * written, so the word costs nothing at the defaults and one character at most beyond them.
  */
@@ -221,9 +222,43 @@ export function channelWord(region: Region, axis: "x" | "y" = "x"): number {
   return (
     wireChannel(channel) +
     16 * TYPE_CODES[type] +
-    (axis === "x" && !receivesOf(region) ? RECEIVE_OFF_BIT : 0)
+    (axis === "x" && !receivesOf(region) ? RECEIVE_OFF_BIT : 0) +
+    (axis === "x" && handsOver(region) ? HAND_OVER_BIT : 0)
   );
 }
+
+// ---------------------------------------------------------------------------
+// The change 18 option: Latch (BENCH-2026-09-16.txt section 18).
+
+/**
+ * Latch, the setting: On unless set off. On, a finger keeps the element it landed on until it
+ * lifts, wherever it goes - what every element did before change 18 (runtime.ts `O`). Off, a
+ * finger that slides off the element hands over to the element it moves onto (runtime.ts
+ * `HAND_OVER_TEXT`). A blank takes no touch, so it reads On whatever it carries.
+ */
+export const latchTouchOf = (region: Region): boolean =>
+  region.kind === "blank" || region.latchTouch !== false;
+
+/** True for a region whose finger hands over: Latch Off on a kind that takes touch. */
+export const handsOver = (region: Region): boolean => !latchTouchOf(region);
+
+/** True when a surface carries a region that hands over - the runtime's hand-over entry is emitted (runtime.ts). */
+export const hasHandOver = (regions: readonly Region[]): boolean =>
+  regions.some(handsOver);
+
+/**
+ * The channel word's hand-over bit (change 18): a region that is Latch Off is 512 higher, so
+ * every Off word is 480 and up (a note's -32 + 512) and every On word under 192 - the hand-over
+ * entry reads `J[g][8]>479`. Every reader of the word that runs at On already takes it apart by
+ * `%16`, `%128` or `//16%4`, which 512 leaves alone; the receive callback reads it whole and is
+ * swapped for a variant that takes `%512` first (runtime.ts `RECEIVE_ROWS_HAND_OVER`). At On the
+ * word is the one it was. Measured against a keyed field `,h=1` after the row and a bit in the
+ * flag word, 8 (emit.spec.ts test 10), every element Off: the cheapest of the three on every
+ * surface measured - page 3 21 against 22 and 39, sixteen elements 33 against 70 and 140 - since
+ * a word gains at most two digits and a Receive-off word none, where the keyed field is four
+ * characters a row and the flag bit forces the tail and two variants of texts every surface carries.
+ */
+export const HAND_OVER_BIT = 512;
 
 /** The surface's Colour input, or undefined while it is off. */
 export const colourInputOf = (surface: Surface): ColourInput | undefined =>

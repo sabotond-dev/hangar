@@ -140,6 +140,18 @@ const COLOURS = {
 // emit.spec.ts test 7 (change 17): page 3's four with Receive off, and the two blanks.
 const EMIT_QUIET = EMIT_PAGE3.regions.map((r) => ({ ...r, receive: false }));
 
+// runtime.spec.ts tests 21 and 22 (change 18): Latch - two faders side by side, a strum row, a
+// held region, empty plate, page 3 and a multitouch pad, Off (`latchTouch: false`); emit.spec.ts
+// test 10: the eight and the sixteen with every element Off.
+const OFF = { latchTouch: false };
+const LANE_A = rtRegion("Lane A", "fader", 0, 0, 2, 6, 80);
+const LANE_B = rtRegion("Lane B", "fader", 2, 0, 2, 6, 81);
+const allOff = (s, name) =>
+  surface(
+    name,
+    s.regions.map((r) => ({ ...r, ...OFF })),
+  );
+
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
   // runtime.spec.ts
@@ -209,6 +221,36 @@ export const SANDBOX_FIXTURES = {
   ]),
   "runtime/colours": COLOURS,
   "runtime/colours-dim": { ...COLOURS, brightness: 128 },
+  // runtime.spec.ts (change 18): Latch - tests 21 and 22.
+  "runtime/lanes": surface("Lanes", [LANE_A, LANE_B]),
+  "runtime/lanes-off": surface("Lanes off", [
+    { ...LANE_A, ...OFF },
+    { ...LANE_B, ...OFF },
+  ]),
+  "runtime/strum": surface(
+    "Strum",
+    [0, 1, 2, 4].map((col, k) =>
+      rtRegion(`Strum ${k + 1}`, "button", col, 8, 1, 1, 90 + k, OFF),
+    ),
+  ),
+  "runtime/wait": surface("Wait", [
+    rtRegion("Leave", "button", 0, 8, 1, 1, 90, OFF),
+    rtRegion("Keep", "button", 1, 8, 1, 1, 91),
+    rtRegion("Past", "button", 2, 8, 1, 1, 92, OFF),
+  ]),
+  "runtime/roam": surface("Roam", [
+    { ...LANE_A, ...OFF },
+    rtRegion("Spring", "fader", 5, 0, 2, 6, 82, { spring: true, ...OFF }),
+    rtRegion("Far", "button", 3, 6, 1, 1, 90, OFF),
+  ]),
+  "runtime/page3-off": allOff(
+    surface("Page 3", [FILTER, SPACE, TURN, GO]),
+    "Page 3 off",
+  ),
+  "runtime/multitouch-off": surface("Multitouch off", [
+    { ...DUO, ...OFF },
+    rtRegion("Beside", "button", 5, 4, 1, 1, 95, OFF),
+  ]),
   // emit.spec.ts
   "emit/page3": EMIT_PAGE3,
   "emit/one": surface("One", [EMIT_PAGE3.regions[0]]),
@@ -233,4 +275,13 @@ export const SANDBOX_FIXTURES = {
     emRegion("Wash", "blank", 7, 7, 2, 2, { cc: 0, channel: 1 }),
     emRegion("Dot", "blank", 0, 8, 1, 1, { cc: 0, channel: 1 }),
   ]),
+  // emit.spec.ts test 10 (change 18): every element Off.
+  "emit/eight-off": allOff(
+    surface("Eight", [...fadersAt(4, 2, 6), ...buttonsAt(4, 2, 1, 7)]),
+    "Eight off",
+  ),
+  "emit/sixteen-off": allOff(
+    surface("Sixteen", [...fadersAt(8, 1, 6), ...buttonsAt(8, 1, 2, 7)]),
+    "Sixteen off",
+  ),
 };

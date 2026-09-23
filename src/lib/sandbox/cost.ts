@@ -151,7 +151,8 @@ export function representativeShape(surface: Surface): {
  * direction inverted), relative at full speed with the spring on, the spring at 100 (its
  * position lands at 123, three digits) - the fourteen-character tail `,127,100,7,123`; and
  * since change 17 the dearest channel word: a channel pressure (its controller column stays
- * 127, where a pitch bend's is 0) with Receive off, 15 + 32 + 128 = 175, three digits.
+ * 127, where a pitch bend's is 0) with Receive off, 15 + 32 + 128 = 175, three digits; and since
+ * change 18 Latch Off - the row's `,h=1` and, on the surface, the hand-over entry.
  */
 export function representativeRegion(
   index: number,
@@ -178,6 +179,7 @@ export function representativeRegion(
     springValue: 100,
     output: "pressure",
     receive: false,
+    latchTouch: false,
   };
 }
 

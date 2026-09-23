@@ -2,8 +2,9 @@
 // convention `R`, the entry `O`, three helpers (`Q` the region painter, `D` the scaled send on
 // change by the output's type, `K` a button's off), one branch per kind (`I[1]`..`I[5]`), the
 // receive callback `Y` and the colour input `Z` (change 17), the MULTITOUCH variant of `R`, `O`
-// and `I[4]` (change 11), and `packRuntime`, which spreads the parts over the slots a surface lands
-// on, largest first. Every string was run in a real Lua VM before it was measured (runtime.spec.ts).
+// and `I[4]` (change 11), the HAND-OVER variant of `O` and `Y` for a Latch Off element (change
+// 18), and `packRuntime`, which spreads the parts over the slots a surface lands on, largest
+// first. Every string was run in a real Lua VM before it was measured (runtime.spec.ts).
 // Names `S F I R O` and the trim's `Q D K Y Z`; calls the library's `E N U X`. docs/MIDI.md, docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -11,6 +12,7 @@ import { EVENT_BUDGET } from "../../vendor/botor/_pad";
 import { TRIMMED_LIBRARY, TRIMMED_LIBRARY_TIMER } from "./library-trim";
 import {
   BRANCHES,
+  HAND_OVER_BIT,
   KNOB_DEAD_ZONE_SQUARED,
   KNOB_STEP_DEG,
   TOUCHES_MAX,
@@ -191,6 +193,15 @@ export const ENTRY =
   "I[r[5]](s,i,r,x,y,o)" +
   "if e>8 then E(s,i)end end";
 
+// The entry's three pieces, for the hand-over variant (change 18) to be spliced from: the head
+// (the name and the end codes), the onset's body after `local n=M[N(x,y)]` (single-touch: expire
+// every other holder of the region, pin it), and the tail (the stamp, the branch, a 9's end).
+const ENTRY_HEAD = `${RUNTIME_ENTRY}=function(s,i,e,x,y)if e~=1 and e~=4 and e<9 then E(s,i)return end `;
+const ENTRY_ONSET =
+  "for j,g in pairs(S)do if g==n then E(s,j)end end S[i]=n end ";
+const ENTRY_TAIL =
+  "T[i]=C local r=J[S[i]]if not r then return end I[r[5]](s,i,r,x,y,o)if e>8 then E(s,i)end end";
+
 /**
  * `O` under multitouch (change 11): an onset on a pad with more than one finger (the seventh
  * column past 127) expires nobody - it takes the lowest slot whose cell column is nil, `F[i]=k`
@@ -212,6 +223,55 @@ export const ENTRY_MULTITOUCH =
   "T[i]=C local r=J[S[i]]if not r then return end " +
   "I[r[5]](s,i,r,x,y,o)" +
   "if e>8 then E(s,i)end end";
+
+/** The multitouch onset's body after `local n=M[N(x,y)]`: a pad with more than one finger takes a slot, any other region the single-touch rule. */
+const ENTRY_ONSET_MULTITOUCH =
+  "local r=J[n]" +
+  "if r and r[7]>127 then local k=0 " +
+  `while r[${SLOT_COLUMNS.base + SLOT_COLUMNS.cell}+${SLOT_COLUMNS.perOffset}*k]do k=k+2 end ` +
+  "if k>r[7]//64 then return end F[i]=k " +
+  "else for j,g in pairs(S)do if g==n then E(s,j)end end end S[i]=n end ";
+
+/**
+ * The hand-over (change 18, Latch Off), between the entry's head and its onset. On every live
+ * sample the finger's cell `n` is read beside the region the contact holds, `g = S[i]`. When the
+ * sample is not an onset, the cell is another region's (or none), and the contact is free to
+ * pass - it holds a region that is Latch Off (its channel word 480 and up, model.ts
+ * `HAND_OVER_BIT`) or it is already waiting (`false`, below) - the old region is released through `E` exactly as a lift releases
+ * it (a momentary button's off, a fader's bar kept, a spring's return, a crosshair or an arc
+ * cleared), and the contact WAITS: `S[i]=false`, which pins no row and holds no region. It then
+ * becomes an onset on the new region when there is one (`n>0`: not empty plate, not a blank) and
+ * no other contact holds it (`o=o and h~=n` over `S`): a sliding finger never takes a held region
+ * (a multitouch pad with any finger on it included) - it waits on nothing, and takes the region
+ * on a later sample once the holder lifts. A finger that LANDS on a held region still takes it,
+ * as before. The onset that follows is the ordinary one - `E` again (a no-op on a waiting
+ * contact), then the pin - so the new region sees exactly a press: a button presses, an absolute
+ * fader or pad jumps to the finger, a relative one anchors, a multitouch pad takes its lowest
+ * free slot. A contact that landed on empty plate or a blank (`S[i]` 0 or negative), or on a
+ * region that is On, is never free: On keeps its finger wherever it goes, as before change 18.
+ */
+const HAND_OVER =
+  "local o,n,g=e==4 or e>8,M[N(x,y)],S[i]" +
+  `if not o and n~=g and(g==false or J[g]and J[g][8]>${HAND_OVER_BIT - 33})then ` +
+  "E(s,i)S[i]=false o=n>0 for _,h in pairs(S)do o=o and h~=n end end " +
+  "if o then E(s,i)";
+
+/**
+ * `O` with the hand-over (change 18): emitted only when a region on the surface is Latch Off, so
+ * a surface whose every element is On carries exactly the entry it did (`ENTRY`, or under
+ * multitouch `ENTRY_MULTITOUCH`) - the variant is a text swapped in, as change 11's was.
+ */
+export const HAND_OVER_TEXT = {
+  entry: ENTRY_HEAD + HAND_OVER + ENTRY_ONSET + ENTRY_TAIL,
+  entryMultitouch: ENTRY_HEAD + HAND_OVER + ENTRY_ONSET_MULTITOUCH + ENTRY_TAIL,
+} as const;
+
+/** The entry a surface carries: single-touch or multitouch (change 11), with or without the hand-over (change 18). */
+export function entryText(multitouch: boolean, handOver: boolean): string {
+  if (handOver)
+    return multitouch ? HAND_OVER_TEXT.entryMultitouch : HAND_OVER_TEXT.entry;
+  return multitouch ? ENTRY_MULTITOUCH : ENTRY;
+}
 
 /**
  * `Q(r,f)`: the region painter - every cell of the region's box on layer 2 at the phase `f(x,y)`
@@ -375,14 +435,30 @@ const RECEIVE_HEAD =
   "local t,n,w=v[2],v[3],v[4]if t==128 then t,w=144,0 end " +
   "local q=v[1]+t-176 ";
 
-const RECEIVE_ROWS =
-  "for _,r in pairs(J)do local k=r[5]if k and r[8]<64 then " +
-  "for j,o in pairs(k==4 and{r[8],r[15]or r[8]}or{r[8]})do " +
+// The rows' match and the value's way back, after the loop head (split at change 18 so the
+// hand-over's rows can share it).
+const RECEIVE_MATCH =
   "if o==q and(o>31 or n==r[5+j])then " +
   "local u,d=o//16==2 and n or w,r[13]-r[12]" +
   "local p=d~=0 and glim((u-r[12])*127//d,0,127)or 0 " +
   "if k==3 then r[17]=u~=r[12]and u>0 or nil Q(r,r[17]and function()return 255 end)" +
   "else r[16+j]=k>4 and p or p*127 D(nil,r,18+j,0,p)I[k](nil,0,r)end end end end end end";
+
+const RECEIVE_ROWS =
+  "for _,r in pairs(J)do local k=r[5]if k and r[8]<64 then " +
+  "for j,o in pairs(k==4 and{r[8],r[15]or r[8]}or{r[8]})do " +
+  RECEIVE_MATCH;
+
+/**
+ * `Y`'s rows under the hand-over (change 18): the same, the channel word taken `%512` first - a
+ * Latch Off region's word carries 512 (model.ts `HAND_OVER_BIT`), and `Y` is the one reader that
+ * reads the word whole. A blank's row has no word (`or 0`; it has no kind either, so it is passed
+ * over as before). Swapped in only when a region is Off, so a surface at On carries `Y` as it was.
+ */
+const RECEIVE_ROWS_HAND_OVER =
+  `for _,r in pairs(J)do local k,c=r[5],(r[8]or 0)%${HAND_OVER_BIT} if k and c<64 then ` +
+  "for j,o in pairs(k==4 and{c,r[15]or c}or{c})do " +
+  RECEIVE_MATCH;
 
 /**
  * The surface's Colour input as the receive callback sees it (change 17, answer 1iii): the WIRE
@@ -403,12 +479,12 @@ function colourCall(colour: ColourInputWire): string {
   return `if t==176 and v[1]==${colour.channel} then Z(${index},w)end `;
 }
 
-/** `Y`'s text: the head, the colour input's call when there is one, the rows when any region receives. */
-export function receivePart(receive: ReceiveOptions): string {
+/** `Y`'s text: the head, the colour input's call when there is one, the rows when any region receives - the hand-over's rows when a region is Latch Off (change 18). */
+export function receivePart(receive: ReceiveOptions, handOver = false): string {
   return (
     RECEIVE_HEAD +
     (receive.colour === undefined ? "" : colourCall(receive.colour)) +
-    (receive.rows ? RECEIVE_ROWS : "end")
+    (receive.rows ? (handOver ? RECEIVE_ROWS_HAND_OVER : RECEIVE_ROWS) : "end")
   );
 }
 
@@ -489,12 +565,15 @@ function nameOf(lua: string): string {
  * branches in kind order - the fader's one text once for either orientation - then the receive
  * callback and the colour input (change 17) when `receive` asks for them. Under `multitouch` (a
  * surface with a Touches > 1 pad) the release, the entry and the XY pad are the variant's texts,
- * and the XY branch is always among the parts, as the variant's `R` calls it.
+ * and the XY branch is always among the parts, as the variant's `R` calls it. Under `handOver`
+ * (change 18: a region is Latch Off) the entry is the hand-over's (`entryText`) and `Y`'s rows
+ * the variant that reads the channel word `%512`; nothing else moves.
  */
 export function runtimeParts(
   branches: readonly Branch[],
   multitouch = false,
   receive: ReceiveOptions | undefined = undefined,
+  handOver = false,
 ): RuntimePart[] {
   const wanted: readonly Branch[] = multitouch ? [...branches, "xy"] : branches;
   const ordered = BRANCHES.filter((b) => wanted.includes(b));
@@ -502,14 +581,14 @@ export function runtimeParts(
     multitouch && b === "xy" ? MULTITOUCH_TEXT.xy : BRANCH_TEXT[b];
   const texts = [
     multitouch ? MULTITOUCH_TEXT.release : RELEASE,
-    multitouch ? MULTITOUCH_TEXT.entry : ENTRY,
+    entryText(multitouch, handOver),
     ...(ordered.length > 0 ? [PAINT, SEND] : []),
     ...(ordered.some((b) => b === "fader-v" || b === "fader-h" || b === "xy")
       ? [POSITION]
       : []),
     ...(ordered.includes("button") ? [BUTTON_OFF] : []),
     ...new Set(ordered.map(text)),
-    ...(receive === undefined ? [] : [receivePart(receive)]),
+    ...(receive === undefined ? [] : [receivePart(receive, handOver)]),
     ...(receive?.colour === undefined
       ? []
       : [colourPart(receive.colour.brightness)]),
@@ -558,6 +637,8 @@ export type PackOptions = {
   readonly multitouch?: boolean;
   /** The receive half (change 17): the emitter sets it when a region receives or the colour input is on. */
   readonly receive?: ReceiveOptions;
+  /** The hand-over entry (change 18): the emitter sets it when a region is Latch Off. */
+  readonly handOver?: boolean;
   /**
    * The touch Setup's data half (change 17, under five slots): its head (the marker, `J`, `M`, the
    * contact tables, the paint) and its tail (the pull-ins, the receive assignment, the callback).
@@ -599,6 +680,7 @@ export function packRuntime(
     branches,
     options.multitouch ?? false,
     options.receive,
+    options.handOver ?? false,
   );
 
   const bins: Bin[] = [];

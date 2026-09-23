@@ -209,7 +209,11 @@ export const TOUCHES_MAX = 5;
  * `pressure`), `outputY` and `channelY` an XY pad's Y axis (absent: a
  * controller on the X axis's channel), `receive` MIDI RX (absent: on). A
  * draft written before them reads as a controller on the region's channel
- * with RX on.
+ * with RX on. Change 18 (2026-09-23): `latchTouch` is Latch - On (absent)
+ * keeps a finger on the element it landed on until it lifts, as every element
+ * did before it; `false` lets a sliding finger pass to the element it moves
+ * onto (sandbox/model.ts `latchTouchOf`). It is not the button's `latch`,
+ * which is its Toggle. A draft written before it reads On.
  */
 export type Region = {
   readonly id: string;
@@ -238,6 +242,7 @@ export type Region = {
   readonly outputY?: MidiType;
   readonly channelY?: number;
   readonly receive?: boolean;
+  readonly latchTouch?: boolean;
 };
 
 /**
@@ -325,6 +330,7 @@ export type KindDefaults = {
   readonly outputY?: MidiType;
   readonly channelY?: number;
   readonly receive?: boolean;
+  readonly latchTouch?: boolean;
 };
 
 /** The envelope under hangar.sandbox-defaults.v1: one record per kind that has any. */
@@ -456,6 +462,10 @@ export function isRegion(value: unknown): value is Region {
   if (value.receive !== undefined && typeof value.receive !== "boolean") {
     return false;
   }
+  // Change 18: Latch, absent (On) or a boolean.
+  if (value.latchTouch !== undefined && typeof value.latchTouch !== "boolean") {
+    return false;
+  }
   if (
     value.group !== undefined &&
     !(isInt(value.group) && value.group >= 0 && value.group <= GROUP_MAX)
@@ -579,7 +589,8 @@ export function isKindDefaults(value: unknown): value is KindDefaults {
     oneOf(value.outputY, CONTINUOUS_TYPES) &&
     bool(value.spring) &&
     bool(value.latch) &&
-    bool(value.receive)
+    bool(value.receive) &&
+    bool(value.latchTouch)
   );
 }
 

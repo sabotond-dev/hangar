@@ -7,7 +7,8 @@
 // last slot for runtime parts. A blank (change 10A) is paint only: its row the colour alone, its
 // cells in `M` its index NEGATED. The runtime is runtime.ts's, packed per surface with only the
 // branches its kinds need (the multitouch variant with a Touches > 1 pad, change 11; the receive
-// half with a receiving element or the colour input, change 17). Names `J M`. docs/MIDI.md.
+// half with a receiving element or the colour input, change 17; the hand-over entry with a Latch
+// Off element, whose channel word carries 512, change 18). Names `J M`. docs/MIDI.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { brightnessOf, scaleChannel } from "../catalog/brightness";
@@ -22,6 +23,7 @@ import {
   colourByte,
   colourInputOf,
   flagsOf,
+  hasHandOver,
   hasMultitouch,
   isPaintOnly,
   maxOf,
@@ -81,6 +83,8 @@ export type EmitOptions = {
   readonly branches?: readonly Branch[];
   /** The multitouch variant's parameter (change 11). Default: whether a pad on the surface has more than one finger. */
   readonly multitouch?: boolean;
+  /** The hand-over entry's parameter (change 18). Default: whether a region on the surface is Latch Off. */
+  readonly handOver?: boolean;
   readonly sweepCalls?: number;
   readonly restPhase?: number;
 };
@@ -108,6 +112,8 @@ export type Emitted = {
   readonly branches: readonly Branch[];
   /** True when the runtime is the multitouch variant (change 11). */
   readonly multitouch: boolean;
+  /** True when the runtime's entry is the hand-over's (change 18). */
+  readonly handOver: boolean;
   /** The receive half the runtime carries (change 17), or undefined when nothing receives and the colour input is off. */
   readonly receive: ReceiveOptions | undefined;
   readonly map: CellMap;
@@ -169,7 +175,8 @@ export function regionTail(region: Region): number[] {
  * controller (0 under a pitch bend, change 17: the send's first byte), the seventh the XY pad's
  * second controller (0 under a pitch bend Y axis; its touch count on top, change 11: model.ts
  * `seventhOf`) or the button's radio group, the eighth the CHANNEL WORD (model.ts `channelWord`:
- * the wire channel, the type, the receive bit - a controller that receives is the bare channel),
+ * the wire channel, the type, the receive bit and, change 18, the hand-over bit - a controller
+ * that receives and latches is the bare channel),
  * nine to eleven the colour; every number at its exact width. A blank has no row (`blankRow`).
  */
 export function regionRow(region: Region, brightness: number = 255): number[] {
@@ -281,6 +288,9 @@ export function emitSurface(
   const slots = options.slots ?? 2;
   const branches = options.branches ?? branchesUsed(surface.regions);
   const multitouch = options.multitouch ?? hasMultitouch(surface.regions);
+  const handOver = options.handOver ?? hasHandOver(surface.regions);
+  // The channel words carry the hand-over bit (model.ts `channelWord`); the entry and, with rows
+  // that receive, the receive callback are the variants that read it (runtime.ts).
   const restPhase = options.restPhase ?? DEFAULT_REST_PHASE;
   const sweepCalls = options.sweepCalls ?? DEFAULT_SWEEP_CALLS;
 
@@ -324,6 +334,7 @@ export function emitSurface(
     slots,
     sweepCalls,
     multitouch,
+    handOver,
     receive: receiveOptions,
     setup: slots === 5 ? { head, tail } : undefined,
   });
@@ -339,6 +350,7 @@ export function emitSurface(
     parts: { regionTable, cellMap, paint, pullIn, callback: CALLBACK, receive },
     branches,
     multitouch,
+    handOver,
     receive: receiveOptions,
     map: built.map,
   };
