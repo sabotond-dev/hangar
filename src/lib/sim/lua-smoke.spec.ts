@@ -14214,7 +14214,10 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
    * sent back; another channel, another number, a neighbour's traffic and Receive Off draw nothing;
    * a previous landing's callback is never reached.
    */
-  async function xyCard(id: string): Promise<void> {
+  async function xyCard(
+    id: string,
+    colour: readonly [number, number, number],
+  ): Promise<void> {
     await asShipped(id);
     {
       const { host, sim } = await openPreset(id, {}, { stale: true });
@@ -14234,6 +14237,14 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
         expect(host.midiIn(REPORT, 0, 176, 16, 120)).toBe(true);
         host.midiIn(REPORT, 0, 176, 17, 10);
         expect(comet(sim), "a comet at the received pair").toBeGreaterThan(0);
+        const stops = glcStops(colour[0], colour[1], colour[2], true).max;
+        for (let c = 0; c < 81; c++) {
+          const L = sim.layer(hwOfCell(c), 1);
+          if (L.pha > 0)
+            expect([...L.max], `${id}: the received comet's colour`).toEqual(
+              stops,
+            );
+        }
         expect(host.midi.length, "nothing sent back").toBe(sent);
         expect(host.errors, host.errors.join(" | ")).toEqual([]);
       } finally {
@@ -14286,6 +14297,10 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
   }
 
   it("AURORA: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair, nothing sent back; the first finger's claim is the latch", async () => {
-    await xyCard("aurora");
+    await xyCard("aurora", [255, 170, 34]);
+  }, 60000);
+
+  it("PINWHEEL: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair in the first finger's colour, nothing sent back; the first finger's claim is the latch", async () => {
+    await xyCard("pinwheel", [255, 0, 128]);
   }, 60000);
 });

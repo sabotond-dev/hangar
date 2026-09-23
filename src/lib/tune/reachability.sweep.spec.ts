@@ -452,17 +452,17 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // FOUR FADERS +5, DIAL -54. The literal moves as this comment said it
     // would, and the reason is beside it.
     //
-    // NINE PADS -> AURORA, 260 -> 124, IN CHANGE 17C (2026-09-23, BENCH-2026-09-16.txt section
-    // 17): AURORA is a wrapped preset (ported-midi.ts) and is costed as it goes on the wire - the
-    // send `M`, the two outputs' tokens at their longest literals and the receive appended to its
-    // Setup - 784 of 908 at its dearest colour.
+    // NINE PADS -> PINWHEEL, 260 -> 67, IN CHANGE 17C (2026-09-23, BENCH-2026-09-16.txt section
+    // 17): the wrapped presets (ported-midi.ts) are costed as they go on the wire - the send `M`,
+    // the outputs' tokens at their longest literals and the receive appended to the Setup. AURORA
+    // took the title first at 784 (124 free); PINWHEEL, whose receive draws in a colour, at 841.
     expect(dearestBearing.entry, "the dearest colour-bearing preset").toBe(
-      "aurora",
+      "pinwheel",
     );
     expect(
       EVENT_BUDGET - dearestBearing.worst.used,
-      `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 124`,
-    ).toBe(124);
+      `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 67`,
+    ).toBe(67);
 
     // And the ladder, on the scoped set: seven worst-cost states since change
     // 12b, 2026-09-18 (one per carded preset; tpad's left at plan 12-10 and

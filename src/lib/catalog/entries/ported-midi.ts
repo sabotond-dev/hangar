@@ -236,9 +236,23 @@ const AURORA: PresetMidi = {
   template: xyTemplate("aurora", "K(s.u,s.w,1,252)"),
 };
 
+/**
+ * PINWHEEL (change 17C): each finger paints in its own colour (`K(x,y,1,252,255-i*60,i*60,128)`,
+ * `i` the contact), and the first finger's position is the two outputs. The receive draws the
+ * comet at the held pair in the FIRST finger's colour - contact 0's 255,0,128, the colour a single
+ * finger on the pad draws - so the DAW's position reads as the finger the card sends for.
+ */
+const PINWHEEL: PresetMidi = {
+  knobs: axisKnobs("176", "xCc", "176"),
+  outputs: AXIS_OUTPUTS,
+  supersedes: [],
+  template: xyTemplate("pinwheel", "K(s.u,s.w,1,252,255,0,128)"),
+};
+
 /** The wrapped cards by catalog id. A card joins by one row here; ported.ts reads its knobs and outputs. */
 export const PRESET_MIDI: Readonly<Record<string, PresetMidi>> = {
   aurora: AURORA,
+  pinwheel: PINWHEEL,
 };
 
 /** The selected literal of one output knob: the asked index when it is one, else the entry's default. */
