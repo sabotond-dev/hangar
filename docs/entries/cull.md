@@ -154,3 +154,13 @@ compressScript does not strip them: a trailing comment was measured surviving
 verbatim into the budget. Everything worth saying about this configuration is
 said here, in TypeScript, where it costs nothing.
 ```
+
+## Change 17B, 2026-09-23: no MIDI, and a previous landing's receive cleared (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+CULL sends keystrokes (`gks`), not MIDI, so it declares no output and gains no knob (the rack, the stamp and both
+captured wild records are unmoved: they still land `restored`). Section 17's decision - every card assigns its own
+receive callback or nil, so a previous landing's never survives a Store - is its one change: the Setup closes with
+`self.midirx_cb=nil`. Setup 564 / 565 -> 583 / 584 (defaults / corner; 324 free); no Timer; frames.json and the OG
+image unmoved. **Latch: already latched** - the handler acts on the onset alone (`if e~=4 and e<9 then return end`),
+so a finger that lands on one band and slides across the others rates once. `lua-smoke.spec.ts` "CULL: no MIDI ...":
+one keystroke for a press slid across all five bands, no MIDI, no callback over a previous landing's.

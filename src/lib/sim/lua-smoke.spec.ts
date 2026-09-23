@@ -13089,4 +13089,27 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       host.close();
     }
   }, 60000);
+
+  it("CULL: no MIDI to send or receive - the Setup assigns midirx_cb=nil over a previous landing's, the keystroke unchanged; a tap is onset-only, so a slide rates nothing (already latched)", async () => {
+    const { host } = await openCard("cull", {}, true);
+    try {
+      // A tap on the top band sends its key; a finger that then slides down across the bands
+      // sends nothing more.
+      const x = ledCentre(4, "x");
+      host.touchDown(0, x, ledCentre(0, "y"));
+      host.tick();
+      for (let r = 1; r <= 8; r++) {
+        host.touchMove(0, x, ledCentre(r, "y"));
+        host.tick();
+      }
+      host.touchUp(0, x, ledCentre(8, "y"));
+      host.tick();
+      expect(host.hid.length, "one keystroke for one press").toBe(1);
+      expect(host.midi).toEqual([]);
+      expect(host.midiIn(REPORT, 0, 176, 16, 100), "no callback").toBe(false);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+  }, 60000);
 });

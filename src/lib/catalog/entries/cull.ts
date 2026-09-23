@@ -4,11 +4,13 @@
 // looking at the screen. The pad is a legend: five horizontal bands, one per rating, each with
 // its own COLOUR and its own FILL PATTERN (ZONA_GUI_SPEC.md 7.7 requires state readable without
 // colour). A tap on a band sends its key and flashes the band's lit cells. No Timer, no MIDI, no
-// channel knob. Knobs: @KEY1 (five adjacent usage ids), @DELAY, @FLASH (a divisor of 252), @DIM.
-// Setup 565 of 908 at the all-longest corner (564 at the defaults), no Timer; restsBlack false.
+// channel knob; the Setup assigns `self.midirx_cb=nil` (change 17B: a previous landing's receive
+// callback never survives this one). Knobs: @KEY1 (five adjacent usage ids), @DELAY, @FLASH (a divisor of 252), @DIM.
+// Setup 584 of 908 at the all-longest corner (583 at the defaults), no Timer; restsBlack false.
 // Kind "lua": `sends.showGrid` paints one gridColour and there is no keyboard in `sends`. The
 // fills are a legend you learn once - they distinguish the five ratings, they do not name them.
-// History: docs/entries/cull.md (09-07's measured fills; 09-04's idiom failure at 12, 24, 64).
+// History: docs/entries/cull.md (09-07's measured fills; 09-04's idiom failure at 12, 24, 64;
+// change 17B).
 //
 // MECHANISM
 //   - Five bands over nine rows, split 2,2,1,2,2 from the top (five stars down to one). The band
@@ -62,7 +64,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local M={511,511,341,170,146,257,257,16,16}local C={255,180,0,0,255,80,0,170,255,140,60,255,255,30,0}for n=0,80 do local y=n//9 if(M[y+1]>>n%9)%2>0 then local a=glag(0,n)local i=(y*5+2)//9*3 glc(a,1,C[i+1],C[i+2],C[i+3],1)glc(a,2,C[i+1]*@DIM//6,C[i+2]*@DIM//6,C[i+3]*@DIM//6,1)glp(a,1,0)glp(a,2,255)end end self.touch_cb=function(s,i,e,x,y)if e~=4 and e<9 then return end local b=(y*9//128*5+2)//9 gks(@DELAY,0,2,@KEY1+4-b)for r=0,8 do if(r*5+2)//9==b then for c=0,8 do if(M[r+1]>>c)%2>0 then local a=glag(0,c+r*9)glpfs(a,1,252,256-252//@FLASH,0)glt(a,1,@FLASH)end end end end end";
+  "--[[@cb]]local M={511,511,341,170,146,257,257,16,16}local C={255,180,0,0,255,80,0,170,255,140,60,255,255,30,0}for n=0,80 do local y=n//9 if(M[y+1]>>n%9)%2>0 then local a=glag(0,n)local i=(y*5+2)//9*3 glc(a,1,C[i+1],C[i+2],C[i+3],1)glc(a,2,C[i+1]*@DIM//6,C[i+2]*@DIM//6,C[i+3]*@DIM//6,1)glp(a,1,0)glp(a,2,255)end end self.touch_cb=function(s,i,e,x,y)if e~=4 and e<9 then return end local b=(y*9//128*5+2)//9 gks(@DELAY,0,2,@KEY1+4-b)for r=0,8 do if(r*5+2)//9==b then for c=0,8 do if(M[r+1]>>c)%2>0 then local a=glag(0,c+r*9)glpfs(a,1,252,256-252//@FLASH,0)glt(a,1,@FLASH)end end end end end self.midirx_cb=nil";
 
 const TIMER = "";
 
