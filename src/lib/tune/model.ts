@@ -48,7 +48,7 @@ import {
   type EventWord,
 } from "./copy";
 import type { KnobDescriptor, PresetKnob } from "./knobs.preset";
-import { resolveOutputs, type OutputRole } from "./midi";
+import { MIDI_STATUS, resolveOutputs, type OutputRole } from "./midi";
 import { applyKnob, baseStateFor, resetAll } from "./state";
 import { isControllerNumber, rollable, surpriseIndices } from "./surprise";
 import {
@@ -302,13 +302,36 @@ function knobViews(
   indices: Readonly<Record<string, number>>,
   roles: ReadonlyMap<string, { role: OutputRole; output: string }> = new Map(),
 ): readonly KnobView[] {
+  // Change 17C (17B's question 6, decided): an output's Number is worded by the output's Type. Each
+  // output's Type knob, by output id, so a Number can read the status its Type stands at.
+  const typeKnobOf = new Map<string, KnobDescriptor>();
+  for (const [id, part] of roles) {
+    if (part.role !== "type") continue;
+    const typeKnob = knobs.find((each) => each.id === id);
+    if (typeKnob !== undefined) typeKnobOf.set(part.output, typeKnob);
+  }
   return knobs.map((knob) => {
-    // A MIDI destination over CC numbers reads as an amount whatever kind it was declared under
-    // (change 16, surprise.ts's isControllerNumber): the preset's Send is `note` over 16..80.
-    const kind: KnobKindName =
-      knob.kind === "note" && isControllerNumber(knob) ? "amount" : knob.kind;
     // Change 17: a knob in a MIDI output's block is worded by its role there (Type, Receive).
     const part = roles.get(knob.id);
+    // A MIDI destination over CC numbers reads as an amount whatever kind it was declared under
+    // (change 16, surprise.ts's isControllerNumber): the preset's Send is `note` over 16..80.
+    // An output's Number follows its Type instead (change 17C): a note name under Note, the
+    // number under CC or Program change - and under Pitch bend or Channel pressure, where the
+    // panel hides the row, the number too.
+    const typeKnob =
+      part?.role === "number" ? typeKnobOf.get(part.output) : undefined;
+    const status =
+      typeKnob === undefined
+        ? undefined
+        : typeKnob.options[indices[typeKnob.id]];
+    const kind: KnobKindName =
+      status !== undefined
+        ? status === MIDI_STATUS.note
+          ? "note"
+          : "amount"
+        : knob.kind === "note" && isControllerNumber(knob)
+          ? "amount"
+          : knob.kind;
     // Change 17B (section 17's decision, 2026-09-23): a card's MIDI channel READS 1..16, the
     // DAW's numbering, as the Sandbox's does; the literal written to the wire stays the firmware's
     // 0..15. The words, the readout and the typed field's literals read `shown`; the index is the

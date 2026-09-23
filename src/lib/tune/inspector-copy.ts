@@ -85,6 +85,40 @@ export const RECEIVE_HELPER =
   "When your DAW sends this output’s message, the card takes the value and shows it. Its own messages coming back are ignored.";
 
 /**
+ * An output block's head (change 17C, 17B's question 5 decided): one line saying what the block
+ * holds - its Type, its channel, its Number (gone under a pitch bend or a channel pressure) and
+ * whether it receives - between middle dots, `Note · Ch 1 · C1 · Receive`. The values are the
+ * rows' own words and readouts, so the line and the open block cannot disagree.
+ */
+export const OUTPUT_SUMMARY_CHANNEL = "Ch";
+export const OUTPUT_SUMMARY_RECEIVE = "Receive";
+export const OUTPUT_SUMMARY_NO_RECEIVE = "Receive off";
+export const OUTPUT_SUMMARY_SEPARATOR = " · ";
+
+/** The summary line from the parts an output has; a part it lacks is left out. */
+export function outputSummary(parts: {
+  type?: string;
+  channel?: string;
+  number?: string;
+  receive?: boolean;
+}): string {
+  return [
+    parts.type,
+    parts.channel === undefined
+      ? undefined
+      : `${OUTPUT_SUMMARY_CHANNEL} ${parts.channel}`,
+    parts.number,
+    parts.receive === undefined
+      ? undefined
+      : parts.receive
+        ? OUTPUT_SUMMARY_RECEIVE
+        : OUTPUT_SUMMARY_NO_RECEIVE,
+  ]
+    .filter((part): part is string => part !== undefined && part !== "")
+    .join(OUTPUT_SUMMARY_SEPARATOR);
+}
+
+/**
  * The visible label of a MIDI field: the PDF's word for `cc` and `channel`,
  * the knob's own for everything else - morph's `ccBase` reads `CC base` and
  * a preset's `send` reads `Send`, because the PDF's `CC number` would

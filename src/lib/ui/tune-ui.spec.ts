@@ -39,7 +39,11 @@ import { KNOB_HELD, KNOB_HOLD, SURPRISE_ALL_HELD } from "../tune/copy";
 // The randomiser's scope (13-10, section 7): the predicate the inspector's
 // MIDI partition and the roll share.
 import { isControllerNumber, isMidiDestination } from "../tune/surprise";
-import { UNDO_RANDOMIZE } from "../tune/inspector-copy";
+import {
+  OUTPUT_SUMMARY_SEPARATOR,
+  UNDO_RANDOMIZE,
+  outputSummary,
+} from "../tune/inspector-copy";
 // The swatch's inline colour block (13.1-04, D-08): the toggle's two words
 // are the copy module's, and the closed shape is RENDERED with svelte/server
 // (shell.spec.ts proved it at 13-05, device-ui.spec.ts draws the slot with
@@ -80,6 +84,7 @@ import {
   offeredLine,
 } from "../tune/inspector-copy";
 import { ARC } from "../catalog/entries/arc";
+import { ORBIT } from "../catalog/entries/orbit";
 // The inspector (13-09): the widget rule and its boundary, the copy the
 // inspector renders, and a real tuner for the
 // per-field reset - the model.spec.ts harness in brief. The compile surface
@@ -2623,5 +2628,94 @@ describe("the tuning UI's structural rules", () => {
       expect(region, needle).toContain(needle);
     expect(SAME_CHANNEL).toBe("Same channel for all");
     expect(PER_OUTPUT).toBe("Per output");
+  }, 60000);
+
+  it("the MIDI blocks (change 17C): an output's Number is worded by its Type - a note name under Note, the number under CC - on a real tuner; each block's head is a one-line summary (Type, channel, Number, Receive) in a button that opens and closes its rows, every block folded past four outputs", async () => {
+    // THE SUMMARY LINE, the copy module's builder: the parts an output has, between middle dots.
+    expect(
+      outputSummary({
+        type: "Note",
+        channel: "1",
+        number: "C1",
+        receive: true,
+      }),
+    ).toBe("Note · Ch 1 · C1 · Receive");
+    expect(
+      outputSummary({ type: "Pitch bend", channel: "16", receive: false }),
+    ).toBe("Pitch bend · Ch 16 · Receive off");
+    expect(outputSummary({ type: "CC", channel: "3", number: "74" })).toBe(
+      "CC · Ch 3 · 74",
+    );
+    expect(OUTPUT_SUMMARY_SEPARATOR).toBe(" · ");
+
+    // THE NUMBER BY ITS TYPE, on a real tuner: ORBIT's ring 1 note under Note reads its name,
+    // under CC the controller number; a controller Number (RADAR's X) reads the number under CC.
+    await padReady();
+    const views: TuneView[] = [];
+    const tuner = await buildTuner({
+      entryId: "orbit",
+      onview: (view) => void views.push(view),
+      onpreview: () => undefined,
+      onladder: () => undefined,
+      onover: () => undefined,
+    });
+    try {
+      for (let i = 0; i < 64; i++) await Promise.resolve();
+      const at = (id: string) =>
+        (views.at(-1) as TuneView).knobs.find((k) => k.id === id);
+      const ring = at("note1");
+      expect(ring?.role).toBe("number");
+      expect(at("type1")?.values[at("type1")?.index ?? 0]?.label).toBe("Note");
+      expect(ring?.kind, "a Number under Note is a note").toBe("note");
+      const literal = ORBIT.knobs.find((k) => k.id === "note1")?.values[
+        ring?.index ?? 0
+      ] as string;
+      expect(ring?.readout, "its name").toBe(
+        wordFor("note", literal) as string,
+      );
+      tuner.set("type1", 1);
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+      expect(at("type1")?.values[at("type1")?.index ?? 0]?.label).toBe("CC");
+      expect(at("note1")?.kind, "the same Number under CC").toBe("amount");
+      expect(at("note1")?.readout, "its number").toBe(literal);
+      // Ring 2 is untouched: still a note.
+      expect(at("note2")?.kind).toBe("note");
+    } finally {
+      tuner.destroy();
+    }
+
+    // THE FOLD, in the region's source: the head is a real button with aria-expanded and
+    // aria-controls, the rows are hidden when folded, and the default is four open.
+    const region = code("src/lib/ui/TuningRegion.svelte");
+    for (const needle of [
+      "const OUTPUTS_OPEN_MAX = 4;",
+      "return folds[id] ?? outputViews.length <= OUTPUTS_OPEN_MAX;",
+      'type="button"',
+      'class="fold"',
+      'data-testid="midi-fold"',
+      "aria-expanded={open}",
+      'aria-controls="{foldUid}-{out.id}"',
+      "onclick={() => toggleOutput(out.id)}",
+      'data-testid="midi-summary"',
+      "{summaryOf(out)}",
+      "hidden={!open}",
+      '<polyline points="6,8 10,12 14,8" />',
+      '<polyline points="8,6 12,10 8,14" />',
+    ])
+      expect(region, needle).toContain(needle);
+    // The head sits on the rack's grid (change 16b): the label column, the control column, the
+    // two box columns; 44px; a folded block takes no room.
+    const styles = raw("src/lib/ui/TuningRegion.svelte");
+    expect(styles).toContain(
+      "grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;",
+    );
+    expect(styles).toContain("min-block-size: 44px;");
+    expect(styles).toMatch(/\.fold-rows\[hidden\] \{\s*display: none;/);
+    // How many open on arrival, card by card: STEPS' eight folded, ORBIT's four and FOUR FADERS'
+    // four open.
+    const outputsOf = (id: string) => byId(id)?.outputs?.length ?? 0;
+    expect(outputsOf("steps")).toBeGreaterThan(4);
+    expect(outputsOf("orbit")).toBe(4);
+    expect(outputsOf("faders")).toBe(4);
   }, 60000);
 });

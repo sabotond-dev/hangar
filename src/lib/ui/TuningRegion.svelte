@@ -34,6 +34,7 @@
     MIDI_HELPER,
     OUTPUT_ROLE_LABELS,
     PER_OUTPUT,
+    outputSummary,
     RECEIVE_HELPER as OUTPUT_RECEIVE_HELPER,
     SAME_CHANNEL,
     SAME_CHANNEL_HELPER,
@@ -234,6 +235,48 @@
       noNumber ? undefined : byId(out.knobs.number),
       byId(out.knobs.receive),
     ].filter((k): k is KnobView => k !== undefined);
+  }
+  /**
+   * The output blocks FOLD (change 17C, 17B's question 5 decided): each block's head is a one-line
+   * summary that opens and closes it. A card with more than four outputs arrives with every block
+   * folded (STEPS' eight tracks); four or fewer arrive open (ORBIT's four rings, FOUR FADERS). What
+   * the visitor opened or closed is kept while the card is open and forgotten when it changes.
+   */
+  const OUTPUTS_OPEN_MAX = 4;
+  const foldUid = $props.id();
+  let folds = $state<Record<string, boolean>>({});
+  $effect(() => {
+    void entryId;
+    untrack(() => {
+      folds = {};
+    });
+  });
+  function isOpen(id: string): boolean {
+    return folds[id] ?? outputViews.length <= OUTPUTS_OPEN_MAX;
+  }
+  function toggleOutput(id: string): void {
+    folds = { ...folds, [id]: !isOpen(id) };
+  }
+  /** A block's head line: the rows' own words and readouts (inspector-copy's outputSummary). */
+  function summaryOf(out: OutputView): string {
+    const byId = (id: string | undefined) =>
+      id === undefined ? undefined : knobViews.find((k) => k.id === id);
+    const type = byId(out.knobs.type);
+    const channel = byId(out.knobs.channel);
+    const number = byId(out.knobs.number);
+    const receive = byId(out.knobs.receive);
+    const status = type === undefined ? undefined : statusOf(type);
+    const word = (knob: KnobView | undefined) =>
+      knob === undefined ? undefined : knob.values[knob.index]?.label;
+    return outputSummary({
+      type: word(type),
+      channel: channel?.readout ?? word(channel),
+      number:
+        status === "224" || status === "208"
+          ? undefined
+          : (number?.readout ?? word(number)),
+      receive: receive === undefined ? undefined : word(receive) === "On",
+    });
   }
   /** A Type knob's chosen status byte, read back through its word (the view carries words, not literals, for a worded knob). */
   function statusOf(type: KnobView): string | undefined {
@@ -648,27 +691,53 @@
       />
     {/if}
     {#each outputViews as out (out.id)}
-      <p
-        class="subhead type-micro"
-        data-testid="midi-output"
-        data-output={out.id}
-      >
-        {out.name}
-      </p>
-      {#each blockRows(out) as knob (knob.id)}
-        {#if knob.widget === "words" || knob.widget === "select"}
-          <Knob
-            view={{ ...knob, label: OUTPUT_ROLE_LABELS[knob.role ?? "type"] }}
-            lock={false}
-            held={false}
-            onchange={(index) => changeKnob(knob.id, index)}
-            onreset={() => resetKnob(knob.id)}
-            onhold={() => undefined}
-          />
-        {:else}
-          <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
-        {/if}
-      {/each}
+      {@const open = isOpen(out.id)}
+      <div class="output">
+        <button
+          type="button"
+          class="fold"
+          data-testid="midi-fold"
+          data-output={out.id}
+          aria-expanded={open}
+          aria-controls="{foldUid}-{out.id}"
+          onclick={() => toggleOutput(out.id)}
+        >
+          <span
+            class="fold-name type-micro"
+            data-testid="midi-output"
+            data-output={out.id}>{out.name}</span
+          >
+          <span class="fold-summary" data-testid="midi-summary"
+            >{summaryOf(out)}</span
+          >
+          <svg class="chevron" viewBox="0 0 20 20" aria-hidden="true">
+            {#if open}
+              <polyline points="6,8 10,12 14,8" />
+            {:else}
+              <polyline points="8,6 12,10 8,14" />
+            {/if}
+          </svg>
+        </button>
+        <div class="fold-rows" id="{foldUid}-{out.id}" hidden={!open}>
+          {#each blockRows(out) as knob (knob.id)}
+            {#if knob.widget === "words" || knob.widget === "select"}
+              <Knob
+                view={{
+                  ...knob,
+                  label: OUTPUT_ROLE_LABELS[knob.role ?? "type"],
+                }}
+                lock={false}
+                held={false}
+                onchange={(index) => changeKnob(knob.id, index)}
+                onreset={() => resetKnob(knob.id)}
+                onhold={() => undefined}
+              />
+            {:else}
+              <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
+            {/if}
+          {/each}
+        </div>
+      </div>
     {/each}
     {#each looseMidi as knob (knob.id)}
       <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
@@ -801,12 +870,95 @@
     border-block-start: 1px solid var(--color-divider);
   }
 
-  /* A MIDI output's sub-head (change 17): the eyebrow face in ink at the row's 4px start, a line of its own above its rows - the hairline rhythm's, no rule of its own; the Sandbox's axis blocks share the shape. */
-  .subhead {
+  /* A MIDI output's block (change 17C): its head, then its rows; a container, so the head queries its own width as a knob row does. */
+  .output {
+    container-type: inline-size;
+  }
+
+  /*
+    The head: a full-width button on the rack's grid (change 16b) - the output's name in the label
+    column (the eyebrow face, ink), the one-line summary in the control column (the house mono,
+    quiet), a chevron of straight lines in the last box column - 44px, square, no fill.
+  */
+  .fold {
+    appearance: none;
+    display: grid;
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
+    grid-template-areas: "name summary . chevron";
+    column-gap: 8px;
+    align-items: center;
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: 44px;
     margin: 0;
-    padding-block: 16px 8px;
-    padding-inline-start: 4px;
+    padding: 0 0 0 4px;
+    border: 0;
+    background: transparent;
+    font: inherit;
     color: var(--color-ink);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .fold-name {
+    grid-area: name;
+    min-inline-size: 0;
+  }
+
+  .fold-summary {
+    grid-area: summary;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-ink-quiet);
+    transition: color 140ms ease-out;
+  }
+
+  .fold:hover .fold-summary,
+  .fold:focus-visible .fold-summary {
+    color: var(--color-ink);
+  }
+
+  .chevron {
+    grid-area: chevron;
+    justify-self: center;
+    inline-size: 20px;
+    block-size: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+  }
+
+  /* The rows under an open head, each with the rack's hairline above it; a folded block takes no room. */
+  .fold-rows {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+  }
+
+  .fold-rows[hidden] {
+    display: none;
+  }
+
+  .fold-rows > :global(*) {
+    border-block-start: 1px solid var(--color-divider);
+  }
+
+  /* Under 380px of its own container the name takes a line of its own, the summary the next, the chevron beside both. */
+  @container (width < 380px) {
+    .fold {
+      grid-template-columns: minmax(0, 1fr) 44px;
+      grid-template-areas:
+        "name chevron"
+        "summary chevron";
+      row-gap: 2px;
+      padding-block: 6px;
+    }
   }
 
   /* Page 5's outlined buttons after the last section: equal cells 8px apart, the pinned actions' floor (Inspector.svelte), so the two rows wrap alike; wrap, never scroll (D-11). */
@@ -867,7 +1019,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .action {
+    .action,
+    .fold-summary {
       transition: none;
     }
   }

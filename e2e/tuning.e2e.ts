@@ -655,6 +655,63 @@ test.describe("turning a knob", () => {
     expect(consoleErrors).toEqual([]);
   });
 
+  test("the MIDI blocks fold (change 17C): STEPS' eight track blocks arrive folded, each head a one-line summary; a click, Enter and Space open and close one (aria-expanded), and its Number reads a note name under Note and the number under CC; ORBIT's four arrive open", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    await openPanel(page, "/playground/steps/", "steps");
+    const grid = page.getByTestId("midi-grid");
+    const heads = grid.getByTestId("midi-fold");
+    await expect(heads).toHaveCount(8);
+    for (let i = 0; i < 8; i += 1)
+      await expect(heads.nth(i)).toHaveAttribute("aria-expanded", "false");
+    const first = heads.first();
+    await expect(first).toHaveAttribute("data-output", "track1");
+    // The head: the name, then Type, channel, Number and Receive between middle dots.
+    await expect(first.getByTestId("midi-output")).toHaveText("Track 1");
+    await expect(first.getByTestId("midi-summary")).toHaveText(
+      /^Note · Ch 10 · [A-G]#?-?[0-9] · Receive$/,
+    );
+    const note = page.getByTestId("midi-field-note");
+    await expect(note, "a folded block's rows take no room").toBeHidden();
+    const box = await first.boundingBox();
+    expect(box?.height ?? 0, "the head is a 44px row").toBeGreaterThanOrEqual(
+      44,
+    );
+    // A click opens it.
+    await first.click();
+    await expect(first).toHaveAttribute("aria-expanded", "true");
+    await expect(note).toBeVisible();
+    await expect(page.getByTestId("midi-field-note-input")).toHaveValue(
+      /^[A-G]#?-?[0-9]$/,
+    );
+    // Under CC the same Number reads the controller number, and the head says so.
+    await page.getByTestId("knob-type1").getByText("CC").click();
+    await recomputed(page);
+    await expect(page.getByTestId("midi-field-note-input")).toHaveValue("36");
+    await expect(first.getByTestId("midi-summary")).toHaveText(
+      "CC · Ch 10 · 36 · Receive",
+    );
+    // Enter closes it, Space opens it: the head is a real button.
+    await first.focus();
+    await page.keyboard.press("Enter");
+    await expect(first).toHaveAttribute("aria-expanded", "false");
+    await expect(note).toBeHidden();
+    await page.keyboard.press("Space");
+    await expect(first).toHaveAttribute("aria-expanded", "true");
+    await expect(note).toBeVisible();
+    // The others stayed folded.
+    await expect(heads.nth(1)).toHaveAttribute("aria-expanded", "false");
+
+    // ORBIT: four outputs, every block open on arrival.
+    await openPanel(page, "/playground/orbit/", "orbit");
+    const rings = page.getByTestId("midi-grid").getByTestId("midi-fold");
+    await expect(rings).toHaveCount(4);
+    for (let i = 0; i < 4; i += 1)
+      await expect(rings.nth(i)).toHaveAttribute("aria-expanded", "true");
+    expect(consoleErrors).toEqual([]);
+  });
+
   test("the two measured numbers differ and both change on a knob turn", async ({
     page,
   }) => {

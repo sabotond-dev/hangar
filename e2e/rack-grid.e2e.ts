@@ -71,7 +71,7 @@ function overflowOf(page: Page, testId: string) {
   }, testId);
 }
 
-/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only - a MIDI output's sub-head (change 17) starts a group of its own; by test id, or by label. */
+/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only - a MIDI output's block (change 17C: its head and its rows, once a sub-head) is a group of its own; by test id, or by label. */
 function sectionsOf(page: Page, byLabel = false): Promise<string[][]> {
   return page.evaluate((labels) => {
     const name = (row: Element) =>
@@ -88,6 +88,12 @@ function sectionsOf(page: Page, byLabel = false): Promise<string[][]> {
       for (const child of Array.from(rows.children)) {
         if (child.classList.contains("subhead")) {
           groups.push(group);
+          group = [];
+          continue;
+        }
+        if (child.classList.contains("output")) {
+          groups.push(group);
+          groups.push(Array.from(child.querySelectorAll(".row")).map(name));
           group = [];
           continue;
         }
@@ -245,6 +251,35 @@ test.describe("the rack's grid", () => {
           pitches[0],
           "a stacked pitch is taller than the control and its hairline",
         ).toBeGreaterThan(45);
+      }
+
+      // THE OUTPUT BLOCK'S HEAD (change 17C): a full-width button on the same grid - its summary
+      // starts at the control column's left edge, the head is 44px tall and spans the row.
+      const head = await page
+        .getByTestId("midi-fold")
+        .first()
+        .evaluate((el) => {
+          const b = el.getBoundingClientRect();
+          const summary = el
+            .querySelector("[data-testid='midi-summary']")
+            ?.getBoundingClientRect();
+          return {
+            x: b.x,
+            r: b.x + b.width,
+            h: b.height,
+            summaryX: summary?.x ?? -1,
+          };
+        });
+      expect(head.h, `the head is ${head.h}px tall`).toBeGreaterThanOrEqual(44);
+      expect(
+        near(head.r, rows[rows.length - 1].row.r),
+        "the head spans the row",
+      ).toBe(true);
+      if (width >= 1440) {
+        expect(
+          near(head.summaryX, first.control.x),
+          `the summary starts at ${head.summaryX}, the control column at ${first.control.x}`,
+        ).toBe(true);
       }
 
       // THE ACTION BUTTONS: equal cells, 44 tall.
