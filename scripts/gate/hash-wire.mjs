@@ -64,6 +64,7 @@ const constants = await imp("src/lib/protocol/constants.ts");
 const land = await imp("src/lib/sandbox/land.ts");
 const emit = await imp("src/lib/sandbox/emit.ts");
 const cost = await imp("src/lib/sandbox/cost.ts");
+const midi = await imp("src/lib/tune/midi.ts");
 const fixtures = SANDBOX
   ? (await import("./sandbox-fixtures.mjs")).SANDBOX_FIXTURES
   : {};
@@ -145,11 +146,23 @@ for (const entry of luaEntries) {
     // as it was, so no other record moves; every single-knob position is still hashed alone
     // above, and the substitution is pure literal arithmetic (lua-entries.sweep.spec.ts's
     // separability identity), so nothing a sampled knob does is hidden by the sample.
+    // AND PAST ONE MILLION SAMPLED STATES (change 17B, 2026-09-23): a card's MIDI outputs add
+    // up to thirty-two knobs (STEPS' eight tracks), and three positions each is 3^40 states. When
+    // the three-position sample itself passes the ceiling, every knob an output names is held at
+    // its default - each is hashed at every position alone above, and the separability identity
+    // is the licence, as for the sample. An entry whose sample stays under the ceiling (ARC's 576)
+    // is hashed exactly as the rule above says; ORBIT's ring notes are its outputs' Numbers now and
+    // are held with them (629,856 states -> 3,888).
     const full = entry.knobs.reduce((n, k) => n * k.values.length, 1);
+    const three = (k) => [...new Set([0, k.default, k.values.length - 1])];
+    const sampledFull = entry.knobs.reduce((n, k) => n * three(k).length, 1);
+    const outputs = midi.roleOfKnob(entry);
     const sampled = entry.knobs.map((k) =>
-      full > 1000000
-        ? [...new Set([0, k.default, k.values.length - 1])]
-        : k.values.map((_, i) => i),
+      full <= 1000000
+        ? k.values.map((_, i) => i)
+        : sampledFull > 1000000 && outputs.has(k.id)
+          ? [k.default]
+          : three(k),
     );
     const n = product(sampled, (idx) => {
       const knobs = {};

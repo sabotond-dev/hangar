@@ -8,6 +8,9 @@
 // the Lua half 276,160 -> 234,784 (Pass A 50,464 + Pass B 184,320: the lattice is format `w`'s
 // CAPACITY, 4,096 x 45 colour knobs, asserted through `readLuaColourPayload`). The Lua half getting
 // cheaper is the check that the passes were summed, not multiplied.
+// Change 17B (2026-09-23): the nineteen cards' MIDI output knobs are walked one at a time in Pass C
+// beside the wide knobs rather than cross-producted in Pass A (STEPS alone would be 2^16 x 16^8); the
+// Lua half is Pass A 3,091 + Pass B 139,264 + Pass C 5,401 = 147,756.
 // Decided at 05-05 / 10-08; see .planning/phases/10-redesign/10-08-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -16,6 +19,7 @@ import { STAMP_ALPHABET } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "../catalog";
 import { STAMP_OPTION_CEILING, STAMP_WIDE_CEILING } from "../tune/knobs.lua";
 import { COLOUR_LATTICE_SIZE } from "../tune/knobs.preset";
+import { roleOfKnob } from "../tune/midi";
 import type { KnobDescriptor } from "../tune/knobs.preset";
 import {
   COLOUR_FIELD_CHARS,
@@ -93,9 +97,35 @@ function tunable(preview: CatalogEntry["preview"]): CatalogEntry[] {
 const isWide = (knob: KnobDescriptor): boolean =>
   !isColour(knob) && knob.options.length > STAMP_OPTION_CEILING;
 
-/** The knobs Pass A cross-products: every non-colour knob that is not wide. */
-const narrow = (knobs: readonly KnobDescriptor[]): readonly KnobDescriptor[] =>
-  knobs.filter((knob) => !isColour(knob) && !isWide(knob));
+/**
+ * The knobs a MIDI output names (change 17B): every card's Type, Channel, Number and Receive. They
+ * join the wide knobs on the WALKED side - held at their defaults in Pass A, every position walked
+ * in Pass C - because nineteen cards' outputs cross-producted (STEPS alone: 2^8 types x 2^8
+ * receives x 16^8 channels) is a space no sweep finishes, and a field's encoding is per knob (the
+ * separability the stamp's fixed layout gives), which is the licence the wide knobs already use.
+ */
+const outputKnobIds = (entry?: CatalogEntry): ReadonlySet<string> =>
+  entry === undefined ? new Set() : new Set(roleOfKnob(entry).keys());
+
+/** The knobs Pass A cross-products: every non-colour knob that is not wide and no output's. */
+const narrow = (
+  knobs: readonly KnobDescriptor[],
+  entry?: CatalogEntry,
+): readonly KnobDescriptor[] => {
+  const outputs = outputKnobIds(entry);
+  return knobs.filter(
+    (knob) => !isColour(knob) && !isWide(knob) && !outputs.has(knob.id),
+  );
+};
+
+/** The knobs Pass C walks one position at a time: the wide ones and, since change 17B, the outputs'. */
+const walkedKnobs = (
+  knobs: readonly KnobDescriptor[],
+  entry?: CatalogEntry,
+): readonly KnobDescriptor[] => {
+  const outputs = outputKnobIds(entry);
+  return knobs.filter((knob) => isWide(knob) || outputs.has(knob.id));
+};
 
 const wideKnobs = (
   knobs: readonly KnobDescriptor[],
@@ -109,21 +139,27 @@ const wideKnobs = (
  * encoding is per knob (the separability the stamp's fixed layout gives), so
  * nothing a wide knob does is hidden by the split.
  */
-function* passA(knobs: readonly KnobDescriptor[]): Generator<Indices> {
+function* passA(
+  knobs: readonly KnobDescriptor[],
+  entry?: CatalogEntry,
+): Generator<Indices> {
   const pinned = {
     ...defaultsOf(colourKnobs(knobs)),
-    ...defaultsOf(wideKnobs(knobs)),
+    ...defaultsOf(walkedKnobs(knobs, entry)),
   };
-  for (const vector of vectors(narrow(knobs))) {
+  for (const vector of vectors(narrow(knobs, entry))) {
     yield { ...vector, ...pinned };
   }
 }
 
-/** Pass C: every position of every wide knob, every other knob at its default; then the all-wide-last corner. */
-function* passC(knobs: readonly KnobDescriptor[]): Generator<Indices> {
+/** Pass C: every position of every wide knob and output knob, every other knob at its default; then the all-wide-last corner. */
+function* passC(
+  knobs: readonly KnobDescriptor[],
+  entry?: CatalogEntry,
+): Generator<Indices> {
   const defaults = defaultsOf(knobs);
   const wide = wideKnobs(knobs);
-  for (const knob of wide) {
+  for (const knob of walkedKnobs(knobs, entry)) {
     for (let at = 0; at < knob.options.length; at += 1) {
       yield { ...defaults, [knob.id]: at };
     }
@@ -154,7 +190,10 @@ function* passB(knobs: readonly KnobDescriptor[]): Generator<Indices> {
  */
 function roundTrip(
   entries: readonly CatalogEntry[],
-  pass: (knobs: readonly KnobDescriptor[]) => Generator<Indices>,
+  pass: (
+    knobs: readonly KnobDescriptor[],
+    entry: CatalogEntry,
+  ) => Generator<Indices>,
   onPayload: (
     entry: CatalogEntry,
     knobs: readonly KnobDescriptor[],
@@ -164,7 +203,7 @@ function roundTrip(
   let examined = 0;
   for (const entry of entries) {
     const knobs = stampKnobs(entry);
-    for (const indices of pass(knobs)) {
+    for (const indices of pass(knobs, entry)) {
       const payload = encodeFor(entry, indices);
       if (atDefaults(knobs, indices)) {
         expect(
@@ -401,7 +440,7 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // PASS A. Every narrow non-colour knob cross-producted, colour and wide
     // knobs at their defaults, through the real encoder and the real decoder.
     const expectedA = entries.reduce(
-      (n, entry) => n + sizeOf(narrow(stampKnobs(entry))),
+      (n, entry) => n + sizeOf(narrow(stampKnobs(entry), entry)),
       0,
     );
     const started = performance.now();
@@ -489,7 +528,10 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       const wideOnes = wideKnobs(stampKnobs(entry));
       return (
         n +
-        wideOnes.reduce((m, knob) => m + knob.options.length, 0) +
+        walkedKnobs(stampKnobs(entry), entry).reduce(
+          (m, knob) => m + knob.options.length,
+          0,
+        ) +
         (wideOnes.length > 1 ? 1 : 0)
       );
     }, 0);
@@ -504,9 +546,9 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       const knobs = stampKnobs(entry);
       const colours = colourKnobs(knobs).length;
       say(
-        `  ${entry.id.padEnd(10)} passA ${String(sizeOf(narrow(knobs))).padStart(6)}` +
+        `  ${entry.id.padEnd(10)} passA ${String(sizeOf(narrow(knobs, entry))).padStart(6)}` +
           `  passB ${String(colours * COLOUR_LATTICE_SIZE).padStart(6)}` +
-          `  passC ${String(wideKnobs(knobs).reduce((m, k) => m + k.options.length, 0) + (wideKnobs(knobs).length > 1 ? 1 : 0)).padStart(4)}` +
+          `  passC ${String(walkedKnobs(knobs, entry).reduce((m, k) => m + k.options.length, 0) + (wideKnobs(knobs).length > 1 ? 1 : 0)).padStart(4)}` +
           `  format ${colours > 0 ? "w" : "x"}` +
           `  payload ${colours > 0 ? luaColourPayloadLength(knobs) : luaPayloadLength(knobs)} characters`,
       );
