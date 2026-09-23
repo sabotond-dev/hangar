@@ -140,8 +140,11 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 45 -> 46 the same day (change 17C): NINE PADS rebuilt by hand - the latch, the
  * fast tap, the receive and the watchdog - five clauses (a)-(e).
+ *
+ * 46 -> 47 the same day (change 17C's docs): the five wrapped presets' outputs and
+ * receive - four clauses (a)-(d).
  */
-const ROW_COUNT = 46;
+const ROW_COUNT = 47;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

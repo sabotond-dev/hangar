@@ -7842,3 +7842,116 @@ than applying Latch to the other members. (5) Change 18's encoding measure moved
 the cheapest on eight and sixteen elements and no longer on page 3 (the keyed field 2 less) or page 3 with every option
 (the flag bit 5 less); not re-encoded. (6) 17B's gate `--after change-17b` ran while my edits were uncommitted in the
 tree; its sandbox set and quick figures include them.
+
+## 2026-09-23 change 17C - the seven ported presets' MIDI outputs, their MIDI RX and the latch; the Number worded by its Type, the output blocks folding
+
+`BENCH-2026-09-16.txt` section 17 (the per-output model, `docs/MIDI.md`) and section 18 (latch: a contact keeps the
+control it landed on). Part 17C: AURORA, PINWHEEL, STARFIELD, JOYSTICK, NINE PADS, FOUR FADERS and DIAL - the cards
+the vendored compiler produces from a `PadState` - one commit each, and 17B's two decided panel fixes. No push, no
+device, no deploy; `src/vendor/`, `sequence.ts`, the manifest, `pad-sim.ts`, `firmware-oracle.spec.ts`, ARC, the
+nineteen 17B cards, the Sandbox and `library.ts` untouched. Change 18b (the Sandbox, another executor) committed its
+docs (`50abeba`) in the same tree meanwhile; nothing of it is 17C's.
+
+Commits: `cfccb51` feat(tune) a wrapped preset's MIDI outputs - the wrap (`entries/ported-midi.ts`), the stamp, the
+model, the gate and the sweeps - with AURORA the first; `3499868` PINWHEEL; `3a29228` STARFIELD; `e51b5f0` JOYSTICK;
+`a8feff5` DIAL (and the ladder restored on a wrapped card, the rewrite held back as a reserve); `cac5061` FOUR FADERS
+rebuilt by hand; `4ef97cb` NINE PADS rebuilt by hand; `9b08a4a` feat(tune) the Number by its Type and the folding
+blocks; `3d3d9da` test(ui) the summary is the sixth `--font-mono` use; `6f35816` fix(tune) the summary spans the reset
+column (found on the screenshots); `ebfbfac` chore(gate) `QUICK_FILES` 97, `QUICK_TESTS` 1072; then this section,
+`docs/MIDI.md` section 8, `docs/TUNING-REVIEW.md`'s seven tables, `docs/entries/faders.md` and `ninepads.md` (new),
+audition row 47 and the cost rows, the Done paragraph "17C" under section 17 and a line under section 18, and the gate
+records `gate/change-17c.*` (before, at `e5a4578`) and `gate/change-17c-after.*` (at `ebfbfac`).
+
+**The routes.** Five cards WRAPPED on HANGAR's side and still `padsim` (on the front door's ring): AURORA, PINWHEEL,
+STARFIELD, JOYSTICK, DIAL - their only change is what their sends are and a receive, so the rewrite is exact and the
+PadSim preview stays honest (the picture is the compiled preset's under every gesture; a compiler preview keeps no
+MIDI log; no MIDI reaches any preview; all five were already latched). Two REBUILT as hand-authored Lua cards (RADAR's
+route, 12b): FOUR FADERS and NINE PADS - their fix is the latch, which the vendored PadSim cannot show, so a wrapped
+preview would have kept the fault on the page. The ring is five: Aurora, Pinwheel, Starfield, Joystick, Dial.
+
+**What the suites prove, new and moved.**
+
+- `ported-midi.spec.ts` (new, 2): the rewrite on every compiler knob state each wrapped card can reach - the
+  non-colour product, the colour at the sweep's 27 lattice literals and its own - at the outputs' defaults and dearest
+  literals: each find exact (a miss throws `WrapMissError`), `M`'s the one `gms(` left, no token left, the receive
+  assigned (from the Setup, or the Timer it pulls in), canonical under the pinned minifier on the product's first and
+  last state; a moved send throws; a superseded knob's taker keeps its rungs first and its default.
+- `lua-smoke.spec.ts` +7, "the ported presets' MIDI outputs, MIDI RX and latch (change 17C, ...)": a wrapped card
+  and the shelf preset compiled in the same VM under one gesture (a press, a drag, a lift, a full turn, a fast tap):
+  the same frames at every step and, at the outputs' defaults, the same messages; each output's wire per type (a
+  controller, `0, v` a pitch bend, `v, 0` a pressure), channel and number; the receive per the decided meaning
+  (AURORA / STARFIELD the comet at the held pair, PINWHEEL in the first finger's colour, JOYSTICK the parked dot, DIAL
+  absolute the level the next turn continues from, relative `nil`), a mismatched channel / number / neighbour and
+  Receive Off ignored, nothing sent back, a previous landing's callback never reached; JOYSTICK's rests by type
+  (a bend rests at 64 whatever On lift says) and On lift Off sending none. FOUR FADERS and NINE PADS against their
+  shelf presets in the VM: the frames and the wire equal under every gesture that stays on a control (NINE PADS at
+  both grids and all four scales); the slide - the card holds its fader / pad, the shelf preset handed over; NINE PADS'
+  fast tap plays (on and off in one callback) where the shelf sent nothing; its watchdog releases a silent pad and
+  lapses; no Timer armed at rest on either; the receive paints a fader's bar / lights a pad. The residue probe allows
+  FOUR FADERS' fader columns (absolute faders hold their level, CONSOLE's allowance). The shared gesture gained a full
+  turn around the centre (DIAL's).
+- `tune-ui.spec.ts` +1: `outputSummary`'s line, the Number read by its Type on ORBIT's real tuner (a note name under
+  Note, 36 under CC), the fold in the region's source (a button, `aria-expanded`, `aria-controls`, `hidden`, four open);
+  the widget split 253 -> 301 knobs, DIAL's MIDI destinations its output's four. `instrument.spec.ts`: the summary is
+  the sixth `--font-mono` use. `e2e/tuning.e2e.ts` +1: STEPS' eight blocks folded, a click / Enter / Space, the Number
+  under Note and CC and the head saying so, ORBIT's four open. `e2e/rack-grid.e2e.ts`: an output block is a pitch
+  group of its own, and its head sits on the grid (the summary at the control column's edge, 44 px, the row's width).
+- Moved with the cards: `catalog.spec.ts` (a preset entry's knobs are exactly its outputs', every superseded id a
+  shelf knob; five carded, `tpad radar faders ninepads` not); `brightness.spec.ts` (the wrapped strings' colour sites;
+  five presets); `frames.spec.ts` (five cross-checked); `wire-pin.spec.ts` (the published strings are the compiled pair
+  through the rewrite); `model.spec.ts` and `ladder.spec.ts` (AURORA's meters and DIAL's ladder through the rewrite);
+  `surprise.spec.ts` (202 MIDI knobs excluded, 23 entries); `state.spec.ts` (NINE PADS' sends sheet from the shelf);
+  `colour-picker.spec.ts` (four lattice knobs; the guard's budget re-measured on PINWHEEL, 67 free); `knobs.lua.spec.ts`
+  (the wide list + FOUR FADERS' four, NINE PADS' one and the wrapped presets' nine); `front-door.spec.ts` (the floor
+  five); `audition.spec.ts` rows 44 -> 47; `stamp-roundtrip.sweep.spec.ts` (the compiler pass walks the outputs in Pass
+  C: 93 + 16,384 + 1,345 = 17,822; the Lua half 152,606); `reachability.sweep.spec.ts` (the wire costed at the
+  outputs' dearest literals; the dearest colour-bearing preset PINWHEEL, 841, 67 free; 16,477 states).
+- `scripts/gate/hash-wire.mjs`: a wrapped preset's `P/` records through the same `presetWire`, each output knob walked
+  alone and the outputs' corner; `--full` completes (17B's `29488c7`), in seconds.
+
+**Budgets, before -> after** (characters under the pinned `compressScript` after `initLuaFormatter()`, the RGB444
+picker corner and every output knob at its longest literal; Setup / Timer): AURORA 375 / 55 -> 784 / 55; PINWHEEL
+422 / 55 -> 841 / 55; STARFIELD 368 / 55 -> 777 / 55; JOYSTICK 501 / 24 -> 622 / 445 (its receive in the Timer, pulled
+in: the Setup with it measured 942); DIAL 652 / 55 -> 904 / 55 (the tightest, 4 free, absolute and receiving); FOUR
+FADERS 528 / 24 -> 765 / 300 (the receive in the Timer: 953 with it in the Setup); NINE PADS 651 / 163 -> 752 / 764 (the
+grid and the receive in the Timer: 1,188 in one Setup). No system slot and no library helper; `library.ts` untouched.
+
+**Screenshots** (the scratchpad `shots/c17/`, wrangler dev on 4174 stopped by port through PowerShell, 5173
+untouched): STEPS, ORBIT, FOUR FADERS and NINE PADS at 1440 x 900, 1280 x 720 and 393 x 852, each with its MIDI section
+scrolled into view and a `-midi` cut of the whole section. Seen: STEPS' eight heads folded, each `Note · Ch 10 · C2 ·
+Receive` in the mono, a right-pointing chevron; ORBIT's four and FOUR FADERS' four open with a down chevron; NINE PADS'
+Number reading C2 under Note; at 393 (under 380 of container) the name above the summary, the chevron beside both.
+Fixed on seeing them: at 1440 the summary sat in the control column alone and cut STEPS' `C#2 · Receive` to `Rec…` -
+it now spans the reset column too (`6f35816`).
+
+**Counts, carried + delta** (carried = the tree at my start, `e5a4578`): quick 96 / 1062 + 1 todo -> **97 / 1072 + 1
+todo** (+1 file, +10: ported-midi 2, lua-smoke 7, tune-ui 1), green twice at `--maxWorkers=2` and in the gate's quick
+term; `QUICK_FILES` 96 -> **97**, `QUICK_TESTS` 1062 -> **1072**. Check 678 -> **682** files, 0 errors, 0 warnings;
+lint clean; e2e titles / runs 103 / 118 -> **104 / 119**; audition rows 44 -> **47**; utilities **44 -> 44** (0
+disappeared, 0 appeared); catalog **27** (five presets, twenty-two Lua); testids 345 -> **347** (`midi-fold`,
+`midi-summary`); copy exports +5 (`outputSummary`, `OUTPUT_SUMMARY_CHANNEL`, `OUTPUT_SUMMARY_RECEIVE`,
+`OUTPUT_SUMMARY_NO_RECEIVE`, `OUTPUT_SUMMARY_SEPARATOR`); SCOPED CSS `b8281684…` -> `d514ae96…` by name (`.subhead` out;
+`.output`, `.fold`, `.fold-name`, `.fold-summary` and its hover / focus rule, `.chevron`, `.fold-rows`,
+`.fold-rows[hidden]`, `.fold-rows > *`, the head's container rule and the reduced-motion list in); `frames.json`
+`290ff266…`, the OG images (27 files, `9becd682…`) and the four fixtures **equal**; the sweep **4 / 19**.
+
+**The gate** (`--before change-17c` at `e5a4578`, change 18b's docs uncommitted in the tree; `--after change-17c
+--against change-17c --check 682` at `ebfbfac`, the tree clean): the wire set `9d5de31f…` -> `e9534dba…`, the full
+`5fcce9e9…` -> `98a51842…`, moved by the seven cards' records alone - `P/aurora`, `P/pinwheel`, `P/starfield`,
+`P/joystick`, `P/dial` (the rewrite, and the output knobs walked; the superseded knobs' walks gone), `P/faders` and
+`P/ninepads` out, `E/faders` and `E/ninepads` in; the library, the defaults, every other entry and ARC unmoved; the
+Sandbox set `51e5da18…` **equal**. The script exits 1 at the wire by design; every later term is compared above.
+
+**Chunks** by files on the gate's build at `ebfbfac`: c3 **28** (27 + the fold walk; a first run lost its server
+mid-run - 25 refused connections, the Sandbox's grid rows among them - and passed whole alone on a fresh server), c4
+**25**, c2 **22** (the ring moved; no hydration flake this time), c1 **33**.
+
+**Departures from the brief:** (1) the wrap's machinery went into AURORA's commit (`cfccb51`) rather than a commit
+of its own, and DIAL's (`a8feff5`) restored the ladder on a wrapped card that `cfccb51` had skipped - DIAL is the specs'
+over-budget fixture under a reserve; (2) three commits after the panel commit (`3d3d9da` the mono list, `6f35816` the
+summary span and a stale title, `ebfbfac` the gate counts); (3) JOYSTICK's Bend left the rack (superseded by the two
+Types) where the brief named Send / CC rungs only; (4) NINE PADS' fast tap plays - a change to the defaults' wire the
+brief did not ask for, a recorded BOTOR finding fixed; (5) NINE PADS' latch overrules the compiler's stated "legato
+for free" (the brief's "unless it is plainly the design"), on CHORUS's precedent; (6) `view.ts` words the chromatic
+twelve as a degree list; `brightness.ts` declares NINE PADS' palette; `e2e/rack-grid.e2e.ts` groups an output block.
+STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.

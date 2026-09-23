@@ -3925,6 +3925,92 @@ name under CC - word it by the Type? (7) WHEELS' pitch wheel: fourteen bits unde
 rule? (8) The library's `A` has no caller now - drop it at the next library change (every card's system records
 move)?
 
+**Done - change 17C, 2026-09-23 (the seven ported presets and the two panel fixes; nothing asked, every decision
+recorded).** One commit per card, the panel fixes their own, no push, no device, no deploy: `cfccb51` feat(tune) the
+wrap (`src/lib/catalog/entries/ported-midi.ts`), the stamp, the model, the gate and the sweeps, AURORA the first;
+`3499868` PINWHEEL; `3a29228` STARFIELD; `e51b5f0` JOYSTICK; `a8feff5` DIAL (and the ladder restored on a wrapped
+card); `cac5061` FOUR FADERS rebuilt by hand; `4ef97cb` NINE PADS rebuilt by hand; `9b08a4a` feat(tune) the Number by
+its Type and the folding blocks; `3d3d9da` test(ui) the sixth mono use; `6f35816` fix(tune) the summary spans the
+reset column; `ebfbfac` chore(gate) `QUICK_FILES` 97, `QUICK_TESTS` 1072; then this paragraph with `docs/MIDI.md`
+section 8, `docs/TESTING.md`'s "2026-09-23 change 17C", the seven tables of `docs/TUNING-REVIEW.md`,
+`docs/entries/faders.md` and `docs/entries/ninepads.md` (new), audition rows 45-47 and the cost rows, and the gate
+records `gate/change-17c.*` (before, at `e5a4578`) and `gate/change-17c-after.*` (at `ebfbfac`).
+
+| Card | Route | Outputs (kind) | Types | Receive, decided | Latch | Setup / Timer (corner), before -> after | Ring |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| AURORA | (a) wrapped | X axis, Y axis (continuous) | CC, PB, pressure | the library comet drawn at the held pair | already (the first finger's claim) | 375 / 55 -> 784 / 55 | stays |
+| PINWHEEL | (a) wrapped | X axis, Y axis (continuous) | CC, PB, pressure | the comet at the held pair in the first finger's colour | already | 422 / 55 -> 841 / 55 | stays |
+| STARFIELD | (a) wrapped | X axis, Y axis (continuous) | CC, PB, pressure | the comet at the held pair | already | 368 / 55 -> 777 / 55 | stays |
+| JOYSTICK | (a) wrapped | X axis (PB), Y axis (CC 17) (continuous); Bend and Send superseded | CC, PB, pressure | the parked dot moved to the held pair's cell; a rest follows its Type | already | 501 / 24 -> 622 / 445 (the receive in the Timer, pulled in) | stays |
+| DIAL | (a) wrapped | Dial (continuous); Send and Channel superseded | CC, PB, pressure | absolute: the level the next turn continues from; relative: `nil` | already | 652 / 55 -> 904 / 55 | stays |
+| FOUR FADERS | (b) a Lua card | Fader 1..4 (continuous) | CC, PB, pressure | the fader's bar | FIXED: a contact keeps its fader | 528 / 24 -> 765 / 300 (pulled in) | leaves |
+| NINE PADS | (b) a Lua card | Pads (trigger, a bank from a base note) | Note, CC | a pad's note lights it, its off darkens it | FIXED: a contact keeps its pad | 651 / 163 -> 752 / 764 (pulled in) | leaves |
+
+**Why each route.** (a) where the only change is what the sends are, plus a receive: the compiled sends are exact
+literals once the shelf's Send and Channel are superseded (16 / 17 on channel 0 on every state), so the rewrite names
+each whole call, counts it and throws on a miss (`ported-midi.spec.ts` walks every compiler knob state); the card stays
+`padsim` and on the ring. (b) where the fix IS the latch: the vendored PadSim runs the `PadState`'s control-under-the-
+finger rule, so a wrapped preview would still slide (FOUR FADERS - the fault the user saw "in playground") or
+re-trigger (NINE PADS) while the module latched. **What the browser shows for a wrapped card**: the compiled preset's
+picture under every gesture - the module's, since the rewrite touches no LED call; no MIDI monitor (a compiler preview
+keeps no log, so nothing on the page claims a message); no receive (no MIDI reaches any preview). Honest, because the
+five were already latched: no gesture makes the preview and the module disagree. **The ring after**: five - Aurora,
+Pinwheel, Starfield, Joystick, Dial (FOUR FADERS held position 6, NINE PADS 3); the hero is still AURORA.
+
+**The records.** The defaults send what the presets sent: the five wrapped cards exactly, message for message, and the
+same frames (`lua-smoke.spec.ts` runs each beside the shelf preset in one VM); FOUR FADERS and NINE PADS exactly under
+every gesture that stays on a control, and differently on a slide (the latch) - and NINE PADS on a fast tap, which now
+plays (the shelf sent nothing: a recorded BOTOR finding a hand-authored card can fix). `frames.json` and the OG images
+did not move (no rest frame moved; NINE PADS' watchdog Timer is armed only while a pad is held). The wire moved by the
+seven cards' records alone: `P/aurora`, `P/pinwheel`, `P/starfield`, `P/joystick`, `P/dial` moved and grew (the output
+knobs walked), `P/faders` and `P/ninepads` out, `E/faders` and `E/ninepads` in. **Stamps**: AURORA's, PINWHEEL's and
+STARFIELD's older links all still land (the vendored stamp is written while the outputs are at their defaults, HANGAR's
+format `w` once one moves); a JOYSTICK or DIAL link with its Send, Channel or Bend off the shelf's lands `unreadable`;
+FOUR FADERS' and NINE PADS' older links and `#z.pfaders` / `#z.pninepads` land `unreadable` (RADAR's pattern).
+`library.ts` untouched; no system slot; the room came from the Setup, then the Timer pulled in (JOYSTICK, FOUR FADERS,
+NINE PADS). The tightest is DIAL's Setup, 904 of 908 absolute and receiving at its dearest literals.
+
+**The two panel fixes.** (1) An output's Number is worded by its output's Type: a note name under Note, the number
+under CC or Program change, hidden under Pitch bend and Channel pressure (ORBIT's and STEPS' notes under CC read 36, not
+C2). (2) Each output block's head is a full-width button on the rack's grid - the name in the label column, the summary
+(`Note · Ch 10 · C2 · Receive`) in the house mono from the control column across the reset column, a chevron of straight
+lines in the last column, 44 px, no radius - that opens and closes the block (click, Enter, Space; `aria-expanded`);
+every block folded on arrival past four outputs (STEPS), open at four or fewer (ORBIT, FOUR FADERS); Same channel for
+all unchanged above. **Screenshots** (`shots/c17/` in the scratchpad: STEPS, ORBIT, FOUR FADERS and NINE PADS at 1440,
+1280 and 393, each with a `-midi` cut; wrangler dev on 4174, stopped by port through PowerShell, 5173 untouched): seen
+- the eight STEPS heads folded, the four ORBIT and FADERS blocks open, NINE PADS' Number reading C2, the stacked head at
+393; fixed on seeing them - at 1440 the summary was cut to `Rec…` in the control column alone, so it spans the reset
+column (`6f35816`).
+
+**Counts, carried + delta** (carried = the tree at my start, `e5a4578`): quick 96 / 1062 + 1 todo -> **97 / 1072 + 1
+todo** (+1 file, +10), green twice at `--maxWorkers=2` and in the gate; `QUICK_TESTS` 1062 -> **1072**, `QUICK_FILES`
+96 -> **97**. Check 678 -> **682**; lint clean; e2e 103 / 118 -> **104 / 119** (titles / runs); audition rows 44 ->
+**47**; utilities **44 -> 44**; catalog **27** (five presets, twenty-two Lua); testids 345 -> **347** (`midi-fold`,
+`midi-summary`); copy exports +5 (`outputSummary` and its four words); SCOPED CSS `b8281684…` -> `d514ae96…` by name
+(`.subhead` out; `.output`, `.fold`, `.fold-name`, `.fold-summary`, `.chevron`, `.fold-rows`, `.fold-rows[hidden]`,
+`.fold-rows > *` and the head's container rule in); the sweep **4 / 19**; `src/` 28 modified, 4 added. **The gate**: the
+wire set `9d5de31f…` -> `e9534dba…`, the full `5fcce9e9…` -> `98a51842…` (`--full` completes now, in seconds, since
+17B's `29488c7`), the Sandbox set `51e5da18…` equal; the script exits 1 at the wire by design. **Chunks** by files on the
+gate's build: c3 **28** (a first run lost its server mid-run and passed whole alone), c4 **25**, c2 **22**, c1 **33**.
+
+**Departures from the brief:** (1) the wrap's machinery rode in AURORA's commit, and DIAL's restored the ladder
+`cfccb51` had skipped (DIAL is the specs' over-budget fixture); (2) three small commits after the panel commit - the
+mono list, the summary span found on the screenshots, the gate counts; (3) JOYSTICK's Bend left the rack, superseded by
+the two Types; (4) NINE PADS' fast tap now plays (a wire change at the defaults, a fix); (5) NINE PADS' latch overrules
+the compiler's own "legato for free", on CHORUS's precedent and section 18's rule; (6) the NINE PADS and FOUR FADERS
+colour / grid knobs - NINE PADS' grid colour is a five-colour palette where the lattice was (RADAR's divergence); (7)
+`view.ts`, `brightness.ts` and `e2e/rack-grid.e2e.ts` touched outside the card files. STATE / ROADMAP / REQUIREMENTS
+untouched; CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) NINE PADS: latched against the compiler's "legato for free" - right, or a Glide option
+(a slide plays each pad it crosses) beside it? (2) FOUR FADERS as four outputs rather than CONSOLE's one bank - right?
+(3) JOYSTICK: the Bend knob retired for the two axis Types - right? (4) DIAL relative receives nothing (a relative dial
+keeps no value) - right, or should a received value set the absolute level it would switch to? (5) AURORA, PINWHEEL and
+STARFIELD draw a received pair as the finger's comet - right, or a steady dot? (6) The ring is five - should FOUR
+FADERS or NINE PADS rejoin once a Lua card may sit on it (the 271 KB VM on the front page's first paint)? (7) NINE PADS'
+grid colour is a palette of five where the lattice was - widen it back to the picker? (8) A folded block's summary
+reads `Receive off` when Off - the word you want?
+
 18. Latch - an element keeps the finger that landed on it (2026-09-23)
 --------------------------------------------------------------------------------
 
@@ -4144,3 +4230,10 @@ longer on page 3 (the keyed field 18 against 20) or page 3 with every option (th
 re-encoded. (4) `scripts/gate/sandbox-fixtures.mjs` +6 fixtures (outside the brief's file list, as 18's nine were). (5)
 17B's gate `--after change-17b` ran with my edits uncommitted in the tree, so its sandbox set (`6abddaa3…`) and quick
 figure carry them. CAT-04 stays `[ ]`.
+
+Change 17C, 2026-09-23 - the fault this section was opened for is fixed on the playground: FOUR FADERS, rebuilt as a
+hand-authored Lua card (`cac5061`, `docs/entries/faders.md`), pins a contact's fader on its onset, so a slide from
+fader 1 onto fader 2 moves fader 1's output only (lua-smoke.spec.ts's VM case, beside the shelf preset sending 16, 17
+and 18 for the same slide); NINE PADS' pads latch the same way (`4ef97cb`); AURORA, PINWHEEL, STARFIELD, JOYSTICK and
+DIAL were already latched (the first finger claims `s.f`). The Done paragraph "17C" under section 17; audition rows
+45 and 46.

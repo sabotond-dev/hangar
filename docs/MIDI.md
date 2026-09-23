@@ -3,7 +3,7 @@
 Change 17 (BENCH-2026-09-16.txt section 17, 2026-09-23): every element that sends MIDI, in the Sandbox and on the
 playground, has a **Type**, a **Channel** and a **Number**, and **receives** by default. Part 17A landed the shared
 pieces, the whole Sandbox and one playground card (ARC); part 17B moved the nineteen other hand-authored cards onto
-the same model, one commit per card (section 6), and 17C takes the seven ported presets. This document was 17B's manual: the model, the wire per type, the receive rules, the colour
+the same model, one commit per card (section 6), and 17C the seven ported presets and two panel fixes (section 8). This document was 17B's manual: the model, the wire per type, the receive rules, the colour
 input, how an entry declares its outputs, and the Lua recipe ARC proved.
 
 ## 1. What the firmware does with MIDI in (read, not assumed)
@@ -147,7 +147,8 @@ card's rows in `docs/TUNING-REVIEW.md`.
 The tuning panel (TuningRegion.svelte) draws MIDI as: **Same channel for all** (a select over Per output and the
 channels in the rows' own numbering; it shows the shared channel, or Per output when they differ, and writes every
 output's Channel), then one block per output under its name - Type, Channel, Number (gone under a pitch bend or a
-channel pressure), Receive - then any MIDI knob no output names, as before.
+channel pressure), Receive - then any MIDI knob no output names, as before. Since 17C (section 8) a block's head is a
+one-line summary that folds it, and a Number is worded by its output's Type.
 
 ## 5. The Lua recipe on a card (ARC, `src/lib/catalog/entries/arc.ts`)
 
@@ -215,9 +216,69 @@ figures, and `BENCH-2026-09-16.txt` section 17's Done paragraph "17B" the table.
 - **The sweeps**: a card's output knobs are walked one at a time (the stamp round-trip sweep's Pass C, the gate's
   hash-wire past one million sampled states), never cross-producted - STEPS alone would be 2^16 x 16^8.
 
-## 7. What 17C carries from here
+## 7. What 17C carried from here (done: section 8)
 
 - The compiler-driven cards (the vendored `_pad.ts`) assign no callback; their landing needs `self.midirx_cb=nil` (or
   their own) appended by the tune model - a wire change for every preset card.
 - The ladders, the words, the blocks, the 1..16 channel display, the pull-in and the stamp need nothing more;
   `outputProblems` names a bad declaration.
+
+## 8. The ported presets (change 17C, 2026-09-23)
+
+The seven cards the vendored compiler (`src/vendor/botor/_pad.ts`, read-only) produces from a `PadState` - AURORA,
+PINWHEEL, STARFIELD, JOYSTICK, NINE PADS, FOUR FADERS and DIAL - are on this model now. Two routes, chosen per card:
+
+| Card        | Route                | Outputs (kind)                           | Types offered    | Receive                                                           | Latch                            | Setup / Timer (corner)           | Ring |
+| ----------- | -------------------- | ---------------------------------------- | ---------------- | ----------------------------------------------------------------- | -------------------------------- | -------------------------------- | ---- |
+| AURORA      | wrapped              | X axis, Y axis (continuous)              | CC, PB, pressure | the comet drawn at the held pair                                  | already (the first finger)       | 361 / 55 -> 784 / 55             | yes  |
+| PINWHEEL    | wrapped              | X axis, Y axis (continuous)              | CC, PB, pressure | the comet at the held pair, the first finger's colour             | already                          | 413 / 55 -> 841 / 55             | yes  |
+| STARFIELD   | wrapped              | X axis, Y axis (continuous)              | CC, PB, pressure | the comet at the held pair                                        | already                          | 349 / 55 -> 777 / 55             | yes  |
+| JOYSTICK    | wrapped              | X axis (PB), Y axis (CC 17) (continuous) | CC, PB, pressure | the parked dot moved to the held pair's cell                      | already                          | 491 / 24 -> 622 / 445 (pull-in)  | yes  |
+| DIAL        | wrapped              | Dial (continuous)                        | CC, PB, pressure | absolute: the level the next turn continues from; relative: `nil` | already                          | 592 / 55 -> 904 / 55             | yes  |
+| FOUR FADERS | rebuilt (a Lua card) | Fader 1..4 (continuous)                  | CC, PB, pressure | the fader's bar                                                   | fixed: a contact keeps its fader | 525 / 24 -> 765 / 300 (pull-in)  | no   |
+| NINE PADS   | rebuilt (a Lua card) | Pads (trigger, a bank from a base note)  | Note, CC         | a pad's note lights it, its off darkens it                        | fixed: a contact keeps its pad   | 565 / 158 -> 752 / 764 (pull-in) | no   |
+
+**The wrap** (`src/lib/catalog/entries/ported-midi.ts`). The compiled pair is rewritten on HANGAR's side, after the
+compile and before the brightness scaling, by one function every consumer calls (`presetWire`: the tuner's meters and
+landing, the gate's `P/` records, the sweeps): each card's template finds the sends the compiler wrote for the shelf's
+Send and Channel - both superseded, so the compiler always writes 16 / 17 on channel 0 - and replaces each with the
+output's tokens through ARC's `M(t,c,n,o)` (defined once, before the touch callback), then appends the card's
+receive (`self.midirx_cb`, guarded on the touch callback it was made beside; JOYSTICK's made by its Timer and pulled in,
+its Setup had no room). Every find is exact - the whole call, counted, a miss thrown as `WrapMissError` - and no
+`gms(` survives but `M`'s; `ported-midi.spec.ts` walks every compiler knob state each card can reach (the non-colour
+product, the colour at the sweep's 27 literals) at the outputs' defaults and dearest literals. The inserted text is
+canonical, so the compiled string's one-character-per-action rule (`wire-pin.spec.ts`) holds.
+
+- **The rack.** A wrapped entry's `knobs` are its outputs' token knobs only; `supersedes` names the shelf knobs they
+  took over (the Send, the Channel, JOYSTICK's Bend). An output knob with a superseded knob's id takes its rack
+  position (`stamp.ts`'s `stampKnobs`), so a saved copy's positions keep landing on the same knob; a superseded id no
+  knob takes (Bend) leaves the rack, and the compiler compiles its shelf value.
+- **The stamp.** At the outputs' defaults the card still writes the vendored stamp, so every older link of AURORA,
+  PINWHEEL and STARFIELD still lands `restored`; once an output moves it writes HANGAR's index format over the whole
+  rack (format `w` - the lattice colour rides it). An older JOYSTICK or DIAL link whose Send, Channel or Bend was off
+  the shelf's lands `unreadable` (the known pattern).
+- **The ladder.** The vendored ladder plans over the bare compile; on a wrapped card the rewrite's measured cost is
+  held back as a reserve (`model.ts` `ladderReserve`), so its steps and its resolved state are the wire's. Randomize's
+  fit test measures the wire. Neither is reachable by a visitor: `reachability.sweep.spec.ts` costs every compiler
+  state at the outputs' dearest literals, and the dearest is DIAL's 904 of 908.
+- **What the browser shows.** The vendored PadSim runs the `PadState`, not the Lua: the picture under every gesture is
+  the compiled preset's, which is the module's - the rewrite touches no LED call. The sends differ only in their
+  bytes, and a compiler-driven preview keeps no MIDI log (the monitor bar is absent), so nothing on the page claims a
+  message. No MIDI reaches any preview, so a receive is the module's alone. The five wrapped cards were already
+  latched (the first finger claims `s.f`), so no gesture shows the preview and the module disagreeing. That is why the
+  two cards whose fix IS the latch were not wrapped.
+
+**The rebuilt cards** (`entries/faders.ts`, `entries/ninepads.ts`; `docs/entries/faders.md`, `ninepads.md`). FOUR
+FADERS' fault is the one the user saw - "i saw it on the faders config in playground" - and NINE PADS' slide
+re-triggered its pads ("legato for free", the compiler's words, overruled as CHORUS's was at 17B): a wrapped card's
+preview would still slide while the module latched, so both are hand-authored Lua cards now, RADAR's route (12b),
+their pictures proved equal to the shelf presets frame for frame in the VM (`frames.json` and the OG images unmoved),
+and both left the front-door ring, which holds five: Aurora, Pinwheel, Starfield, Joystick, Dial. NINE PADS also
+plays a fast tap now (the compiled preset sent nothing on one - a recorded BOTOR finding a hand-authored card can fix).
+
+**The panel** (17B's questions 5 and 6, decided): an output's Number is worded by its output's Type - a note name
+under Note, the number under CC or Program change (hidden under Pitch bend and Channel pressure, as before) - and each
+output block's head is a full-width button on the rack's grid, the name in the label column and a one-line summary in
+the house mono (`Note · Ch 1 · C1 · Receive`), a chevron of straight lines at its end, that opens and closes the block
+(click, Enter, Space; `aria-expanded`); every block arrives folded when a card has more than four outputs (STEPS'
+eight), open at four or fewer.
