@@ -376,3 +376,29 @@ gradient and the calibrated key) are untouched and green.
 for seven knobs and lands `unreadable` by design; the captured default vector still carries no
 stamp. The header's "byte-identical rack" trap is now the "rack grew" trap: every GHOST link
 shared before today opens the card at its defaults.
+
+## Change 17B, 2026-09-23: the X and Y axes as two outputs, no receive (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+GHOST sent one pair - `@CCX` and `@CCX+1` on one channel. Per output (answer 3), the two axes are two outputs, "X
+axis" and "Y axis", continuous, each with its own Type, Channel and Number, as the Sandbox's XY pad has them.
+
+- **Knobs.** The X axis keeps the old knobs: `@CCX` (`cc`, relabelled "X controller") is its Number, all of 0..127
+  with its four old rungs first (a saved copy's index keeps its controller); `@CH` (`channel`) its Channel, reading
+  1..16. Appended: `@XT` (`xType`), `@YT` (`yType`), `@YCH` (`yChannel`, 0 by default - the X axis's) and `@CCY`
+  (`yCc`, all of 0..127, 17 by default - the old `@CCX+1` at the default). `@YCH`, not `@CHY`: `@CH` would be a prefix
+  of it. The rack grew four knobs and `@CCX` is wide, so GHOST's captured wild stamp stays `unreadable` (change 12's
+  growth already landed it so); the null default record still carries no stamp.
+- **The send.** A local `m(t,c,n,o)` in the Timer sends one axis by its type (a controller `n, o`, a pitch bend
+  `0, o`, a pressure `o, 0`); `p` calls it for X with the raw x and for Y with `127-y`, as before. At the defaults the
+  wire is GHOST's before the change, message for message: controller 16 then 17 on channel 0, every tick in hand.
+- **No receive.** The values are a recording's replay: no position is held for a received value to set (the next
+  replayed point overwrites it within 20 ms), and a DAW recording the ghost would hear its own loop coming back. So
+  neither axis has a Receive and the Setup assigns `self.midirx_cb=nil`; the clock's `rtmrx_cb` is another field and
+  stays.
+- **Latch: already latched** - one contact (`if i>0 then return end`), one control, and the red key is read on the
+  onset alone.
+- **Cost:** Setup 725 / 730 -> 744 / 749 (defaults / corner), Timer 480 / 484 -> 556 / 560 (348 free). frames.json and
+  the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "GHOST: the X and Y axes ...": the defaults' pair (16, 17 on channel 0), X as a
+  pitch bend on wire channel 3 with Y as a pressure on 6, Y on its own controller 40 and channel 9 - every tick X then
+  Y from the raw pair; no callback over a previous landing's.

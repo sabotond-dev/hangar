@@ -13112,4 +13112,36 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       host.close();
     }
   }, 60000);
+
+  it("GHOST: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the pair it always sent (16 and 17 on channel 0) - and it receives nothing, clearing a previous landing's callback", async () => {
+    // The raw pair (40, 90): X sends 40 and Y 127 - 90 = 37, every tick, X first.
+    for (const [over, x, y] of [
+      [{}, "0:176:16:40", "0:176:17:37"],
+      [
+        { xType: "224", channel: "3", yType: "208", yChannel: "6" },
+        "3:224:0:40",
+        "6:208:37:0",
+      ],
+      [{ yCc: "40", yChannel: "9" }, "0:176:16:40", "9:176:40:37"],
+    ] as const) {
+      const { host } = await openCard("ghost", over, true);
+      try {
+        host.touchDown(0, 40, 90);
+        host.run(6);
+        host.touchUp(0, 40, 90);
+        host.run(6);
+        const sent = wire(host.midi);
+        expect(sent.length, JSON.stringify(over)).toBeGreaterThan(4);
+        for (let at = 0; at + 1 < sent.length; at += 2)
+          expect([sent[at], sent[at + 1]], JSON.stringify(over)).toEqual([
+            x,
+            y,
+          ]);
+        expect(host.midiIn(REPORT, 0, 176, 16, 5), "no callback").toBe(false);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });

@@ -6,16 +6,19 @@
 // still sending. One gesture is one loop (every onset starts a fresh recording); the reset is a
 // lit red key at cell 80 that exists exactly when there is something to erase. Single-contact.
 // Re-authored from a blank page in 11-11; the finger and the calibrated cell came from the library
-// in 12.1-08a. Seven knobs: @RECC, @GHOSTC, @LEN, @SYNC (both events), @DIV, @CCX (the pair is
-// @CCX and @CCX+1), @CH. Setup 730 of 908 at the picker corner (725), Timer 484 (480); dark at rest.
-// History: docs/entries/ghost.md (the three reset sketches, 11-11, 12.1-08a; change 12's sync).
+// in 12.1-08a. Eleven knobs: @RECC, @GHOSTC, @LEN, @SYNC (both events), @DIV, and since change 17B
+// two MIDI outputs - the X axis (@XT @CH @CCX) and the Y axis (@YT @YCH @CCY). Setup 749 of 908 at
+// the picker corner (744), Timer 560 (556); dark at rest.
+// History: docs/entries/ghost.md (the three reset sketches, 11-11, 12.1-08a; change 12's sync;
+// change 17B's outputs).
 //
 // MECHANISM
 //   - Setup: layer 1 @RECC and layer 2 @GHOSTC at phase 0 on every cell; cell 80 coloured
 //     255,0,0 on layer 1 (the key - a function, not the palette); `self.k` its address, `self.g`
 //     the recording (raw `x*128+y` per point), `self.n` its length, `self.j` the replay index,
-//     `self.p` the key's pulse counter, `self.q` the clock count; `grxm(2,@SYNC and 3 or 0)`
-//     routes MIDIRTM to Lua under External only; `gtt(0,20)`.
+//     `self.p` the key's pulse counter, `self.q` the clock count; `self.midirx_cb=nil` (change
+//     17B, below); `grxm(2,@SYNC and 3 or 0)` routes MIDIRTM to Lua under External only;
+//     `gtt(0,20)`.
 //   - The callback: `if i>0 then return end`, then `G(s,i,e,x,y,0,@RECC)` (the library's
 //     bilinear finger on layer 0 in the recording colour; it clears the contact's previous
 //     block and returns on an end code and on a 9). On an onset (`e==4 or e>8`): clear both
@@ -27,7 +30,8 @@
 //   - The Timer, 20 ms, `gtt(0,20)` first. If a recording exists, pulse the key: every
 //     fourteenth tick re-arm cell 80's decay (42 ticks armed, re-armed after 28: the phase
 //     breathes 252 -> 84 and never reaches black, so the corner is a cell still being DRIVEN).
-//     Then two locals: `p(x,y,l)` sends the pair and arms the house decay pair on `N(x,y)` on
+//     Then three locals: `m(t,c,n,o)` sends one axis on its type (below); `p(x,y,l)` sends the
+//     pair through it and arms the house decay pair on `N(x,y)` on
 //     layer l; the replay step `f(s)` returns while a finger is held or nothing is recorded, else
 //     steps j modulo n, decodes the point and calls `p` on layer 2. `s.f=f` publishes it. While
 //     `s.h`: append the held raw point up to @LEN (a motionless finger still records - the
@@ -45,12 +49,20 @@
 //     the doc). A lost lift leaves the comet at the last point, the recording running to @LEN,
 //     and one lit block on layer 0 that the next onset's `G` clears.
 //
-// WHAT IT SENDS
-//   s:gms(@CH,176,@CCX,x,0) and s:gms(@CH,176,@CCX+1,127-y,0) once per Timer tick while a point
-//   is in hand - recording, or replaying under Internal - and once per @DIV clocks while replaying
-//   under External, with the RAW sensor pair (D-14); only the picture goes through the
-//   calibrated map. The second CC is "@CCX+1" rather than a literal so the pair can never drift
-//   apart. Erasing sends nothing; a stopped ghost sends nothing.
+// WHAT IT SENDS (two outputs since change 17B, X axis and Y axis)
+//   m(@XT,@CH,@CCX,x) and m(@YT,@YCH,@CCY,127-y) once per Timer tick while a point is in hand -
+//   recording, or replaying under Internal - and once per @DIV clocks while replaying under
+//   External, with the RAW sensor pair (D-14); only the picture goes through the calibrated map.
+//   `m` sends by the axis's type: a controller `n, o`, a pitch bend `0, o` (64 the centre), a
+//   channel pressure `o, 0`. Until 17B the pair was one channel and "@CCX+1"; each axis now has
+//   its own Channel and Number, the Y axis 17 and the X axis's channel by default, so the defaults
+//   send exactly what they sent. Erasing sends nothing; a stopped ghost sends nothing.
+// WHAT IT RECEIVES (change 17B): nothing. The values are a recording's replay - no position is
+//   held for a received value to set (the next replayed point overwrites it within 20 ms), and a
+//   DAW recording the ghost would hear its own loop come back - so neither axis has a Receive and
+//   the Setup assigns `self.midirx_cb=nil` (`rtmrx_cb`, the clock, is a different field and
+//   stays). The latch: one contact, one control, the red key acted on at the onset only - already
+//   latched.
 //
 // TRAPS
 //   - THE CLEAR IS glpfs(a,l,0,0,0), AND glp(a,l,0) WAS THE BUG: `glp` does not touch the RATE or
@@ -79,7 +91,8 @@
 //   - 254 (active sensing) MUST NOT RUN THE GHOST: the run test is `b==250 or b==251`.
 //   - THE RACK GREW AT CHANGE 12: 5, 5, 5, 2, 3, 4, 16 values; a GHOST link shared before it
 //     carries five indices and lands `unreadable` (the card opens at its defaults) - the length
-//     check, by design (stamp.spec.ts). Until then the rack was byte-identical to 11-11's.
+//     check, by design (stamp.spec.ts). Until then the rack was byte-identical to 11-11's. AND AT
+//     CHANGE 17B: @CCX 4 -> 128 values (wide, two stamp characters) and four knobs appended.
 //   - WHILE A GHOST LOOPS, A NEW DRAG CANNOT START ON CELL 80 without erasing first; a comet or
 //     ghost dot passing OVER it is unaffected (the key acts on an onset only).
 //   - LAYER 0 IS THE ALERT LAYER: `G` re-asserts @RECC on every call, so an alert's recolour
@@ -89,19 +102,19 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import {
+  CHANNEL_VALUES,
+  CONTINUOUS_STATUSES,
+  numberValues,
+} from "../../tune/midi";
 
 const SETUP =
-  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.q=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end self.rtmrx_cb=function(s,h,b)if b==250 then s.j=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end grxm(2,@SYNC and 3 or 0)gtt(0,20)";
+  "--[[@cb]]for a=0,80 do glc(a,1,@RECC,1)glp(a,1,0)glc(a,2,@GHOSTC,1)glp(a,2,0)end local k=glag(0,80)glc(k,1,255,0,0,1)self.k=k self.g={}self.n=0 self.j=0 self.p=0 self.q=0 self.touch_cb=function(s,i,e,x,y)if i>0 then return end G(s,i,e,x,y,0,@RECC)if e==4 or e>8 then for a=0,80 do glpfs(a,1,0,0,0)glpfs(a,2,0,0,0)end s.j=0 s.p=0 s.h=nil if s.n>0 and N(x,y)==80 then s.g={}s.n=0 else s.g={x*128+y}s.n=1 s.h=e<9 end end if e==3 or e>=5 and e<9 then s.h=nil end s.x=x s.y=y end self.rtmrx_cb=function(s,h,b)if b==250 then s.j=0 s.q=0 end if b==250 or b==251 then s.r=1 elseif b==252 then s.r=nil elseif b==248 and s.r then local f=s.f if s.q%@DIV==0 and f then f(s)end s.q=s.q+1 end end self.midirx_cb=nil grxm(2,@SYNC and 3 or 0)gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end local function p(x,y,l)s:gms(@CH,176,@CCX,x,0)s:gms(@CH,176,@CCX+1,127-y,0)local a=glag(0,N(x,y))glpfs(a,l,252,250,0)glt(a,l,42)end local function f(s)if s.h or s.n==0 then return end s.j=s.j%s.n+1 local v=s.g[s.j]p(v//128,v%128,2)end s.f=f if s.h then local x,y=s.x,s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 p(x,y,1)return end if @SYNC then return end f(s)";
+  "--[[@cb]]gtt(0,20)local s=self if s.n>0 then s.p=s.p%14+1 if s.p==1 then glpfs(s.k,1,252,250,0)glt(s.k,1,42)end end local function m(t,c,n,o)s:gms(c,t,t==208 and o or t>223 and 0 or n,t==208 and 0 or o)end local function p(x,y,l)m(@XT,@CH,@CCX,x)m(@YT,@YCH,@CCY,127-y)local a=glag(0,N(x,y))glpfs(a,l,252,250,0)glt(a,l,42)end local function f(s)if s.h or s.n==0 then return end s.j=s.j%s.n+1 local v=s.g[s.j]p(v//128,v%128,2)end s.f=f if s.h then local x,y=s.x,s.y if s.n<@LEN then s.n=s.n+1 s.g[s.n]=x*128+y end s.j=0 p(x,y,1)return end if @SYNC then return end f(s)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
-
-/** The sixteen zero-based channels, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058). */
-const CHANNELS: readonly string[] = Array.from({ length: 16 }, (_, n) =>
-  String(n),
-);
 
 export const GHOST: CatalogEntry = {
   id: "ghost",
@@ -191,11 +204,12 @@ export const GHOST: CatalogEntry = {
     },
     {
       id: "cc",
-      label: "CC pair",
+      label: "X controller",
       kind: "amount",
       token: "@CCX",
-      // X on this number, Y on "@CCX+1"; every value leaves the pair inside 0..127.
-      values: ["16", "20", "74", "102"],
+      // The X axis's Number (change 17B; the pair's first controller before it, "CC pair"): all of
+      // 0..127, its four old rungs first so a saved copy's index keeps its controller.
+      values: numberValues(["16", "20", "74", "102"]),
       default: 0,
     },
     {
@@ -203,10 +217,64 @@ export const GHOST: CatalogEntry = {
       label: "MIDI channel",
       kind: "amount",
       token: "@CH",
-      // ZERO-BASED, the first argument of gms. Twice in the Timer, once per half of the pair, so
-      // both leave on the same channel.
-      values: CHANNELS,
+      // The X axis's Channel, ZERO-BASED on the wire (gms's first argument); the rows read 1..16.
+      values: CHANNEL_VALUES,
       default: 0,
+    },
+    {
+      id: "xType",
+      label: "X MIDI type",
+      kind: "mode",
+      token: "@XT",
+      // The X axis's type (change 17B): a controller, a pitch bend, a channel pressure.
+      values: CONTINUOUS_STATUSES,
+      default: 0,
+    },
+    {
+      id: "yType",
+      label: "Y MIDI type",
+      kind: "mode",
+      token: "@YT",
+      // The Y axis's type (change 17B).
+      values: CONTINUOUS_STATUSES,
+      default: 0,
+    },
+    {
+      id: "yChannel",
+      label: "Y MIDI channel",
+      kind: "amount",
+      token: "@YCH",
+      // The Y axis's Channel (change 17B): its own, the X axis's by default (Same channel for all
+      // sets both).
+      values: CHANNEL_VALUES,
+      default: 0,
+    },
+    {
+      id: "yCc",
+      label: "Y controller",
+      kind: "amount",
+      token: "@CCY",
+      // The Y axis's Number (change 17B): its own controller, 17 by default - the X axis's
+      // default plus one, as "@CCX+1" sent it before the axes were two outputs.
+      values: numberValues(),
+      default: 17,
+    },
+  ],
+
+  // Two outputs (change 17B): the pair GHOST always sent, now each axis on its own Type, Channel
+  // and Number. No Receive: the values are a recording's replay (docs/entries/ghost.md).
+  outputs: [
+    {
+      id: "x",
+      name: "X axis",
+      kind: "continuous",
+      tokens: { type: "@XT", channel: "@CH", number: "@CCX" },
+    },
+    {
+      id: "y",
+      name: "Y axis",
+      kind: "continuous",
+      tokens: { type: "@YT", channel: "@YCH", number: "@CCY" },
     },
   ],
 
@@ -220,6 +288,10 @@ export const GHOST: CatalogEntry = {
     division: 0,
     cc: 0,
     channel: 0,
+    xType: 0,
+    yType: 0,
+    yChannel: 0,
+    yCc: 17,
   },
 
   // TRUE: both layers are coloured at Setup and left at phase 0, and the key is only LIT by

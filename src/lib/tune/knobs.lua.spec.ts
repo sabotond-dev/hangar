@@ -90,6 +90,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "orbit.note3 (128)",
       "orbit.note4 (128)",
       "arc.cc (128)",
+      "ghost.cc (128)",
+      "ghost.yCc (128)",
       "console.cc (128)",
     ];
 
