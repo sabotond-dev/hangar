@@ -7762,3 +7762,83 @@ the build at `29488c7` with 18b's uncommitted Sandbox edits in the tree: c3 (`tu
 (`catalog`, `fidelity`, `first-experience`, `library`, `sandbox`) **25**; c2 (`browse`, `browse-webkit`) **21** + a
 webkit `wasm streaming compile failed` console error on `browse.e2e.ts:842`, green alone (2); c5 **10** + the
 artifacts title red on a build one commit behind HEAD by design (the build predates `f49236c`).
+
+## 2026-09-23 change 18b (Sandbox) - the one-cell fader sends; the knob loses Latch
+
+`BENCH-2026-09-16.txt` section 18, the decisions' two changes. The runtime's side is `docs/entries/sandbox-runtime.md`'s
+dated section "The one-cell fader, and the knob without Latch". Two commits before the docs, no push, no device, no
+deploy, every Lua cost under the pinned `compressScript` after `initLuaFormatter()` at the RGB444 picker corner:
+`708f65f` fix(sandbox) - `V(d,l)`, the axis with its divisor clamped (`A` reads both axes through it), the entry kept
+out of the touch Timer beside a receive callback, `takesLatch` / a knob read On, the specs and six gate fixtures;
+`94a219b` feat(sandbox) - the inspector's Latch row only over members that carry it, `setLatchTouch` refusing a knob,
+the knob's remembered fields, the UI spec, the e2e knob. Then this section, the runtime's section, the Done paragraph
+"18b" under section 18 and the gate records `gate/change-18b.*` (at my start, `ee50d42`: `wire-sandbox.json` - the
+base set and the sandbox set - and `strings.json`) and `gate/change-18b-after.*` (the script's, at `e5a4578`).
+
+**What the suites prove, new and moved.**
+
+- `runtime.spec.ts` +1. 23, in the VM: a 1 x 6 vertical fader sends 127, 0, 76 (a wobble across the axis it does not
+  read, nothing) with its bar; a 1 x 2 127, 0; a 6 x 1 horizontal 0, 127, 50 with its bar; a 2 x 1 0, 127; the pad
+  beside them - under five slots and three; the 1 x 6 relative at full with the spring at 100 127 then 100; two 1 x 6
+  Latch Off hand over (70:25, 70:50, 74:76, 74:101); every one-cell fader validates, a 1 x 3 or 3 x 1 pad is refused.
+  Change 17's `A` and the new `A` + `V` run side by side over every box two cells and up and every raw coordinate
+  -4..131 (4,896 positions): 0 differ. The price, canonical: `A` 133 -> 83 + `V` 61, +11; the inline clamp +14, `A`
+  handed the kind +31, `len>1` per axis +33. The bare divisor raises "attempt to divide by zero". 19 fixture landings
+  that fit with a receive half keep `O` out of the Timer. RED before the fix: the 1 x 6 sent nothing. Tests 6, 7 and
+  14 run the three one-cell fixtures beside the rest. Moved: 7 (+12: the runtime alone 2,920, without the knob 2,317,
+  one fader on two slots 2,019, page 3 on two 3,572, on three 2,695 + 893, on five 893 / 908 / 905 / 897 / 868), 16
+  (`V` among the parts; 3,022; page 3 multitouch's Timer over by 180), 22 (page 3 Off's Timer 1,088; the knob "Off"
+  alone is page 3 and fits).
+- `emit.spec.ts` +1. 11: every emit.spec surface landed on five slots and RUN - one, page 3, eight, twelve, sixteen,
+  four faders, page 3 with every option, page 3 at three fingers, sixteen at typed literals, eight / twelve / sixteen
+  every element Off, four of the cap floor's representative at 1 x 2 - 63 faders and pads, each sends on its channel,
+  an absolute controller exactly its min then its max, nothing raises. RED on change 17's divisor: "Twelve / Fader 1
+  sent nothing". Moved: 2 (+12 both sides, the saving 1,568), 8 (page 3 with every option still fits; the placement
+  with `V` and the entry out of the Timer), 9 (168 -> 180), 10 (a knob's row and word do not move with Latch Off; a
+  knob Off on page 3 is byte-identical to page 3; the encodings re-measured over the elements that carry Latch - page 3
+  18 / 36 / 20, page 3 options 18 / 14 / 19, eight 38 / 76 / 25, sixteen 70 / 140 / 33, the flag bit's readers 5 -> 2;
+  the five slots at the corner, +12 each, all fit). Test 1 unmoved: the Setups, the sixteen's 892, the floors 11 and 14.
+- `sandbox-ui.spec.ts` +1. 31: no Latch row on a knob alone, over any set with a knob (no Behavior over mixed kinds
+  with one), over a set of knobs; `setLatchTouch` refused on each, nothing recorded; the knob's remembered fields
+  without it; a knob stored Off is a valid record, reads On, its word without the bit, its strings byte-identical to
+  the field absent, and loaded into the editor it shows no row. Moved: 30 (the three kinds that carry Latch; a mixed
+  set of a fader and a button).
+- e2e: no new title; `sandbox.e2e.ts`'s options walk asserts the knob has no Latch row.
+- `scripts/gate/sandbox-fixtures.mjs` +6 (`runtime/one-cell`, `thin-spring`, `thin-off`, `emit/twelve-off`,
+  `sixteen-typed`, `floor`).
+
+**Counts, carried + delta.** Carried (the tree at my start, `ee50d42` - `src/` and `e2e/` as at `a5e222c`, change 18's
+gate run): quick 96 / 1059 + 1 todo, check 678, e2e 118 runs, utilities 44, testids 345, copy exports `a3670f1c…`,
+the sandbox set `a805fdc4…` (760 strings, 40 fixtures), the wire set `2cc31b7d…` (12,127 strings). After: quick
+**96 / 1062 + 1 todo** (mine +3: runtime 23, emit 11, sandbox-ui 31), green at `--maxWorkers=2` twice (on `f49236c`
+with my edits, the content of `94a219b`) and in the gate's quick term at `e5a4578` (1,062, `check-counts` matching).
+`QUICK_TESTS` I did not edit: 17B's `0d61e04` moved it 1059 -> 1062 from its run on the whole tree at `94a219b` - my
+three. Check 678 -> **678**; lint clean; e2e 118 -> **118** runs; utilities **44 -> 44**; testids **345 -> 345**; copy
+exports **equal** (`copy.ts` moved a comment only); SCOPED CSS `b8281684…` **equal**; raw CSS `fc1e0f86…` equal to 18's
+after-record; the literal census `8080d1d4…` -> `f8f9329f…`, by my literals alone (`A`'s old text and its two formulas
+gone, the new `A` and `V` in, "knob" and "timer" +1, "latchTouch" -1); OG and the four fixtures unmoved.
+
+**The wire.** The base set `2cc31b7d…` -> `9d5de31f…`: 12,117 of 12,127 records equal; the 10 that moved are all
+`S/page3/…`, the base set's own Sandbox page 3 (a fader and a pad carry `A`) - **no catalog entry, preset, library or
+defaults record moved**. The sandbox set `a805fdc4…` -> `51e5da18…` (760 -> 874 strings, 40 -> 46 fixtures): 460 equal,
+300 moved across the 35 fixtures that carry a fader or a pad (`A` and `V`; `runtime/page3-off` also by its knob's word),
+none gone, 114 added by the six new fixtures (19 each); unmoved, the five of buttons and knobs alone (`runtime/latch`,
+`notes`, `knobs`, `strum`, `wait`). The full wire FINISHED this time (17B's `29488c7` walks a card's output knobs one at
+a time): `WIRE FULL 5fcce9e9…`, equal to 17B's after-record's, which ran with my edits in the tree. The script ran
+`--after change-18b --against change-18` (the last before-record with a full wire, `309188b`) and exits 1 at the wire,
+moved since `309188b` by 17B's cards and by changes 18 and 18b; the terms after it are compared above by hand against
+my start records and 18's after-record.
+
+**Chunks** by files on the gate's build at `e5a4578`: c4 (`catalog`, `fidelity`, `first-experience`, `library`,
+`sandbox`) **25** passed.
+
+**Departures and findings.** (1) The guard's form: a new part `V`, not a guard inside `A` - the cheapest measured (+11
+against +14 / +31 / +33), and the one-part +14 leaves page 3 with every option on with no placement at all. (2) Found
+and fixed (Rule 1): `V` moved page 3's placement and first fit put the entry `O` in the touch Timer, which re-runs, so
+`Y` ignored every host message (test 18 red); `packRuntime` now keeps the entry out of the Timer beside a receive
+callback. (3) A knob stored Off is not rewritten on load; the reader reads it On, as the schema's other fields are read
+per kind. (4) The multi-edit rule: a set with a knob in it shows no Latch row (and over mixed kinds no Behavior) rather
+than applying Latch to the other members. (5) Change 18's encoding measure moved with the knob: the channel bit is still
+the cheapest on eight and sixteen elements and no longer on page 3 (the keyed field 2 less) or page 3 with every option
+(the flag bit 5 less); not re-encoded. (6) 17B's gate `--after change-17b` ran while my edits were uncommitted in the
+tree; its sandbox set and quick figures include them.

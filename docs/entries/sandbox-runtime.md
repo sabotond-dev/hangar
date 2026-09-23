@@ -757,3 +757,70 @@ zero" on every sample and the fader sends nothing. The editor allows a 1 x 2 ver
 (`minimumSizeFor`), and emit.spec's twelve and sixteen are 1-wide faders (measured only, never run). Change 18's VM
 fixtures use two-wide faders for that reason. A guard (`r[3]>1 and ... or 0` per axis) is +31 characters on `A`,
 which every surface with a fader or a pad carries - it moves the sandbox set at the default, so it is not in change 18.
+Fixed by change 18b, below.
+
+## The one-cell fader, and the knob without Latch (2026-09-23, change 18b; `BENCH-2026-09-16.txt` section 18)
+
+2026-09-23: the two changes the user's decisions on change 18 asked for, Sandbox only; no catalog entry moves.
+
+### The one-cell fader: `V`, the axis with its divisor clamped
+
+`A(r,x,y)` now reads each axis through a new part, `V(d,l)` - `glim(d*127//glim(l-1,1,9)//64,0,127)`, `d` the
+finger's distance in calibrated units from the axis's 0 end, `l` the region's length in cells along it:
+
+    function A(r,x,y)return V(U(x,KX)-r[1]*64,r[3]),V((r[2]+r[4]-1)*64-U(y,KY),r[4])end
+    function V(d,l)return glim(d*127//glim(l-1,1,9)//64,0,127)end
+
+The span `(l-1)*64` is divided by in two steps. Floor division twice is floor division once by the product when both
+divisors are positive, so every box two cells and up reads exactly the number it did. `runtime.spec.ts` test 23 runs
+change 17's `A` and this one side by side in the VM over every box two cells and up on each axis and every raw
+coordinate -4..131 (4,896 positions): 0 differ. A length of ONE cell divides by 1 instead of raising `n//0`; the
+fader throws that axis away. An XY pad reads both axes, and the editor refuses a pad under 2 x 2, so no pad reaches
+it. `V` is a name the trim freed; under two or three slots the full library's `V` (a block clear) is called only by
+the library's `E` - the runtime's own since change 17 - and `G`, which nothing calls.
+
+**The cost, canonical, over change 17's `A` (133):** shipped `A` 83 + `V` 61 = **+11**; measured beside it the clamp
+written into both of `A`'s formulas as one part **+14**, `A` handed the kind so it computes only the axis read **+31**,
+and `r[3]>1 and ... or 0` per axis **+33**. Two parts rather than one also pack: page 3 with every option on still lands
+five slots at the picker corner (906 / 908 / 905 / 897 / 902), where the +14 one-part form does not fit at all (an
+unbounded exact search found no placement). **Per surface**, every surface that carries `A` (a fader or a pad) is
+**+12** - the 11 and one separator - at the corner under five slots: runtime.spec's page 3 893 / 908 / 852 / 906 / 900
+-> 893 / 908 / 905 / 897 / 868 (81 -> 69 free), four faders 2,884 -> 2,896, eight 3,436 -> 3,448, twelve 3,580 ->
+3,592, sixteen 3,714 -> 3,726 across the five strings, and each of those with every element Off 12 more likewise (the
+sixteen's Setup still 908); the runtime alone 2,908 -> 2,920, without the knob 2,305 -> 2,317; page 3 under two slots
+3,560 -> 3,572. Every fixture that fitted still fits; the cap floor stays **11** from an empty surface and **14** from
+twelve; page 3 with the pad at three fingers and the knob stays over, 168 -> 180. A surface of buttons and knobs alone
+carries no `A` and does not move.
+
+**Found by the new placement, fixed: the entry never lands in the touch Timer beside a receive callback.** `V` moved
+page 3's placement, and first fit then put `O` in the touch Timer. The Timer re-runs its body every period, so each run
+defined a NEW `O`, and `Y`'s `s.touch_cb~=O` (the Setup assigned the first one) read every host message as a later
+landing's and ignored it - `runtime.spec.ts` test 18 caught it. `packRuntime` now refuses the Timer to the entry when a
+receive half is packed and there is another slot. No placement that already worked moves (first fit only differs where
+`O` would have gone to the Timer); under three and five slots, 19 fixture landings that fit with a receive half all
+keep `O` elsewhere (test 23). Under three slots several fixtures still put `O` in the Timer, all
+of them over and refused.
+
+**Proved in the VM** (`runtime.spec.ts` test 23): a 1 x 6 vertical fader sends 127, 0, 76 as Filter does (a wobble
+across the axis it does not read sends nothing), its bar from the bottom to row 3; a 1 x 2 127 and 0; a 6 x 1
+horizontal 0, 127, 50 with its bar; a 2 x 1 0 and 127; the 3 x 3 pad beside them as test 4 - under five slots and
+three; the 1 x 6 relative at full with the spring at 100 sends 127 then 100; two 1 x 6 Latch Off side by side hand over
+(70:25, 70:50, 74:76, 74:101); every one-cell fader validates, a 1 x 3 or 3 x 1 pad is refused. `emit.spec.ts` test 11
+lands every emit.spec surface on five slots and RUNS it - one, page 3, eight, twelve, sixteen, four faders, page 3 with
+every option, page 3 at three fingers, sixteen at typed literals, eight / twelve / sixteen every element Off, and four
+of the cap floor's representative at 1 x 2 - every fader and pad (63) sends on its channel, an absolute controller
+exactly its min then its max, nothing raises. On change 17's divisor that test stops at twelve's first fader.
+
+### The knob loses Latch
+
+`takesLatch(kind)` (model.ts): the fader, the button and the XY pad; not the blank, and not the knob, whose Off only
+ever read as a fault on a rotary gesture. `latchTouchOf` reads a kind that does not carry it as On whatever it stores,
+so a knob stored Off while change 18 allowed it (a few hours, never deployed) is a valid record that loads On: its
+channel word has no hand-over bit and its strings are byte-identical to the field absent. The inspector shows no Latch
+row on a knob. **Over a set, the row shows only when every member carries Latch** - a set with a knob in it has no
+Latch row, and a set of mixed kinds with a knob no Behavior (Latch was its one row) - because the row writes every
+member, and showing it while skipping the knob would say more than it does. `setLatchTouch` refuses a knob alone or in
+a set, as a blank; the knob's remembered fields lose `latchTouch`. Change 18's encoding measure moved with it (emit.spec
+test 10, every element that carries Latch Off): the channel bit is still the cheapest on eight and sixteen elements
+(25, 33) and no longer on page 3 (the keyed field 18 against 20) or page 3 with every option (the flag bit 14 against
+19). The encoding stays; re-encoding is not change 18b's.

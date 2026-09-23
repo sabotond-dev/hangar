@@ -4077,3 +4077,70 @@ output's Type - a note name under Note, a controller number under CC, hidden und
 Channel pressure; (2) output blocks fold - each block a one-line summary ("Note · Ch 1 · C1 ·
 Receive") that opens on click, every block folded when a card has more than four outputs (STEPS'
 eight, ORBIT's four open), so a long MIDI section reads at a glance.
+
+**Done - change 18b (Sandbox), 2026-09-23 (the one-cell fader sends; the knob loses Latch; no catalog entry touched;
+nothing asked, every decision recorded).** Two commits before the docs, no push, no device, no deploy: `708f65f`
+fix(sandbox) the runtime and the model; `94a219b` feat(sandbox) the inspector and the editor; then this paragraph with
+`docs/TESTING.md`'s "2026-09-23 change 18b (Sandbox)", the dated section "The one-cell fader, and the knob without
+Latch" in `docs/entries/sandbox-runtime.md`, and the gate records `gate/change-18b.*` (at my start, `ee50d42`) and
+`gate/change-18b-after.*`.
+
+**The guard: a new part `V`, the axis with its divisor clamped.** `A` reads each axis through
+`V(d,l)=glim(d*127//glim(l-1,1,9)//64,0,127)`: floor division twice is floor division once by the product, so every
+box two cells and up reads exactly the number it did (change 17's `A` and this one run side by side in the VM over
+4,896 positions: 0 differ), and a one-cell axis divides by 1 where it raised `n//0` - the fader throws that axis away.
+**The cost: +11** over change 17's `A` (133 -> `A` 83 + `V` 61), measured canonical against the clamp inline in `A`
+(+14, one part - and page 3 with every option on then has no placement at all), `A` handed the kind so it computes only
+the axis read (+31) and `len>1 and ... or 0` per axis (+33). **Per surface: +12** (the 11 and a separator) on every
+surface that carries a fader or a pad, at the corner under five slots - page 3 893/908/852/906/900 -> 893/908/905/897/868
+(81 -> 69 free), four faders 2,884 -> 2,896, eight 3,436 -> 3,448, twelve 3,580 -> 3,592, sixteen 3,714 -> 3,726, each
+of those every element Off 12 more likewise (the sixteen's Setup still 908); every fixture that fitted still fits, the
+cap floor 11 -> 11 and 14 -> 14; a surface of buttons and knobs alone does not move. **An XY pad one cell wide:** the
+editor refuses it (minimum 2 x 2), so it never reaches `V`.
+
+**Found by the new placement, fixed (Rule 1):** `V` moved page 3's placement and first fit put the entry `O` in the
+touch Timer, which re-runs every period - a new `O` each run, so `Y`'s `s.touch_cb~=O` ignored every host message
+(runtime.spec test 18 went red). `packRuntime` keeps the entry out of the Timer while a receive callback is packed;
+no placement that worked moves, and 19 fixture landings that fit with a receive half all keep `O` elsewhere.
+
+**The VM cases** (`runtime.spec.ts` 23): a 1 x 6 vertical fader 127, 0, 76 (a wobble across nothing) with its bar; a
+1 x 2 127, 0; a 6 x 1 horizontal 0, 127, 50 with its bar; a 2 x 1 0, 127; the pad beside them - under five slots and
+three; the 1 x 6 relative at full with the spring at 100: 127 then 100; two 1 x 6 Latch Off hand over (70:25, 70:50,
+74:76, 74:101). RED before the fix (the 1 x 6 sent nothing). **Every emit.spec surface RUN** (`emit.spec.ts` 11): one,
+page 3, eight, twelve, sixteen, four faders, page 3 with every option, page 3 at three fingers, sixteen at typed
+literals, eight / twelve / sixteen every element Off and four of the cap floor's representative at 1 x 2 - 63 faders and
+pads, each sends on its channel, an absolute controller exactly its min then its max, nothing raises (on change 17's
+divisor: "Twelve / Fader 1 sent nothing").
+
+**The knob.** `takesLatch(kind)`: the fader, the button, the XY pad. The inspector shows no Latch row on a knob; **over
+a set the row shows only when every member carries Latch** - a set with a knob in it has no row, and a set of mixed
+kinds with a knob no Behavior (Latch was its one row): the row writes every member, so it is not shown rather than
+skipping the knob. `setLatchTouch` refuses a knob alone or in a set, as a blank; the knob's remembered fields lose it. A
+knob stored Off (change 18's few hours) is still a valid record and reads On: its word without the bit, its strings
+byte-identical to the field absent, loaded with no row (`sandbox-ui.spec.ts` 31; the options walk in `sandbox.e2e.ts`
+reads no row on the knob).
+
+**Fixtures that moved** (the sandbox set `a805fdc4…` -> `51e5da18…`, 760 -> 874 strings, 40 -> 46 fixtures): 300 strings
+across the 35 fixtures that carry a fader or a pad - `A`'s new text and `V` (runtime/page3-off also by its knob's word,
+the knob now On); none gone; 114 added by six new fixtures; unmoved, the five of buttons and knobs alone (latch, notes,
+knobs, strum, wait). **The catalog wire did not move:** the base set's 12,127 records, 12,117 equal, the 10 moved all
+`S/page3/…` (its own Sandbox page 3).
+
+**Counts, carried + delta** (carried = the tree at my start, `ee50d42`, src as at `a5e222c`: quick 96 / 1059 + 1 todo,
+check 678, e2e 118 runs, utilities 44, testids 345): quick -> **96 / 1062 + 1 todo** (mine +3: runtime 23, emit 11,
+sandbox-ui 31), green at `--maxWorkers=2` twice and in the gate's quick term at `e5a4578`; `QUICK_TESTS` not edited by
+me - 17B's `0d61e04` moved it 1059 -> 1062 on the whole tree at my `94a219b`, my three. Check 678 -> **678**; lint
+clean; e2e 118 -> **118** runs; utilities **44 -> 44**; testids **345 -> 345**; copy exports **equal**; SCOPED CSS
+`b8281684…` **equal**. **The gate** ran whole (`--after change-18b --against change-18`): the full wire finished this
+time (17B's `29488c7`), `WIRE FULL 5fcce9e9…`; it exits 1 at the wire, moved since `309188b` by 17B's cards and by 18
+and 18b; the sandbox set was hashed on its own at my start and after (`change-18b.wire-sandbox.json`,
+`change-18b-after.wire-sandbox.json`) and every later term compared by hand. **Chunk** by files on the gate's build at
+`e5a4578`: c4 **25**.
+
+**Departures from the brief:** (1) the guard is a part of its own, `V`, not a guard inside `A` - cheapest measured and the
+only form that keeps page 3 with every option on five slots. (2) The packer rule above, found by test 18. (3) Change 18's
+encoding measure moved with the knob: the channel bit is still the cheapest on eight and sixteen elements (25, 33) and no
+longer on page 3 (the keyed field 18 against 20) or page 3 with every option (the flag bit 14 against 19) - not
+re-encoded. (4) `scripts/gate/sandbox-fixtures.mjs` +6 fixtures (outside the brief's file list, as 18's nine were). (5)
+17B's gate `--after change-17b` ran with my edits uncommitted in the tree, so its sandbox set (`6abddaa3…`) and quick
+figure carry them. CAT-04 stays `[ ]`.
