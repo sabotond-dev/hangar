@@ -7576,3 +7576,93 @@ passed**; c4 by its five files (`catalog`, `fidelity`, `first-experience`, `libr
 same day on the tree before `3eec7fa`: c3 27, c4 24, c5 11 (the Sandbox walk's first runs had the Color input's switch
 coalescing with the typed first CC into one history entry - fixed in `3eec7fa`). c1 and c2 not run: no install, session or browse title reads a MIDI
 field.
+
+## 2026-09-23 change 18 (Sandbox) - Latch: a per-element option; Off hands a sliding finger over to the element it moves onto
+
+`BENCH-2026-09-16.txt` section 18 (the user's "Latch mode", read as the playground's cards sliding across controls -
+17B and 17C's - and, in the Sandbox, a per-element option). This is the Sandbox half: **Latch, Off / On, On by
+default** (today's behaviour), on every kind that takes touch. The rule, the steal decision, the encoding and the
+costs are `docs/entries/sandbox-runtime.md`'s dated section "Latch". Six commits before the docs, no push, no device,
+no deploy, every Lua cost under the pinned `compressScript` after `initLuaFormatter()`: `f278bd6` feat(sandbox) the
+runtime (the schema's `latchTouch`, the channel word's hand-over bit 512, `HAND_OVER_TEXT` - `O` with the hand-over,
+single-touch and multitouch - and `Y`'s rows taking the word `%512`, both swapped in only when an element is Off; the
+representative region Off; nine gate fixtures); `ae7ed43` feat(sandbox) the inspector (the Latch row last under
+Behavior, `setLatchTouch`, remembered per kind, Behavior with Latch alone over mixed kinds, the route); `aae17e4` test
+the e2e Latch walk; `55cf407` test the options walk's and the rack grid's pins moved by the new row; `4bc2378` and
+`133a458` chore(gate) `QUICK_TESTS` 1046 then 1059 (below); then this section, the runtime's dated section, the Done
+paragraph "18 (Sandbox)" under section 18, and the gate records `gate/change-18.*` (before, at `309188b` with 17B's
+edits in the tree) and `gate/change-18-after.*` (at `4bc2378`; its build `a5e222c`).
+
+**What the suites prove, new and moved.**
+
+- `runtime.spec.ts` +2. 21, in the VM: On, a slide from one fader across into the next drives the first alone (pinned,
+  today's); Off, it hands over (the first stops at its last value with its bar kept, the second jumps to the finger,
+  and back again); a strum across four Off buttons with an empty cell before the last presses each in turn with its off
+  on the way out, where the same row On sends the first button's on and off alone; an Off fader's finger onto empty
+  plate is released and crosses it sending nothing, then presses the next Off button; an Off spring fader left for
+  empty plate springs back; a finger that landed on empty plate takes nothing; a slide onto an On button another finger
+  holds waits and takes it on its next sample after the lift, and the On button then keeps it; a slide onto an Off
+  multitouch pad with a finger on it waits, alone takes the first slot, and slid back out its cross goes; page 3 with
+  every element Off receives as page 3 does. 22, measured: the two entry texts canonical (399, 518), the parts the
+  same but `O` and `Y`, every earlier fixture at On (the field absent or `true`) byte-identical under two, three and
+  five slots, a blank Off read On, page 3 before and after, the ceiling in kinds with every element Off (alone and
+  beside a multitouch pad). Tests 6, 7 and 14 run the seven Latch fixtures beside the rest (both class gates, the
+  names with and without the hand-over, canonical, a gesture on every region with no error).
+- `emit.spec.ts` +1 (10: the word 512 higher on an Off region and every other column as it was; every type, Receive
+  and channel's Off word 480 and up, On under 192, `%16` / `%128` / `//16%4` equal; the swap of `O` and `Y`; the three
+  encodings measured - keyed field / flag bit / channel bit: page 3 22 / 39 / 21, page 3 options 22 / 18 / 19, eight
+  38 / 76 / 25, sixteen 70 / 140 / 33; the five slots at the corner On -> every element Off). Test 1: the
+  representative carries Latch Off (its word 175 -> 687); the floors unmoved (11 from empty, 14 from twelve).
+- `sandbox-ui.spec.ts` +1 (30: Off / On on every kind that takes touch, one entry, the same value none, refused with
+  a blank in the set and in Play; a mixed set written as one entry; remembered per kind, a multi-edit not; a draft with
+  the field reads and a non-boolean is refused whole; the row last under Behavior on every kind but a blank, its helper
+  the label's title, Mixed over a set that differs; the route's wiring). Moved: test 12's "never Latch" (the toggle
+  is still Toggle; `Latch` is now the finger's row, once) and test 16's "a fader and a button: no Behavior" (Behavior
+  with Latch alone).
+- e2e +1 title. `sandbox.e2e.ts` "the Latch walk (change 18)": two buttons, the row On with its helper as the title,
+  Off over the set as one entry, Undo / Redo, one mouse finger slid from Button 1 across the empty cell onto Button 2
+  in Play - the Play monitor shows Button 2's controller at 127 (a run with Latch left On shows nothing on it: the
+  walk is not vacuous) - and the draft recovered. Moved: the options walk's button reads `field-latch` On (it asserted
+  none); `rack-grid.e2e.ts` the fader's rows gain Latch (labels, the reset rows' indexes, 9 -> 10 section pitches).
+- `scripts/gate/sandbox-fixtures.mjs` +9 fixtures (`runtime/lanes`, `lanes-off`, `strum`, `wait`, `roam`,
+  `page3-off`, `multitouch-off`, `emit/eight-off`, `emit/sixteen-off`).
+
+**Budgets, before -> after** (the RGB444 picker corner; 255/6, 255/0, 255/4, Timer, Setup). `O` 273 -> 399, the
+multitouch `O` 392 -> 518, `Y`'s rows +6 - only where an element is Off. Every element Off: four faders 830 / 903 /
+558 / 111 / 482 -> 907 / 791 / 725 / 111 / 486, eight 852 / 907 / 832 / 231 / 614 -> 858 / 907 / 824 / 365 / 622,
+twelve 852 / 907 / 832 / 231 / 758 -> 858 / 907 / 824 / 365 / 770, sixteen 852 / 907 / 832 / 231 / 892 -> 858 / 907 / 824 / 365 / 908 - all fit. **Page 3 (every
+element receiving) does not fit with any element Off** (81 characters were free; the hand-over wants 126 + 6 and a
+word's digits); with every Receive off it fits (852 / 908 / 837 / 842 / 617). The ceiling in kinds, every element Off
+and receiving: `vbxk`, `hbxk`, `vhbxk` over; beside a multitouch pad `vhxk` too. The cap floor 11 -> 11 from empty,
+14 -> 14 from twelve.
+
+**Counts, carried + delta.** Carried (the before-record, HEAD `309188b` with 17B's uncommitted edits in the tree):
+quick 96 / 1037 + 1 todo (1,038 titles incl. todo; the before-record's run passed 1,036 and failed radius.spec layer B
+against a build 17B's edits had made stale - an ordering artifact of the gate, the build term runs after the quick
+term), check 678, e2e 117 playwright runs, utilities 44, testids 345, the sandbox set `05388336…` (589 strings, 31
+fixtures). After: quick **96 / 1059 + 1 todo** - mine +4 (runtime 21 and 22, emit 10, sandbox-ui 30), 17B's +18 since
+my start; green at `--maxWorkers=2` on the settled tree at `a81d423` (1,046) and in the gate's quick term (1,059, 0
+failed; `check-counts` failed only on the figure 1046, which `133a458` moved); two earlier runs mid-17B were red in 17B's
+five in-flight files alone (audition, lua-smoke, knobs.lua, surprise, tune-ui) with every Sandbox file green. Check 678
+-> **678**; lint clean; e2e 117 -> **118** runs; utilities **44 -> 44**; testids **345 -> 345** (the census reads
+`data-testid="..."` literals; `field-latch` is the segmented snippet's argument, as `field-receive` is); copy exports
+`e2f4afa0…` -> `a3670f1c…` (mine +2: `LATCH`, `LATCH_HELPER`; 17B's alongside); OG and the four fixtures unmoved;
+`src/` of mine 12 modified, 0 added.
+
+**The gate's terms** (`--before change-18` at `309188b`; `--after change-18 --against change-18 --check 678` at
+`4bc2378`). **The sandbox set moved only by new fixtures**: `05388336…` -> `a805fdc4…` (589 -> 760 strings, 31 -> 40
+fixtures): all 589 earlier strings equal, 171 added by the nine Latch fixtures, none moved or gone. The wire set moved by
+17B's cards (`481eced6…` -> `8eab8e1f…`, 3,035 -> 5,723 strings: their Lua entries' records), not by change 18 (no catalog
+entry, `library.ts` or the preset path is touched here). The full wire term was stopped after 58 CPU-minutes: past a
+million states each knob of an entry enters at three positions, and 17B's grown cards make 3^k unreachable - so the
+after-record has no `wire.json` (the sandbox set hashed alone: `change-18-after.wire-sandbox.json`, and a note at the
+end of `change-18-after.txt`); the script exits 1 at the wire. SCOPED CSS `b8281684…` -> **`b8281684…` equal** (the
+Latch row is the existing segmented control), raw CSS `fc1e0f86…` equal; the JS `3b48059b…` -> `c25b3ef8…`; the
+titles `9268fc61…` -> `e0b6c944…` (1,060 vitest incl. todo, 118 playwright); comment lines 55,331 -> 56,745 (28 files,
+nine of them mine); the refuse-list stat empty.
+
+**Chunks** (`scripts/gate/e2e-chunks.sh` by files, a fresh detached wrangler dev on 4173, stopped through PowerShell,
+HTTP 000 after each; 5173 untouched), on the build at `133a458`: c4 by its five files **25 passed** (24 + the Latch
+walk); c5 by its four files **11 passed**; `rack-grid.e2e.ts` alone **4 passed**. Earlier: c4's first run failed the
+options walk's "no field-latch" pin (moved in `55cf407`); c5's first run failed `artifacts` only because the build's
+stamp was a commit behind HEAD (rebuilt, green).

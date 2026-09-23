@@ -648,3 +648,112 @@ its min); a one-touch pad's matching axis and the crosshair at the held pair; an
 The value is kept as the last one sent, so nothing is echoed. A neighbour's traffic (INSTR 14), another channel,
 another number, a program change on a note's number, and a stale callback (another landing's touch callback installed)
 are ignored.
+
+## Latch (2026-09-23, change 18; `BENCH-2026-09-16.txt` section 18)
+
+Every element that takes touch has **Latch**, Off / On, **On by default**. On is what every element did before
+change 18: `O` pins a contact to the region it landed on (`S[i]=M[N(x,y)]` on the onset) and every later sample of
+that contact drives that region, wherever the finger goes. Off lets a sliding finger pass to the element it moves
+onto - a strum across buttons, a glide from fader to fader. The field is the schema's `latchTouch` (absent is On; an
+older draft reads On); the button's own `latch` is its Toggle and is not this.
+
+### The hand-over rule
+
+On every live sample the hand-over entry reads the finger's cell `n = M[N(x,y)]` beside the region the contact
+holds, `g = S[i]`. When the sample is not an onset, `n` is not `g`, and the contact is **free to pass** - it holds a
+region that is Latch Off, or it is already waiting (`S[i] == false`) - then:
+
+1. the old region is released through `E` exactly as a lift releases it: a momentary button sends its off, a fader
+   keeps its bar where the finger left it (10C), a spring fader springs back and sends its spring value, an XY pad's
+   crosshair and a knob's arc clear, a multitouch pad frees the finger's slot;
+2. the contact **waits**: `S[i] = false`, which pins no row (`J[false]` is nil) and holds no region;
+3. if the new cell is an element (`n > 0`: not empty plate, not a blank) and no other contact holds it, the sample
+   becomes an **onset** there - the ordinary onset, so the element sees a press: a button presses (a toggle toggles,
+   a radio group clears its others), an absolute fader or pad jumps to the finger, a relative one anchors and waits
+   for movement, a knob starts its angle, a multitouch pad gives the finger its lowest free slot.
+
+A waiting contact keeps waiting across empty plate and blanks and takes the next free element it reaches. A contact
+that **landed** on empty plate or a blank (`S[i]` 0 or negative), or on an element that is On, is never free: On keeps
+its finger regardless of where it goes, and a finger that touched down on nothing touches nothing (the rule before
+change 18). A hand-over INTO an On element is allowed; from then on the On element keeps the finger.
+
+**The steal decision: a sliding finger never takes a held region.** When the element under a free finger is held by
+another contact (`o = o and h ~= n` over `S`), the finger releases its old element and waits on nothing; it takes the
+region on its first sample after the holder lifts. A finger held perfectly still produces no sample (the firmware's
+change gate; `lua-host.ts` models it), so it takes the region when it next moves. A multitouch pad with any finger on
+it counts as held - a sliding finger does not join it. A finger that LANDS on a held region still takes it, as before.
+Why: the user's case is a finger touching a second fader by accident; a slide that stole a held fader would be exactly
+that accident. A contact expired by such a landing is gone for the gesture, as before.
+
+### The encoding: the channel word's hand-over bit
+
+A Latch Off region's CHANNEL WORD (column 8, change 17) is **512 higher** (`model.ts` `HAND_OVER_BIT`): every Off word
+is 480 and up (a note's -32 + 512), every On word under 192, so the entry reads `J[g][8]>479`. The readers that run at
+On take the word apart by `%16` (the channel), `%128` (a note's `>95`) and `//16%4` (the type), which 512 leaves alone
+(`emit.spec.ts` test 10 walks every type, Receive and channel). The one reader that reads the word whole is `Y`, the
+receive callback: its rows are swapped for a variant that takes `%512` first, into a local (`RECEIVE_ROWS_HAND_OVER`,
++6). At On the word is the one it was, so every row is byte-identical.
+
+Measured, every element Off, rows + readers + the entry's read (`emit.spec.ts` test 10; keyed field `,h=1` / flag-word
+bit 8 / channel-word bit 512): page 3 **22 / 39 / 21**, page 3 with every option **22 / 18 / 19**, eight elements
+**38 / 76 / 25**, sixteen **70 / 140 / 33**. The keyed field is four characters a row; the flag bit forces the tail where
+it was omitted (`,0,127,8`) and needs `R`'s spring test (`f//4>0`, both releases) and the knob's mode (`m`) to take
+the flag word apart - variants of texts every surface carries (+5); the channel bit costs a word at most two digits
+(a Receive-off word none: 175 -> 687) and `Y` 6. The channel bit is the cheapest on every surface measured.
+
+### The variant: `O` and `Y` swapped in only when an element is Off
+
+`HAND_OVER_TEXT.entry` is the entry spliced from its pieces with the hand-over between the head and the onset:
+**`O` 273 -> 399 (+126)**; under multitouch **392 -> 518 (+126)** - the same hand-over in front of change 11's onset.
+`Y`'s rows +6. Nothing else moves: `R`, the branches, `D`, `K`, `Q`, `A` are the texts they were. A surface whose every
+element is On carries exactly the strings it did - every earlier fixture, the field absent or `true`, is byte-identical
+under two, three and five slots (`runtime.spec.ts` test 22), and the gate's sandbox set moved only by its nine new
+fixtures.
+
+### The costs, at the picker corner
+
+- **Five slots, On -> every element Off** (255/6, 255/0, 255/4, Timer, Setup): four faders 830/903/558/111/482 ->
+  907/791/725/111/486; eight elements 852/907/832/231/614 -> 858/907/824/365/622; twelve 852/907/832/231/758 ->
+  858/907/824/365/770; sixteen 852/907/832/231/892 -> 858/907/824/365/**908** - every one fits.
+- **Page 3** (a fader, a pad, a knob, a button, every one receiving) had 81 characters free across its five strings
+  (893 / 908 / 852 / 906 / 900); the hand-over wants 126 for `O`, 6 for `Y` and a word's digits. **Page 3 with any one element Off is over**, and with
+  all four Off (the Timer carries what fits nowhere: 852 / 908 / 858 / 1,076 / 905). With every element's Receive off it
+  fits (852 / 908 / 837 / 842 / 617).
+- **The ceiling in kinds**, every element Off and receiving: the three combinations carrying a fader, the button, the
+  pad and the knob are over (`vbxk`, `hbxk`, `vhbxk` - the three change 11 put over beside a multitouch pad); every
+  combination of fewer kinds fits. Beside a multitouch pad, every element Off: `vhxk` is over too (four).
+- **The cap floor**: the representative region now carries Latch Off (the dearest: its word 175 -> 687, three digits;
+  the entry once). From an empty surface **11 -> 11** of the dearest option-laden faders; from twelve **14 -> 14**.
+
+### Proved in the VM (`runtime.spec.ts` test 21)
+
+On, pinned: a finger slid from Lane A up and across into Lane B drives Lane A alone (25, 50, 76, 101) and Lane B hears
+nothing. Off: the same slide hands over at the first sample in Lane B - Lane A stops at 50 with its bar kept, Lane B
+jumps to the finger (76, then 101); back into Lane A it hands over again. A strum across four Off buttons with an empty
+cell before the last presses each in turn with its off on the way out (90 on, 90 off, 91 on ... 93 on, then 93 off on
+the lift); the same row On sends the first button's on and off alone. An Off fader's finger onto empty plate is released
+(its bar kept, nothing sent), crosses the empty cells sending nothing and presses the next Off button it reaches; an Off
+spring fader left for empty plate springs back (101, then 64); a finger that landed on empty plate crosses a button and
+a fader and sends nothing. A finger slid from an Off button onto an On button another finger holds waits (the Off
+button's off, no second press), takes it on its next sample after the holder lifts, and - the On button keeping it -
+slides on past an Off button that hears nothing. A finger slid from an Off button onto an Off multitouch pad with a
+finger on it waits; alone, it takes the pad's first slot, and slid back out its cross goes and the button presses.
+Page 3 with every element Off receives exactly as page 3 does.
+
+### The preview and the interface
+
+`preview.ts` runs the same five strings, so Play shows the hand-over; the e2e walk slides one mouse finger from one Off
+button across onto another and reads the second's on in the Play monitor (a run of the walk with Latch left On did
+not). The
+inspector's Latch row is the last row of Behavior on every kind that takes touch, its helper the label's title; over a
+set of mixed kinds (no blank) Behavior shows Latch alone. `setLatchTouch` writes every member as one entry, refuses a
+blank or Play; Latch is remembered per kind (13B).
+
+### Found, not fixed: a one-cell-wide fader divides by zero
+
+`A(r,x,y)` (change 17) computes BOTH positions of a finger, so a vertical fader one cell wide divides by `(r[3]-1)*64`
+= 0 on its x axis (and a horizontal fader one cell tall on its y axis): the touch callback raises "attempt to divide by
+zero" on every sample and the fader sends nothing. The editor allows a 1 x 2 vertical fader and a 2 x 1 horizontal one
+(`minimumSizeFor`), and emit.spec's twelve and sixteen are 1-wide faders (measured only, never run). Change 18's VM
+fixtures use two-wide faders for that reason. A guard (`r[3]>1 and ... or 0` per axis) is +31 characters on `A`,
+which every surface with a fader or a pad carries - it moves the sandbox set at the default, so it is not in change 18.

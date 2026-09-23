@@ -3864,3 +3864,112 @@ keeps the control it landed on until it lifts. In the Sandbox the behaviour alre
 becomes a per-element option `Latch` (On by default - today's behaviour), and Off lets a finger
 hand over to whatever element it moves onto - a strum across buttons, a glide from fader to
 fader - so both feels are available.
+
+**Done - change 18 (Sandbox), 2026-09-23 (the per-element Latch; no catalog entry touched; nothing asked,
+every decision recorded).** Six commits before the docs, no push, no device, no deploy: `f278bd6`
+feat(sandbox) the runtime; `ae7ed43` feat(sandbox) the inspector's Latch row; `aae17e4` test the e2e
+Latch walk; `55cf407` test the options walk's and the rack grid's pins; `4bc2378` and `133a458`
+chore(gate) `QUICK_TESTS` 1046, then 1059; then this paragraph with `docs/TESTING.md`'s "2026-09-23
+change 18 (Sandbox)", the dated section "Latch" in `docs/entries/sandbox-runtime.md`, and the gate
+records `gate/change-18.*` (before, at `309188b`, 17B's edits in the tree) and `gate/change-18-after.*`.
+
+**The option.** Latch, Off / On, **On by default**, on every kind that takes touch (a blank has none);
+the schema's `latchTouch` (absent is On, so an older draft reads On; not the button's `latch`, which is
+its Toggle). **At On every emitted string is byte-identical to before**: every earlier fixture, the
+field absent or `true`, under two, three and five slots, and the gate's sandbox set moved only by its
+nine new fixtures (589 strings equal, 171 added).
+
+**The hand-over rule.** On every live sample that is not an onset, the finger's cell is compared with
+the region its contact holds. When they differ and the contact is free to pass - it holds a Latch Off
+region, or it is already waiting - the old region is released through `E` exactly as a lift releases
+it (a momentary button's off, a fader's bar kept, a spring's return with its value, an XY pad's
+crosshair and a knob's arc cleared, a multitouch pad's slot freed), the contact waits (`S[i]=false`:
+no region), and if the new cell is an element that no other contact holds, the sample is an onset
+there: a button presses, an absolute fader or pad jumps to the finger, a relative one anchors, a
+multitouch pad gives the lowest free slot. A waiting finger crosses empty plate and blanks holding
+nothing and takes the next free element it reaches. A finger that landed on empty plate or a blank,
+or on an element that is On, is never free: On keeps its finger wherever it goes; a hand-over INTO an
+On element is allowed, and that element then keeps it. **The steal decision: no** - a sliding finger
+never takes a region another contact holds (a multitouch pad with any finger on it included); it waits
+on nothing and takes the region on its first sample after the holder lifts (a finger held perfectly
+still sends no sample, so: when it next moves). A finger that LANDS on a held region still takes it.
+
+**The encoding and its cost.** A bit in the CHANNEL WORD: a Latch Off region's word is 512 higher -
+every Off word 480 and up, every On word under 192, so the entry reads `J[g][8]>479`; every reader that
+runs at On takes the word apart by `%16`, `%128` or `//16%4`, which 512 leaves alone; the receive
+callback `Y` reads it whole, so its rows are a variant taking `%512` first (+6). A word gains at most
+two digits (0 -> 512), a Receive-off word none (175 -> 687). Measured against a keyed field `,h=1`
+(four a row) and a flag-word bit (the tail forced where omitted, plus variants of `R` and the knob), every
+element Off, rows + readers + the entry's read: page 3 22 / 39 / **21**, page 3 with every option
+22 / 18 / **19**, eight 38 / 76 / **25**, sixteen 70 / 140 / **33** - the channel bit is the cheapest on
+every surface measured. **The variant**: `O` 273 -> **399** (+126), the multitouch `O` 392 -> **518**
+(+126), `Y`'s rows +6 - swapped in only when an element is Off (change 11's pattern); every other part
+the same text.
+
+**Five slots at the picker corner** (255/6, 255/0, 255/4, Timer, Setup), On -> every element Off: four
+faders 830/903/558/111/482 -> 907/791/725/111/486; eight 852/907/832/231/614 -> 858/907/824/365/622;
+twelve 852/907/832/231/758 -> 858/907/824/365/770; sixteen 852/907/832/231/892 -> 858/907/824/365/908 - all fit. **Page 3,
+every element receiving (893/908/852/906/900, 81 free), does not fit with ANY element Off** (the
+hand-over wants 126 + 6 and a word's digits; all four Off: the Timer 1,076); with every Receive off it
+fits (852/908/837/842/617). The ceiling in kinds, every element Off and receiving: `vbxk`, `hbxk`,
+`vhbxk` over (the three change 11 put over beside a multitouch pad); beside a multitouch pad `vhxk` too.
+**The cap floor 11 -> 11** dearest faders from an empty surface (the representative now carries Latch
+Off: its word 175 -> 687, three digits, the entry once), **14 -> 14** from twelve.
+
+**The VM cases** (`runtime.spec.ts` 21): On pinned (a slide from Lane A up and across into Lane B:
+Lane A 25, 50, 76, 101; Lane B nothing); Off, the same slide hands over (Lane A stops at 50, its bar
+kept; Lane B 76, 101; back into Lane A, 76); a strum across four Off buttons with an empty cell before
+the last (90 on, 90 off, 91 on, 91 off, 92 on, 92 off, 93 on; 93 off on the lift) and the same row On
+(90 on, 90 off alone); an Off fader's finger onto empty plate released (bar kept, nothing sent while it
+crosses) and then pressing the next Off button; an Off spring fader left for empty plate (101, then 64);
+a finger landed on empty plate crossing a button and a fader (nothing); a slide from an Off button onto
+an On button another finger holds (its off; no second press; waits; takes it after the lift; the On
+button then keeps it past an Off button that hears nothing); a slide onto an Off multitouch pad another
+finger holds (waits; alone takes the first slot; slid back out its cross goes and the button presses);
+page 3 all Off receiving as page 3 does. `runtime.spec.ts` 22 measures, `emit.spec.ts` 10 the word and
+the encodings, `sandbox-ui.spec.ts` 30 the editor and the row, the e2e walk the preview (one mouse finger
+slid from Button 1 onto Button 2 in Play: the monitor shows Button 2 at 127; with Latch left On it does not).
+
+**The inspector.** The Latch row is the last row of Behavior on every kind that takes touch, a segmented
+Off / On; its helper is the label's title: "On: the finger keeps this element until it lifts. Off: a
+sliding finger passes to the element it moves onto." Multi-edit writes every member as one entry, a
+blank refuses it, Play refuses it; Latch is remembered per kind (13B). A set of mixed kinds with no blank
+now shows Behavior with Latch alone (before: no Behavior over mixed kinds).
+
+**Counts, carried + delta** (carried = the tree at my start, `309188b` with 17B's uncommitted edits:
+quick 96 / 1037 + 1 todo, check 678, e2e 117 runs, utilities 44, testids 345): quick -> **96 / 1059 + 1
+todo** (mine +4: runtime 21, 22, emit 10, sandbox-ui 30; 17B's +18 since my start), green at
+`--maxWorkers=2` at `a81d423` (1,046) and in the gate's quick term (1,059, 0 failed); two runs earlier
+mid-17B were red only in 17B's five in-flight files. `QUICK_TESTS` read fresh (1036, untouched by 17B)
+-> 1046 (my run at `a81d423`) -> **1059** (the gate's run, the whole tree at `a5e222c`). Check 678 ->
+**678**; lint clean; e2e 117 -> **118** runs; utilities **44 -> 44**; testids **345 -> 345** (the census
+reads `data-testid="..."` literals; `field-latch` is the segmented snippet's argument, as
+`field-receive` is); copy exports moved (mine +2: `LATCH`, `LATCH_HELPER`); SCOPED CSS **`b8281684…`
+equal** (the row is the existing segmented control); raw CSS equal. **The gate**: the sandbox set
+`05388336…` -> `a805fdc4…` - moved only by new fixtures; the wire set moved by 17B's cards committed
+meanwhile (`481eced6…` -> `8eab8e1f…`), none of it mine; the full wire term stopped after 58 CPU-minutes
+(17B's grown cards put the three-position sample past reach), so the sandbox set was hashed alone and
+the script exits 1 at the wire. **Chunks** by files on the build at `133a458`: c4 **25** passed (24 + the
+walk), c5 **11**, `rack-grid.e2e.ts` **4**.
+
+**Departures from the brief:** (1) the encoding: the brief named a bit in the flag word or the channel
+word - the channel word it is, measured against both and a keyed field; it needs a second variant (`Y`'s
+rows, +6) beside `O`'s. (2) The row appears over a set of mixed kinds (Behavior with Latch alone), so
+multi-edit covers a fader-and-button set; sandbox-ui 12 and 16's "never Latch" and "no Behavior over
+mixed kinds" pins moved, and `rack-grid.e2e.ts` (not in the brief's file list) moved with the row. (3)
+`setLatchTouch` refuses in Play (returns false) where `setReceive` returns true and changes nothing. (4)
+`QUICK_TESTS` moved twice (1046, then 1059), both figures proved by my runs on the whole tree. (5) The
+gate's full wire could not finish; the sandbox set is recorded by hand beside the after-record.
+**Found and not fixed** (it moves the sandbox set at the default): `A(r,x,y)` (change 17) computes both
+axes, so a one-cell-wide vertical fader (or one-cell-tall horizontal fader) divides by zero on every
+sample and sends nothing - the editor allows 1 x 2; emit.spec's twelve and sixteen are 1-wide and are
+only measured, never run. A guard per axis is +31 characters on `A`. CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) Page 3 with every element receiving cannot take Latch Off at all -
+accept, or make room (the 1-wide fix will cost 31 more)? (2) No steal - right, or should a sliding
+finger take a held region as a landing does? (3) A finger that landed on empty plate takes nothing
+even when it slides onto an Off element - right, or should it pick one up? (4) A waiting finger crosses
+empty plate and keeps looking; should an Off element's finger that leaves onto empty plate instead be
+done for the gesture? (5) Latch Off on a knob releases it the moment the finger slips outside its box -
+offer Latch on a knob at all? (6) Fix the one-cell fader's division by zero now (it moves every surface
+with a fader or a pad)?
