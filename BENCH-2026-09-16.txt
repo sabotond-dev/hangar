@@ -3842,6 +3842,89 @@ DIAL), compiled from the untouchable vendor tree - wrapped on HANGAR's side or r
 cards the way RADAR was (12b), the executor's measured call. Keystroke (HID) sends are not MIDI
 and stay as they are.
 
+**Done - change 17B, 2026-09-23 (the nineteen hand-authored cards; nothing asked, every decision recorded).**
+One commit per card, the shared pieces the cards needed, no push, no device, no deploy: `f4b2005` feat(tune) a card's
+channel reads 1..16 (the wire keeps 0..15; ARC's display moves with it, its entry does not); `b5159f8` CHORUS;
+`33fc889` feat(sim) the touch element's `tim` - the pull-in; `a209365` CONSOLE; `6660a98` CULL; `ac0286c` GHOST;
+`680bf0d` LUMEN; `a81d423` MORPH; `6515047` ORBIT; `8d5cdbe` POMODORO; `25c4258` QUADRANT; `4b33e46` RADAR POINTS;
+`0c4caa1` RADAR; `e595a12` SNAKE; `5ba6c30` SONAR; `f43f2d5` STAGE; `c25d2bc` STEPS; `525bfb3` RADAR POINTS's receive;
+`a87869d` STRIP; `aaa33bf` TRACKPAD COMET; `5e5f244` TRACKPAD; `a5e222c` WHEELS; `29488c7` test(sweep, gate) the output
+knobs walked, not cross-producted; `f49236c` test(e2e) SNAKE's widget walk; then this paragraph with
+`docs/TESTING.md`'s "2026-09-23 change 17B", `docs/MIDI.md` sections 6 and 7, the nineteen tables of
+`docs/TUNING-REVIEW.md`, each card's dated section in `docs/entries/` (TRACKPAD COMET's file new), audition rows 41-44
+and the gate records `gate/change-17b.*` (before, at `5da1fed`, the tree clean) and `gate/change-17b-after.*`.
+
+| Card | Outputs (kind) | Types offered | Receive, decided | Setup / Timer (corner) | Latch |
+| --- | --- | --- | --- | --- | --- |
+| CHORUS | Chord (trigger; no Number - the chord's) | Note, CC | none, `nil` (a note names no one pad) | 779 / 602 -> 798 / 602 | fault fixed |
+| CONSOLE | Faders (continuous, one bank; first CC, PB / pressure per fader from the first channel) | CC, PB, pressure | the fader's level and bar | 807 / 0 -> 890 / 240 (pull-in) | fault fixed (bodies); cap swipe by design |
+| CULL | none (keystrokes) | - | `nil` | 565 / 0 -> 584 / 0 | already latched |
+| GHOST | X axis, Y axis (continuous) | CC, PB, pressure | none, `nil` (a recording's replay) | 730 / 484 -> 749 / 560 | already latched |
+| LUMEN | Hue, Depth (continuous; sysex unchanged) | CC, PB, pressure | the held pair moves the cursor | 733 / 0 -> 882 / 461 (pull-in) | one control |
+| MORPH | Top left, Top right, Bottom left, Bottom right (continuous) | CC, PB, pressure | the corner's value and block, held to the next touch | 860 / 0 -> 786 / 535 (pull-in) | already latched |
+| ORBIT | Ring 1..4 (trigger; Number the ring's note) | Note, CC | a note arms the ring's step at the playhead, never clears | 853 / 411 -> 869 / 777 | swipe by design |
+| POMODORO | Transport, Alarm (trigger) | Note, CC | none, `nil` (announcements; an echo would undo a tap) | 743 / 659 -> 766 / 669 | already latched |
+| QUADRANT | Top left .. Bottom right (trigger) | Note, CC | the pad lit on, dark off | 838 / 0 -> 537 / 726 (pull-in) | already latched |
+| RADAR POINTS | Points (trigger; no Number) | Note, CC | a note arms one point on the ring just crossed | 892 / 380 -> 897 / 758 | swipe by design |
+| RADAR | X axis, Y axis (continuous) | CC, PB, pressure | the held pair draws the comet | 763 / 50 -> 856 / 412 (pull-in) | already latched |
+| SNAKE | Bite, Death (trigger) | Note, CC | none, `nil` (game events) | 877 / 739 -> 896 / 768 | one control (the steer) |
+| SONAR | Sequence (trigger; no Number) | Note, CC | a note arms one cell of its ring on the sweep line | 572 / 289 -> 591 / 668 | swipe by design |
+| STAGE | none (keystrokes) | - | `nil` | 653 / 136 -> 672 / 136 | already latched |
+| STEPS | Track 1..8 (trigger) | Note, CC | a note arms the track's step at the playhead | 727 / 361 -> 746 / 826 | swipe by design |
+| STRIP | Fader, Crossfader (continuous) | CC, PB, pressure | the value and its light | 875 / 0 -> 849 / 476 (pull-in) | already latched |
+| TRACKPAD COMET | none (mouse) | - | `nil`, from the Timer | 903 / 427 -> 903 / 443 | one control |
+| TRACKPAD | none (mouse) | - | `nil`, from the Timer | 903 / 510 -> 903 / 526 | one control |
+| WHEELS | Pitch wheel (14-bit under PB), Mod wheel (continuous) | CC, PB, pressure | pitch shown and held (no spring), mod bar | 895 / 343 -> 900 / 895 (pull-in) | already latched |
+
+**The records.** Every one of the nineteen cards' `E/<id>/` records moved - the Lua text did (the type's expressions,
+the tables, the receive or the `nil`) - while each card's defaults send exactly what they sent before, message for
+message, and each card's `lua-smoke.spec.ts` case holds it. frames.json and the OG images did not move: no rest frame
+moved (a still card's pull-in arms nothing; an armed one-shot Timer, tried on CONSOLE first, moved frames.json's tick-0
+flag and would have turned the listing's `static` into `animated` - refused). No system slot and no library helper:
+`library.ts` untouched (LUMEN inlined `A`, which now has no caller - recorded for the next library change); the room
+came from each card's Timer, made once per install (ARC's route) or pulled in by `self:tim()`, which the Sandbox's
+first probe lit and the host now models (`lua-host.ts` SELF_PRELUDE `tim`, HOST_SELF_METHODS + `tim`;
+`host-surface.spec.ts`'s refusal of an entry's `self:tim()` retired). The stamp: CONSOLE, LUMEN, POMODORO (it landed
+`older`), QUADRANT, SNAKE, SONAR and STRIP join the grown racks whose captured links land `unreadable`; STEPS's captured
+default vector is no longer the defaults (the drum channel moved from index 2 of four to 9 of sixteen); CULL's and
+STAGE's still land `restored`. ORBIT's library fixture re-exported against its 25-knob rack. Screenshots: ORBIT,
+MORPH and STEPS at 1440 / 1280 / 393 (`shots/b17/` in the scratchpad) - nothing ragged to fix; STEPS's MIDI section is
+eight blocks tall, and a note-kind Number reads as a note name under CC, both left.
+
+**Counts, carried + delta:** quick 96 / 1036 + 1 todo -> **96 / 1055 + 1 todo** for 17B (+19, one case a card);
+the tree at `94a219b` reads **96 / 1062 + 1 todo, green** at `--maxWorkers=2` (with change 18's +4 and 18b's +3; a
+first run met 18b's in-flight files, 8 red there, every 17B file green); `QUICK_TESTS` 1059 -> **1062**. Check 678 ->
+**678**; lint clean; e2e 102 / 117 -> **103 / 118** (titles / runs; 17B +0 - one title renamed - change 18 +1); audition rows 40 -> **44**; utilities **44**;
+catalog **27**; testids **345**; SCOPED CSS `b8281684…` equal; copy exports unmoved by 17B. The sweep **4 / 19** (the
+lua-entries sweep 2,144 -> 6,549 combinations, all inside 908). **The gate**: the wire set `6acf32ae…` -> `9d5de31f…`,
+moved by the nineteen cards' `E/<id>/` records and change 18's `S/page3` alone (ARC, the presets, the library and
+the defaults unmoved); the sandbox set by change 18 alone. **Chunks** by files: c3 **27**, c1 **33**, c4 **25**, c2 **21**
++ one webkit wasm-load console error green alone, c5 **10** + the artifacts title on a build one commit behind HEAD.
+
+**Departures from the brief:** (1) the channel display change is its own commit (`f4b2005`) before the cards, and moves
+ARC's panel with every card's; (2) the pull-in - a host change (`33fc889`) and two retired gate assertions - where the
+brief ordered Setup, Timer, system slots: a still card's armed Timer moves the listing, the system slots are shared;
+(3) RADAR POINTS took two commits (no receive, then SONAR's one-cell rule so the four sequencers agree); (4) three test
+fixes outside the card commits - the sweep's Pass A and the gate's hash-wire past reach (`29488c7`), SNAKE's e2e walk
+found by c3 (`f49236c`); (5) the knob floor of three counts every knob (LUMEN keeps two outside its outputs);
+`brightness.spec.ts` test 3's timeout 60 s; (6) WHEELS' pitch wheel keeps fourteen bits under a pitch bend where
+`docs/MIDI.md`'s pitch bend is 7-bit; (7) four-rung channel ladders became the sixteen in order - a saved copy at
+index 2 or 3 reopens on channel 3 or 4 (Same channel for all needs the sixteen in order); (8) CONSOLE's cap row keeps
+its swipe (11-07's ask) while its bodies latch; CHORUS's slide no longer re-chords (the latch rule over the entry's
+old "a slide is legato"); (9) the gate's after-record ran with change 18b's uncommitted Sandbox edits in the tree
+(another executor's), so its quick term and sandbox set carry them. CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) CHORUS: a slide between chord pads re-chorded ("legato by construction"); the latch
+rule stopped it - right, or is a chord glide wanted? (2) Receiving nothing on CHORUS, GHOST, POMODORO and SNAKE -
+right, or should a received note light a pad, move GHOST's comet, start or pause POMODORO? (3) The sequencers' receive
+arms the step at the playhead (the step just played); should a note played just before a step arm the next one
+instead (audition rows 42-44 ask the bench)? (4) CONSOLE's nine faders are one output (a first CC, the Mackie layout
+under pitch bend) while MORPH, QUADRANT and STEPS got one output per element - is a bank right for a mixer? (5) STEPS's
+eight blocks make a long MIDI section - collapse the blocks, or keep them flat? (6) A note-kind Number reads as a note
+name under CC - word it by the Type? (7) WHEELS' pitch wheel: fourteen bits under a pitch bend - right beside the 7-bit
+rule? (8) The library's `A` has no caller now - drop it at the next library change (every card's system records
+move)?
+
 18. Latch - an element keeps the finger that landed on it (2026-09-23)
 --------------------------------------------------------------------------------
 

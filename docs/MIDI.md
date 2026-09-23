@@ -2,8 +2,8 @@
 
 Change 17 (BENCH-2026-09-16.txt section 17, 2026-09-23): every element that sends MIDI, in the Sandbox and on the
 playground, has a **Type**, a **Channel** and a **Number**, and **receives** by default. Part 17A landed the shared
-pieces, the whole Sandbox and one playground card (ARC); part 17B moves the other twenty-six cards onto the same
-model, one commit per card. This document is 17B's manual: the model, the wire per type, the receive rules, the colour
+pieces, the whole Sandbox and one playground card (ARC); part 17B moved the nineteen other hand-authored cards onto
+the same model, one commit per card (section 6), and 17C takes the seven ported presets. This document was 17B's manual: the model, the wire per type, the receive rules, the colour
 input, how an entry declares its outputs, and the Lua recipe ARC proved.
 
 ## 1. What the firmware does with MIDI in (read, not assumed)
@@ -18,8 +18,9 @@ input, how an entry declares its outputs, and the Lua recipe ARC proved.
   224, 192...), `p1` and `p2` the data bytes.
 - **`gmrr` does not reach a touch element** (`_pad.ts:2822`), so HANGAR assigns `self.midirx_cb` itself, as BOTOR's
   motor faders do (`_pad.ts` `motorRx`). Nothing clears `midirx_cb` between landings: a card that does not assign one
-  keeps the previous card's. **Every HANGAR landing that receives assigns its own; the Sandbox assigns `nil` when
-  nothing receives; a callback guards itself** (below) so it is inert once another card's touch callback is installed.
+  keeps the previous card's. **Every HANGAR landing that receives assigns its own; the Sandbox and every hand-authored
+  card with nothing to receive assign `nil` (17B); a callback guards itself** (below) so it is inert once another card's
+  touch callback is installed.
 - Whether host MIDI actually reaches the touch element's `midirx_cb` on a module is **not yet benched**
   (`docs/HARDWARE-AUDITION.md` rows 10 and 40). Everything below is proved in the VM (`LuaHost.midiIn`).
 
@@ -126,7 +127,10 @@ ordinary token knob - the stamp encodes its index, the budget sweep measures its
 - **Type**: `typeValues(output)` - `CONTINUOUS_STATUSES` `["176", "224", "208"]`; `TRIGGER_STATUSES` `["144", "176"]`;
   `ONCE_STATUSES` adds `"192"`. The literal is the status byte. Kind `mode`. Worded by its role (view.ts
   `MIDI_TYPE_WORDS`); three or more a select, two a segmented pair.
-- **Channel**: `CHANNEL_VALUES`, `"0"`..`"15"` (the firmware's 0-based channel, X-08; the Lua cue shows).
+- **Channel**: `CHANNEL_VALUES`, `"0"`..`"15"` - the firmware's 0-based channel on the wire; since 17B the panel READS
+  it 1..16 (`model.ts` shows a Lua card's channel one up in its words, readout and typed field; the index and the literal
+  are the knob's own, so the stamp and the Lua do not move). The sixteen must stay in order: Same channel for all
+  writes every output's Channel by index.
 - **Number**: `numberValues(kept)` - 0..127 with a card's OLD rungs first in their old order, then the rest ascending,
   so a saved copy (which reopens by index) keeps its value. Kind `amount` for a controller number; a note ladder may keep
   `note`. It is a wide knob (two stamp characters) - add it to `knobs.lua.spec.ts`'s named wide list.
@@ -179,9 +183,41 @@ more than the old `s:gms(@CH,176,@CC,o,0)`, and the receive ~160 in whichever of
 card that fits in neither, the next move is to free room in 255/0 (its `P B L` state and the `A` sender only LUMEN
 calls) for a shared `M` helper - that moves every card's system records and is a decision to record, not a detail.
 
-## 6. What 17B carries from here
+## 6. What 17B found and settled (the nineteen hand-authored cards, 2026-09-23)
 
-- Every card's Setup (or Timer) must assign `self.midirx_cb` - its own callback, guarded, or `nil` - or a previous
-  landing's stays live until a Store or a power cycle. The compiler-driven cards (the vendored `_pad.ts`) assign none;
-  their landing would need `self.midirx_cb=nil` appended by the tune model - a wire change for every preset card, 17B's.
-- The ladders, the words, the blocks and the stamp need nothing more; `outputProblems` names a bad declaration.
+Every hand-authored card is on this model now; `docs/entries/<card>.md` "Change 17B" has each card's decisions and
+figures, and `BENCH-2026-09-16.txt` section 17's Done paragraph "17B" the table.
+
+- **Every card assigns `self.midirx_cb`**: its own guarded callback, or `nil` - in the Setup where it fits, in the
+  Timer where the Setup is full (TRACKPAD and TRACKPAD COMET assign `nil` on every Timer call: their Setup is 903 of
+  908). A Timer-made callback is made once per install, keyed on the touch callback (`s.j`), ARC's route.
+- **The pull-in** (`self:tim()`): a still card (CONSOLE, STRIP, LUMEN, QUADRANT, MORPH, and WHEELS whose Timer only
+  springs) cannot arm a Timer to make its callback - an armed Timer reads as motion to the preview at tick 0, which moved
+  frames.json and turned the listing's `static` into `animated` when tried. The module runs a touch element's Timer body
+  as a method (the Sandbox's first probe); the host models it since 17B (`lua-host.ts` SELF_PRELUDE, HOST_SELF_METHODS
+  `tim`). The Setup calls `self:tim()` last; the body runs once, synchronously, arming nothing, and hands functions
+  back through fields read into the Setup's upvalues (`local M ... self:tim()M=self.m`; a field CALL is refused by
+  host-surface.spec.ts, a field READ into a local is not). RADAR calls it too: its Timer's first timed run is five
+  minutes away. The install order (0/6 before 0/0) matters for these cards again; `docs/HARDWARE-AUDITION.md` row 41.
+- **The trigger off**: `T*3//2-88` is the note-off 128 under a note (144) and the controller again (176) under a CC -
+  eleven characters against `T==144 and 128 or 176`'s twenty-three. A CC trigger is a gate: its value on, 0 off.
+- **Several outputs of one kind** are tables built once (`{@T1,..}`, `{@CH,@C2,..}`, `{@N1,..}`) and indexed per
+  element; a bank reading one base (CONSOLE's nine faders) stays one output with a first Number, and under a pitch
+  bend or a pressure each fader goes on its own channel from the first (the Mackie layout).
+- **What a received value does**, by kind: a continuous control's value and light (CONSOLE, STRIP, WHEELS' mod wheel,
+  MORPH's corners held until the next touch, LUMEN's and RADAR's held pair drawing the cursor or the comet, WHEELS'
+  pitch wheel shown and held - no spring, nothing sent back); a pad's light on and off (QUADRANT, the Sandbox button's
+  receive); a sequencer's note ARMS one cell at the playhead and never clears (ORBIT, STEPS, SONAR, RADAR POINTS - an
+  echo of the card's own notes lands on armed cells and changes nothing); a note that holds no value receives nothing
+  (CHORUS's chord, GHOST's replay, POMODORO's announcements, SNAKE's game notes).
+- **Pitch bend stays 7-bit** except WHEELS' pitch wheel, which was fourteen-bit first and keeps its fourteen bits under
+  a pitch bend (its other types send the top seven).
+- **The sweeps**: a card's output knobs are walked one at a time (the stamp round-trip sweep's Pass C, the gate's
+  hash-wire past one million sampled states), never cross-producted - STEPS alone would be 2^16 x 16^8.
+
+## 7. What 17C carries from here
+
+- The compiler-driven cards (the vendored `_pad.ts`) assign no callback; their landing needs `self.midirx_cb=nil` (or
+  their own) appended by the tune model - a wire change for every preset card.
+- The ladders, the words, the blocks, the 1..16 channel display, the pull-in and the stamp need nothing more;
+  `outputProblems` names a bad declaration.

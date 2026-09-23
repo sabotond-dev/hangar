@@ -7666,3 +7666,99 @@ HTTP 000 after each; 5173 untouched), on the build at `133a458`: c4 by its five 
 walk); c5 by its four files **11 passed**; `rack-grid.e2e.ts` alone **4 passed**. Earlier: c4's first run failed the
 options walk's "no field-latch" pin (moved in `55cf407`); c5's first run failed `artifacts` only because the build's
 stamp was a commit behind HEAD (rebuilt, green).
+
+## 2026-09-23 change 17B - the nineteen hand-authored cards' MIDI outputs, their MIDI RX and the latch audit
+
+`BENCH-2026-09-16.txt` section 17 (the per-output model, `docs/MIDI.md`) and section 18 (latch: a contact keeps the
+control it landed on). Part 17B: CHORUS, CONSOLE, CULL, GHOST, LUMEN, MORPH, ORBIT, POMODORO, QUADRANT, RADAR POINTS,
+RADAR, SNAKE, SONAR, STAGE, STEPS, STRIP, TRACKPAD COMET, TRACKPAD and WHEELS, one commit each, plus the shared pieces
+the cards needed. No push, no device, no deploy; `src/vendor/`, `sequence.ts`, the manifest, `pad-sim.ts`,
+`firmware-oracle.spec.ts`, ARC, the seven presets, the Sandbox and `library.ts` untouched. Change 18 (the Sandbox's
+Latch, another executor) landed in the same tree meanwhile; its commits and its in-flight 18b edits are not 17B's.
+
+Commits: `f4b2005` feat(tune) a card's channel reads 1..16; `b5159f8` CHORUS; `33fc889` feat(sim) the touch element's
+`tim` (the pull-in); `a209365` CONSOLE; `6660a98` CULL; `ac0286c` GHOST; `680bf0d` LUMEN; `a81d423` MORPH; `6515047`
+ORBIT; `8d5cdbe` POMODORO; `25c4258` QUADRANT; `4b33e46` RADAR POINTS; `0c4caa1` RADAR; `e595a12` SNAKE; `5ba6c30`
+SONAR; `f43f2d5` STAGE; `c25d2bc` STEPS; `525bfb3` RADAR POINTS's receive (a second commit); `a87869d` STRIP;
+`aaa33bf` TRACKPAD COMET; `5e5f244` TRACKPAD; `a5e222c` WHEELS; `29488c7` test(sweep, gate) the output knobs walked,
+not cross-producted; `f49236c` test(e2e) SNAKE's widget walk; then this section, `docs/MIDI.md` section 6 / 7,
+`docs/TUNING-REVIEW.md`'s nineteen tables, the Done paragraph "17B" under section 17, and the gate records
+`gate/change-17b.*` (before, at `5da1fed`, the tree clean) and `gate/change-17b-after.*`.
+
+**What the suites prove, new and moved.**
+
+- `lua-smoke.spec.ts` +19, one per card in "the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, ...)":
+  each output's wire per type (a note / controller trigger's on and off, a controller / pitch bend / pressure's bytes),
+  the channel and the number; at the defaults the wire exactly as before; the receive per the card's decided meaning
+  (the value and the picture move, a mismatched channel / number / type / neighbour's traffic is ignored, nothing is
+  echoed, Receive Off) or no callback at all; a previous landing's callback, installed before the Setup, never
+  answers after it (`STALE`); a still card's pull-in arms no Timer; the latch per card (a slide onto the next control
+  moves nothing, or the swipe that is the gesture). Re-aimed: CONSOLE's restated muted-body call; MORPH's corner
+  bases read from `cc1` and its block geometry from both events, the centre case's hosts handed the Timer; RADAR
+  POINTS's and SNAKE's release read as the Type's off; WHEELS' source check reads the one pitch sender.
+- `lua-host.spec.ts`: a Setup's `self:tim()` runs the touch Timer and arms nothing; the system stand-in still does not
+  leak (the touch `tim` runs the touch body). `host-surface.spec.ts`: `tim` is a host `self:` method; a pulled-in
+  Timer that only makes the receive has a floor of one call site.
+- `tune-ui.spec.ts`: ARC's channel view reads 1..16 over literals 0..15; the refusal's noun is "channel" for any
+  output's Channel; the widget split 140 -> 253 knobs; ORBIT's MIDI section list; POMODORO's alarm note in MIDI.
+- `catalog.spec.ts` / `knobs.lua.spec.ts`: the floor of three counts every knob (LUMEN keeps two outside its
+  outputs), the cap of six the knobs outside them; the wide knobs 5 -> 36 named, in catalog order. `surprise.spec.ts`: 35 -> 152
+  MIDI knobs excluded from Randomize (the title no longer counts them). `stamp.spec.ts`: grown racks land
+  `unreadable` - CONSOLE, LUMEN, POMODORO (it landed `older`), QUADRANT, SNAKE, SONAR, STRIP beside the ones already
+  listed; STEPS's captured DEFAULT vector (channel index 2) is no longer the defaults, named beside CHORUS's;
+  POMODORO's interval guard reads each payload against the rack as captured. `brightness.spec.ts` test 3 carries
+  60 s. `audition.spec.ts` rows 40 -> 44, MORPH's Timer a pull-in.
+- `stamp-roundtrip.sweep.spec.ts`: an output's knobs held in Pass A and walked in Pass C (Pass A as it was never
+  finished); the Lua half 3,091 + 139,264 + 5,401 = 147,756 vectors. `scripts/gate/hash-wire.mjs`: past one million
+  sampled states an output's knobs are held at their defaults (`--full` 10 s; it had run past 58 CPU-minutes).
+- e2e: `tuning.e2e.ts` ARC's channel reads 1 with no cue, a typed 4 is index 3, Same channel for all at 9 is index 8;
+  SNAKE's widget walk reads Look / Feel / MIDI and the Bite's Type as its segmented row. `library.e2e.ts` and
+  `e2e/fixtures/library/orbit-copy.hangar.json`: re-exported through `transfer.ts` against ORBIT's 25-knob rack.
+
+**Budgets, before -> after** (characters under the pinned `compressScript` after `initLuaFormatter()`, the RGB444
+picker corner; Setup / Timer): CHORUS 779 / 602 -> 798 / 602; CONSOLE 807 / 0 -> 890 / 240; CULL 565 / 0 -> 584 / 0;
+GHOST 730 / 484 -> 749 / 560; LUMEN 733 / 0 -> 882 / 461; MORPH 860 / 0 -> 786 / 535; ORBIT 853 / 411 -> 869 / 777;
+POMODORO 743 / 659 -> 766 / 669; QUADRANT 838 / 0 -> 537 / 726; RADAR POINTS 892 / 380 -> 897 / 758; RADAR 763 / 50 ->
+856 / 412; SNAKE 877 / 739 -> 896 / 768; SONAR 572 / 289 -> 591 / 668; STAGE 653 / 136 -> 672 / 136; STEPS 727 / 361 ->
+746 / 826; STRIP 875 / 0 -> 849 / 476; TRACKPAD COMET 903 / 427 -> 903 / 443; TRACKPAD 903 / 510 -> 903 / 526; WHEELS
+895 / 343 -> 900 / 895. The tightest: WHEELS' Setup (8 free) and Timer (13), TRACKPAD's and COMET's Setups (5,
+unmoved), RADAR POINTS's Setup (11). No system slot and no library helper: the room came from the Timer (made once
+per install, or pulled in by `self:tim()`). The lua-entries sweep 2,144 -> 6,549 combinations, every one inside 908;
+the sweep file **4 / 19**.
+
+**Screenshots** (the scratchpad `shots/b17/`, vite preview on 4174 stopped by port through PowerShell, 5173
+untouched): ORBIT, MORPH and STEPS at 1440 x 900, 1280 x 720 and 393 x 852, each with its MIDI section scrolled into
+view and a `-midi-tall` cut of the whole section. Seen: one block per output under its sub-head, Same channel for all
+reading 1 (10 on STEPS), channels reading 1..16, a trigger's Type a segmented Note / CC pair and a continuous one a
+select, the rows stacking cleanly under 380 px at 393. Nothing ragged was found to fix. Seen and left: STEPS's section
+is eight blocks, 1,790 px tall at 1440; a note-kind Number (ORBIT's rings, STEPS's tracks) reads as a note name even
+when its Type is CC.
+
+**Counts, carried + delta:** quick 96 / 1036 + 1 todo -> 96 / 1055 + 1 todo for 17B's own (+19, the nineteen
+cases). Two runs at `--maxWorkers=2`: the first read 1,061 + 1 todo with 8 red, every one in change 18b's two Sandbox
+spec files then in flight (uncommitted) in the tree, every file 17B touched green; the second, at `94a219b` (18b
+committed), **96 / 1062 + 1 todo, green** - 1036 + 17B's 19 + change 18's 4 + 18b's 3. `QUICK_TESTS` 1059 (change 18's
+gate run at `a5e222c`) -> **1062**, the figure the second run proved. The gate's own quick term read no summary (its
+run met 18b's in-flight files) and is not the figure. Check 678 -> **678**; lint clean on every file 17B touched (the
+gate's lint term flagged 18b's three in-flight files); e2e 102 / 117 -> **103 / 118** (titles / runs; 17B +0: one
+title renamed; change 18 +1); audition rows 40 -> **44**; utilities **44 -> 44** (0 disappeared, 0 appeared); catalog **27**; testids **345**
+(`39d4dc3b…` equal); copy exports unmoved by 17B (`LUA_CHANNEL_CUE` kept; the hash moved by change 18's `LATCH`,
+`LATCH_HELPER`); SCOPED CSS **`b8281684…` equal**, raw CSS `fc1e0f86…` equal; frames.json `290ff266…`, the OG images
+(27 files, `9becd682…`) and the four fixtures equal.
+
+**The gate** (`--before change-17b` at `5da1fed`, the tree clean; `--after change-17b --against change-17b --check 678`
+at `f49236c` with 18b's edits in the tree): **the wire moves by design** - the set `6acf32ae…` -> `9d5de31f…`, the full
+`c43fa145…` -> `5fcce9e9…`. Per string: the nineteen cards' `E/<id>/` records (ORBIT 1,274, CHORUS 53, GHOST 634,
+MORPH 1,244, SONAR 86, STEPS 2,418, CONSOLE 328, STRIP 626, LUMEN 616, STAGE 19, CULL 18, SNAKE 614, QUADRANT 1,204,
+POMODORO 618, WHEELS 634, RADAR POINTS 96, TRACKPAD 15, TRACKPAD COMET 16, RADAR 638 - added knobs' records among
+them), and `S/page3` 10 (change 18's runtime, not 17B's); ARC, every preset `P/`, the library `L/` and the
+firmware defaults `F/` unmoved - `library.ts` untouched. The sandbox set `05388336…` -> `6abddaa3…` by change 18's
+fixtures and runtime alone. The script exits 1 at the wire by design (it stops there); the terms after it were
+recorded, not compared.
+
+**Chunks** by files (`scripts/gate/e2e-chunks.sh`, wrangler dev on 4173, stopped through PowerShell, 5173 untouched),
+the build at `29488c7` with 18b's uncommitted Sandbox edits in the tree: c3 (`tuning`, `tuning-webkit`,
+`rack-grid`) **27** (first run 26 + SNAKE's walk red - fixed in `f49236c`); c1 (`install`, `session`) **33**; c4
+(`catalog`, `fidelity`, `first-experience`, `library`, `sandbox`) **25**; c2 (`browse`, `browse-webkit`) **21** + a
+webkit `wasm streaming compile failed` console error on `browse.e2e.ts:842`, green alone (2); c5 **10** + the
+artifacts title red on a build one commit behind HEAD by design (the build predates `f49236c`).
