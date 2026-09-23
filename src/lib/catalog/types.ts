@@ -106,6 +106,15 @@ export type CatalogEntry = {
   rollable?: boolean;
   /** The MIDI outputs (change 17): absent on a card not yet moved to the per-output model (17B moves the rest). */
   outputs?: readonly MidiOutput[];
+  /**
+   * A WRAPPED PRESET's knobs its outputs took over (change 17C, BENCH-2026-09-16.txt section 17): the
+   * shelf knob ids (knobs.preset.ts) that leave the compiler's rack because an output knob now
+   * decides what they decided - the Send's controller, the Channel, JOYSTICK's Bend. A knob of
+   * `knobs` with the same id takes the shelf knob's rack position; a superseded id no knob takes
+   * leaves the rack. The compiler compiles the shelf value of every superseded field, and
+   * ported-midi.ts's wrap rewrites the sends. Absent on every other entry.
+   */
+  supersedes?: readonly string[];
 
   // TRUE iff this entry renders an all-zero frame at EVERY sampled tick with no
   // touch input. Not a preference - a fact about the configuration, asserted

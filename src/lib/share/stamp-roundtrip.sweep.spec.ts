@@ -47,10 +47,6 @@ const say = (line: string): void => {
 /** A colour knob, on either route. Found by KIND, never by id. */
 const isColour = (knob: KnobDescriptor): boolean => knob.kind === "colour";
 
-const nonColour = (
-  knobs: readonly KnobDescriptor[],
-): readonly KnobDescriptor[] => knobs.filter((knob) => !isColour(knob));
-
 const colourKnobs = (
   knobs: readonly KnobDescriptor[],
 ): readonly KnobDescriptor[] => knobs.filter(isColour);
@@ -254,8 +250,12 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // the Lua pass below - found the same way, by running the sweep.
     expect(entries.length, "there are compiler-driven entries").toBe(7);
 
+    // Change 17C: a WRAPPED preset's rack carries its MIDI outputs' knobs, which ride HANGAR's
+    // index format (stamp.ts's encodeFor): held at their defaults in Pass A and walked one position
+    // at a time in Pass C, exactly as a Lua entry's are. A preset with no outputs has an empty Pass C
+    // and a Pass A that is its whole non-colour rack, as before.
     const expectedA = entries.reduce(
-      (n, entry) => n + sizeOf(nonColour(stampKnobs(entry))),
+      (n, entry) => n + sizeOf(narrow(stampKnobs(entry), entry)),
       0,
     );
     const expectedB = entries.reduce(
@@ -265,6 +265,16 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
           (m, knob) => m + knob.options.length,
           0,
         ),
+      0,
+    );
+    const expectedC = entries.reduce(
+      (n, entry) =>
+        n +
+        walkedKnobs(stampKnobs(entry), entry).reduce(
+          (m, knob) => m + knob.options.length,
+          0,
+        ) +
+        (wideKnobs(stampKnobs(entry)).length > 1 ? 1 : 0),
       0,
     );
     const started = performance.now();
@@ -278,27 +288,32 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     };
     const examinedA = roundTrip(entries, passA, note);
     const examinedB = roundTrip(entries, passB, note);
-    const examined = examinedA + examinedB;
+    const examinedC = roundTrip(entries, passC, note);
+    const examined = examinedA + examinedB + examinedC;
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
 
     say("");
-    say("stamp round-trip sweep - the compiler route, two passes");
+    say("stamp round-trip sweep - the compiler route, three passes");
     for (const entry of entries) {
       const knobs = stampKnobs(entry);
       say(
-        `  ${entry.id.padEnd(10)} passA ${String(sizeOf(nonColour(knobs))).padStart(6)}` +
+        `  ${entry.id.padEnd(10)} passA ${String(sizeOf(narrow(knobs, entry))).padStart(6)}` +
           `  passB ${String(
             colourKnobs(knobs).reduce((m, k) => m + k.options.length, 0),
-          ).padStart(6)}`,
+          ).padStart(6)}` +
+          `  passC ${String(
+            walkedKnobs(knobs, entry).reduce((m, k) => m + k.options.length, 0),
+          ).padStart(4)}`,
       );
     }
     say(
-      `  Pass A ${examinedA}, Pass B ${examinedB}, total ${examined} vectors, ` +
+      `  Pass A ${examinedA}, Pass B ${examinedB}, Pass C ${examinedC}, total ${examined} vectors, ` +
         `longest payload ${longest} characters, ${seconds}s`,
     );
 
     expect(examinedA, "Pass A's enumeration silently shrank").toBe(expectedA);
     expect(examinedB, "Pass B's enumeration silently shrank").toBe(expectedB);
+    expect(examinedC, "Pass C's enumeration silently shrank").toBe(expectedC);
     // THE FLOOR, RE-DERIVED as the two passes' own sum, and lowered on
     // 2026-09-17 (BENCH-2026-09-16.txt section 5b): the retired brightness knob
     // took a factor of five out of Pass A's cross-products (20,270 -> 4,054;

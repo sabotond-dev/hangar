@@ -12,6 +12,7 @@
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { presetById } from "../presets";
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { PRESET_MIDI } from "./ported-midi";
 
 /**
  * The date Phase 3 landed the vendored shelf. All nine ported entries share it,
@@ -114,6 +115,10 @@ function entryFromMeta(meta: PortedMeta): CatalogEntry {
     throw new Error(`ported entry names no shelf preset: ${meta.id}`);
   }
   const source: CatalogSource = { kind: "preset", presetId: meta.id };
+  // Change 17C: a wrapped card's MIDI outputs (ported-midi.ts) - their knobs are ordinary token
+  // knobs on the entry, and the shelf knobs they take over leave the compiler's rack.
+  const midi = PRESET_MIDI[meta.id];
+  const knobs = midi?.knobs ?? [];
   return {
     id: meta.id,
     name: preset.name,
@@ -123,10 +128,14 @@ function entryFromMeta(meta: PortedMeta): CatalogEntry {
     addedAt: PORTED_ADDED_AT,
     source,
     preview: previewFor(source),
-    // Empty on purpose: a PadState card's knobs are TUNE-01's, read off the vendored preset;
-    // catalog.spec.ts test 7 requires an empty array on a preset entry.
-    knobs: [],
-    defaults: {},
+    // A PadState card's own knobs are TUNE-01's, read off the vendored preset (knobs.preset.ts);
+    // what the entry carries is its MIDI outputs' knobs alone (change 17C) - catalog.spec.ts
+    // holds a preset entry's knobs to exactly the knobs its outputs name.
+    knobs,
+    defaults: Object.fromEntries(knobs.map((knob) => [knob.id, knob.default])),
+    ...(midi === undefined
+      ? {}
+      : { outputs: midi.outputs, supersedes: midi.supersedes }),
     restsBlack: meta.restsBlack,
   };
 }

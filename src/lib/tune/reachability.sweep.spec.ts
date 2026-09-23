@@ -20,6 +20,7 @@ import {
   type PadState,
 } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "../catalog";
+import { presetWire } from "../catalog/entries/ported-midi";
 import { fitState, padReady } from "../pad";
 import { compilerKnobs, stampKnobs } from "../share/stamp";
 import type { PresetKnob } from "./knobs.preset";
@@ -173,6 +174,19 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
       const others = withoutColour(knobs);
       const defaults: Indices = {};
       for (const knob of knobs) defaults[knob.id] = knob.default;
+      // A WRAPPED preset (change 17C, ported-midi.ts) is costed as it goes on the wire: through its
+      // outputs' rewrite with every output knob at its LONGEST literal - a token is replaced by
+      // plain substitution, so each output knob's cost is its literal's length, independent of every
+      // other knob (the Lua sweep's separability), and this corner is the dearest of the whole output
+      // space for every compiler state. The identity on a preset with no outputs.
+      const dearest: Indices = {};
+      for (const knob of entry.knobs) {
+        dearest[knob.id] = knob.values.reduce(
+          (best, value, at) =>
+            value.length > knob.values[best].length ? at : best,
+          0,
+        );
+      }
 
       let maxSetup = 0;
       let maxTimer = 0;
@@ -182,7 +196,7 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
       /** One state, measured, folded into this preset's running maxima. */
       const take = (indices: Indices, combinations: number): number => {
         const state = stateOf(entry, knobs, indices);
-        const measured = cost(compile(state));
+        const measured = cost(presetWire(entry, compile(state), dearest));
         maxSetup = Math.max(maxSetup, measured.setup.used);
         maxTimer = Math.max(maxTimer, measured.timer.used);
         const used = Math.max(measured.setup.used, measured.timer.used);
@@ -437,13 +451,18 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // deltas: AURORA -54, PINWHEEL -64, STARFIELD -54, RADAR -54, JOYSTICK -52,
     // FOUR FADERS +5, DIAL -54. The literal moves as this comment said it
     // would, and the reason is beside it.
+    //
+    // NINE PADS -> AURORA, 260 -> 124, IN CHANGE 17C (2026-09-23, BENCH-2026-09-16.txt section
+    // 17): AURORA is a wrapped preset (ported-midi.ts) and is costed as it goes on the wire - the
+    // send `M`, the two outputs' tokens at their longest literals and the receive appended to its
+    // Setup - 784 of 908 at its dearest colour.
     expect(dearestBearing.entry, "the dearest colour-bearing preset").toBe(
-      "ninepads",
+      "aurora",
     );
     expect(
       EVENT_BUDGET - dearestBearing.worst.used,
-      `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 260`,
-    ).toBe(260);
+      `${dearestBearing.entry} leaves ${EVENT_BUDGET - dearestBearing.worst.used} characters free at its dearest colour, not 124`,
+    ).toBe(124);
 
     // And the ladder, on the scoped set: seven worst-cost states since change
     // 12b, 2026-09-18 (one per carded preset; tpad's left at plan 12-10 and

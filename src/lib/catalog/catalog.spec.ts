@@ -21,6 +21,7 @@ import {
 import { declaredDivergence } from "./divergence";
 import { outputProblems, roleOfKnob } from "../tune/midi";
 import { isMidiDestination } from "../tune/surprise";
+import { presetKnobs } from "../tune/knobs.preset";
 
 // CONT-03's gate. Exactly ten tests, and every one of them loops over the
 // entries INTERNALLY and names the offending entry in its message. That is
@@ -251,10 +252,37 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     ).toBe(presetEntries.length + luaEntries.length + stateEntries.length);
 
     for (const entry of presetEntries) {
+      // Phase 5 owns a compiler-driven card's own knobs (knobs.preset.ts), not this catalog. What
+      // a WRAPPED preset carries since change 17C is its MIDI outputs' knobs and nothing else:
+      // every knob is named by an output, the declaration holds, every knob names the wire, and
+      // every superseded id is a real shelf knob of the card.
+      const roles = roleOfKnob(entry);
       expect(
-        entry.knobs.length,
+        entry.knobs.filter((k) => !roles.has(k.id)).map((k) => k.id),
         `${entry.id}: Phase 5 owns compiler-driven knobs, not this catalog`,
-      ).toBe(0);
+      ).toEqual([]);
+      expect(outputProblems(entry), `${entry.id}: its MIDI outputs`).toEqual(
+        [],
+      );
+      for (const knob of entry.knobs) {
+        expect(
+          isMidiDestination(knob),
+          `${entry.id}/${knob.id}: an output's knob names the wire`,
+        ).toBe(true);
+        expect(knob.token, `${entry.id}/${knob.id}: token shape`).toMatch(
+          TOKEN,
+        );
+      }
+      const shelf = presetKnobs(entry.id).map((k) => k.id);
+      for (const id of entry.supersedes ?? []) {
+        expect(shelf, `${entry.id}: supersedes a knob it never had`).toContain(
+          id,
+        );
+      }
+      expect(
+        entry.knobs.length === 0 || (entry.outputs ?? []).length > 0,
+        `${entry.id}: knobs without an output`,
+      ).toBe(true);
     }
 
     for (const entry of luaEntries) {

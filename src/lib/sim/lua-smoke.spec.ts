@@ -28,6 +28,8 @@ import {
   TOUCH_LIBRARY_TIMER,
 } from "../catalog/library";
 import { presetById } from "../catalog/presets";
+import { presetWire } from "../catalog/entries/ported-midi";
+import { resetAll } from "../tune/state";
 import type { LuaKnob } from "../catalog/types";
 import { createLuaHost, type HostHid, type HostMidi } from "./lua-host";
 import { blankPadState, previewIndices, renderLua } from "./lua-pad-sim";
@@ -14101,5 +14103,189 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
         host.close();
       }
     }
+  }, 60000);
+});
+
+describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH-2026-09-16.txt sections 17 and 18)", () => {
+  /** The host's REPORT header: the traffic a receiving card answers. 14 is a neighbour's EXECUTE. */
+  const REPORT = 13;
+  /** A previous landing's receive callback: a card that assigns its own or nil leaves it unreachable. */
+  const STALE =
+    "self.midirx_cb=function()error('a previous landing answered')end ";
+  /** An output knob's index by its literal; a literal the knob does not offer fails the test. */
+  const literalIndex = (
+    entry: CatalogEntry,
+    id: string,
+    literal: string,
+  ): number => {
+    const at = entry.knobs.find((k) => k.id === id)?.values.indexOf(literal);
+    if (at === undefined || at < 0)
+      throw new Error(`${entry.id}.${id} has no ${literal}`);
+    return at;
+  };
+  /**
+   * A WRAPPED preset (ported-midi.ts) at its shelf state with output knobs moved BY LITERAL - the
+   * compiled pair through presetWire, exactly what the tuner lands - or, `raw`, the compiled pair
+   * as the shelf ships it, on the real library.
+   */
+  async function openPreset(
+    id: string,
+    over: Record<string, string> = {},
+    options: { stale?: boolean; raw?: boolean } = {},
+  ) {
+    const entry = entryById(id);
+    const indices: Record<string, number> = { ...entry.defaults };
+    for (const [knob, literal] of Object.entries(over))
+      indices[knob] = literalIndex(entry, knob, literal);
+    const compiled = compile(resetAll(entry));
+    const { setupLua, timerLua } = options.raw
+      ? compiled
+      : presetWire(entry, compiled, indices);
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: options.stale ? STALE + setupLua : setupLua,
+      timer: timerLua,
+    });
+    return { entry, host, sim };
+  }
+  /** Everything sent since `from`, as `ch:cmd:p1:p2`. */
+  const wire = (midi: readonly HostMidi[], from = 0): string[] =>
+    midi.slice(from).map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
+  /** One gesture, the same on every card: a press, a drag, a lift, a fast tap; the frames after each step. */
+  function gesture(
+    host: Awaited<ReturnType<typeof openPreset>>["host"],
+  ): string[] {
+    const frames: string[] = [];
+    const snap = () => frames.push(Array.from(host.frame).join(","));
+    host.touchDown(0, 20, 30);
+    host.run(2);
+    snap();
+    for (const [x, y] of [
+      [40, 50],
+      [70, 60],
+      [100, 90],
+      [120, 110],
+    ]) {
+      host.touchMove(0, x, y);
+      host.run(2);
+      snap();
+    }
+    host.touchUp(0, 120, 110);
+    host.run(30);
+    snap();
+    host.touchTap(0, 90, 40);
+    host.run(30);
+    snap();
+    return frames;
+  }
+  /**
+   * The wrapped card and the shelf's compiled card, the same gesture on both: the SAME frames at
+   * every step (the rewrite touches no LED call) and, at the output defaults, the SAME messages.
+   */
+  async function asShipped(id: string): Promise<void> {
+    const wrapped = await openPreset(id);
+    const shipped = await openPreset(id, {}, { raw: true });
+    try {
+      expect(gesture(wrapped.host), `${id}: the picture moved`).toEqual(
+        gesture(shipped.host),
+      );
+      expect(wire(wrapped.host.midi), `${id}: the defaults moved`).toEqual(
+        wire(shipped.host.midi),
+      );
+      expect(wire(wrapped.host.midi).length).toBeGreaterThan(0);
+      expect(wrapped.host.errors, wrapped.host.errors.join(" | ")).toEqual([]);
+    } finally {
+      wrapped.host.close();
+      shipped.host.close();
+    }
+  }
+  /** Layer-1 cells lit: the comet a received pair draws. */
+  const comet = (sim: PadSim): number => {
+    let n = 0;
+    for (let c = 0; c < 81; c++) if (sim.layer(hwOfCell(c), 1).pha > 0) n++;
+    return n;
+  };
+  /**
+   * A first-finger xy card (AURORA, PINWHEEL, STARFIELD): the X and Y axes on their own Type,
+   * Channel and Number; each receives - a host value draws the comet at the held pair, nothing
+   * sent back; another channel, another number, a neighbour's traffic and Receive Off draw nothing;
+   * a previous landing's callback is never reached.
+   */
+  async function xyCard(id: string): Promise<void> {
+    await asShipped(id);
+    {
+      const { host, sim } = await openPreset(id, {}, { stale: true });
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:176:16:40", "0:176:17:90"]);
+        host.touchUp(0, 40, 90);
+        host.run(200);
+        const sent = host.midi.length;
+        const before = comet(sim);
+        expect(before, "the finger's comet has faded").toBe(0);
+        host.midiIn(REPORT, 1, 176, 16, 120);
+        host.midiIn(REPORT, 0, 176, 18, 120);
+        host.midiIn(14, 0, 176, 16, 120);
+        expect(comet(sim), "another channel, number or header").toBe(0);
+        expect(host.midiIn(REPORT, 0, 176, 16, 120)).toBe(true);
+        host.midiIn(REPORT, 0, 176, 17, 10);
+        expect(comet(sim), "a comet at the received pair").toBeGreaterThan(0);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      const { host, sim } = await openPreset(id, {
+        xType: "224",
+        channel: "4",
+        yType: "208",
+        yChannel: "7",
+        yReceive: "0",
+      });
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["4:224:0:40", "7:208:90:0"]);
+        host.touchUp(0, 40, 90);
+        host.run(200);
+        host.midiIn(REPORT, 7, 208, 10, 0);
+        expect(comet(sim), "Y's Receive Off draws nothing").toBe(0);
+        host.midiIn(REPORT, 4, 224, 0, 120);
+        expect(comet(sim)).toBeGreaterThan(0);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      const { host } = await openPreset(id, {
+        xType: "176",
+        xCc: "1",
+        yType: "176",
+        yCc: "74",
+        yChannel: "15",
+      });
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:176:1:40", "15:176:74:90"]);
+        // The latch: one control, claimed by the first finger - a second finger sends nothing.
+        host.touchDown(1, 100, 10);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:176:1:40", "15:176:74:90"]);
+      } finally {
+        host.close();
+      }
+    }
+  }
+
+  it("AURORA: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults the preset's pair, 16 and 17 on channel 0, and the preset's picture frame for frame - and each receives: a host value draws the comet at the held pair, nothing sent back; the first finger's claim is the latch", async () => {
+    await xyCard("aurora");
   }, 60000);
 });

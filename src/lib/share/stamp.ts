@@ -253,9 +253,13 @@ const UNREADABLE: Landing = { kind: "unreadable" };
  * than an invented rack.
  */
 export function compilerKnobs(entry: CatalogEntry): readonly PresetKnob[] {
-  return entry.preview === "padsim" && entry.source.kind === "preset"
-    ? presetKnobs(entry.source.presetId)
-    : [];
+  if (entry.preview !== "padsim" || entry.source.kind !== "preset") return [];
+  // Change 17C: a wrapped preset's superseded knobs (the Send, the Channel, JOYSTICK's Bend) leave
+  // the compiler's rack - the compiler compiles their shelf values and the wrap rewrites the sends.
+  const gone = new Set(entry.supersedes ?? []);
+  return presetKnobs(entry.source.presetId).filter(
+    (knob) => !gone.has(knob.id),
+  );
 }
 
 /**
@@ -265,10 +269,38 @@ export function compilerKnobs(entry: CatalogEntry): readonly PresetKnob[] {
  * `model.ts` resolves its rack through this same function, which is what makes
  * "the stamp is encoded against exactly the knobs the visitor turned" true by
  * construction rather than by two tables agreeing.
+ *
+ * A WRAPPED PRESET (change 17C) shows both kinds: its compiler knobs, and its MIDI outputs' token
+ * knobs. An output knob that takes a superseded shelf knob's id takes its rack position too (the
+ * Send's place is the X axis's Number, the Channel's the Channel), so a saved copy's positional
+ * indices keep landing on the knob they were; the rest are appended in the entry's order.
  */
 export function stampKnobs(entry: CatalogEntry): readonly KnobDescriptor[] {
-  return entry.preview === "lua" ? luaKnobs(entry) : compilerKnobs(entry);
+  if (entry.preview === "lua") return luaKnobs(entry);
+  const own = luaKnobs(entry);
+  if (own.length === 0 || entry.source.kind !== "preset") {
+    return compilerKnobs(entry);
+  }
+  const gone = new Set(entry.supersedes ?? []);
+  const byId = new Map(own.map((knob) => [knob.id, knob]));
+  const placed = new Set<string>();
+  const rack: KnobDescriptor[] = [];
+  for (const knob of presetKnobs(entry.source.presetId)) {
+    const taker = byId.get(knob.id);
+    if (taker !== undefined && gone.has(knob.id)) {
+      rack.push(taker);
+      placed.add(knob.id);
+    } else if (!gone.has(knob.id)) {
+      rack.push(knob);
+    }
+  }
+  for (const knob of own) if (!placed.has(knob.id)) rack.push(knob);
+  return rack;
 }
+
+/** A wrapped preset's output knobs (change 17C): the part of its rack the vendored stamp cannot carry. */
+const outputKnobsOf = (entry: CatalogEntry): readonly KnobDescriptor[] =>
+  entry.preview === "padsim" ? luaKnobs(entry) : [];
 
 /**
  * The shape character: a tripwire, not a hash.
@@ -351,7 +383,12 @@ export function encodeFor(
   const knobs = stampKnobs(entry);
   if (knobs.length === 0) return undefined;
   if (atDefaults(knobs, indices)) return undefined;
-  if (entry.preview === "lua") {
+  // Change 17C: a wrapped preset whose outputs are off their defaults writes HANGAR's index format
+  // over its whole rack (the vendored stamp holds a PadState and no output); at the outputs'
+  // defaults it keeps writing the vendored stamp, so every link it wrote before still lands.
+  const outputs = outputKnobsOf(entry);
+  const midiMoved = !atDefaults(outputs, indices);
+  if (entry.preview === "lua" || midiMoved) {
     // Format `w` ONLY for a rack that carries a colour; everything else keeps
     // emitting `x`, unchanged, forever.
     if (emitsLuaColourFormat(knobs)) {
@@ -445,7 +482,9 @@ function decodeCompiler(entry: CatalogEntry, payload: string): Landing {
   const knobs = compilerKnobs(entry);
   if (knobs.length === 0) return UNREADABLE;
 
-  const indices: Record<string, number> = {};
+  // A wrapped preset's outputs are not in a PadState: a vendored stamp lands them at their
+  // defaults, which is where every vendored stamp of such a card was written (change 17C).
+  const indices: Record<string, number> = defaultIndices(outputKnobsOf(entry));
   let rebuilt = baseStateFor(entry);
   for (const knob of knobs) {
     const position = knob.read(decoded);
@@ -468,6 +507,12 @@ export function decodeFor(
   // A HANGAR format under a compiler entry is the wrong route, and saying so
   // here rather than letting decodeStamp decline it keeps the two routes
   // symmetric. `w` joins `x` in this check for the same reason `x` is in it.
-  if (HANGAR_FORMATS.includes(payload[0])) return UNREADABLE;
+  // Change 17C: a wrapped preset reads HANGAR's index formats over its whole rack, as a Lua entry
+  // reads them over its own; every other compiler entry still refuses them.
+  if (HANGAR_FORMATS.includes(payload[0])) {
+    return outputKnobsOf(entry).length > 0
+      ? decodeLua(stampKnobs(entry), payload)
+      : UNREADABLE;
+  }
   return decodeCompiler(entry, payload);
 }

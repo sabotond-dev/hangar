@@ -65,6 +65,7 @@ const land = await imp("src/lib/sandbox/land.ts");
 const emit = await imp("src/lib/sandbox/emit.ts");
 const cost = await imp("src/lib/sandbox/cost.ts");
 const midi = await imp("src/lib/tune/midi.ts");
+const portedMidi = await imp("src/lib/catalog/entries/ported-midi.ts");
 const fixtures = SANDBOX
   ? (await import("./sandbox-fixtures.mjs")).SANDBOX_FIXTURES
   : {};
@@ -179,17 +180,23 @@ for (const entry of luaEntries) {
   }
 }
 
-// P: the ported presets through the vendored compiler
+// P: the ported presets through the vendored compiler - and, on a WRAPPED preset (change 17C,
+// ported-midi.ts), through the same presetWire the tuner lands, at the output knobs' defaults unless a
+// record walks them: every output knob at every position alone (with the compiler knobs at their
+// defaults), and the outputs' corner (every output knob at its longest literal). A preset with no
+// outputs hashes exactly as before.
 let presetStates = 0;
 for (const entry of presetEntries) {
   const knobs = stamp.compilerKnobs(entry);
+  const outputKnobs = entry.knobs;
   const base = tuneState.baseStateFor(entry);
-  const compileAt = (indices, label) => {
+  const wire = (built, over) => portedMidi.presetWire(entry, built, over);
+  const compileAt = (indices, label, over) => {
     let state = base;
     knobs.forEach(
       (k, j) => (state = tuneState.applyKnob(state, k, indices[j])),
     );
-    const built = pad.compile(state);
+    const built = wire(pad.compile(state), over);
     put(`P/${entry.id}/${label}/setup`, built.setupLua);
     put(`P/${entry.id}/${label}/timer`, built.timerLua);
     return built;
@@ -223,6 +230,25 @@ for (const entry of presetEntries) {
       compileAt(idx, `knob ${k.id}=${i}`);
     }
   });
+  for (const k of outputKnobs) {
+    for (let i = 0; i < k.values.length; i++) {
+      if (i === (entry.defaults[k.id] ?? k.default)) continue;
+      compileAt(defaults, `output knob ${k.id}=${i}`, { [k.id]: i });
+    }
+  }
+  if (outputKnobs.length > 0) {
+    const longest = {};
+    for (const k of outputKnobs)
+      longest[k.id] = k.values.reduce(
+        (best, v, i) => (v.length > k.values[best].length ? i : best),
+        0,
+      );
+    compileAt(
+      knobs.map((k) => k.options.length - 1),
+      "corner (every knob last, every output knob longest)",
+      longest,
+    );
+  }
   if (FULL) {
     const h = createHash("sha256");
     const n = product(
@@ -233,7 +259,7 @@ for (const entry of presetEntries) {
         knobs.forEach(
           (k, j) => (state = tuneState.applyKnob(state, k, idx[j])),
         );
-        const built = pad.compile(state);
+        const built = wire(pad.compile(state));
         h.update(built.setupLua)
           .update("\u0000")
           .update(built.timerLua)

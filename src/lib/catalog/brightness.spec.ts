@@ -512,10 +512,12 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
     for (const knob of knobs) state = applyKnob(state, knob, indices[knob.id]);
     const atFull = encodeStamp(state);
     expect(atFull[0], "a Full-brightness stamp is not format c").not.toBe("c");
+    // Change 17C: AURORA's MIDI outputs are knobs too, and a vendored stamp lands them at their
+    // defaults - where every stamp of the card was written before they existed.
     expect(
       decodeFor(entry, atFull),
       "a pre-5b link at Full no longer restores",
-    ).toEqual({ kind: "restored", indices });
+    ).toEqual({ kind: "restored", indices: { ...entry.defaults, ...indices } });
     // The same vector with the retired knob moved off Full: format `c`, unreadable.
     const dim = clonePadState(state);
     dim.brightness = 3;

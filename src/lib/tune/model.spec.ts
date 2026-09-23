@@ -17,6 +17,7 @@ import {
 import { byId, type CatalogEntry } from "../catalog";
 import { scaleLua, sitesFor } from "../catalog/brightness";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
+import { presetWire } from "../catalog/entries/ported-midi";
 import { compileState, costOf, measureLua, padReady } from "../pad";
 import { PadSim } from "../../vendor/botor/pad-sim";
 import type { SimEngine } from "../sim/engine";
@@ -343,7 +344,14 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     // because that is what "at the defaults" means for a shelf card - it keeps
     // the preset field, and compile writes the stamp into the marker name, so a
     // state without it would measure differently and prove nothing.
-    const expected = vendorCost(vendorCompile(resetAll(mustEntry("aurora"))));
+    // Change 17C: AURORA is a wrapped preset, so what the tuner measures is the compiled pair
+    // through its outputs' rewrite (ported-midi.ts) - the wire's own strings.
+    const expected = vendorCost(
+      presetWire(
+        mustEntry("aurora"),
+        vendorCompile(resetAll(mustEntry("aurora"))),
+      ),
+    );
     const view = settledViews(rec.views).at(-1);
     expect(view, "no settled view landed").toBeDefined();
     expect(view!.setup.used).toBe(expected.setup.used);
@@ -369,7 +377,7 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
       (await import("./state")).baseStateFor(entry),
       moved,
     );
-    const after = vendorCost(vendorCompile(state));
+    const after = vendorCost(presetWire(entry, vendorCompile(state)));
     expect(tuned!.setup.used).toBe(after.setup.used);
     expect(tuned!.timer.used).toBe(after.timer.used);
 
@@ -1051,7 +1059,11 @@ describe("the tuner (TUNE-02, TUNE-03)", () => {
     await pause(COMPILE_DEBOUNCE_MS + 400);
     expect(preset.brightness).toBe(128);
     const landed = pre.configs.findLast((c) => c !== undefined);
-    const compiled = await compileState(resetAll(mustEntry("aurora")));
+    // Through AURORA's outputs' rewrite first (change 17C): wrap, then scale.
+    const compiled = presetWire(
+      mustEntry("aurora"),
+      await compileState(resetAll(mustEntry("aurora"))),
+    );
     expect(landed!.setup, "a preset lands its compiled Setup scaled").toBe(
       scaleLua(compiled.setupLua, 128, sitesFor()),
     );

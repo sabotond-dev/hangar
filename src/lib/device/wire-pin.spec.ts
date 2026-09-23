@@ -67,6 +67,7 @@ import {
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
 import { CATALOG, type CatalogEntry } from "../catalog";
 import { TOUCH_LIBRARY, TOUCH_LIBRARY_TIMER } from "../catalog/library";
+import { presetWire } from "../catalog/entries/ported-midi";
 import {
   compileState,
   costOf,
@@ -292,7 +293,9 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
         // Independently: the same state the tuner measures at the defaults
         // (stateOf() returns resetAll() when every knob is at its default,
         // and the preset field is load-bearing - model.spec.ts test 4).
-        const result = await compileState(resetAll(entry));
+        // A wrapped preset's (change 17C) compiled text goes on the wire through its outputs'
+        // rewrite at their defaults (ported-midi.ts); every other preset's is the identity.
+        const result = presetWire(entry, await compileState(resetAll(entry)));
         const cost = await costOf(result);
         const compressed = GridScript.compressScript(config.setup).length;
         const actions = occurrences(config.setup, "--[[@");

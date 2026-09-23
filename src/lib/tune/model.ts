@@ -29,6 +29,7 @@ import {
   scaleLua,
   sitesFor,
 } from "../catalog/brightness";
+import { isWrapped, presetWire } from "../catalog/entries/ported-midi";
 import { compileState, costOf, fitState, measureLua, padReady } from "../pad";
 import { compilerKnobs, encodeFor, stampKnobs } from "../share/stamp";
 import { createEngine, dimmed, type SimEngine } from "../sim/engine";
@@ -430,17 +431,31 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   /** A PadSim at the tuner's brightness: the preview a preset shows. */
   const padSimAt = (state: PadState): SimEngine =>
     dimmed(new PadSim(state), brightness);
-  /** The compiled pair with its colours scaled: what a preset lands and what its meters measure. */
+  /**
+   * The compiled pair as it goes on the wire: a wrapped preset's outputs rewritten at the vector's
+   * output knobs (change 17C, ported-midi.ts; the identity on every other preset), then its colours
+   * scaled - what a preset lands and what its meters measure.
+   */
   const scaledResult = <T extends { setupLua: string; timerLua: string }>(
-    result: T,
-  ): T =>
-    brightness === BRIGHTNESS_FULL
+    compiled: T,
+    at: Readonly<Record<string, number>> = indices,
+  ): T => {
+    const result = presetWire(entry, compiled, at);
+    return brightness === BRIGHTNESS_FULL
       ? result
       : {
           ...result,
           setupLua: scaled(result.setupLua),
           timerLua: scaled(result.timerLua),
         };
+  };
+  /**
+   * A wrapped preset's whole reachable space is proved in budget at build time (reachability.sweep.spec.ts
+   * costs every compiler state under the outputs' dearest literals), as a Lua entry's is - and the ladder
+   * measures the unwrapped compile, so it would answer a question about the wrong strings. Neither the
+   * ladder nor the roll's fit test runs on one (change 17C).
+   */
+  const wrapped = isWrapped(entry);
 
   let destroyed = false;
   let pending: ReturnType<typeof setTimeout> | undefined;
@@ -518,7 +533,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       };
     } else {
       const cost = await costOf(
-        scaledResult(await compileState(stateOf(at))),
+        scaledResult(await compileState(stateOf(at)), at),
         options.reserved,
       );
       measured = { setup: cost.setup.used, timer: cost.timer.used };
@@ -720,7 +735,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
       setup: result.setupLua,
       timer: result.timerLua,
     });
-    const plan = await ladderFor(state, measured);
+    const plan = wrapped ? undefined : await ladderFor(state, measured);
     if (stale(mine)) return;
     if (plan) {
       report(measured, plan);
@@ -937,7 +952,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         (candidate) =>
           // A Lua entry fits by construction (Phase 8 proved its whole knob
           // cross-product in budget), so its roll is one pass.
-          entry.preview === "lua"
+          entry.preview === "lua" || wrapped
             ? true
             : fitsAfterGate(stateOf(candidate), reserved),
         Math.random,
@@ -958,7 +973,8 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
         (held !== undefined && inScope.every((knob) => held.has(knob.id)));
       moved = undefined;
       moveTo(drawn);
-      if (!exhausted || allHeld || entry.preview === "lua") return before;
+      if (!exhausted || allHeld || entry.preview === "lua" || wrapped)
+        return before;
       if (knobs.length === 0) return before;
       // The UI spec's rule: Randomize has no failure state, so an exhausted
       // roll applies the ladder-resolved state rather than landing over budget.

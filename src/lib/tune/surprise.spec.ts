@@ -369,7 +369,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     ).toBe(unheldStamp);
   });
 
-  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is the knobs listed, on twenty entries (the count moves with change 17B's outputs)", () => {
+  it("the scope rule: a roll leaves every MIDI destination at its prior index while something else moves, the previous vector is untouched, and the excluded set is the knobs listed, on twenty-one entries (the count moves with change 17B's and 17C's outputs)", () => {
     // SECTION 7 (13-10): "Preserve MIDI destination, channel, routing, and
     // device target." The predicate is over the DESCRIPTOR - its id and its
     // label - and this test holds three things: what it excludes across the
@@ -418,6 +418,8 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       excluded,
       "the excluded set moved - a knob was added, renamed or re-labelled onto or off the wire; update 13-10-SUMMARY.md's list with it",
     ).toEqual([
+      // Change 17C: a wrapped preset's outputs are token knobs on its rack.
+      "aurora: xType, channel, xCc, xReceive, yType, yChannel, yCc, yReceive",
       "joystick: send",
       "ninepads: channel",
       "faders: send, channel",
@@ -441,11 +443,11 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       // CATALOG now; the same knob, the same id, a Lua palette rack.
       "radar: send, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
     ]);
-    expect(entries, "twenty entries carry a MIDI destination").toBe(20);
+    expect(entries, "twenty-one entries carry a MIDI destination").toBe(21);
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(152);
+    ).toBe(160);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,
