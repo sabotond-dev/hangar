@@ -131,8 +131,11 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 42 -> 43 the same day (change 17B): the grid sequencers' receive - STEPS's tracks
  * and SONAR's line - four clauses (a)-(d) and a dated paragraph.
+ *
+ * 43 -> 44 the same day (change 17B): RADAR POINTS's receive - a received note
+ * places one point - three clauses (a)-(c) and a dated paragraph.
  */
-const ROW_COUNT = 43;
+const ROW_COUNT = 44;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

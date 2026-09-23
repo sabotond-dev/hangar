@@ -410,25 +410,35 @@ RADAR POINTS is not in `wild-stamps.json` (it arrived after the capture), so no 
 moves; a link shared before today carries five indices against seven knobs and lands
 `unreadable` by the length check, opening the card at its defaults.
 
-## Change 17B, 2026-09-23: the Points output, no receive (`BENCH-2026-09-16.txt` sections 17 and 18)
+## Change 17B, 2026-09-23: the Points output; a received note arms a point (`BENCH-2026-09-16.txt` sections 17 and 18)
 
 RADAR POINTS sends one stream - every armed point's note as the ring crosses it, released a step later - so it is one
-output, "Points", a trigger, with Type (Note / CC) and Channel.
+output, "Points", a trigger, with Type (Note / CC), Channel and Receive.
 
-- **Knobs.** `@TYPE` (`midiType`) appended last; `@CH` (`channel`, already all sixteen) the output's Channel, reading
+- **Knobs.** `@TYPE` (`midiType`) and `@RX` (`midiReceive`, On) appended last; `@CH` (`channel`, already all sixteen) the output's Channel, reading
   1..16. **No Number**: each point's pitch is its compass direction's, from `@ROOT` and the scale - a Number would
-  name nothing. Eight knobs, seven outside the output. No captured wild record for this card.
+  name nothing. Nine knobs, seven outside the output. No captured wild record for this card.
 - **The send.** Note-on `s:gms(@CH,@TYPE,m,100)`, the release `s:gms(@CH,@TYPE*3//2-88,m,0)` (128, or the controller
   at 0). At the defaults the wire is the card's before the change, message for message; `lua-smoke.spec.ts`'s geometry
   case reads the release as `144*3//2-88` at the default Type.
-- **No receive.** A received note names a direction, not a place: every ring past the first holds several cells of one
-  pitch, so there is no one point to arm. The Setup assigns `s.midirx_cb=nil` - and had 16 free: it now holds its
-  element as the local `s` (`local s=self`, `s.a s.o s.v s.q`, twelve characters back), which paid for the nil.
+- **The receive.** A host note-on (a controller above 0 under CC) on the output's type and channel ARMS ONE POINT on
+  the ring the ping last crossed, `(s.k-1)%8`, whose direction's pitch is the received number, and lights it - ORBIT's,
+  STEPS's and SONAR's rule for this card's geometry (the ring is the time, the direction the pitch). One point, not
+  every cell of that direction on the ring: the outer rings hold up to four, which would sound the pitch four times. If
+  a point of that pitch on the ring is armed already, nothing - so the card's own notes echoed back change nothing; on
+  the three quiet steps no ring was crossed and nothing arms; nothing is cleared or sent. **Decided in two steps**:
+  this card first landed with no receive ("a note names a direction, not a place", `4b33e46`); SONAR's commit found the
+  one-cell rule that makes a note plus the playhead a place, and this card took it in a second commit so the four
+  sequencers agree. The TIMER makes the callback once per install (`s.j`, 150 free after it). The Setup assigns
+  `s.midirx_cb=nil` - it had 16 free, and now holds its element as the local `s` (`local s=self`, `s.a s.o s.v s.q`,
+  twelve characters back), which paid for the nil.
 - **Latch: swipe by design** - a finger swiped across the field arms or disarms one point per cell it crosses (`Q`'s
   change signal), the placing gesture (lua-smoke.spec.ts "holds a boundary finger on one cell on ORBIT, STEPS, RADAR
   POINTS and SONAR").
-- **Cost:** Setup 891 / 892 -> 896 / 897 (defaults / corner; 11 free), Timer 378 / 380 -> 382 / 384. frames.json and
-  the OG image unmoved.
+- **Cost:** Setup 891 / 892 -> 896 / 897 (defaults / corner; 11 free), Timer 378 / 380 -> 755 / 758 (150 free).
+  frames.json and the OG image unmoved. Audition row 44.
 - **Proved.** `lua-smoke.spec.ts` "RADAR POINTS: the Points output ...": ring 1's east point armed with a tap sounds on
   the ring's crossing and is released a step later - notes on channel 0 at the defaults, controllers on wire channel 6
-  at CC - every note-on released; no callback over a previous landing's.
+  at CC - every note-on released; no callback before the Timer's first call over a previous landing's; on a fresh card,
+  with ring 1 the last crossed, four mismatches arm nothing, the east point's pitch arms cell 41 and only it, the echo
+  arms nothing more, nothing is sent back; Receive Off arms nothing.

@@ -13543,13 +13543,19 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
     }
   }, 60000);
 
-  it("RADAR POINTS: the Points output sends every armed point on its Type and Channel - at the defaults a note-on as the ring crosses and its note-off a step later on channel 0, as before - and receives nothing (the Setup assigns nil over a previous landing's); a swipe arming every cell it crosses is by design", async () => {
+  it("RADAR POINTS: the Points output sends every armed point on its Type and Channel - at the defaults a note-on as the ring crosses and its note-off a step later on channel 0, as before - and receives: a note-on arms ONE point of its direction on the ring just crossed and lights it, never clears one, so its own notes echoed back change nothing; a swipe arming every cell it crosses is by design", async () => {
+    let east = -1;
     for (const [over, on, off] of [
       [{}, "0:144:", "0:128:"],
       [{ midiType: "176", channel: "6" }, "6:176:", "6:176:"],
     ] as const) {
       const { host } = await openCard("radar-points", over, true);
       try {
+        // The Setup assigned nil over the previous landing's callback; the Timer makes its own.
+        expect(
+          host.midiIn(REPORT, 0, 144, 60, 100),
+          "nil until the Timer",
+        ).toBe(false);
         // Arm ring 1's east cell (41) with a tap on its LED.
         host.touchDown(0, ledCentre(5, "x"), ledCentre(4, "y"));
         host.tick();
@@ -13565,12 +13571,59 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
           sent.every((m) => m.startsWith(on) || m.startsWith(off)),
           sent.slice(0, 4).join(" "),
         ).toBe(true);
-        const note = Number(ons[0].split(":")[2]);
-        expect(
-          host.midiIn(REPORT, Number(on.split(":")[0]), 144, note, 100),
-          "no callback",
-        ).toBe(false);
+        east = Number(ons[0].split(":")[2]);
         expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // RX: a fresh card; when ring 1 was the last crossed, the east point's pitch arms cell 41.
+    const lit = (sim: PadSim, n: number): number =>
+      sim.layer(hwOfCell(n), 1).pha;
+    const armed = (sim: PadSim): number =>
+      Array.from({ length: 81 }, (_, n) => n).filter((n) => lit(sim, n) === 255)
+        .length;
+    {
+      const { host, sim } = await openCard("radar-points");
+      try {
+        let ring = -1;
+        for (let n = 0; n < 400 && ring !== 1; n++) {
+          host.tick();
+          const k = host.selfNumber("k");
+          ring = k === undefined ? -1 : (((k - 1) % 8) + 8) % 8;
+        }
+        expect(ring).toBe(1);
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 0, 128, east, 64],
+          [REPORT, 0, 144, east, 0],
+          [REPORT, 1, 144, east, 100],
+          [14, 0, 144, east, 100],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(armed(sim), "mismatches arm nothing").toBe(0);
+        const quiet = host.midi.length;
+        expect(host.midiIn(REPORT, 0, 144, east, 100)).toBe(true);
+        expect(lit(sim, 41), "the east point of ring 1").toBe(255);
+        expect(armed(sim), "one point").toBe(1);
+        host.midiIn(REPORT, 0, 144, east, 100);
+        expect(armed(sim), "the echo arms nothing more").toBe(1);
+        expect(host.midi.length, "nothing sent back").toBe(quiet);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Receive Off.
+    {
+      const { host, sim } = await openCard("radar-points", {
+        midiReceive: "0",
+      });
+      try {
+        for (let n = 0; n < 60; n++) {
+          host.tick();
+          host.midiIn(REPORT, 0, 144, east, 100);
+        }
+        expect(armed(sim)).toBe(0);
       } finally {
         host.close();
       }
