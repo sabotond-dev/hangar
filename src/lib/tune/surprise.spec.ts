@@ -434,7 +434,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "lumen: cc, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
       "snake: channel",
       "quadrant: channel",
-      "pomodoro: channel",
+      "pomodoro: note, channel, alarmType, transportType, transportChannel, transportNote",
       "wheels: cc, channel",
       "radar-points: channel",
       // Last since change 12b (2026-09-18): RADAR is the last Lua entry in
@@ -445,7 +445,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(73);
+    ).toBe(78);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,

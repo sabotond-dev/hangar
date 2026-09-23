@@ -13411,4 +13411,54 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("POMODORO: the Transport and Alarm outputs each send on their own Type, Channel and Number - at the defaults 48 on a tap and 60 at zero on channel 0 as before - and neither receives (the Setup assigns nil); a tap is onset-only, so a slide does nothing more (already latched)", async () => {
+    const tap = (host: Awaited<ReturnType<typeof openCard>>["host"]) => {
+      host.touchDown(0, 64, 64);
+      host.tick();
+      // A slide across the field sends nothing more: the handler acts on the onset alone.
+      host.touchMove(0, 30, 90);
+      host.tick();
+      host.touchUp(0, 30, 90);
+      host.tick();
+    };
+    for (const [over, transport, alarm] of [
+      [
+        { mins: "1" },
+        ["0:144:48:90", "0:128:48:0"],
+        ["0:144:60:110", "0:128:60:0"],
+      ],
+      [
+        {
+          mins: "1",
+          transportType: "176",
+          transportChannel: "3",
+          transportNote: "20",
+          alarmType: "176",
+          channel: "9",
+          note: "72",
+        },
+        ["3:176:20:90", "3:176:20:0"],
+        ["9:176:72:110", "9:176:72:0"],
+      ],
+    ] as const) {
+      const { host } = await openCard("pomodoro", over, true);
+      try {
+        // The card runs from its Setup: a tap pauses it, a second resumes - two transport pairs.
+        tap(host);
+        tap(host);
+        expect(wire(host.midi), JSON.stringify(over)).toEqual([
+          ...transport,
+          ...transport,
+        ]);
+        // One minute at a Timer call a second: the alarm, once.
+        host.run(62 * 100);
+        expect(wire(host.midi, 4)).toEqual([...alarm]);
+        expect(host.midiIn(REPORT, 0, 144, 48, 100), "no callback").toBe(false);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });

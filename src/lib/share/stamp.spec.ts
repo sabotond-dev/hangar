@@ -582,7 +582,11 @@ describe("the stamp: the envelope", () => {
       // of the new knob's range, so the RANGE check lands it `unreadable` before
       // the shape character could say `older`. Never restored with a wrong
       // spread read as a wrong voicing. The fixture is not regenerated.
-      const resized = record.entry === "pomodoro";
+      // POMODORO's captured stamp landed `older` (a resized knob) until change 17B, which grew its
+      // rack by four knobs and made its note wide: a longer payload, so it lands `unreadable` by
+      // the length check with the grown cards below. No captured stamp is `older` today; the
+      // branch stays for the next resize.
+      const resized: boolean = false;
       // ORBIT joins the grown: EUCLID's six-knob `x` payload is the wrong
       // length for fourteen knobs and two wide fields (change 8), by design.
       // AND STEPS AND GHOST, at change 12 (2026-09-18, BENCH-2026-09-16.txt
@@ -593,6 +597,7 @@ describe("the stamp: the envelope", () => {
         record.entry === "arc" ||
         record.entry === "morph" ||
         record.entry === "euclid" ||
+        record.entry === "pomodoro" ||
         record.entry === "steps" ||
         record.entry === "ghost" ||
         record.entry === "lumen" ||
@@ -666,8 +671,20 @@ describe("the stamp: the envelope", () => {
     // A vector built from the catalog at run time would be a tautology in the
     // same way a regenerated fixture is.
     const pom = entry("pomodoro");
-    const knobs = stampKnobs(pom);
-    const mins = knobs.find((knob) => knob.id === "mins");
+    // The rack as the four payloads were captured (2026-09-09): the first five knobs, the note and
+    // the channel four rungs each - change 17B grew both to 0..127 / sixteen (their old rungs
+    // first, so every captured index still names its value) and appended four knobs, so today's
+    // rack is longer than these payloads. The field layout is read against the captured rack; the
+    // VALUE an index names is read off today's knob.
+    const today = stampKnobs(pom);
+    const knobs = today
+      .slice(0, 5)
+      .map((knob) =>
+        knob.id === "note" || knob.id === "channel"
+          ? { ...knob, options: knob.options.slice(0, 4) }
+          : knob,
+      );
+    const mins = today.find((knob) => knob.id === "mins");
     expect(mins, "pomodoro still declares a mins knob").toBeDefined();
     if (!mins) return;
 
@@ -721,15 +738,16 @@ describe("the stamp: the envelope", () => {
     ).toEqual(["15", "20", "25", "50", "1", "5"]);
 
     // 4. AND THE LANDING IS NAMED RATHER THAN LEFT TO BE DISCOVERED. A resize
-    //    moves the shape character, so these four land `older` - the honest
-    //    apology - and not `unreadable`, which would be the panel telling a
-    //    visitor their perfectly good link is corrupt.
+    //    moves the shape character, so these four landed `older` - the honest
+    //    apology. CHANGE 17B GREW THE RACK (four knobs appended, the note wide),
+    //    so a five-knob payload is the wrong length: they land `unreadable`, the
+    //    known pattern of a grown rack, and the card opens at its defaults. The
+    //    indices above still name their minutes; only the link is past reading.
     for (const each of CAPTURED) {
       expect(
         decodeFor(pom, each.payload).kind,
-        `pomodoro: ${each.payload} must land older after the @MINS resize, ` +
-          "never unreadable",
-      ).toBe("older");
+        `pomodoro: ${each.payload} lands unreadable since change 17B grew the rack`,
+      ).toBe("unreadable");
     }
   });
 

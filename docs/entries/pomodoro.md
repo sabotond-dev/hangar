@@ -227,3 +227,31 @@ proof that @MINS reaches exactly one site and that site is in the Setup.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 17B, 2026-09-23: the Transport and Alarm outputs, no receive (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+POMODORO sends two things: a transport note on every accepted tap (start, pause, reset) and the alarm once at zero.
+Each is an output now - "Transport" and "Alarm", triggers with an off (on then off at once, so Note or CC; Program
+change is for a trigger with no off) - each with Type, Channel and Number.
+
+- **Knobs.** The Alarm keeps the old two: `@NOTE` (`note`, relabelled "Alarm MIDI note" - the Sound section's alarm
+  becomes the output's Number, so it moved to MIDI and out of Randomize's scope) all of 0..127 with its four old rungs
+  first, and `@CH` (`channel`, "Alarm MIDI channel") all sixteen in order (it was 0, 1, 9, 15 under kind `mode`).
+  Appended: `@AT` (`alarmType`), `@TT` (`transportType`), `@TCH` (`transportChannel`) and `@TN` (`transportNote`, 48 by
+  default - the old `@NOTE-12` at the default alarm, its own Number now). Nine knobs, three outside the outputs.
+- **The stamp.** POMODORO's four captured 11-09 links (and its wild record) landed `older` - a resized knob; the rack
+  now grew by four and the note is wide, so they land `unreadable`, the known pattern of a grown rack.
+  `stamp.spec.ts`'s interval guard still reads each captured payload's `mins` index against the rack as it was
+  captured and the value off today's knob: 15, 20, 25 and 50 minutes on indices 0..3, as ever.
+- **The send.** Each note-on on its type and the off at `T*3//2-88` (the note-off, or the controller at 0), each output
+  on its own channel. At the defaults the wire is POMODORO's before the change, message for message.
+- **No receive.** The notes announce events and hold no value; a received transport note would have to act as a tap,
+  and a DAW's MIDI thru echoing the card's own tap note would undo every tap. The Setup assigns
+  `self.midirx_cb=nil`.
+- **Latch: already latched** - the handler acts on the onset alone (`if e~=4 and e<9 then return end`).
+- **Cost:** Setup 733 / 743 -> 754 / 766 (defaults / corner; 142 free), Timer 647 / 659 -> 655 / 669. frames.json and
+  the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "POMODORO: the Transport and Alarm outputs ...": at the defaults a pause and a resume
+  send 48 on and off twice and the one-minute alarm 60 on and off on channel 0; with both outputs as controllers
+  (transport 20 on wire channel 3, alarm 72 on 9) the same shape; a tap slid across the field sends nothing more; no
+  callback over a previous landing's.
