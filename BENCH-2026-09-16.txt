@@ -3671,3 +3671,31 @@ fader's target when the host sends its CC (`motorRx`, `_pad.ts:1978`) - value sy
 lights following. HANGAR today: most cards carry one Channel knob (often four rungs) and a fixed
 message kind per send; the Sandbox has CC / Note per button and CC elsewhere, one channel each.
 Questions put to the user; answers recorded below.
+
+Questions asked 2026-09-23: (1) what RX does - sync value / sync LEDs / DAW sets colours;
+(2) the message types for a continuous send - the Editor's full set, or common only;
+(3) the playground's layout - per output, or one channel per card; (4) a card that cannot fit -
+system slots, or fewer options.
+
+> (1) Sync value, Sync LEDs, DAW sets colours  (2) Common only  (3) Per output  (4) Use system slots
+
+Recorded: 
+- Every MIDI output, playground and Sandbox, has Type, Channel (1..16, all sixteen) and Number.
+  Continuous outputs (faders, XY axes, knobs, the playground's gesture sends): CC, Pitch bend,
+  Channel pressure (Number unused for the last two). Trigger outputs (notes, buttons, steps,
+  bites): Note or CC (a Program change where a trigger has no off makes sense - the executor's
+  call, recorded). Min / Max where a value is continuous (the Sandbox's already).
+- The playground's MIDI section lists one block per output, named by what it is (Ring 1, X axis,
+  Bite), each with its own Type / Channel / Number, and a "same channel for all" control on top.
+- RX, on by default on every element that sends: a host message matching an output's type,
+  channel and number (i) sets the element's value - the next touch continues from it, a relative
+  fader from it, a toggle takes its state - and (ii) moves its lights to show it. Plus (iii) DAW
+  colours: a received value on a colour controller recolours the element (the convention chosen
+  by the executor - a hue wheel or a palette index - recorded). The touch element takes RX through
+  `self.midirx_cb` assigned in the Setup (BOTOR's route; `gmrr` does not reach a touch element).
+- Budget: the system slots carry the shared MIDI send / receive code wherever a card needs the
+  room (`library.ts` may change for this change, and every card's system records move with it -
+  stated in the gate); every card gets the full set.
+- Built in two serial parts on Opus: 17A the shared pieces (the send and receive helpers, the
+  knob model and stamp for per-output MIDI, the tuning panel's MIDI block) and the whole Sandbox;
+  17B the twenty-seven playground cards, one commit per card.
