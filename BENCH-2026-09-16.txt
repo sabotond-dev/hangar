@@ -3973,3 +3973,13 @@ empty plate and keeps looking; should an Off element's finger that leaves onto e
 done for the gesture? (5) Latch Off on a knob releases it the moment the finger slips outside its box -
 offer Latch on a knob at all? (6) Fix the one-cell fader's division by zero now (it moves every surface
 with a fader or a pad)?
+
+Change 18 (Sandbox) questions, decided 2026-09-23 (the user away): no steal stands; a finger that
+touched down on empty plate stays inert; an Off element's finger that leaves onto empty plate
+carries on to the next Off element (the strum); page 3 with every element receiving cannot take
+Latch Off - accepted, the refusal is the budget's own (no number shown). Two changes follow as
+change 18b, Sandbox only: (1) the knob loses the Latch row (an Off knob lets go the moment the
+finger slips outside its box, which only ever reads as a fault on a rotary gesture); (2) the fault
+18 found and did not fix - a one-cell-wide vertical fader (or one-cell-tall horizontal one) never
+sends on the module because 17A's `A` divides by the zero-length cross axis - is fixed: the
+runtime guards the cross axis, the cost stated per surface.
