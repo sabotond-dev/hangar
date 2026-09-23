@@ -899,16 +899,20 @@ export function typedIndex(
 
 /**
  * The bounds of a CONTIGUOUS integer run (`["0", ..., "15"]` gives `{ min: 0, max: 15 }`), or
- * undefined when the literals are not integers, are empty or skip a number (Arc's `cc`).
+ * undefined when the literals are not integers, are empty, repeat or skip a number. In ANY order
+ * since change 17: a grown number ladder keeps a card's old rungs first (tune/midi.ts
+ * `numberValues`) and is still the run 0..127.
  */
 export function integerRun(
   literals: readonly string[],
 ): { min: number; max: number } | undefined {
   if (literals.length === 0) return undefined;
   if (!literals.every((literal) => INTEGER.test(literal))) return undefined;
-  const first = Number.parseInt(literals[0], 10);
-  for (let at = 1; at < literals.length; at++) {
-    if (Number.parseInt(literals[at], 10) !== first + at) return undefined;
+  const sorted = literals
+    .map((literal) => Number.parseInt(literal, 10))
+    .sort((a, b) => a - b);
+  for (let at = 1; at < sorted.length; at++) {
+    if (sorted[at] !== sorted[0] + at) return undefined;
   }
-  return { min: first, max: first + literals.length - 1 };
+  return { min: sorted[0], max: sorted[0] + sorted.length - 1 };
 }

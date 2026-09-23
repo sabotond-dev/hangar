@@ -1126,6 +1126,8 @@
         oncolourinput?.(
           value === "true" ? (input ?? COLOUR_INPUT_START) : undefined,
         );
+        // The switch is an entry of its own: a first CC typed next is another.
+        oncommit();
       },
       undefined,
     )}

@@ -147,19 +147,17 @@ function contiguousRun(
   literals: readonly string[],
 ): { min: number; max: number } | undefined {
   if (literals.length === 0) return undefined;
-  const first = Number.parseInt(literals[0], 10);
-  if (!Number.isInteger(first) || !/^-?[0-9]+$/.test(literals[0])) {
+  if (!literals.every((literal) => /^-?[0-9]+$/.test(literal))) {
     return undefined;
   }
-  for (let at = 1; at < literals.length; at++) {
-    if (
-      !/^-?[0-9]+$/.test(literals[at]) ||
-      Number.parseInt(literals[at], 10) !== first + at
-    ) {
-      return undefined;
-    }
+  // In any order since change 17 (a grown ladder keeps a card's old rungs first).
+  const sorted = literals
+    .map((literal) => Number.parseInt(literal, 10))
+    .sort((a, b) => a - b);
+  for (let at = 1; at < sorted.length; at++) {
+    if (sorted[at] !== sorted[0] + at) return undefined;
   }
-  return { min: first, max: first + literals.length - 1 };
+  return { min: sorted[0], max: sorted[0] + sorted.length - 1 };
 }
 
 /**
