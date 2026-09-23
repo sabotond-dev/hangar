@@ -8,8 +8,8 @@
 // the fault the user saw - "i saw it on the faders config in playground" - and the vendored PadSim
 // runs the PadState's fader-under-the-finger rule, so a wrapped card's preview would still slide
 // from fader to fader while the module latched. A Lua card's preview runs this Lua. The preset
-// stays on the shelf (presets.ts) untouched, reached through `portedEntry("faders")`. Setup 756 of
-// 908 at the defaults (764 at the dearest literals), Timer 292 (300); sixteen knobs, every one an
+// stays on the shelf (presets.ts) untouched, reached through `portedEntry("faders")`. Setup 757 of
+// 908 at the defaults (765 at the dearest literals), Timer 292 (300); sixteen knobs, every one an
 // output's. Off the front door: a Lua card cannot sit in the row (front-door.ts). History:
 // docs/entries/faders.md.
 //

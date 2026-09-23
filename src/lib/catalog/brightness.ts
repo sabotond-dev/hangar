@@ -89,6 +89,8 @@ export const LIBRARY_PAINTERS: Readonly<Record<string, readonly number[]>> = {
 export const ENTRY_SITES: Readonly<Record<string, Partial<ColourSites>>> = {
   // `local C={...}` fifteen channels, read as `C[i+1],C[i+2],C[i+3]` and `C[i+1]*@DIM//6`.
   cull: { palettes: ["C"] },
+  // `local C={@COL}` the grid colour, read as `C[1],C[2],C[3]` and its two-fifths `C[1]*2//5`.
+  ninepads: { palettes: ["C"] },
   // `local H={...}` twenty-seven channels; F derives `r g b` from H and hands them to glc.
   lumen: { palettes: ["H"], bare: ["r", "g", "b"] },
   // `local C={@HUE}` and the fill's own twelve, both constructors.

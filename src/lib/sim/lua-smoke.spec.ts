@@ -14786,4 +14786,206 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
       }
     }
   }, 60000);
+
+  it("NINE PADS (rebuilt by hand): the pads are one output (a bank) on its Type, Channel and Number - at the defaults the preset's notes 36..51 on channel 0 and its picture frame for frame at both grids and every scale under every gesture that stays on its pad; a contact keeps the pad it landed on (a slide plays nothing new, where the shelf preset re-triggered); a fast tap plays its pad, on and off in one callback (the shelf preset sent nothing); the watchdog releases a silent contact and lapses, no Timer armed at rest; it receives: a host note lights its pad and its off darkens it, nothing sent back", async () => {
+    type Host = Awaited<ReturnType<typeof openLua>>["host"];
+    /** Pad z's marker cell at 4x4: odd column, odd row. */
+    const pad = (z: number): [number, number] => [
+      KX[(z % 4) * 2 + 1],
+      KY[Math.floor(z / 4) * 2 + 1],
+    ];
+    /** Layer 2 lit anywhere: the held pads' highlights. */
+    const lit2 = (sim: PadSim): number[] => {
+      const out: number[] = [];
+      for (let c = 0; c < 81; c++)
+        if (sim.layer(hwOfCell(c), 2).pha > 0) out.push(c);
+      return out;
+    };
+    /** Slow taps on four pads, then two held at once: the gestures that stay on a pad. */
+    const still = (host: Host): string[] => {
+      const frames: string[] = [];
+      const snap = () => frames.push(Array.from(host.frame).join(","));
+      snap();
+      for (const z of [0, 5, 10, 15]) {
+        host.touchDown(0, ...pad(z));
+        host.run(3);
+        snap();
+        host.touchUp(0, ...pad(z));
+        host.run(3);
+        snap();
+      }
+      host.touchDown(0, ...pad(2));
+      host.touchDown(1, ...pad(13));
+      host.run(3);
+      snap();
+      host.touchUp(0, ...pad(2));
+      host.touchUp(1, ...pad(13));
+      host.run(3);
+      snap();
+      return frames;
+    };
+    /** The shelf preset at its knobs by index (knobs.preset.ts), in the VM. */
+    const shelfAt = async (tuned: Record<string, number>) => {
+      const shelf = portedEntry("ninepads");
+      if (shelf === undefined) throw new Error("ninepads is on no shelf");
+      let state = baseStateFor(shelf);
+      for (const knob of compilerKnobs(shelf))
+        state = knob.apply(state, tuned[knob.id] ?? knob.default);
+      const { setupLua, timerLua } = compile(state);
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup: setupLua,
+        timer: timerLua,
+      });
+      return { host, sim };
+    };
+    // The picture and the wire, against the shelf preset: the defaults, both grids and every
+    // scale (the knobs share ids and indices; a pad's note is the scale laid from the Number).
+    const entry = entryById("ninepads");
+    const scales = entry.knobs.find((k) => k.id === "scale")?.values ?? [];
+    expect(scales).toHaveLength(4);
+    for (const grid of ["9", "16"]) {
+      for (const scale of scales) {
+        const card = await openLua("ninepads", { grid, scale });
+        const shelf = await shelfAt({
+          grid: grid === "9" ? 0 : 1,
+          scale: scales.indexOf(scale),
+        });
+        try {
+          expect(
+            still(card.host),
+            `the picture moved at ${grid} pads, ${scale}`,
+          ).toEqual(still(shelf.host));
+          expect(
+            wire(card.host.midi),
+            `the wire moved at ${grid} pads, ${scale}`,
+          ).toEqual(wire(shelf.host.midi));
+          expect(card.host.midi.length).toBeGreaterThan(0);
+          expect(card.host.errors, card.host.errors.join(" | ")).toEqual([]);
+        } finally {
+          card.host.close();
+          shelf.host.close();
+        }
+      }
+    }
+    {
+      // At rest nothing is armed; the defaults' notes are 36.. on channel 0.
+      const card = await openLua("ninepads");
+      const shelf = await shelfAt({});
+      try {
+        expect(card.host.timerArmed, "no Timer armed at rest").toBe(false);
+        // THE LATCH: land on pad 0, slide across pads 1 and 2; the card holds pad 0.
+        const slide = (host: Host) => {
+          host.touchDown(0, ...pad(0));
+          host.run(3);
+          host.touchMove(0, ...pad(1));
+          host.run(3);
+          host.touchMove(0, ...pad(2));
+          host.run(3);
+          host.touchUp(0, ...pad(2));
+          host.run(3);
+        };
+        slide(card.host);
+        slide(shelf.host);
+        expect(wire(card.host.midi), "one pad, held").toEqual([
+          "0:144:36:100",
+          "0:128:36:0",
+        ]);
+        expect(wire(shelf.host.midi), "the shelf re-triggered").toEqual([
+          "0:144:36:100",
+          "0:128:36:0",
+          "0:144:37:100",
+          "0:128:37:0",
+          "0:144:38:100",
+          "0:128:38:0",
+        ]);
+        expect(lit2(card.sim), "no highlight left").toEqual([]);
+        // THE FAST TAP: on and off in one callback, and the highlight gone with it.
+        const from = card.host.midi.length;
+        card.host.touchTap(0, ...pad(5));
+        card.host.run(2);
+        expect(wire(card.host.midi, from)).toEqual([
+          "0:144:41:100",
+          "0:128:41:0",
+        ]);
+        expect(lit2(card.sim)).toEqual([]);
+        // THE WATCHDOG: a contact that falls silent is released after 100 Timer runs, and the
+        // Timer lapses once nothing is held.
+        const held = card.host.midi.length;
+        card.host.touchDown(1, ...pad(9));
+        card.host.run(2);
+        expect(card.host.timerArmed, "armed while a pad is held").toBe(true);
+        card.host.run(260);
+        expect(wire(card.host.midi, held)).toEqual([
+          "0:144:45:100",
+          "0:128:45:0",
+        ]);
+        card.host.run(10);
+        expect(card.host.timerArmed, "lapsed once nothing is held").toBe(false);
+        expect(card.host.errors, card.host.errors.join(" | ")).toEqual([]);
+      } finally {
+        card.host.close();
+        shelf.host.close();
+      }
+    }
+    {
+      // A controller bank on channel 3 from 60, a major scale, and the receive.
+      const { host, sim } = await openLua(
+        "ninepads",
+        {
+          midiType: "176",
+          channel: "2",
+          notes: "60",
+          scale: "0,2,4,5,7,9,11",
+        },
+        true,
+      );
+      try {
+        host.touchDown(0, ...pad(8));
+        host.run(3);
+        host.touchUp(0, ...pad(8));
+        host.run(3);
+        // Pad 8 of a major scale from 60: an octave and a second above, 74.
+        expect(wire(host.midi)).toEqual(["2:176:74:100", "2:176:74:0"]);
+        const sent = host.midi.length;
+        host.midiIn(REPORT, 3, 176, 74, 100);
+        host.midiIn(14, 2, 176, 74, 100);
+        host.midiIn(REPORT, 2, 144, 74, 100);
+        host.midiIn(REPORT, 2, 176, 73, 100);
+        expect(
+          lit2(sim),
+          "another channel, a neighbour, a note, no pad's number",
+        ).toEqual([]);
+        expect(host.midiIn(REPORT, 2, 176, 74, 100)).toBe(true);
+        const on = lit2(sim);
+        expect(on, "pad 8's marker lit").toEqual([
+          (8 % 4) * 2 + 1 + (Math.floor(8 / 4) * 2 + 1) * 9,
+        ]);
+        host.midiIn(REPORT, 2, 176, 74, 0);
+        expect(lit2(sim), "and dark at 0").toEqual([]);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      // A note bank receiving its note-off; Receive Off hears nothing.
+      const on = await openLua("ninepads");
+      const off = await openLua("ninepads", { midiReceive: "0" });
+      try {
+        on.host.midiIn(REPORT, 0, 144, 41, 90);
+        expect(lit2(on.sim)).toHaveLength(1);
+        on.host.midiIn(REPORT, 0, 128, 41, 64);
+        expect(lit2(on.sim)).toEqual([]);
+        off.host.midiIn(REPORT, 0, 144, 41, 90);
+        expect(lit2(off.sim), "Receive Off").toEqual([]);
+      } finally {
+        on.host.close();
+        off.host.close();
+      }
+    }
+  }, 120000);
 });

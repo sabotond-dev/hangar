@@ -213,9 +213,10 @@ describe("catalog golden frames", () => {
     // golden fixture still records nine, because golden-frames.spec.ts
     // regenerates from the VENDORED shelf; those two rows are simply not
     // cross-checked here.
-    // Six since change 17C (2026-09-23): FOUR FADERS is a Lua card under the
-    // preset's id, its frames recorded under the VM - and unmoved.
-    expect(ported.length, "there are ported entries to cross-check").toBe(6);
+    // Five since change 17C (2026-09-23): FOUR FADERS and NINE PADS are Lua
+    // cards under the presets' ids, their frames recorded under the VM - and
+    // unmoved.
+    expect(ported.length, "there are ported entries to cross-check").toBe(5);
     expect(golden.ticks, "the two fixtures sample the same ticks").toEqual([
       ...TICKS,
     ]);

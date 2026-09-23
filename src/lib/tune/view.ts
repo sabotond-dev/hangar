@@ -167,6 +167,8 @@ export const SCALE_WORDS = {
   "0,2,4,6,8": "Whole tone",
   "0,2,3,7,9": "Kumoi",
   "0,1,5,7,10": "Insen",
+  // The chromatic twelve as a degree list (change 17C: NINE PADS' Scale is its degrees).
+  "0,1,2,3,4,5,6,7,8,9,10,11": "Chromatic",
   chromatic: "Chromatic",
   major: "Major",
   minor: "Minor",

@@ -131,27 +131,6 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "padsim",
   },
   {
-    id: "ninepads",
-    // THE NAME STAYS "NINE PADS" AND THE SENTENCE SAYS SIXTEEN (plan 12-05).
-    // The card now SHIPS at 4x4, at the user's second asking ("make a 16 pads
-    // cause nothing changed"), and a sentence that describes what the visitor
-    // will see has to move with it. The NAME does not: it is the card's name,
-    // it is the id every stamp, fixture and OG file is keyed by, and the knob
-    // still offers nine as its other position. A card called "Nine pads" that
-    // opens at sixteen and can be put back to nine in one click is legible;
-    // renaming the id is a catalog-membership change and this plan makes none.
-    name: "Nine pads",
-    description:
-      "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
-    motion: "static",
-    quiet:
-      "This one is an instrument rather than a light show. The sixteen zones stay lit and wait for a finger.",
-    tags: ["play", "playable", "readable"],
-    featured: true,
-    restsBlack: false,
-    preview: "padsim",
-  },
-  {
     id: "dial",
     name: "Dial",
     description:
@@ -476,6 +455,31 @@ export const LISTING: readonly ListingEntry[] = [
     quiet: "Four rails, lit and still. They move when you move them.",
     tags: ["mixing", "readable", "still"],
     featured: false,
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "ninepads",
+    // THE NAME STAYS "NINE PADS" AND THE SENTENCE SAYS SIXTEEN (plan 12-05).
+    // The card now SHIPS at 4x4, at the user's second asking ("make a 16 pads
+    // cause nothing changed"), and a sentence that describes what the visitor
+    // will see has to move with it. The NAME does not: it is the card's name,
+    // it is the id every stamp, fixture and OG file is keyed by, and the knob
+    // still offers nine as its other position. A card called "Nine pads" that
+    // opens at sixteen and can be put back to nine in one click is legible;
+    // renaming the id is a catalog-membership change and this plan makes none.
+    name: "Nine pads",
+    description:
+      "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
+    // STATIC, read off frames.json, as it always was: the compiled preset's grid carried into a
+    // hand-authored card at change 17C (2026-09-23, BENCH-2026-09-16.txt sections 17 and 18) so a
+    // finger keeps the pad it landed on; `preview` moved, so the card now loads the Lua VM on first
+    // intersection like every hand-authored entry.
+    motion: "static",
+    quiet:
+      "This one is an instrument rather than a light show. The sixteen zones stay lit and wait for a finger.",
+    tags: ["play", "playable", "readable"],
+    featured: true,
     restsBlack: false,
     preview: "lua",
   },

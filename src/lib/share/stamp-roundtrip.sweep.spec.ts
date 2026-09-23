@@ -249,9 +249,10 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // unreadable under the Lua route, stamp.spec.ts) and its `w` stamps join
     // the Lua pass below - found the same way, by running the sweep.
     //
-    // SIX since change 17C (2026-09-23): FOUR FADERS is a Lua card under the
-    // preset's id; its links ride format x in the Lua pass below.
-    expect(entries.length, "there are compiler-driven entries").toBe(6);
+    // FIVE since change 17C (2026-09-23): FOUR FADERS and NINE PADS are Lua
+    // cards under the presets' ids; their links ride formats x and w in the Lua
+    // pass below.
+    expect(entries.length, "there are compiler-driven entries").toBe(5);
 
     // Change 17C: a WRAPPED preset's rack carries its MIDI outputs' knobs, which ride HANGAR's
     // index format (stamp.ts's encodeFor): held at their defaults in Pass A and walked one position
@@ -333,8 +334,10 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       // (2026-09-23): FOUR FADERS left for the Lua pass (192 states and none of
       // Pass B), JOYSTICK's Send and Bend and DIAL's Send and Channel left the
       // compiler racks for Pass C - Pass A 605, Pass B 20,480 over five colour
-      // knobs, Pass C 1,345; 21,000 is above Pass B alone.
-    ).toBeGreaterThan(21000);
+      // knobs, Pass C 1,345; 21,000 is above Pass B alone. 17,000 the same day:
+      // NINE PADS left too (512 states and a colour knob) - Pass A 93, Pass B
+      // 16,384 over four, Pass C 1,345.
+    ).toBeGreaterThan(17000);
     // BOTOR's own stamps stay short: a loaded instrument is about twenty
     // characters, and a URL fragment nobody can read is not shareable.
     expect(longest, `the longest compiler payload is ${longest}`).toBeLessThan(
@@ -390,8 +393,8 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     expect(
       wide,
       "the wide knobs: ORBIT's four ring notes and, since change 17, every output's Number (0..127)",
-      // 40 since change 17C: FOUR FADERS' four Numbers.
-    ).toBe(40);
+      // 40 since change 17C: FOUR FADERS' four Numbers; 41 with NINE PADS' base note.
+    ).toBe(41);
     // RE-CHOSEN BY PLAN 11-01, which removed nine hand-authored entries on the
     // user's bench report. The catalog's hand-authored knob total went 133 to
     // 91 and its colour knobs 45 to 29, so `guarded` went 88 to 62 - which is
@@ -457,8 +460,11 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // RE-COUNTED 2026-09-18 (change 12b, section 12): RADAR rebuilt as a Lua
     // card - five knobs, one colour - so `exempted` goes 33 to 34; the
     // member list is still "4 19".
+    //
+    // RE-COUNTED 2026-09-23 (change 17C): NINE PADS rebuilt as a Lua card, its
+    // grid colour a palette knob - 34 to 35; FOUR FADERS carries none.
     expect(guarded, "knobs still behind the ceiling").toBeGreaterThan(50);
-    expect(exempted, "the colour knobs, exempt by format").toBe(34);
+    expect(exempted, "the colour knobs, exempt by format").toBe(35);
 
     // PASS A. Every narrow non-colour knob cross-producted, colour and wide
     // knobs at their defaults, through the real encoder and the real decoder.

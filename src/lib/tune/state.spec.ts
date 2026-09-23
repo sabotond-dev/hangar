@@ -15,7 +15,7 @@
 import { describe, expect, it } from "vitest";
 import { encodeStamp, type PadState, type RGB } from "../../vendor/botor/_pad";
 import { presetById } from "../catalog/presets";
-import { byId } from "../catalog";
+import { byId, portedEntry } from "../catalog";
 import {
   applyKnob,
   baseStateFor,
@@ -134,8 +134,10 @@ describe("the tuning state seam (src/lib/tune/state.ts)", () => {
         knob: TOUCH_COLOUR,
       },
       {
+        // The shelf's NINE PADS: a Lua card holds the id since change 17C, and a sends-sheet
+        // knob needs the preset's state.
         name: "sends",
-        base: baseStateFor(mustFind("ninepads")),
+        base: baseStateFor(mustShelf("ninepads")),
         knob: CHANNEL,
       },
     ];
@@ -178,5 +180,11 @@ describe("the tuning state seam (src/lib/tune/state.ts)", () => {
 function mustFind(id: string) {
   const entry = byId(id);
   if (!entry) throw new Error(`the catalog lost ${id}`);
+  return entry;
+}
+
+function mustShelf(id: string) {
+  const entry = portedEntry(id);
+  if (!entry) throw new Error(`the shelf lost ${id}`);
   return entry;
 }

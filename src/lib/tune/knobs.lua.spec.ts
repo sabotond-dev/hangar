@@ -127,6 +127,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "faders.cc2 (128)",
       "faders.cc3 (128)",
       "faders.cc4 (128)",
+      // Change 17C: NINE PADS, a Lua card now, its Pads bank's Number (the lowest pad's note).
+      "ninepads.notes (128)",
       // Change 17C: the wrapped presets' output Numbers (entries/ported-midi.ts), token knobs on a
       // preset entry that ride HANGAR's index format once they move (stamp.ts).
       "aurora.xCc (128)",

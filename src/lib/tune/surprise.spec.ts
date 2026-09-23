@@ -94,8 +94,9 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     // cross-product was never the one that could land over budget - it has no
     // colour knob and tops out at 907 - and RADAR's is drawn as a Lua entry
     // below, so the property loses no witness.
-    // Six since change 17C (2026-09-23): FOUR FADERS is a Lua card, drawn below.
-    expect(entries.length, "no compiler-driven entry was read").toBe(6);
+    // Five since change 17C (2026-09-23): FOUR FADERS and NINE PADS are Lua
+    // cards, drawn below.
+    expect(entries.length, "no compiler-driven entry was read").toBe(5);
 
     let draws = 0;
     let distinct = 0;
@@ -424,7 +425,6 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "pinwheel: xType, channel, xCc, xReceive, yType, yChannel, yCc, yReceive",
       "starfield: xType, channel, xCc, xReceive, yType, yChannel, yCc, yReceive",
       "joystick: send, xType, channel, xReceive, yType, yChannel, yCc, yReceive",
-      "ninepads: channel",
       "dial: send, channel, midiType, midiReceive",
       "orbit: note1, note2, note3, note4, channel, type1, receive1, type2, channel2, receive2, type3, channel3, receive3, type4, channel4, receive4",
       "chorus: channel, midiType",
@@ -446,12 +446,14 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "radar: send, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
       // Change 17C: FOUR FADERS is a Lua card now, last in CATALOG; its four faders' outputs.
       "faders: send, channel, type1, receive1, type2, channel2, cc2, receive2, type3, channel3, cc3, receive3, type4, channel4, cc4, receive4",
+      // Change 17C: NINE PADS is a Lua card now, after FOUR FADERS; its one output, the Pads bank.
+      "ninepads: notes, channel, midiType, midiReceive",
     ]);
     expect(entries, "twenty-three entries carry a MIDI destination").toBe(23);
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(199);
+    ).toBe(202);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,

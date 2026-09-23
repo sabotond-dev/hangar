@@ -499,17 +499,23 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     // whole lattice is worth six characters per copy, and `ninepads` is the one
     // card that emits its colour twice - so the worst demand any colour can
     // make of any card on the shelf is TWELVE characters against 268.
-    const NINEPADS_WORST = 640;
-    const NINEPADS_FREE = 908 - NINEPADS_WORST;
+    //
+    // RE-MEASURED AT CHANGE 17C (2026-09-23): NINE PADS is a hand-authored Lua card now, and the
+    // wrapped presets are costed as they go on the wire (entries/ported-midi.ts), so the dearest
+    // colour-bearing preset is PINWHEEL at 841 of 908 (reachability.sweep.spec.ts), 67 free; the
+    // most copies of one colour any shelf card emits is still two (JOYSTICK's glow: its glc and
+    // its G). Twelve against 67: the guard still never fires.
+    const DEAREST_WORST = 841;
+    const DEAREST_FREE = 908 - DEAREST_WORST;
     const WORST_COPIES = 2;
-    expect(NINEPADS_FREE, "10-08 measured 268 characters free").toBe(268);
+    expect(DEAREST_FREE, "change 17C measured 67 characters free").toBe(67);
 
     let checked = 0;
     let unaffordable = 0;
     for (const entry of CATALOG) {
       for (const knob of colourKnobsOf(entry.id)) {
         if (!isColourLattice(knob.options)) continue;
-        const budget = { free: NINEPADS_FREE, copies: WORST_COPIES };
+        const budget = { free: DEAREST_FREE, copies: WORST_COPIES };
         for (let axis = 0; axis < 3; axis += 1) {
           for (const detent of colourRail(
             axis as 0 | 1 | 2,
@@ -524,13 +530,14 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
     }
     // Five lattice colour knobs since change 12b (2026-09-18): RADAR's colour
     // is a Lua palette knob now, not the compiler's 4,096-position lattice.
+    // Four since change 17C (2026-09-23): NINE PADS' grid colour likewise.
     expect(
       checked,
       "no lattice colour knob was found on the shelf, so the count of zero below means nothing",
-    ).toBe(5 * 3 * COLOUR_RAIL_STEPS);
+    ).toBe(4 * 3 * COLOUR_RAIL_STEPS);
     expect(
       unaffordable,
-      `the guard now FIRES on the shelf. 10-08 measured ninepads at ${NINEPADS_WORST} of 908 - ${NINEPADS_FREE} free - against a lattice worth six characters per copy and at most ${WORST_COPIES} copies, so twelve against ${NINEPADS_FREE}. If this is no longer zero, either the minifier got worse or a card got dearer, and docs/PIN-POLICY.md item 4 is the document that says so`,
+      `the guard now FIRES on the shelf. Change 17C measured pinwheel at ${DEAREST_WORST} of 908 - ${DEAREST_FREE} free - against a lattice worth six characters per copy and at most ${WORST_COPIES} copies, so twelve against ${DEAREST_FREE}. If this is no longer zero, either the minifier got worse or a card got dearer, and docs/PIN-POLICY.md item 4 is the document that says so`,
     ).toBe(0);
   });
 

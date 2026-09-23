@@ -66,10 +66,16 @@ const presetIds = PRESETS.map((p) => p.id);
  * is change 12b's (2026-09-18, BENCH-2026-09-16.txt section 12, the user's
  * answer "2"): the hand-authored entries/radar.ts took the preset's id so no
  * shared link dies, and the preset stays on the shelf for the suites that run
- * the compiled card. The third, `faders`, is change 17C's (2026-09-23): the hand-authored
- * entries/faders.ts took the id for the latch and its four outputs.
+ * the compiled card. The third and fourth, `faders` and `ninepads`, are change 17C's
+ * (2026-09-23): the hand-authored entries/faders.ts and entries/ninepads.ts took the ids for
+ * the latch and their outputs.
  */
-const SHELF_NOT_CARDED: readonly string[] = ["tpad", "radar", "faders"];
+const SHELF_NOT_CARDED: readonly string[] = [
+  "tpad",
+  "radar",
+  "faders",
+  "ninepads",
+];
 const cardedPresetIds = presetIds.filter(
   (id) => !SHELF_NOT_CARDED.includes(id),
 );
@@ -203,7 +209,7 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     ).toBeLessThan(compared);
   });
 
-  it("carries the carded shelf presets, each exactly once, and names the others (six of nine since change 17C)", () => {
+  it("carries the carded shelf presets, each exactly once, and names the others (five of nine since change 17C)", () => {
     expect(PRESETS.length, "the vendored shelf").toBe(9);
     for (const id of SHELF_NOT_CARDED) {
       expect(presetIds, `${id} is a real shelf preset`).toContain(id);
@@ -213,7 +219,7 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
         `${id} is not a PRESET catalog card`,
       ).not.toBe("preset");
     }
-    expect(cardedPresetIds.length, "six carded").toBe(6);
+    expect(cardedPresetIds.length, "five carded").toBe(5);
     const carried = presetEntries.map((e) =>
       e.source.kind === "preset" ? e.source.presetId : "",
     );

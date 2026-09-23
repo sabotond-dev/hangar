@@ -149,9 +149,9 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // over its whole 5 x 8 x 12 x 2 x 3 cross-product by the Lua sweep; the
     // preset itself is still costed byte-exact by presets.spec.ts test 4.
     //
-    // SIX since change 17C (2026-09-23): FOUR FADERS is a hand-authored Lua card under the
-    // preset's id, costed over its knobs by the Lua sweep.
-    expect(entries.length, "the six compiler-driven racks").toBe(6);
+    // FIVE since change 17C (2026-09-23): FOUR FADERS and NINE PADS are hand-authored Lua cards
+    // under the presets' ids, costed over their knobs by the Lua sweep.
+    expect(entries.length, "the five compiler-driven racks").toBe(5);
 
     // The two expectations, derived from `racked()` INDEPENDENTLY of the loops
     // below. That independence is the whole of the non-vacuity guard: drop a
@@ -369,9 +369,10 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // 21,000 since change 17C (2026-09-23): FOUR FADERS' 192 states left for
     // the Lua sweep and JOYSTICK's and DIAL's superseded knobs left their racks
     // (their outputs are costed at their dearest literals inside every state) -
-    // 21,085, Pass B alone 20,480 over five colour knobs.
+    // 21,085, Pass B alone 20,480 over five colour knobs. 16,400 the same day: NINE PADS left
+    // too (512 states, a colour knob) - 16,477, Pass B alone 16,384 over four.
     expect(costed, "the two passes are not trivial").toBeGreaterThanOrEqual(
-      21000,
+      16400,
     );
 
     // Every colourless preset's Pass A is BYTE-IDENTICAL to the enumeration
@@ -475,7 +476,7 @@ describe("reachability sweep: no visitor can produce an over-budget state", () =
     // 12b, 2026-09-18 (one per carded preset; tpad's left at plan 12-10 and
     // radar's with the Lua rebuild), zero over-budget ones, and not one step to
     // offer between them.
-    expect(laddered.length, "the scoped ladder set").toBe(over.length + 6);
+    expect(laddered.length, "the scoped ladder set").toBe(over.length + 5);
     for (const each of laddered) {
       expect(each.fits, `${each.label}: fit() refused a fitting state`).toBe(
         true,

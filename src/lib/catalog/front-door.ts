@@ -136,6 +136,13 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "Hand-authored Lua since change 17C - the ported FOUR FADERS preset rebuilt by hand so a finger keeps the fader it landed on, which the vendored PadSim cannot show, and so each fader is its own MIDI output that receives - and the row is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. The row is one shorter, as it was when RADAR left; the front door is a curated row and it rejoins deliberately or not at all.",
   },
   {
+    // The ported NINE PADS preset held ring position 3 until change 17C (2026-09-23,
+    // BENCH-2026-09-16.txt sections 17 and 18): rebuilt by hand so a finger keeps the pad it
+    // landed on, in the preview as on the module.
+    id: "ninepads",
+    why: "Hand-authored Lua since change 17C - the ported NINE PADS preset rebuilt by hand so a finger keeps the pad it landed on (a slide no longer re-triggers pads), which the vendored PadSim cannot show, and so its pads are one MIDI output that receives - and the row is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. The row is one shorter again; the front door is a curated row and it rejoins deliberately or not at all.",
+  },
+  {
     // TRACKPAD's recipe with a comet trail (2026-09-17, BENCH-2026-09-16.txt
     // section 4): out of the row for TRACKPAD's reason.
     id: "trackpad-comet",
@@ -152,9 +159,9 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
  * gone and none of that is asserted, but nothing in the Bible says what a
  * rail's order should be, so the order is kept rather than re-derived. SEVEN
  * since change 12b (2026-09-18): RADAR, once position 5, left when it became a
- * Lua card; the six others keep their relative order. SIX since change 17C
- * (2026-09-23): FOUR FADERS left for the same reason (the latch had to run in
- * its preview).
+ * Lua card; the six others keep their relative order. FIVE since change 17C
+ * (2026-09-23): FOUR FADERS and NINE PADS left for the same reason (the latch
+ * had to run in their previews); the five others keep their relative order.
  */
 export const FRONT_DOOR: readonly FrontDoorEntry[] = [
   {
@@ -170,16 +177,6 @@ export const FRONT_DOOR: readonly FrontDoorEntry[] = [
     description:
       "Light turns around the centre, each finger paints in its own colour, and the pad sends your position.",
     motion: "animated",
-  },
-  {
-    id: "ninepads",
-    name: "Nine pads",
-    description:
-      "Sixteen drum pads drawn on the lights, each one a note, with the one you are holding lit up.",
-    motion: "static",
-    // Authored here: the shelf preset carries no quiet line of its own.
-    quiet:
-      "This one is an instrument rather than a light show. The sixteen zones stay lit and wait for a finger.",
   },
   {
     id: "starfield",

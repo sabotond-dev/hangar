@@ -69,12 +69,13 @@ describe("the front-door row (src/lib/catalog/front-door.ts)", () => {
     // Asserted first so the loops below cannot be vacuously green.
     // Seven since change 12b (2026-09-18, BENCH-2026-09-16.txt section 12):
     // the user's word took RADAR off the row when it became a Lua card, so
-    // the floor is the seven that remain, not the eight Phase 4 decided. Six
-    // since change 17C (2026-09-23): FOUR FADERS became a Lua card for its latch.
+    // the floor is the seven that remain, not the eight Phase 4 decided. Five
+    // since change 17C (2026-09-23): FOUR FADERS and NINE PADS became Lua cards
+    // for their latch.
     expect(
       FRONT_DOOR.length,
-      "the row holds at least the six decided entries",
-    ).toBeGreaterThanOrEqual(6);
+      "the row holds at least the five decided entries",
+    ).toBeGreaterThanOrEqual(5);
     expect(
       new Set(FRONT_DOOR.map((entry) => entry.id)).size,
       "row ids are unique",

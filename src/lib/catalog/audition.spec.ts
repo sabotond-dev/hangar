@@ -137,8 +137,11 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 44 -> 45 the same day (change 17C): FOUR FADERS rebuilt by hand - the latch, the
  * four outputs and the receive - four clauses (a)-(d).
+ *
+ * 45 -> 46 the same day (change 17C): NINE PADS rebuilt by hand - the latch, the
+ * fast tap, the receive and the watchdog - five clauses (a)-(e).
  */
-const ROW_COUNT = 45;
+const ROW_COUNT = 46;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
