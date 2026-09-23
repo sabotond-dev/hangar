@@ -122,6 +122,22 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "wheels.pitchCc (128)",
       "radar.send (128)",
       "radar.yCc (128)",
+      // Change 17C: FOUR FADERS, a Lua card now, its four faders' Numbers.
+      "faders.send (128)",
+      "faders.cc2 (128)",
+      "faders.cc3 (128)",
+      "faders.cc4 (128)",
+      // Change 17C: the wrapped presets' output Numbers (entries/ported-midi.ts), token knobs on a
+      // preset entry that ride HANGAR's index format once they move (stamp.ts).
+      "aurora.xCc (128)",
+      "aurora.yCc (128)",
+      "pinwheel.xCc (128)",
+      "pinwheel.yCc (128)",
+      "starfield.xCc (128)",
+      "starfield.yCc (128)",
+      "joystick.send (128)",
+      "joystick.yCc (128)",
+      "dial.send (128)",
     ];
 
     // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).
@@ -154,6 +170,17 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       }
     }
     for (const entry of LUA_ENTRIES) {
+      for (const knob of luaKnobs(entry)) {
+        widest = Math.max(widest, knob.options.length);
+        examined++;
+        if (knob.options.length > STAMP_OPTION_CEILING) {
+          over.push(`${entry.id}.${knob.id} (${knob.options.length})`);
+        }
+      }
+    }
+    // A wrapped preset's output knobs (change 17C) are token knobs on the entry, beside its
+    // compiler knobs above.
+    for (const entry of CATALOG.filter((e) => e.source.kind === "preset")) {
       for (const knob of luaKnobs(entry)) {
         widest = Math.max(widest, knob.options.length);
         examined++;

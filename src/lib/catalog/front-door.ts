@@ -129,6 +129,13 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
     why: "Hand-authored Lua since change 12b - the ported RADAR preset rebuilt by hand so it can step on the DAW's MIDI clock - and the row is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. The user's word was to take it off the row, so the row is one shorter; the front door is a curated row and it rejoins deliberately or not at all.",
   },
   {
+    // The ported FOUR FADERS preset held ring position 6 until change 17C (2026-09-23,
+    // BENCH-2026-09-16.txt sections 17 and 18): rebuilt by hand so a finger keeps the fader it
+    // landed on - the fault the user saw - in the preview as on the module.
+    id: "faders",
+    why: "Hand-authored Lua since change 17C - the ported FOUR FADERS preset rebuilt by hand so a finger keeps the fader it landed on, which the vendored PadSim cannot show, and so each fader is its own MIDI output that receives - and the row is presets only: front-door.spec.ts requires preview === 'padsim' for every row entry, and a 'lua' row would pull the 271 KB Lua VM onto the front page's first paint. The row is one shorter, as it was when RADAR left; the front door is a curated row and it rejoins deliberately or not at all.",
+  },
+  {
     // TRACKPAD's recipe with a comet trail (2026-09-17, BENCH-2026-09-16.txt
     // section 4): out of the row for TRACKPAD's reason.
     id: "trackpad-comet",
@@ -145,7 +152,9 @@ export const EXCLUDED_FROM_ROW: readonly { id: string; why: string }[] = [
  * gone and none of that is asserted, but nothing in the Bible says what a
  * rail's order should be, so the order is kept rather than re-derived. SEVEN
  * since change 12b (2026-09-18): RADAR, once position 5, left when it became a
- * Lua card; the six others keep their relative order.
+ * Lua card; the six others keep their relative order. SIX since change 17C
+ * (2026-09-23): FOUR FADERS left for the same reason (the latch had to run in
+ * its preview).
  */
 export const FRONT_DOOR: readonly FrontDoorEntry[] = [
   {
@@ -188,15 +197,6 @@ export const FRONT_DOOR: readonly FrontDoorEntry[] = [
     // Byte-equal to PadPreset.quiet on the vendored shelf; the spec asserts it.
     quiet:
       "Left-right is pitch bend and snaps back straight. Up-down is a mod amount that returns to the middle on lift.",
-  },
-  {
-    id: "faders",
-    name: "Four faders",
-    description:
-      "Four faders side by side, each with a white rail and a coloured level you can see across the room.",
-    motion: "static",
-    // Authored here: the shelf preset carries no quiet line of its own.
-    quiet: "Four rails, lit and still. They move when you move them.",
   },
   {
     id: "dial",

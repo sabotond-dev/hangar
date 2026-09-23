@@ -1,12 +1,13 @@
-// The ported shelf presets as catalog entries (D-09): SEVEN of the nine since change 12b.
+// The ported shelf presets as catalog entries (D-09): SIX of the nine since change 17C.
 //
 // `name` and `description` are READ from the shelf (../presets.ts, HANGAR's own declaration of
 // the nine since 11-05) through presetById, never restated here; what HANGAR owns is the table
 // below - the feel-based tags, the Featured flag, the addedAt date and the resting-black fact.
 // `tpad` left this table at 12-10 when the hand-authored entries/trackpad.ts took its place, and
 // `radar` at change 12b (2026-09-18) when entries/radar.ts rebuilt it by hand for the clock
-// idiom; both presets stay on the shelf, reached through `portedEntry(id)`. The shelf is never
-// extended: a card can leave this table but nothing joins it. ../presets.spec.ts diffs all nine
+// idiom, and `faders` at change 17C (2026-09-23) when entries/faders.ts rebuilt it by hand for
+// the latch; the three presets stay on the shelf, reached through `portedEntry(id)`. The shelf
+// is never extended: a card can leave this table but nothing joins it. ../presets.spec.ts diffs all nine
 // against the vendored nine and fails on any difference not declared with a reason.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -62,12 +63,6 @@ const PORTED_META = [
     restsBlack: false,
   },
   {
-    id: "faders",
-    tags: ["mixing", "readable", "still"],
-    featured: false,
-    restsBlack: false,
-  },
-  {
     id: "dial",
     tags: ["modulation", "precise", "expressive"],
     featured: false,
@@ -83,15 +78,16 @@ type PortedMeta = {
 };
 
 /**
- * The browse metadata of the two shelf cards that are NOT in the catalog.
+ * The browse metadata of the shelf cards that are NOT in the catalog.
  *
  * `tpad` carried these three tags and the resting-black fact while it was a
  * card; they are kept so that `portedEntry("tpad")` builds the same shape the
  * catalog used to hold, and so the over-budget probe tunes the card as it was
  * published. `radar` likewise since change 12b (2026-09-18): the hand-authored
  * entries/radar.ts holds the id in the catalog, and `portedEntry("radar")`
- * still builds the preset card for the suites that run the compiled preset.
- * Nothing reads these rows for a listing, because nothing lists them.
+ * still builds the preset card for the suites that run the compiled preset;
+ * `faders` likewise since change 17C (entries/faders.ts). Nothing reads these
+ * rows for a listing, because nothing lists them.
  */
 const SHELF_ONLY_META: readonly PortedMeta[] = [
   {
@@ -103,6 +99,14 @@ const SHELF_ONLY_META: readonly PortedMeta[] = [
   {
     id: "radar",
     tags: ["modulation", "generative", "expressive"],
+    featured: false,
+    restsBlack: false,
+  },
+  // Change 17C (2026-09-23): the hand-authored entries/faders.ts holds the id since FOUR FADERS
+  // took the latch and per-fader outputs; the preset stays on the shelf for the suites.
+  {
+    id: "faders",
+    tags: ["mixing", "readable", "still"],
     featured: false,
     restsBlack: false,
   },
@@ -145,9 +149,9 @@ export const PORTED: readonly CatalogEntry[] = PORTED_META.map(entryFromMeta);
 /**
  * A shelf preset as the catalog entry it is - or was.
  *
- * For the seven in PORTED this returns the same object the catalog holds. For
- * `tpad` and `radar` it builds the entry the catalog held (until plan 12-10 and
- * change 12b), from the same table shape, so the tuner can mount the shelf's
+ * For the ones in PORTED this returns the same object the catalog holds. For
+ * `tpad`, `radar` and `faders` it builds the entry the catalog held (until plan
+ * 12-10, change 12b and change 17C), from the same table shape, so the tuner can mount the shelf's
  * over-budget fixture and the suites can run the compiled preset without the
  * card being listed, routed or pictured. `byId` is asked FIRST wherever an id
  * may be both: `byId("radar")` is the hand-authored card. Undefined for an id

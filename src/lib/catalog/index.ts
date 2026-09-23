@@ -11,6 +11,7 @@ import { ARC } from "./entries/arc";
 import { CHORUS } from "./entries/chorus";
 import { CONSOLE } from "./entries/console";
 import { CULL } from "./entries/cull";
+import { FADERS } from "./entries/faders";
 import { GHOST } from "./entries/ghost";
 import { LUMEN } from "./entries/lumen";
 import { MORPH } from "./entries/morph";
@@ -79,6 +80,7 @@ export const CATALOG: readonly CatalogEntry[] = Object.freeze([
   TRACKPAD,
   TRACKPAD_COMET,
   RADAR,
+  FADERS,
 ]);
 
 export { ORBIT } from "./entries/orbit";

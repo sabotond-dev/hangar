@@ -152,18 +152,6 @@ export const LISTING: readonly ListingEntry[] = [
     preview: "padsim",
   },
   {
-    id: "faders",
-    name: "Four faders",
-    description:
-      "Four faders side by side, each with a white rail and a coloured level you can see across the room.",
-    motion: "static",
-    quiet: "Four rails, lit and still. They move when you move them.",
-    tags: ["mixing", "readable", "still"],
-    featured: false,
-    restsBlack: false,
-    preview: "padsim",
-  },
-  {
     id: "dial",
     name: "Dial",
     description:
@@ -470,6 +458,23 @@ export const LISTING: readonly ListingEntry[] = [
     // intersection like every hand-authored entry.
     motion: "animated",
     tags: ["modulation", "generative", "expressive"],
+    featured: false,
+    restsBlack: false,
+    preview: "lua",
+  },
+  {
+    id: "faders",
+    name: "Four faders",
+    description:
+      "Four faders side by side, each with a white rail and a coloured level you can see across the room.",
+    // STATIC, read off frames.json, as it always was: the compiled preset's rails carried into a
+    // hand-authored card at change 17C (2026-09-23, BENCH-2026-09-16.txt sections 17 and 18) so a
+    // finger keeps the fader it landed on and each fader is its own output. The quiet line, the tags
+    // and the fact are the ported card's; `preview` moved, so the card now loads the Lua VM on
+    // first intersection like every hand-authored entry.
+    motion: "static",
+    quiet: "Four rails, lit and still. They move when you move them.",
+    tags: ["mixing", "readable", "still"],
     featured: false,
     restsBlack: false,
     preview: "lua",

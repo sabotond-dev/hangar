@@ -13,7 +13,7 @@
 import { describe, expect, it } from "vitest";
 import { CELLS, PRESETS, compile } from "../../vendor/botor/_pad";
 import { glcStops, PadSim, screenToHw } from "../../vendor/botor/pad-sim";
-import { CATALOG, type CatalogEntry } from "../catalog";
+import { CATALOG, portedEntry, type CatalogEntry } from "../catalog";
 import {
   calibratedAxis,
   KX,
@@ -411,6 +411,16 @@ const CONSOLE_FADER: readonly number[] = [3, 4].map(
   (row) => CONSOLE_TAPPED_COLUMN + row * 9,
 );
 
+/**
+ * FOUR FADERS' fader columns (change 17C: a Lua card since): every cell of the four odd columns, where
+ * the Setup leaves each fader dark and a touch sets its level. The rails (the even columns) stay
+ * under the probe.
+ */
+const FADERS_COLUMNS: readonly number[] = Array.from(
+  { length: 81 },
+  (_, cell) => cell,
+).filter((cell) => (cell % 9) % 2 === 1);
+
 const RESIDUE_ALLOWANCES: readonly ResidueAllowance[] = [
   {
     entry: "morph",
@@ -440,6 +450,17 @@ const RESIDUE_ALLOWANCES: readonly ResidueAllowance[] = [
       "sets the same level again rather than undoing it - it cannot be " +
       "double-tapped back and it should not be. The other eight columns and " +
       "the whole mute row stay under the probe.",
+  },
+  {
+    entry: "faders",
+    cells: FADERS_COLUMNS,
+    reason:
+      "FOUR FADERS is four absolute faders (a Lua card since change 17C) and " +
+      "these are the fader columns, dark from Setup and lit to the level the " +
+      "gesture set. A fader holds its level - the compiled preset did the same " +
+      "- so a second tap at the same height sets it again rather than undoing " +
+      "it; it cannot be double-tapped back and it should not be. The four white " +
+      "rails stay under the probe.",
   },
 ];
 
@@ -14562,6 +14583,204 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
         host.touchUp(0, 40, 90);
         host.run(40);
         expect(wire(host.midi)).toEqual(["0:208:40:0", "0:176:17:37"]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
+
+  /** A hand-authored card of change 17C at its defaults with knobs moved BY LITERAL, on the real library; `stale` lands a previous callback first. */
+  async function openLua(
+    id: string,
+    over: Record<string, string> = {},
+    stale = false,
+  ) {
+    const entry = entryById(id);
+    const indices: Record<string, number> = { ...entry.defaults };
+    for (const [knob, literal] of Object.entries(over))
+      indices[knob] = literalIndex(entry, knob, literal);
+    const { setup, timer } = renderLua(entry, indices);
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: stale ? STALE + setup : setup,
+      timer,
+    });
+    return { entry, host, sim };
+  }
+  /** The shelf preset a rebuilt card replaced, compiled as it shipped, on the same library. */
+  async function openShelf(id: string) {
+    const shelf = portedEntry(id);
+    if (shelf === undefined) throw new Error(`${id} is on no shelf`);
+    const { setupLua, timerLua } = compile(resetAll(shelf));
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup: setupLua,
+      timer: timerLua,
+    });
+    return { host, sim };
+  }
+  /** Column c, row r of the LEDs, as the sensor reports a finger centred there. */
+  const at = (c: number, r: number): [number, number] => [KX[c], KY[r]];
+
+  it("FOUR FADERS (rebuilt by hand): the four faders are four outputs, each on its own Type, Channel and Number - at the defaults the preset's controllers 16..19 on channel 0 and its picture frame for frame under every gesture that stays on its fader; a contact keeps the fader it landed on (the fault the user saw: a slide from fader 1 onto fader 2 moves fader 1's output only, where the shelf preset hands over); each receives: a host value paints its fader's bar, nothing sent back; the receive is made by the Timer the Setup pulls in, no Timer armed", async () => {
+    /** Fader f's lit rows on layer 1 (its bar). */
+    const bar = (sim: PadSim, f: number): number => {
+      let n = 0;
+      for (let r = 0; r < 9; r++)
+        if (sim.layer(hwOfCell(r * 9 + f * 2 + 1), 1).pha > 0) n++;
+      return n;
+    };
+    type Host = Awaited<ReturnType<typeof openLua>>["host"];
+    /** Every gesture that stays on one fader: a drag up fader 1, taps on each, two fingers at once. */
+    const still = (host: Host): string[] => {
+      const frames: string[] = [];
+      const snap = () => frames.push(Array.from(host.frame).join(","));
+      host.touchDown(0, ...at(1, 7));
+      host.run(2);
+      snap();
+      for (const r of [6, 4, 2, 1]) {
+        host.touchMove(0, ...at(1, r));
+        host.run(2);
+        snap();
+      }
+      host.touchUp(0, ...at(1, 1));
+      host.run(4);
+      snap();
+      for (const c of [3, 5, 7]) {
+        host.touchTap(0, ...at(c, c - 1));
+        host.run(4);
+        snap();
+      }
+      host.touchDown(0, ...at(3, 2));
+      host.touchDown(1, ...at(7, 6));
+      host.run(2);
+      host.touchMove(0, ...at(3, 5));
+      host.touchMove(1, ...at(7, 3));
+      host.run(2);
+      snap();
+      host.touchUp(0, ...at(3, 5));
+      host.touchUp(1, ...at(7, 3));
+      host.run(4);
+      snap();
+      return frames;
+    };
+    {
+      const card = await openLua("faders");
+      const shelf = await openShelf("faders");
+      try {
+        expect(still(card.host), "the picture moved").toEqual(
+          still(shelf.host),
+        );
+        expect(wire(card.host.midi), "the defaults moved").toEqual(
+          wire(shelf.host.midi),
+        );
+        expect(
+          new Set(card.host.midi.map((m) => `${m.ch}:${m.cmd}:${m.p1}`)),
+        ).toEqual(new Set(["0:176:16", "0:176:17", "0:176:18", "0:176:19"]));
+        expect(card.host.timerArmed, "no Timer armed").toBe(false);
+        expect(card.host.errors, card.host.errors.join(" | ")).toEqual([]);
+      } finally {
+        card.host.close();
+        shelf.host.close();
+      }
+    }
+    {
+      // THE LATCH: one finger lands on fader 1 and slides across fader 2's column and on; the
+      // card moves fader 1 alone, the shelf preset handed over to fader 2 - the fault.
+      const slide = (host: Host) => {
+        host.touchDown(0, ...at(1, 6));
+        host.run(2);
+        for (const [c, r] of [
+          [2, 5],
+          [3, 4],
+          [4, 3],
+          [5, 2],
+        ] as const) {
+          host.touchMove(0, ...at(c, r));
+          host.run(2);
+        }
+        host.touchUp(0, ...at(5, 2));
+        host.run(4);
+      };
+      const card = await openLua("faders");
+      const shelf = await openShelf("faders");
+      try {
+        slide(card.host);
+        slide(shelf.host);
+        expect(
+          new Set(card.host.midi.map((m) => m.p1)),
+          "only fader 1's output moved",
+        ).toEqual(new Set([16]));
+        expect(bar(card.sim, 1), "fader 2 untouched").toBe(0);
+        expect(bar(card.sim, 2), "fader 3 untouched").toBe(0);
+        expect(
+          bar(card.sim, 0),
+          "fader 1 followed the finger up",
+        ).toBeGreaterThan(5);
+        expect(
+          [...new Set(shelf.host.midi.map((m) => m.p1))].sort(),
+          "the shelf preset slid across",
+        ).toEqual([16, 17, 18]);
+      } finally {
+        card.host.close();
+        shelf.host.close();
+      }
+    }
+    {
+      // Per fader: its own Type, Channel and Number; the receive paints the bar, nothing sent back.
+      const { host, sim } = await openLua(
+        "faders",
+        {
+          type2: "224",
+          channel2: "3",
+          type3: "208",
+          cc4: "74",
+          channel4: "9",
+          receive3: "0",
+        },
+        true,
+      );
+      try {
+        host.touchTap(0, ...at(3, 4));
+        host.run(2);
+        host.touchTap(0, ...at(5, 4));
+        host.run(2);
+        host.touchTap(0, ...at(7, 4));
+        host.run(2);
+        host.touchTap(0, ...at(1, 4));
+        host.run(4);
+        const v = 127 - KY[4];
+        expect(wire(host.midi)).toEqual([
+          `3:224:0:${v}`,
+          `0:208:${v}:0`,
+          `9:176:74:${v}`,
+          `0:176:16:${v}`,
+        ]);
+        const sent = host.midi.length;
+        const before = [0, 1, 2, 3].map((f) => bar(sim, f));
+        host.midiIn(REPORT, 4, 224, 0, 127);
+        host.midiIn(14, 3, 224, 0, 127);
+        host.midiIn(REPORT, 0, 208, 127, 0);
+        host.midiIn(REPORT, 9, 176, 75, 127);
+        expect(
+          [0, 1, 2, 3].map((f) => bar(sim, f)),
+          "another channel, a neighbour, Receive Off, another number",
+        ).toEqual(before);
+        expect(host.midiIn(REPORT, 3, 224, 0, 127)).toBe(true);
+        expect(bar(sim, 1), "fader 2 at the top").toBe(9);
+        host.midiIn(REPORT, 9, 176, 74, 0);
+        expect(bar(sim, 3), "fader 4 at the bottom").toBe(0);
+        host.midiIn(REPORT, 0, 176, 16, 64);
+        expect(bar(sim, 0), "fader 1 half way").toBe(4);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        expect(host.timerArmed, "no Timer armed").toBe(false);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
       } finally {
         host.close();
       }

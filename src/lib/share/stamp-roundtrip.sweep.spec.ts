@@ -248,7 +248,10 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     // preset's id, so its BOTOR-format stamps leave this pass (they land
     // unreadable under the Lua route, stamp.spec.ts) and its `w` stamps join
     // the Lua pass below - found the same way, by running the sweep.
-    expect(entries.length, "there are compiler-driven entries").toBe(7);
+    //
+    // SIX since change 17C (2026-09-23): FOUR FADERS is a Lua card under the
+    // preset's id; its links ride format x in the Lua pass below.
+    expect(entries.length, "there are compiler-driven entries").toBe(6);
 
     // Change 17C: a WRAPPED preset's rack carries its MIDI outputs' knobs, which ride HANGAR's
     // index format (stamp.ts's encodeFor): held at their defaults in Pass A and walked one position
@@ -326,8 +329,12 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       examined,
       "the compiler cross-product is not trivial",
       // 24,438 since change 12b (2026-09-18): RADAR's 2,688 preset states
-      // left for the Lua pass, so the floor is 24,000.
-    ).toBeGreaterThan(24000);
+      // left for the Lua pass, so the floor is 24,000. 21,000 since change 17C
+      // (2026-09-23): FOUR FADERS left for the Lua pass (192 states and none of
+      // Pass B), JOYSTICK's Send and Bend and DIAL's Send and Channel left the
+      // compiler racks for Pass C - Pass A 605, Pass B 20,480 over five colour
+      // knobs, Pass C 1,345; 21,000 is above Pass B alone.
+    ).toBeGreaterThan(21000);
     // BOTOR's own stamps stay short: a loaded instrument is about twenty
     // characters, and a URL fragment nobody can read is not shareable.
     expect(longest, `the longest compiler payload is ${longest}`).toBeLessThan(
@@ -383,7 +390,8 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     expect(
       wide,
       "the wide knobs: ORBIT's four ring notes and, since change 17, every output's Number (0..127)",
-    ).toBe(36);
+      // 40 since change 17C: FOUR FADERS' four Numbers.
+    ).toBe(40);
     // RE-CHOSEN BY PLAN 11-01, which removed nine hand-authored entries on the
     // user's bench report. The catalog's hand-authored knob total went 133 to
     // 91 and its colour knobs 45 to 29, so `guarded` went 88 to 62 - which is

@@ -36,6 +36,7 @@ import {
   type ColourSites,
 } from "./brightness";
 import { CATALOG, byId, type CatalogEntry } from "./index";
+import { presetWire } from "./entries/ported-midi";
 import { stripComments } from "../../test-support/source";
 
 type Rendered = { label: string; setup: string; timer: string };
@@ -78,7 +79,9 @@ function presetStates(entry: CatalogEntry): Rendered[] {
   const at = (indices: number[], label: string): Rendered => {
     let state = base;
     knobs.forEach((k, j) => (state = applyKnob(state, k, indices[j])));
-    const built = compile(state);
+    // Through a wrapped preset's outputs' rewrite (change 17C): its receive may paint (PINWHEEL's
+    // comet in the first finger's colour).
+    const built = presetWire(entry, compile(state));
     return {
       label: `${entry.id} ${label}`,
       setup: built.setupLua,
@@ -335,9 +338,10 @@ describe("the brightness scaler (src/lib/catalog/brightness.ts)", () => {
       }
     }
     // Seven since change 12b (2026-09-18): RADAR is a Lua entry now, its ring
-    // colour a palette knob the Lua walk above already covers.
-    expect(PRESET_ENTRIES.length, "the seven presets").toBe(7);
-    expect(presetStateCount).toBeGreaterThan(7 * 2);
+    // colour a palette knob the Lua walk above already covers. Six since change
+    // 17C (2026-09-23): FOUR FADERS is a Lua entry, its fader forms walked above.
+    expect(PRESET_ENTRIES.length, "the six presets").toBe(6);
+    expect(presetStateCount).toBeGreaterThan(6 * 2);
     expect(presetSites).toBeGreaterThan(0);
     process.stdout.write(
       `\nBRIGHTNESS COVERAGE: ${LUA_ENTRIES.length} Lua entries x ${luaStates} states, ${luaSites} colour arguments (${Object.entries(

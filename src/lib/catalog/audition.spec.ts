@@ -134,8 +134,11 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 43 -> 44 the same day (change 17B): RADAR POINTS's receive - a received note
  * places one point - three clauses (a)-(c) and a dated paragraph.
+ *
+ * 44 -> 45 the same day (change 17C): FOUR FADERS rebuilt by hand - the latch, the
+ * four outputs and the receive - four clauses (a)-(d).
  */
-const ROW_COUNT = 44;
+const ROW_COUNT = 45;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

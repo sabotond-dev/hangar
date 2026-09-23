@@ -395,10 +395,12 @@ describe("the wire pin: the bytes are the numbers (D-10, D-17)", () => {
     // its id, so the walk over compiler-driven CATALOG entries visits seven.
     // The other two are still pinned byte for byte by presets.spec.ts test 4
     // against the compiler, which is the same arithmetic this floor guards.
+    // SIX since change 17C (2026-09-23): FOUR FADERS is a Lua card, pinned by
+    // the Lua walk below.
     expect(
       presets,
-      "the seven carded shelf presets at least",
-    ).toBeGreaterThanOrEqual(7);
+      "the six carded shelf presets at least",
+    ).toBeGreaterThanOrEqual(6);
     expect(mismatches).toBe(0);
   }, 30_000);
 
