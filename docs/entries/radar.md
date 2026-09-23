@@ -154,3 +154,31 @@ or a tuned `z…` field dump of its three knobs. Under the Lua route both land `
 the card at its defaults (`stamp.spec.ts` asserts both against real stamps encoded through the
 shelf preset, and the Lua card's own `w` stamp unreadable under the shelf preset in turn). RADAR is
 not in `wild-stamps.json`, so no captured record moves.
+
+## Change 17B, 2026-09-23: the X and Y axes as two outputs, the comet received (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+RADAR sent the preset's pair - `@CC` and `@CC+1` on a fixed channel 0 - on every sample of the first finger. Per
+output (answer 3) the two axes are two outputs, "X axis" and "Y axis", continuous, each with Type, Channel, Number and
+Receive.
+
+- **Knobs.** `@CC` (`send`, relabelled "X controller") is the X axis's Number: all of 0..127 with the preset's twelve
+  (16..60 by four) first, so a saved copy keeps its controller. Appended: `@CH` (`channel` - the X axis's, 0 by
+  default: the preset's fixed channel), `@XT`, `@XR`, `@YT`, `@YCH`, `@YCC` (`yCc`, 17 by default - the old `@CC+1`)
+  and `@YR`. Twelve knobs, four outside the outputs. No captured wild record for this card.
+- **The send.** A Setup local `M(t,c,n,o)` sends one axis by its type; the handler calls it for x and y as the preset
+  sent them. At the defaults the wire is the preset's, message for message; the frames the card renders are still the
+  preset's byte for byte (lua-smoke.spec.ts's two-engine case).
+- **The receive.** The host's message on an axis's type, channel and number sets that axis of a held pair (the centre
+  until one arrives) and the library's comet is drawn there, `K(s.u,s.w,1,252)`: a DAW's automation of the pair moves
+  a comet across the radar. Nothing is sent back.
+- **Where it lives.** The Setup had room for the typed send (763 -> 856 at the corner) but not the receive; the
+  Timer's first timed run is five minutes after the Setup (`gtt(0,3e5)`), so the Setup closes with `self:tim()`: the
+  Timer body runs once there - it re-arms the same period and the same keepers, so no state moves - and makes the
+  callback once per install (`s.j`). RADAR is an animated card, so this is not about the listing; it is about the
+  callback existing before the first MIDI message.
+- **Latch: already latched** - one control, claimed by the first finger (`s.f`), the preset's own rule.
+- **Cost:** Setup 758 / 763 -> 847 / 856 (defaults / corner; 52 free), Timer 50 / 50 -> 408 / 412. frames.json and the
+  OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "RADAR: the X and Y axes ...": the defaults' pair 16 = 40, 17 = 90 on channel 0;
+  the host's X 120 and Y 10 draw a comet, nothing sent back; X as a pitch bend on wire channel 4 and Y as a pressure on
+  7, sent; Y's Receive Off draws nothing while X still does.

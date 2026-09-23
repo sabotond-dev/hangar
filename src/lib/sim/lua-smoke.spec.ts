@@ -13572,4 +13572,57 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("RADAR: the X and Y axes are two outputs, each on its own Type, Channel and Number - at the defaults 16 and 17 on channel 0, the preset's pair - and each receives: a host value draws the comet at the held pair, nothing sent back; the receive is made by the Timer body the Setup pulls in once", async () => {
+    /** Layer-1 cells lit - the comet. */
+    const comet = (sim: PadSim): number => {
+      let n = 0;
+      for (let c = 0; c < 81; c++) if (sim.layer(hwOfCell(c), 1).pha > 0) n++;
+      return n;
+    };
+    {
+      const { host, sim } = await openCard("radar", {}, true);
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:176:16:40", "0:176:17:90"]);
+        host.touchUp(0, 40, 90);
+        host.run(100);
+        const sent = host.midi.length;
+        const before = comet(sim);
+        expect(host.midiIn(REPORT, 0, 176, 16, 120)).toBe(true);
+        host.midiIn(REPORT, 0, 176, 17, 10);
+        expect(comet(sim), "a comet at the received pair").toBeGreaterThan(
+          before,
+        );
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      const { host, sim } = await openCard("radar", {
+        xType: "224",
+        channel: "4",
+        yType: "208",
+        yChannel: "7",
+        yReceive: "0",
+      });
+      try {
+        host.touchDown(0, 40, 90);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["4:224:0:40", "7:208:90:0"]);
+        host.touchUp(0, 40, 90);
+        host.run(100);
+        const before = comet(sim);
+        host.midiIn(REPORT, 7, 208, 10, 0);
+        expect(comet(sim), "Y's Receive Off draws nothing").toBe(before);
+        host.midiIn(REPORT, 4, 224, 0, 120);
+        expect(comet(sim)).toBeGreaterThan(before);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });

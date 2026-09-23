@@ -106,6 +106,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "quadrant.note4 (128)",
       "pomodoro.note (128)",
       "pomodoro.transportNote (128)",
+      "radar.send (128)",
+      "radar.yCc (128)",
     ];
 
     // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).

@@ -439,13 +439,13 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "radar-points: channel, midiType",
       // Last since change 12b (2026-09-18): RADAR is the last Lua entry in
       // CATALOG now; the same knob, the same id, a Lua palette rack.
-      "radar: send",
+      "radar: send, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
     ]);
     expect(entries, "twenty entries carry a MIDI destination").toBe(20);
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(94);
+    ).toBe(101);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,
