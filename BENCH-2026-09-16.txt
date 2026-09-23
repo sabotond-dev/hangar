@@ -3647,3 +3647,27 @@ agent would round (the house pattern; radius.spec.ts reads `[1-9]`), no radius a
 the `data-field` attribute on the typed inputs is gone (no suite read it); the gate's before record
 was taken on the main tree at HEAD (clean) rather than a worktree; STATE / ROADMAP / REQUIREMENTS
 untouched; CAT-04 stays `[ ]`; not deployed.
+
+17. In-depth MIDI configuration and MIDI RX, every sending element (2026-09-23)
+--------------------------------------------------------------------------------
+
+> we need more in depth MIDI config options. every element that send MIDI across HANGAR needs to
+> have an easy way to setup to send not just different messages but different channels etc.
+> research how BOTOR (and the Grid Editor) handles MIDI configuration and use that as reference.
+> also implement MIDI RX.  Do this for ALL playground configs AND for all elements in sandbox
+
+Facts read before asking. The Grid Editor's MIDI block (`grid-editor/src/renderer/config-blocks/
+Midi.svelte`): Channel, Command (the status byte - note on 144, note off 128, CC 176, program
+change 192, channel pressure 208, poly aftertouch 160, pitch bend 224), Parameter 1, Parameter 2,
+and a Mode - Default 7-bit, CC 14-bit, NRPN, NRPN 14-bit - carried as `gms`'s fifth argument
+(the firmware's `simplemidi.lua` splits CC 14-bit into CC n + n+32 and NRPN into 99 / 98 / 6 / 38).
+Its RX is two checkboxes, "Sync value" and "Sync LED intensity", written as
+`self:gmrr(-1,ch,cmd,p1,{value,led},mode)`; `gmrr` (simplemidi.lua:81) installs a per-event
+`midirx_cb` matching channel, command and parameter 1 on host traffic (header INSTR 13). BOTOR
+(`grid-editor/src/renderer/main/zona/_pad.ts`, the vendored compiler): `gmrr` does not work on the
+touch element ("there is no MIDI RX event on a touch element", `_pad.ts:2822`), so BOTOR assigns
+`self.midirx_cb=function(s,h,v)` from the Setup directly and, for its motor faders, moves a
+fader's target when the host sends its CC (`motorRx`, `_pad.ts:1978`) - value sync with the
+lights following. HANGAR today: most cards carry one Channel knob (often four rungs) and a fixed
+message kind per send; the Sandbox has CC / Note per button and CC elsewhere, one channel each.
+Questions put to the user; answers recorded below.
