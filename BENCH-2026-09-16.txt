@@ -3841,3 +3841,26 @@ presets on the shelf's cards (AURORA, PINWHEEL, STARFIELD, JOYSTICK, NINE PADS, 
 DIAL), compiled from the untouchable vendor tree - wrapped on HANGAR's side or rebuilt as Lua
 cards the way RADAR was (12b), the executor's measured call. Keystroke (HID) sends are not MIDI
 and stay as they are.
+
+18. Latch - an element keeps the finger that landed on it (2026-09-23)
+--------------------------------------------------------------------------------
+
+> in sandbox mode add "Latch mode" for each element that means that even if your finger leaves
+> the element's area it keeps controlling it. Dont know how to correctly articulate it. Imagine
+> that you are sliding a fader and you touch another fader by accident then that second fader
+> should not react to the touch but keep controlling the first fader do you understand?
+
+Asked: which case - other touches ignored, a second touch driving the first, one finger slid
+onto the next fader on the module, or the preview only - noting that the Sandbox already pins a
+contact to the element it landed on for the whole gesture (runtime.ts `O`).
+
+> i saw it on the faders config in playground
+
+Recorded: the fault is on the playground - FOUR FADERS (the ported preset) picks the fader under
+the finger on every sample, so a slide past one fader's edge drives the next; every playground
+card with side-by-side controls is audited for the same (CONSOLE, STRIP, WHEELS, MORPH, the
+TRACKPADs, the Lua cards 17B is on now, the presets 17C takes) and made to latch: a contact
+keeps the control it landed on until it lifts. In the Sandbox the behaviour already latches; it
+becomes a per-element option `Latch` (On by default - today's behaviour), and Off lets a finger
+hand over to whatever element it moves onto - a strum across buttons, a glide from fader to
+fader - so both feels are available.
