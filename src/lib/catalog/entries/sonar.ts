@@ -4,11 +4,12 @@
 // the default period); tap or swipe to arm cells, and an armed cell fires when the sweep crosses
 // it. The pitch comes from the cell's RING (its Chebyshev distance from the centre, inner low,
 // outer high, minor pentatonic by default) and the time from its ANGLE, so the pad is a 16-step,
-// 5-voice grid in polar coordinates. The centre is always lit on layer 0. Setup 572 of 908 at
-// the picker corner (571 at the defaults), Timer 289 (286). Knobs: @RINGS (exactly five entries),
-// @ROOT, @SWEEPC, @PERIOD (both events; NOT @SWEEP, a prefix of @SWEEPC), @CH. Clock sync is not
-// built and is not stubbed: HANGAR's Lua host has no inbound MIDI path (docs/MIDI-IN-PROBE.md).
-// History: docs/entries/sonar.md (11-02, 11-08, 12-08, 12.1-03 costings, measurements, readings).
+// 5-voice grid in polar coordinates. The centre is always lit on layer 0. Setup 591 of 908 at
+// the picker corner (590 at the defaults), Timer 668 (664). Knobs: @RINGS (exactly five entries),
+// @ROOT, @SWEEPC, @PERIOD (both events; NOT @SWEEP, a prefix of @SWEEPC), and the Sequence
+// output's @CH @TYPE @RX (change 17B). Clock sync is not built and is not stubbed.
+// History: docs/entries/sonar.md (11-02, 11-08, 12-08, 12.1-03 costings, measurements, readings;
+// change 17B).
 //
 // MECHANISM
 //   - Setup head: `R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end` - the
@@ -33,11 +34,23 @@
 //   - A swipe that crosses a cell twice toggles it twice - correct for a toggle; the
 //     set-rather-than-toggle alternative is an open bench question (euclid.ts).
 //
-// WHAT IT SENDS
-//   note-on   s:gms(@CH,144,m,100,0), m = @ROOT + t[d+1], well under an octave above the root.
-//   note-off  s:gms(@CH,128,m,0,0) for every note in s.z on the FOLLOWING fire - a note is
+// WHAT IT SENDS (the Sequence output since change 17B: @TYPE 144 a note, 176 a controller)
+//   note-on   s:gms(@CH,@TYPE,m,100), m = @ROOT + t[d+1], well under an octave above the root.
+//   note-off  s:gms(@CH,@TYPE*3//2-88,m,0) (128, or the controller at 0) for every note in s.z on
+//             the FOLLOWING fire - a note is
 //             exactly one step (one @PERIOD) long and nothing can hang; one step is the shortest
 //             gate the card can express. s.z is keyed by the Timer's fire, not by a contact.
+//   The output has no Number: a cell's pitch is its ring's. At the defaults the wire is SONAR's
+//   before change 17B, message for message.
+// WHAT IT RECEIVES (change 17B; @RX the header INSTR, 13 On, 0 Off)
+//   A host note-on (a controller above 0 under CC) on the output's type and channel ARMS ONE CELL
+//   on the sweep line - the bucket the last fire swept, (s.k-1)%16 - whose ring's pitch is the
+//   received number, and lights it: live step recording. If a cell of that pitch on the line is
+//   already armed, nothing (so SONAR's own notes echoed back by a DAW change nothing); nothing is
+//   ever cleared, a note-off does nothing, nothing is sent. The callback is made by the TIMER once
+//   per install (`s.j`, the touch callback it was made beside; ARC's and ORBIT's route); the Setup
+//   assigns `self.midirx_cb=nil`. The latch: a swipe arming every cell it crosses is the gesture -
+//   swipe by design.
 //
 // TRAPS
 //   - @RINGS HAS EXACTLY FIVE ENTRIES, always: a 9x9 grid has five Chebyshev rings and the Setup
@@ -64,12 +77,18 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import {
+  CHANNEL_VALUES,
+  RECEIVE_ON_INDEX,
+  RECEIVE_VALUES,
+  TRIGGER_STATUSES,
+} from "../../tune/midi";
 
 const SETUP =
-  "--[[@cb]]R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end self.a={}self.o={}self.v={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end gtt(0,@PERIOD)";
+  "--[[@cb]]R=function(s,i)local a=glag(0,40)glc(a,0,@SWEEPC,1)glp(a,0,255)end self.a={}self.o={}self.v={}local t={@RINGS}for n=0,80 do local c=glag(0,n)glc(c,1,255,60,120,1)glp(c,1,0)glc(c,2,@SWEEPC,1)glp(c,2,0)self.a[n]=(math.atan(n//9-4,n%9-4)*41//1%256)//16 local d=math.max(math.abs(n%9-4),math.abs(n//9-4))self.o[n]=@ROOT+t[d+1]end local h=glag(0,40)glc(h,0,@SWEEPC,1)glp(h,0,255)self.touch_cb=function(s,i,e,x,y)local n=Q(s,i,e,x,y)G(s,i,e,x,y,0,@SWEEPC)R(s,i)if not n then return end s.v[n]=not s.v[n]glp(glag(0,n),1,s.v[n]and 255 or 0)end self.midirx_cb=nil gtt(0,@PERIOD)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,128,s.z[j],0,0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,144,m,100,0)s.z[#s.z+1]=m end end end";
+  "--[[@cb]]gtt(0,@PERIOD)local s=self X(s,20)local k=(s.k or 0)%16 s.k=k+1 if s.z then for j=1,#s.z do s:gms(@CH,@TYPE*3//2-88,s.z[j],0)end end s.z={}for n=0,80 do if s.a[n]==k then local a=glag(0,n)glpfs(a,2,252,250,0)glt(a,2,42)if s.v[n]then local m=s.o[n]s:gms(@CH,@TYPE,m,100)s.z[#s.z+1]=m end end end if s.j~=s.touch_cb then s.j=s.touch_cb local k=s.j s.midirx_cb=function(s,e,v)local q,w=v[2],v[4]if q==128 then w=0 end local b=s.k and(s.k-1)%16 if s.touch_cb==k and e[1]==@RX and q==@TYPE and v[1]==@CH and w>0 and b then local f for n=0,80 do if s.a[n]==b and s.o[n]==v[3]then if s.v[n]then return end f=f or n end end if f then s.v[f]=true glp(glag(0,f),1,255)end end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -146,26 +165,39 @@ export const SONAR: CatalogEntry = {
       token: "@CH",
       // ZERO-BASED, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058). TWICE in
       // the Timer - the release and the note-on - so a step is released on the channel it was
-      // played on.
-      values: [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9",
-        "10",
-        "11",
-        "12",
-        "13",
-        "14",
-        "15",
-      ],
+      // played on. The rows read it 1..16 (change 17B); the Sequence output's Channel.
+      values: CHANNEL_VALUES,
       default: 0,
+    },
+    {
+      id: "midiType",
+      label: "MIDI type",
+      kind: "mode",
+      token: "@TYPE",
+      // The Sequence output's type (change 17B): 144 a note, 176 a controller; the release is
+      // @TYPE*3//2-88 (a note-off, or the controller at 0). Appended after the five.
+      values: TRIGGER_STATUSES,
+      default: 0,
+    },
+    {
+      id: "midiReceive",
+      label: "MIDI receive",
+      kind: "mode",
+      token: "@RX",
+      // The header INSTR the receive answers: 13 the host (On), 0 (Off).
+      values: RECEIVE_VALUES,
+      default: RECEIVE_ON_INDEX,
+    },
+  ],
+
+  // The one output (change 17B): the Sequence - every armed cell as the sweep crosses it, a
+  // trigger. No Number (a cell's pitch is its ring's, from @ROOT and @RINGS); Receive arms a cell.
+  outputs: [
+    {
+      id: "sequence",
+      name: "Sequence",
+      kind: "trigger",
+      tokens: { type: "@TYPE", channel: "@CH", receive: "@RX" },
     },
   ],
 
@@ -177,6 +209,8 @@ export const SONAR: CatalogEntry = {
     sweepColour: 0,
     sweep: 2,
     channel: 0,
+    midiType: 0,
+    midiReceive: RECEIVE_ON_INDEX,
   },
 
   // FALSE at tick 0: the always-lit centre puts three non-zero bytes into the first frame.

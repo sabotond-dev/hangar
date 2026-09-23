@@ -290,3 +290,30 @@ lua-entries.sweep.spec.ts asserts every one of those claims.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 17B, 2026-09-23: the Sequence output; a received note arms a cell on the sweep line (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+SONAR sends one stream - every armed cell's note as the sweep crosses it, released on the next fire - so it is one
+output, "Sequence", a trigger, with Type (Note / CC), Channel and Receive.
+
+- **Knobs.** `@TYPE` (`midiType`) and `@RX` (`midiReceive`, On) appended; `@CH` (`channel`, already all sixteen) the
+  Channel, reading 1..16. **No Number**: a cell's pitch is its ring's, from `@ROOT` and `@RINGS`. Seven knobs, four
+  outside the output. SONAR's captured wild stamp lands `unreadable` (a grown rack) where it landed `restored`.
+- **The send.** Note-on `s:gms(@CH,@TYPE,m,100)`, the release `s:gms(@CH,@TYPE*3//2-88,m,0)`. At the defaults the wire
+  is SONAR's before the change, message for message.
+- **The receive.** A host note-on (a controller above 0 under CC) on the output's type and channel ARMS ONE CELL on
+  the sweep line - the bucket the last fire swept, `(s.k-1)%16` - whose ring's pitch is the received number, and
+  lights it: live step recording, ORBIT's rule for a polar grid. One cell, not every cell of that ring on the line (the
+  outer rings hold two in a bucket, which would sound the pitch twice); if a cell of that pitch on the line is already
+  armed, nothing - so SONAR's own notes echoed back by a DAW's MIDI thru change nothing. Nothing is ever cleared; a
+  note-off, velocity 0, another channel, another pitch do nothing; nothing is sent. The Setup first held the callback
+  and went to 917 (over by nine); the TIMER makes it once per install (`s.j`) and the Setup assigns
+  `self.midirx_cb=nil` - ARC's and ORBIT's route.
+- **Latch: swipe by design** - a finger swiped across the field arms or disarms a cell per cell it crosses (`Q`'s change
+  signal), the placing gesture (lua-smoke.spec.ts "arms one cell per cell a swipe crosses").
+- **Cost:** Setup 571 / 572 -> 590 / 591 (defaults / corner), Timer 286 / 289 -> 664 / 668 (240 free). frames.json and
+  the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "SONAR: the Sequence output ...": no callback before the first Timer call over a
+  previous landing's; five mismatches arm nothing; ring 2's pitch (41 at the defaults) arms exactly one cell, on ring
+  2, freshly swept, the echo arms nothing more, a receive sends nothing, and a revolution later the cell plays 41 on
+  channel 0; a tapped cell as controller 41 on wire channel 3 (100 then 0); Receive Off arms nothing.

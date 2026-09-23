@@ -13667,4 +13667,88 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       host.close();
     }
   }, 60000);
+
+  it("SONAR: the Sequence output sends every armed cell on its Type and Channel - at the defaults notes on channel 0 as before - and receives: a note-on arms ONE cell of its ring on the sweep line and lights it, never clears one, so its own notes echoed back change nothing; a swipe arming every cell it crosses is by design", async () => {
+    const ring = (n: number): number =>
+      Math.max(Math.abs((n % 9) - 4), Math.abs(Math.floor(n / 9) - 4));
+    const armed = (sim: PadSim): number[] =>
+      Array.from({ length: 81 }, (_, n) => n).filter(
+        (n) => sim.layer(hwOfCell(n), 1).pha === 255,
+      );
+    {
+      const { host, sim } = await openCard("sonar", {}, true);
+      try {
+        // The Setup assigned nil over the previous landing's callback; the Timer makes SONAR's own.
+        expect(host.midiIn(REPORT, 0, 144, 41, 100)).toBe(false);
+        host.run(10);
+        // Ring 2's pitch at the defaults: root 36 + the minor pentatonic's third degree, 5.
+        const pitch = 36 + 5;
+        const sent = host.midi.length;
+        // Mismatches: a note-off, velocity 0, another channel, a neighbour, another pitch.
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 0, 128, pitch, 64],
+          [REPORT, 0, 144, pitch, 0],
+          [REPORT, 1, 144, pitch, 100],
+          [14, 0, 144, pitch, 100],
+          [REPORT, 0, 144, pitch + 1, 100],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(armed(sim)).toEqual([]);
+        // Step the sweep until one call arms a cell: exactly one, on ring 2, just swept.
+        let got: number[] = [];
+        for (let n = 0; n < 200 && got.length === 0; n++) {
+          host.tick();
+          expect(host.midiIn(REPORT, 0, 144, pitch, 100)).toBe(true);
+          got = armed(sim);
+        }
+        expect(got.length, "one cell per note").toBe(1);
+        expect(ring(got[0])).toBe(2);
+        expect(
+          sim.layer(hwOfCell(got[0]), 2).pha,
+          "on the sweep line",
+        ).toBeGreaterThan(0);
+        // The echo of its own note arms nothing more, and a receive sends nothing.
+        const quiet = host.midi.length;
+        host.midiIn(REPORT, 0, 144, pitch, 100);
+        expect(armed(sim)).toEqual(got);
+        expect(host.midi.length, "nothing sent back").toBe(quiet);
+        // A revolution later the armed cell plays: its pitch on channel 0.
+        host.run(2 * 16 * 7 + 20);
+        expect(wire(host.midi, sent)).toContain(`0:144:${pitch}:100`);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // CC on wire channel 3: an armed cell sends its pitch as a controller at 100, then 0; Receive Off.
+    {
+      const { host, sim } = await openCard("sonar", {
+        midiType: "176",
+        channel: "3",
+        midiReceive: "0",
+      });
+      try {
+        host.touchDown(0, ledCentre(6, "x"), ledCentre(4, "y"));
+        host.tick();
+        host.touchUp(0, ledCentre(6, "x"), ledCentre(4, "y"));
+        host.tick();
+        host.run(2 * 16 * 7 + 20);
+        const sent = wire(host.midi);
+        expect(sent.length).toBeGreaterThan(0);
+        expect(
+          sent.every((m) => m.startsWith("3:176:")),
+          sent.slice(0, 3).join(" "),
+        ).toBe(true);
+        expect(sent.some((m) => m.endsWith(":100"))).toBe(true);
+        const before = armed(sim).length;
+        for (let n = 0; n < 40; n++) {
+          host.tick();
+          host.midiIn(REPORT, 3, 176, 41, 100);
+        }
+        expect(armed(sim).length, "Receive Off arms nothing").toBe(before);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });
