@@ -1373,14 +1373,18 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     await page.getByTestId("field-max").press("Enter");
     await expect(sandbox).toHaveAttribute("data-depth", "7");
 
-    // THE BUTTON: B, a click, Escape; Toggle (never Latch); Output to Note
-    // shows the note field, C#3 typed lands 49 and reads back as C#3.
+    // THE BUTTON: B, a click, Escape; Toggle (never Latch - since change 18 the
+    // Latch row is the finger's, a row of its own, On); Output to Note shows the
+    // note field, C#3 typed lands 49 and reads back as C#3.
     await plate.focus();
     await page.keyboard.press("b");
     await clickCell(plate, 7, 0);
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("inspector-name")).toHaveText("Button 1");
-    expect(await page.getByTestId("field-latch").count()).toBe(0);
+    await expect(page.getByTestId("field-latch")).toHaveAttribute(
+      "data-value",
+      "true",
+    );
     await page.getByTestId("field-toggle").getByText("On").click();
     await expect(sandbox).toHaveAttribute("data-depth", "9");
     expect(await page.getByTestId("field-note").count()).toBe(0);

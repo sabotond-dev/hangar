@@ -310,14 +310,16 @@ test.describe("the Sandbox inspector's grid", () => {
       await page.setViewportSize({ width, height });
       await openFader(page);
       const rows = await rowsOf(page);
-      // Identity: the name, the type, the orientation; Behavior: the mode, the spring; MIDI
-      // output: the Type (change 17), the four typed fields, Receive; Appearance: the colour, the brightness.
+      // Identity: the name, the type, the orientation; Behavior: the mode, the spring, Latch (change
+      // 18); MIDI output: the Type (change 17), the four typed fields, Receive; Appearance: the colour,
+      // the brightness.
       expect(rows.map((row) => row.label)).toEqual([
         "Element name",
         "Type",
         "Orientation",
         "Mode",
         "Spring",
+        "Latch",
         "Type",
         "CC number",
         "Channel",
@@ -355,14 +357,14 @@ test.describe("the Sandbox inspector's grid", () => {
         "the colour and brightness rows alone carry a reset box",
       ).toEqual(["Color", "Brightness"]);
       expect(
-        near((rows[11].reset as Box).x, (rows[12].reset as Box).x),
+        near((rows[12].reset as Box).x, (rows[13].reset as Box).x),
         "the two reset boxes share one x",
       ).toBe(true);
       expect(
         rows.filter((row) => row.lock).map((row) => row.label),
         "the name row alone carries the lock box",
       ).toEqual(["Element name"]);
-      const reset = rows[12].reset as Box;
+      const reset = rows[13].reset as Box;
       expect(
         near(reset.x, first.control.r + 8),
         `the reset box is at ${reset.x}`,
@@ -397,7 +399,7 @@ test.describe("the Sandbox inspector's grid", () => {
           pitches.push(own[at].control.y - own[at - 1].control.y);
         }
       }
-      expect(pitches.length, "the sections' neighbouring pairs").toBe(9);
+      expect(pitches.length, "the sections' neighbouring pairs").toBe(10);
       for (const pitch of pitches) {
         expect(
           near(pitch, pitches[0]),
