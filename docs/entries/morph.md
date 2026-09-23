@@ -536,3 +536,35 @@ nothing unreachable over the widened cross-product (MORPH's sampled states 34 ->
 `ColourPicker.svelte` and every other entry are untouched; `frames.json`, the golden frames, the
 preset baseline and the OG images are byte-identical, because MORPH rests black and its default
 behaviour did not move.
+
+## Change 17B, 2026-09-23: four corners, four outputs, each received; the pull-in (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+MORPH's four corners sent `@CCB+1..@CCB+4` on one channel. Per output (answer 3) each corner is its own output -
+"Top left", "Top right", "Bottom left", "Bottom right", continuous - with Type, Channel, Number and Receive: four
+macros a DAW routes to four different places (cutoff on 74 and resonance on 71 are not neighbours), which one base
+could not name.
+
+- **Knobs.** The old `ccBase` slot is the top-left corner's Number (`cc1`, token `@N1`): all of 0..127 with the five
+  values the base gave that corner first (16, 21, 41, 71, 111), so a saved copy's index keeps its first corner's
+  controller; `channel` is the top-left's Channel. Appended in corner order: `type1 rx1`, then for corners 2..4 `typeJ
+chJ ccJ rxJ` (numbers 17, 18, 19 by default - the old base 15 plus j). Twenty knobs, four outside the outputs. The
+  rack grew and the numbers are wide, so MORPH's captured wild stamp stays `unreadable` (change 9's growth already
+  landed it so); the null default record still carries no stamp.
+- **The send.** Per corner `t=T[j]` and `s:gms(C[j],t,t==208 and z or t>223 and 0 or N[j],t==208 and 0 or z)`, the
+  tables built once. At the defaults the wire is MORPH's before the change, message for message.
+- **The receive.** A host message on corner j's type, channel and number is that corner's value held until the next
+  touch: `s.p[j]` takes it (a finger landing on the same value sends nothing - no echo), the corner block lights at
+  `z*2` as a sent value does; the next touch recomputes every corner from the finger. Nothing is sent back.
+- **Where it lives - the pull-in.** The Setup was 860 of 908; per-corner tables and a receive do not fit beside the
+  blend. MORPH rests dark (`restsBlack`), so an armed Timer would not change its listing, but it would still move
+  frames.json's tick-0 flag; the pull-in moves nothing. The Timer body holds the two paint loops (run inside the Setup,
+  so the picture at tick 0 is the same), the tables and the receive; the Setup keeps `self` as the upvalue `s` and
+  takes `T,C,N=s.t,s.h,s.n` after `s:tim()`. `lua-smoke.spec.ts`'s residue probe and two MORPH cases read the block
+  geometry from both events now, and the centre case's hosts are handed the Timer as `open` hands it.
+- **Latch: already latched** - one contact, one control (the blend), the corner tap read at the onset.
+- **Cost:** Setup 856 / 860 -> 784 / 786 (defaults / corner; 122 free), Timer 0 -> 527 / 535. frames.json and the OG
+  image unmoved. `docs/HARDWARE-AUDITION.md` row 41 (the pull-in, clause (d) MORPH) and its dated paragraph.
+- **Proved.** `lua-smoke.spec.ts` "MORPH: the four corners ...": no Timer armed; a tap in the top-left sends 16 = 127
+  on channel 0; the host's 19 at 100 lights the bottom-right block at 200, four mismatches ignored, nothing sent back;
+  the next touch in that corner takes it back to 127 and sends it; the top-right as a pitch bend on wire channel 4 and
+  the bottom-left on controller 40, channel 7 - sent and received; the top-left's Receive Off.

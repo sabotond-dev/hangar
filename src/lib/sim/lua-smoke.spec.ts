@@ -369,14 +369,15 @@ function rgbAt(frame: Uint8Array, cell: number): string {
  */
 const MORPH_MACROS: readonly number[] = (() => {
   const entry = CATALOG.find((candidate) => candidate.id === "morph");
+  // Both events since change 17B: the Setup names the blocks (`s.k`), the Timer - pulled in by
+  // the Setup, never armed - paints them.
   const setup =
     typeof entry !== "undefined" && entry.source.kind === "lua"
-      ? entry.source.setup
+      ? `${entry.source.setup} ${entry.source.timer}`
       : "";
-  const bases = /self\.k=\{([^}]*)\}/.exec(setup);
-  const side = /for d=0,\d+ do local a=glag\(0,self\.k\[j\+1\]\+d%(\d+)/.exec(
-    setup,
-  );
+  const bases = /(?:self|s)\.k=\{([^}]*)\}/.exec(setup);
+  const side =
+    /for d=0,\d+ do local a=glag\(0,(?:self|s)\.k\[j\+1\]\+d%(\d+)/.exec(setup);
   if (bases === null || side === null)
     throw new Error(
       "morph: self.k and the corner paint loop are not where this probe " +
@@ -2298,7 +2299,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
 
   it("sends a MORPH corner only when that corner moved, and never a stale zero", async () => {
     const entry = entryById("morph");
-    const base = knobValueOf(entry, "ccBase");
+    // Change 17B: each corner has its own Number; corner j sends cc<j>, which is base + j at the
+    // defaults (the top-left corner's is 16, the old base 15 plus one).
+    const base = knobValueOf(entry, "cc1") - 1;
     // The four corners send @CCB+1 .. @CCB+4, in the entry's own corner order:
     // j=1 is u*v (top left), j=2 is x*v (top right), j=3 is u*y (bottom left),
     // j=4 is x*y (bottom right), where u = 127-x and v = 127-y.
@@ -2496,11 +2499,13 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // deliberate tap aimed at a MIDI-learn button is exactly the slow kind
     // that arrives as 4 then 5.
     const entry = entryById("morph");
-    const base = knobValueOf(entry, "ccBase");
+    // Change 17B: each corner has its own Number; corner j sends cc<j>, which is base + j at the
+    // defaults (the top-left corner's is 16, the old base 15 plus one).
+    const base = knobValueOf(entry, "cc1") - 1;
     const setup = entry.source.kind === "lua" ? entry.source.setup : "";
     // THE CORNER BASES ARE READ OUT OF THE ENTRY'S OWN self.k, never typed, so
-    // moving a corner reddens this test instead of escaping it.
-    const kDecl = /self\.k=\{([^}]*)\}/.exec(setup);
+    // moving a corner reddens this test instead of escaping it (`s.k` since change 17B).
+    const kDecl = /(?:self|s)\.k=\{([^}]*)\}/.exec(setup);
     expect(kDecl, "morph: self.k must be declared in the Setup").not.toBe(null);
     const K = (kDecl as RegExpExecArray)[1].split(",").map(Number);
     expect(K.length, "morph: four corner blocks").toBe(4);
@@ -2508,8 +2513,11 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // Lua walks `k + d%N + d//N*9` over `d = 0, N*N-1`, so N is read off the
     // entry's own paint loop; the bench asked for "bigger corner areas where
     // only one channel is sent" and this is the number that answers it.
+    // The paint loop is the Timer's since change 17B (pulled in by the Setup, never armed).
     const sideDecl =
-      /for d=0,(\d+) do local a=glag\(0,self\.k\[j\+1\]\+d%(\d+)/.exec(setup);
+      /for d=0,(\d+) do local a=glag\(0,(?:self|s)\.k\[j\+1\]\+d%(\d+)/.exec(
+        entry.source.kind === "lua" ? `${setup} ${entry.source.timer}` : "",
+      );
     expect(
       sideDecl,
       "morph: the Setup paint loop must declare the corner block's geometry",
@@ -2814,7 +2822,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // the assertion that says so, and 12-09's negative check shipped the
     // research's shape and read the frozen count off it.
     const entry = entryById("morph");
-    const base = knobValueOf(entry, "ccBase");
+    // Change 17B: each corner has its own Number; corner j sends cc<j>, which is base + j at the
+    // defaults (the top-left corner's is 16, the old base 15 plus one).
+    const base = knobValueOf(entry, "cc1") - 1;
     const setup = entry.source.kind === "lua" ? entry.source.setup : "";
     const marginDecl = /x=glim\(\(x-(\d+)\)\*127\/\/(\d+),0,127\)/.exec(setup);
     expect(
@@ -3043,7 +3053,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
     // its opposite, the one-message rule at a shaped centre, the paint
     // following the value SENT, and the position that is NOT offered and why.
     const entry = entryById("morph");
-    const base = knobValueOf(entry, "ccBase");
+    // Change 17B: each corner has its own Number; corner j sends cc<j>, which is base + j at the
+    // defaults (the top-left corner's is 16, the old base 15 plus one).
+    const base = knobValueOf(entry, "cc1") - 1;
     const setup = entry.source.kind === "lua" ? entry.source.setup : "";
     const knob = entry.knobs.find((each) => each.id === "centre");
     expect(knob, "morph carries the centre knob (change 9)").toBeDefined();
@@ -3110,8 +3122,8 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         Math.floor((x * y) / 127),
       ];
     };
-    // The corner blocks, from self.k and the paint loop's own 3x3 geometry.
-    const kDecl = /self\.k=\{([^}]*)\}/.exec(setup);
+    // The corner blocks, from self.k (`s.k` since change 17B) and the paint loop's own 3x3 geometry.
+    const kDecl = /(?:self|s)\.k=\{([^}]*)\}/.exec(setup);
     expect(kDecl, "morph: self.k must be declared in the Setup").not.toBe(null);
     if (!kDecl) return;
     const K = kDecl[1].split(",").map(Number);
@@ -3196,9 +3208,9 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         `${distinctAt(BREAK)} at the default`,
     );
 
-    /** One host per knob position, the Timer left undefined as `open` does. */
+    /** One host per knob position, the Timer handed over as `open` does (MORPH's is pulled in since change 17B). */
     const openAt = async (index: number) => {
-      const { setup: body } = renderLua(entry, {
+      const { setup: body, timer } = renderLua(entry, {
         ...entry.defaults,
         centre: index,
       });
@@ -3208,6 +3220,7 @@ describe("hand-authored Lua entries execute (CONT-02)", () => {
         system: TOUCH_LIBRARY,
         systemTimer: TOUCH_LIBRARY_TIMER,
         setup: body,
+        timer,
       });
       return { host, sim };
     };
@@ -13221,6 +13234,82 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
         expect(cursor(sim)).toEqual([]);
         host.midiIn(REPORT, 0, 176, 17, 0);
         expect(cursor(sim)).toEqual([72]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
+
+  it("MORPH: the four corners are four outputs, each on its own Type, Channel and Number - at the defaults 16..19 on channel 0 as before - and each receives: a host value lights its corner block and is the value held until the next touch, nothing sent back; the receive is pulled in, no Timer armed", async () => {
+    /** Corner j's block phase on layer 1 (its origin cell, s.k: 0, 6, 54, 60). */
+    const block = (sim: PadSim, j: number): number =>
+      sim.layer(hwOfCell([0, 6, 54, 60][j - 1]), 1).pha;
+    {
+      const { host, sim } = await openCard("morph", {}, true);
+      try {
+        expect(host.timerArmed, "the pull-in arms nothing").toBe(false);
+        // A finger dead in the top-left corner: corner 1 at 127, the others 0 - on 16..19.
+        host.touchDown(0, 0, 0);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:176:16:127"]);
+        host.touchUp(0, 0, 0);
+        host.tick();
+        const sent = host.midi.length;
+        // RX: the host's CC 19 (the bottom-right corner) at 100 lights its block at 200; nothing back.
+        expect(host.midiIn(REPORT, 0, 176, 19, 100)).toBe(true);
+        expect(block(sim, 4)).toBe(200);
+        // Ignored: another channel, a number no corner has, a neighbour's, another type.
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 1, 176, 19, 10],
+          [REPORT, 0, 176, 20, 10],
+          [14, 0, 176, 19, 10],
+          [REPORT, 0, 224, 0, 10],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(block(sim, 4)).toBe(200);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        // The next touch takes the corner back from the finger: bottom-right at 127.
+        host.touchDown(0, 127, 127);
+        host.tick();
+        expect(wire(host.midi, sent)).toContain("0:176:19:127");
+        expect(block(sim, 4)).toBe(254);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // The top-right corner a pitch bend on wire channel 4, the bottom-left a controller 40 on 7.
+    {
+      const { host, sim } = await openCard("morph", {
+        type2: "224",
+        ch2: "4",
+        cc3: "40",
+        ch3: "7",
+      });
+      try {
+        host.touchDown(0, 127, 0);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["4:224:0:127"]);
+        host.touchUp(0, 127, 0);
+        host.tick();
+        host.touchDown(0, 0, 127);
+        host.tick();
+        // A press inside a corner block speaks for that corner alone (the corner tap).
+        expect(wire(host.midi).slice(1)).toEqual(["7:176:40:127"]);
+        host.midiIn(REPORT, 4, 224, 0, 64);
+        expect(block(sim, 2)).toBe(128);
+        host.midiIn(REPORT, 7, 176, 40, 10);
+        expect(block(sim, 3)).toBe(20);
+      } finally {
+        host.close();
+      }
+    }
+    // The top-left corner's Receive Off: its messages light nothing.
+    {
+      const { host, sim } = await openCard("morph", { rx1: "0" });
+      try {
+        host.midiIn(REPORT, 0, 176, 16, 100);
+        expect(block(sim, 1)).toBe(0);
       } finally {
         host.close();
       }

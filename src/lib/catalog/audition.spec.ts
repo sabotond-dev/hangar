@@ -121,8 +121,12 @@ const flat = doc.replace(/\s+/g, " ");
  * 39 -> 40 on 2026-09-23 (BENCH-2026-09-16.txt section 17, change 17A): MIDI RX
  * and the per-output types - row 40, Arc and any sandbox surface, five clauses
  * (a)-(e); Arc's cost row moves its Timer 437 -> 743.
+ *
+ * 40 -> 41 on 2026-09-23 (sections 17 and 18, change 17B): the pull-in - CONSOLE,
+ * LUMEN and MORPH store a Timer their Setup runs once (`self:tim()`) to make the
+ * receive callback - four clauses (a)-(d), and a dated paragraph after row 40's.
  */
-const ROW_COUNT = 40;
+const ROW_COUNT = 41;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
@@ -390,10 +394,19 @@ describe(`${DOC_REL} (D-16, the hardware audition)`, () => {
     );
     const morph = CATALOG.find((entry) => entry.name === "Morph");
     expect(morph, "Morph is in the catalog").toBeDefined();
+    // Since change 17B (row 41) MORPH stores a Timer its Setup PULLS IN and never arms, and the
+    // document says so after the fact (it is append-only): the rule applies to it again.
+    const timer = timerOf(morph as CatalogEntry);
+    const setup =
+      (morph as CatalogEntry).source.kind === "lua"
+        ? ((morph as CatalogEntry).source as { setup: string }).setup
+        : "";
     expect(
-      timerOf(morph as CatalogEntry),
-      "Morph's stored Timer - the document calls it Setup only, and the entry " +
-        "must actually be",
-    ).toBe("");
+      timer === "" || (!timer.includes("gtt(") && setup.includes("s:tim()")),
+      "Morph's stored Timer is empty, or a body its Setup pulls in and nothing arms",
+    ).toBe(true);
+    expect(flat, "the pull-in is written down for Morph").toMatch(
+      /CONSOLE, LUMEN and MORPH had no Timer/,
+    );
   });
 });
