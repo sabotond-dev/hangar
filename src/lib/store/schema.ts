@@ -213,7 +213,9 @@ export const TOUCHES_MAX = 5;
  * keeps a finger on the element it landed on until it lifts, as every element
  * did before it; `false` lets a sliding finger pass to the element it moves
  * onto (sandbox/model.ts `latchTouchOf`). It is not the button's `latch`,
- * which is its Toggle. A draft written before it reads On.
+ * which is its Toggle. A draft written before it reads On. Change 18b: a
+ * knob does not carry it - a knob stored `false` (change 18 allowed it for a
+ * few hours) is still a valid record and reads On (`takesLatch`).
  */
 export type Region = {
   readonly id: string;

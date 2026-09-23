@@ -231,13 +231,24 @@ export function channelWord(region: Region, axis: "x" | "y" = "x"): number {
 // The change 18 option: Latch (BENCH-2026-09-16.txt section 18).
 
 /**
+ * The kinds that carry Latch: every kind that takes touch but the knob. A blank takes no touch; a
+ * knob is a rotary gesture, and an Off knob lets go the moment the finger slips outside its box,
+ * which only ever reads as a fault (change 18b, BENCH-2026-09-16.txt section 18: the knob loses
+ * the row).
+ */
+export const takesLatch = (kind: ElementKind): boolean =>
+  kind !== "blank" && kind !== "knob";
+
+/**
  * Latch, the setting: On unless set off. On, a finger keeps the element it landed on until it
  * lifts, wherever it goes - what every element did before change 18 (runtime.ts `O`). Off, a
  * finger that slides off the element hands over to the element it moves onto (runtime.ts
- * `HAND_OVER_TEXT`). A blank takes no touch, so it reads On whatever it carries.
+ * `HAND_OVER_TEXT`). A kind that does not carry Latch (`takesLatch`: a blank, a knob) reads On
+ * whatever it carries - so a knob stored Off while change 18 allowed it loads On, and its channel
+ * word loses the hand-over bit.
  */
 export const latchTouchOf = (region: Region): boolean =>
-  region.kind === "blank" || region.latchTouch !== false;
+  !takesLatch(region.kind) || region.latchTouch !== false;
 
 /** True for a region whose finger hands over: Latch Off on a kind that takes touch. */
 export const handsOver = (region: Region): boolean => !latchTouchOf(region);
@@ -257,6 +268,9 @@ export const hasHandOver = (regions: readonly Region[]): boolean =>
  * surface measured - page 3 21 against 22 and 39, sixteen elements 33 against 70 and 140 - since
  * a word gains at most two digits and a Receive-off word none, where the keyed field is four
  * characters a row and the flag bit forces the tail and two variants of texts every surface carries.
+ * Change 18b took Latch off the knob, and the same measure moved: still the cheapest on eight and
+ * sixteen elements (25 and 33), no longer on page 3 (the keyed field 18 against 20) or page 3
+ * with every option (the flag bit 14 against 19) - the encoding stays (emit.spec.ts test 10).
  */
 export const HAND_OVER_BIT = 512;
 

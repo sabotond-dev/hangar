@@ -5,7 +5,7 @@
 // and `I[4]` (change 11), the HAND-OVER variant of `O` and `Y` for a Latch Off element (change
 // 18), and `packRuntime`, which spreads the parts over the slots a surface lands on, largest
 // first. Every string was run in a real Lua VM before it was measured (runtime.spec.ts).
-// Names `S F I R O` and the trim's `Q D K Y Z`; calls the library's `E N U X`. docs/MIDI.md, docs/entries/sandbox-runtime.md.
+// Names `S F I R O` and the trim's `Q D K Y Z V`; calls the library's `E N U X`. docs/MIDI.md, docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
@@ -33,7 +33,7 @@ export const DEFAULT_SWEEP_CALLS = 20;
 
 /**
  * The names this file's parts define. emit.spec.ts / runtime.spec.ts hold them apart from the
- * library's; `E`, `A`, `Y` and `Z` are change 17's, four more the trim freed. The contact tables `S`
+ * library's; `E`, `A`, `Y` and `Z` are change 17's, four more the trim freed, and `V` change 18b's, a fifth. The contact tables `S`
  * and `F` are made by the trimmed 255/0's head under five slots and the Setup under fewer
  * (`SETUP_STATE`) since change 17, so they are not a part's.
  */
@@ -48,6 +48,7 @@ export const RUNTIME_NAMES: readonly string[] = [
   "A",
   "Y",
   "Z",
+  "V",
 ];
 
 /** The receive callback's name: the Setup assigns `self.midirx_cb` to it (change 17). */
@@ -303,17 +304,34 @@ export const BUTTON_OFF =
   "function K(s,r)if r[8]%128>95 then s:gms(r[8]%16,128,r[6],0)" +
   "else s:gms(r[8]%16,176,r[6],r[12])end r[17]=nil Q(r)end";
 
-// The position on the calibrated axis between the region's first and last LED centres: a
-// vertical fader reads 127 at its top LED and 0 at its bottom, a horizontal one 0 at the left.
-const POS_V = "glim(((r[2]+r[4]-1)*64-U(y,KY))*127//((r[4]-1)*64),0,127)";
-const POS_H = "glim((U(x,KX)-r[1]*64)*127//((r[3]-1)*64),0,127)";
+/**
+ * `V(d,l)`: one axis's position 0..127 - `d` the finger's distance in calibrated units from the
+ * axis's 0 end (its first LED centre), `l` the region's length in cells along it (change 18b). The
+ * span `(l-1)*64` is divided by in two steps, `//glim(l-1,1,9)//64`: floor division twice is floor
+ * division once by the product when both divisors are positive, so every box two cells and up
+ * reads the number it did before change 18b (runtime.spec.ts test 23 runs both texts side by side
+ * in the VM), and a length of ONE cell divides by 1 there instead of raising `n//0`.
+ */
+export const AXIS =
+  "function V(d,l)return glim(d*127//glim(l-1,1,9)//64,0,127)end";
 
 /**
- * `A(r,x,y)`: both positions of a finger in a region, x then y (change 17: the two formulas the
- * fader and both XY pad texts carried inline, one text - 54 characters less on a surface with a
- * fader and a pad, and three smaller parts for the packer).
+ * `A(r,x,y)`: both positions of a finger in a region, x then y, on the calibrated axes between the
+ * region's first and last LED centres - a vertical fader reads 127 at its top LED and 0 at its
+ * bottom, a horizontal one 0 at the left (change 17: the two formulas the fader and both XY pad
+ * texts carried inline, one text). Both are computed, so the axis a fader does not read is
+ * computed too: a 1 x 6 vertical fader's x, a 6 x 1 horizontal one's y. Until change 18b that
+ * axis's span was 0 and its division raised on every sample - a fader one cell across sent nothing,
+ * on the module and in the preview. Now the axis goes through `V`, whose divisor is clamped to one
+ * cell, and the fader throws the value away (an XY pad reads both axes, and its minimum is 2 x 2).
+ * The guard costs 11 over change 17's 133 (`A` 83 and `V` 61), measured canonical against the
+ * other honest forms (runtime.spec.ts test 23): the clamp written into both of `A`'s formulas +14,
+ * `A` passed the kind so it computes only the axis read +31, `r[3]>1 and ... or 0` per axis +33.
+ * Two parts rather than one also pack: page 3 with every option on still lands five slots at the
+ * corner, where the +14 one-part form does not fit at all.
  */
-export const POSITION = `function A(r,x,y)return ${POS_H},${POS_V}end`;
+export const POSITION =
+  "function A(r,x,y)return V(U(x,KX)-r[1]*64,r[3]),V((r[2]+r[4]-1)*64-U(y,KY),r[4])end";
 
 /**
  * The fader, both orientations (`I[2]=I[1]`; the type code picks the axis). With a finger: the
@@ -584,7 +602,7 @@ export function runtimeParts(
     entryText(multitouch, handOver),
     ...(ordered.length > 0 ? [PAINT, SEND] : []),
     ...(ordered.some((b) => b === "fader-v" || b === "fader-h" || b === "xy")
-      ? [POSITION]
+      ? [POSITION, AXIS]
       : []),
     ...(ordered.includes("button") ? [BUTTON_OFF] : []),
     ...new Set(ordered.map(text)),
@@ -719,9 +737,17 @@ export function packRuntime(
         };
   if (setupBin !== undefined) bins.push(setupBin);
 
+  // The entry never lands in the touch Timer while a receive callback is packed (change 18b):
+  // the Timer re-runs its body every period, so an `O` it defines is a NEW closure on every run,
+  // and `Y`'s `s.touch_cb~=O` - the Setup assigned the first one - then reads every host
+  // message as a later landing's and ignores it. Under two slots the Timer is the only slot (and
+  // no surface fits there); the fallback below still puts an over surface's leftovers in it.
+  const entry = parts.find((p) => p.name === RUNTIME_ENTRY)?.lua;
+  const entryPinned = options.receive !== undefined && slots > 2;
   const fitsIn = (bin: Bin, lua: string): boolean =>
+    !(entryPinned && bin.slot === "timer" && lua === entry) &&
     joinLua([...bin.prefix, STATE, ...bin.taken, lua, ...bin.tail]).length <=
-    budget;
+      budget;
 
   const bySize = [...parts].sort((a, b) => b.lua.length - a.lua.length);
   // First fit, decreasing: every part into the first slot with room.

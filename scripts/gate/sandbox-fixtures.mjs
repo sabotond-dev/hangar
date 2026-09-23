@@ -152,6 +152,34 @@ const allOff = (s, name) =>
     s.regions.map((r) => ({ ...r, ...OFF })),
   );
 
+// runtime.spec.ts test 23 (change 18b): faders one cell across the axis they do not read, beside
+// the pad; the 1 x 6 relative at full with the spring; two 1 x 6 side by side Latch Off.
+const THIN = rtRegion("Thin", "fader", 0, 0, 1, 6, 70);
+// emit.spec.ts test 11 (change 18b): the cost.ts representative at 1 x 2 (cc 127, channel 16, the
+// corner, min 127, max 100, relative at full, the spring at 100, a channel pressure, Receive off,
+// Latch Off), four side by side.
+const representative = (index, col) => ({
+  id: `room-${index}`,
+  name: `Room ${index}`,
+  kind: "fader",
+  col,
+  row: 0,
+  w: 1,
+  h: 2,
+  cc: 127,
+  channel: 16,
+  colour: [15, 15, 15],
+  min: 127,
+  max: 100,
+  mode: "relative",
+  speed: "full",
+  spring: true,
+  springValue: 100,
+  output: "pressure",
+  receive: false,
+  latchTouch: false,
+});
+
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
   // runtime.spec.ts
@@ -251,6 +279,27 @@ export const SANDBOX_FIXTURES = {
     { ...DUO, ...OFF },
     rtRegion("Beside", "button", 5, 4, 1, 1, 95, OFF),
   ]),
+  // runtime.spec.ts (change 18b): the one-cell faders - test 23.
+  "runtime/one-cell": surface("One cell", [
+    THIN,
+    rtRegion("Stub", "fader", 2, 0, 1, 2, 71),
+    rtRegion("Flat", "fader", 0, 8, 6, 1, 72, { orientation: "horizontal" }),
+    rtRegion("Nub", "fader", 7, 8, 2, 1, 73, { orientation: "horizontal" }),
+    SPACE,
+  ]),
+  "runtime/thin-spring": surface("Thin spring", [
+    {
+      ...THIN,
+      mode: "relative",
+      speed: "full",
+      spring: true,
+      springValue: 100,
+    },
+  ]),
+  "runtime/thin-off": surface("Thin off", [
+    { ...THIN, ...OFF },
+    rtRegion("Thin 2", "fader", 1, 0, 1, 6, 74, OFF),
+  ]),
   // emit.spec.ts
   "emit/page3": EMIT_PAGE3,
   "emit/one": surface("One", [EMIT_PAGE3.regions[0]]),
@@ -283,5 +332,23 @@ export const SANDBOX_FIXTURES = {
   "emit/sixteen-off": allOff(
     surface("Sixteen", [...fadersAt(8, 1, 6), ...buttonsAt(8, 1, 2, 7)]),
     "Sixteen off",
+  ),
+  // emit.spec.ts test 11 (change 18b): run in the VM - the twelve Off, the sixteen at typed
+  // literals, and the cap floor's representative four times at 1 x 2.
+  "emit/twelve-off": allOff(
+    surface("Twelve", [...fadersAt(8, 1, 6), ...buttonsAt(4, 2, 2, 7)]),
+    "Twelve off",
+  ),
+  "emit/sixteen-typed": surface(
+    "Sixteen typed",
+    [...fadersAt(8, 1, 6), ...buttonsAt(8, 1, 2, 7)].map((r, i) => ({
+      ...r,
+      cc: i + 1,
+      channel: 1,
+    })),
+  ),
+  "emit/floor": surface(
+    "Floor",
+    [0, 1, 2, 3].map((col) => representative(col + 1, col)),
   ),
 };

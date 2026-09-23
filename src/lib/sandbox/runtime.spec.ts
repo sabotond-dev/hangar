@@ -1,4 +1,4 @@
-// The runtime's tests (13-15; change 10B added seven, change 11 two, change 18 two), most in a REAL Lua VM: every string in
+// The runtime's tests (13-15; change 10B added seven, change 11 two, change 18 two, change 18b one), most in a REAL Lua VM: every string in
 // runtime.ts was run through `createLuaHost` before it was measured and before a figure was
 // pinned. The host is opened as the module runs a landing: under five slots the TRIMMED system
 // halves with the runtime parts they carry (`system`, `systemTimer` off the emit), under fewer
@@ -102,6 +102,8 @@ import {
   HAND_OVER_TEXT,
   KNOB_STEP_CAP,
   MULTITOUCH_TEXT,
+  AXIS,
+  POSITION,
   RECEIVE_ENTRY,
   RUNTIME_CALLS,
   RUNTIME_NAMES,
@@ -249,7 +251,8 @@ const MULTITOUCH_FIXTURES: readonly Surface[] = [
 
 /**
  * The change 18 fixtures (tests 21 and 22; tests 6, 7 and 14 run them beside the rest): two
- * vertical faders side by side (two wide: `A` divides by the width less one, docs/entries/sandbox-runtime.md), at the default and with Latch Off; a strum row of four
+ * vertical faders side by side (two wide, as change 18 had to: `A` divided by the width less one
+ * until change 18b - test 23 runs the one-cell ones), at the default and with Latch Off; a strum row of four
  * one-cell buttons Off with an empty cell before the last; an Off button, an On button and an Off
  * button in a row; an Off fader, an Off spring fader and an Off button across empty plate; page 3
  * with every element Off; and a Touches-2 pad Off beside an Off button. Controllers 80..95 meet
@@ -296,6 +299,31 @@ const LATCH_FIXTURES: readonly Surface[] = [
   PAGE3_OFF,
   MULTI_OFF,
 ];
+
+/**
+ * The change 18b fixtures (test 23; tests 6, 7 and 14 run them beside the rest): faders one cell
+ * across the axis they do not read - a 1 x 6 and a 1 x 2 vertical, a 6 x 1 and a 2 x 1 horizontal,
+ * every one a size the editor allows - beside a 3 x 3 pad; the 1 x 6 relative at full with the
+ * spring at 100; and two 1 x 6 side by side Latch Off (emit.spec.ts's twelve and sixteen are 1 x 6
+ * faders in a row). Controllers 70..74 meet no other region's.
+ */
+const THIN = region("Thin", "fader", 0, 0, 1, 6, 70);
+const STUB = region("Stub", "fader", 2, 0, 1, 2, 71);
+const FLAT = region("Flat", "fader", 0, 8, 6, 1, 72, {
+  orientation: "horizontal",
+});
+const NUB = region("Nub", "fader", 7, 8, 2, 1, 73, {
+  orientation: "horizontal",
+});
+const ONE_CELL = surface("One cell", [THIN, STUB, FLAT, NUB, SPACE]);
+const THIN_SPRING = surface("Thin spring", [
+  { ...THIN, mode: "relative", speed: "full", spring: true, springValue: 100 },
+]);
+const THIN_OFF = surface("Thin off", [
+  { ...THIN, ...OFF },
+  region("Thin 2", "fader", 1, 0, 1, 6, 74, OFF),
+]);
+const ONE_CELL_FIXTURES: readonly Surface[] = [ONE_CELL, THIN_SPRING, THIN_OFF];
 
 /**
  * A surface with one element per kind named (change 17): the ceiling in kinds under five slots is
@@ -796,7 +824,12 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
 
   it("6. passes both class gates over every emitted runtime text with the gates' own needles, defines only its own names - the trim's freed ones among them - and calls only the trimmed library's", () => {
     const texts: { name: string; text: string }[] = [];
-    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, ...LATCH_FIXTURES]) {
+    for (const s of [
+      ...FIXTURES,
+      ...MULTITOUCH_FIXTURES,
+      ...LATCH_FIXTURES,
+      ...ONE_CELL_FIXTURES,
+    ]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
         texts.push({ name: `${s.name} Timer (${slots})`, text: e.timer });
@@ -950,7 +983,12 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
   it("7. the measured cost: canonical under compressScript, the parts, and the ceiling in kinds under two slots, three and five - every combination fits five", async () => {
     const lines: string[] = [];
     // Every packed text is a fixed point of the minifier on the first round.
-    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, ...LATCH_FIXTURES]) {
+    for (const s of [
+      ...FIXTURES,
+      ...MULTITOUCH_FIXTURES,
+      ...LATCH_FIXTURES,
+      ...ONE_CELL_FIXTURES,
+    ]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
         for (const [name, text] of [
@@ -1588,8 +1626,13 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     );
     // Every fixture, under five slots, on the trimmed halves: the emitted
     // 255/0 and 255/6 open with the trimmed text, and a gesture on every
-    // region raises nothing - the change 11 and change 18 fixtures too.
-    for (const s of [...FIXTURES, ...MULTITOUCH_FIXTURES, ...LATCH_FIXTURES]) {
+    // region raises nothing - the change 11, 18 and 18b fixtures too.
+    for (const s of [
+      ...FIXTURES,
+      ...MULTITOUCH_FIXTURES,
+      ...LATCH_FIXTURES,
+      ...ONE_CELL_FIXTURES,
+    ]) {
       const e = emitSurface(s, { slots: 5 });
       expect(e.system?.startsWith(TRIMMED_LIBRARY), s.name).toBe(true);
       expect(e.systemTimer?.startsWith(TRIMMED_LIBRARY_TIMER), s.name).toBe(
@@ -1870,6 +1913,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       "Q",
       "D",
       "A",
+      "V",
       "I[1]",
       "I[4]",
     ]);
@@ -2767,21 +2811,253 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       ["Latch, measured (change 18, 2026-09-23):", ...lines].join("\n"),
     );
   }, 240000);
+
+  it("23. the one-cell fader (change 18b): a fader one cell across the axis it does not read - 1 x 6, 1 x 2, 6 x 1, 2 x 1, each a size the editor allows - reads and sends as a wider one, relative with its spring and Latch Off too; `A` reads each axis through `V`, whose divisor is clamped to one cell, every position on every box two cells and up the same number as before in the VM, measured against three other forms; an XY pad one cell wide is refused by the editor; and the entry never lands in the touch Timer beside a receive callback", async () => {
+    // THE EDITOR ALLOWS THEM: every one-cell fader validates; an XY pad one cell wide or tall does
+    // not (the pad reads both axes, so its minimum is 2 x 2).
+    for (const r of [THIN, STUB, FLAT, NUB])
+      expect(validate(r, surface("Empty", [])).ok, r.name).toBe(true);
+    for (const pad of [
+      { ...SPACE, w: 1 },
+      { ...SPACE, h: 1 },
+    ]) {
+      const refused = validate(pad, surface("Empty", []));
+      expect(refused.ok, `${pad.w} x ${pad.h} pad`).toBe(false);
+      if (!refused.ok)
+        expect(refused.problem.message).toBe(
+          GEOMETRY_COPY.tooSmall(pad, { w: 2, h: 2 }),
+        );
+    }
+    // (1) EVERY ONE-CELL FADER SENDS, under five slots (the landing) and three: the 1 x 6 as
+    //     Filter does in test 3 (127 at its top LED, 0 at its bottom, 76 at row 2), a wobble across
+    //     the axis it does not read sends nothing; the 1 x 2 127 and 0; the 6 x 1 0 at its left LED,
+    //     127 at its right, 50 at column 2; the 2 x 1 0 and 127; the pad beside them as test 4's.
+    for (const slots of [5, 3] as const) {
+      const { host, sim } = await open(ONE_CELL, { slots });
+      try {
+        step(host, "down", 0, at(0, 0));
+        step(host, "move", 0, at(0, 5));
+        step(host, "move", 0, at(0, 2));
+        step(host, "move", 0, [KX[0] + 1, KY[2]]);
+        step(host, "move", 0, [KX[0] - 1, KY[2]]);
+        expect(sent(host.midi, THIN.cc), `${slots}: 1 x 6`).toEqual([
+          127, 0, 76,
+        ]);
+        expect(lit(sim, THIN), "the bar from the bottom to row 3").toEqual([
+          "0,3",
+          "0,4",
+          "0,5",
+        ]);
+        step(host, "up", 0, at(0, 2));
+        step(host, "down", 1, at(2, 0));
+        step(host, "move", 1, at(2, 1));
+        step(host, "up", 1, at(2, 1));
+        expect(sent(host.midi, STUB.cc), `${slots}: 1 x 2`).toEqual([127, 0]);
+        step(host, "down", 2, at(0, 8));
+        step(host, "move", 2, at(5, 8));
+        step(host, "move", 2, at(2, 8));
+        step(host, "move", 2, [KX[2], KY[8] - 1]);
+        expect(sent(host.midi, FLAT.cc), `${slots}: 6 x 1`).toEqual([
+          0, 127, 50,
+        ]);
+        expect(lit(sim, FLAT), "the bar from the left to column 1").toEqual([
+          "0,0",
+          "1,0",
+        ]);
+        step(host, "up", 2, at(2, 8));
+        step(host, "down", 3, at(7, 8));
+        step(host, "move", 3, at(8, 8));
+        step(host, "up", 3, at(8, 8));
+        expect(sent(host.midi, NUB.cc), `${slots}: 2 x 1`).toEqual([0, 127]);
+        step(host, "down", 4, at(3, 2));
+        step(host, "move", 4, at(5, 0));
+        expect([
+          sent(host.midi, SPACE.cc),
+          sent(host.midi, SPACE.cc2 ?? -1),
+        ]).toEqual([
+          [0, 127],
+          [0, 127],
+        ]);
+        step(host, "up", 4, at(5, 0));
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (2) RELATIVE AT FULL WITH THE SPRING AT 100: the touch anchors and sends nothing, a slide
+    //     from the bottom LED to the top adds the whole travel to the spring position (clamped:
+    //     127), the lift springs back to 100.
+    {
+      const { host } = await open(THIN_SPRING);
+      try {
+        step(host, "down", 0, at(0, 5));
+        expect(sent(host.midi, THIN.cc), "the touch anchors").toEqual([]);
+        step(host, "move", 0, at(0, 0));
+        step(host, "up", 0, at(0, 0));
+        expect(sent(host.midi, THIN.cc)).toEqual([127, 100]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (3) LATCH OFF, TWO 1 x 6 SIDE BY SIDE: a finger slid from Thin into Thin 2 hands over as
+    //     test 21's lanes do - Thin stops at 50, Thin 2 jumps to the finger (76, 101).
+    {
+      const { host } = await open(THIN_OFF);
+      try {
+        step(host, "down", 0, at(0, 4));
+        step(host, "move", 0, at(0, 3));
+        step(host, "move", 0, at(1, 2));
+        step(host, "move", 0, at(1, 1));
+        step(host, "up", 0, at(1, 1));
+        expect(
+          host.midi.filter((m) => m.cmd === 176).map((m) => `${m.p1}:${m.p2}`),
+        ).toEqual(["70:25", "70:50", "74:76", "74:101"]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (4) THE GUARD CHANGES NO NUMBER: `A` before change 18b (both divisors bare, as `A0`) and `A`
+    //     now with `V`, run side by side in the VM over every box two cells and up on each axis
+    //     (the offset 0..7, the length 2..9 - offset) and every raw coordinate -4..131 - the count
+    //     of positions that differ, sent as a controller, is 0; the count compared, 1 when it is
+    //     the figure below. Floor division twice is floor division once by the product (a, b > 0).
+    const before =
+      "function A0(r,x,y)return " +
+      "glim((U(x,KX)-r[1]*64)*127//((r[3]-1)*64),0,127)," +
+      "glim(((r[2]+r[4]-1)*64-U(y,KY))*127//((r[4]-1)*64),0,127)end";
+    {
+      const probe =
+        `${before} ${AXIS} ${POSITION} local d,n=0,0 ` +
+        "for o=0,7 do for l=2,9-o do local r={o,o,l,l}" +
+        "for v=-4,131 do local a,b=A(r,v,v)local c,e=A0(r,v,v)" +
+        "n=n+1 if a~=c or b~=e then d=d+1 end end end end " +
+        `self:gms(0,176,1,d)self:gms(0,176,2,n==${POSITION_PROBE_COUNT} and 1 or 0)`;
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup: probe,
+        timer: MARKER,
+      });
+      try {
+        host.tick();
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        expect(sent(host.midi, 1), "positions that differ").toEqual([0]);
+        expect(sent(host.midi, 2), "positions compared").toEqual([1]);
+      } finally {
+        host.close();
+      }
+    }
+    // (5) THE PRICE, canonical under the pinned minifier: `A` and `V` against change 17's `A`, and
+    //     against the other honest forms - the clamp written into both of `A`'s formulas (one
+    //     part), `A` handed the kind so it computes only the axis read, and a per-axis
+    //     `len>1 and ... or 0`. `V` is a name the trim freed and no library text the runtime runs
+    //     calls (the full library's `V` clears a block for `E` and `G`; `E` is the runtime's own
+    //     since change 17, `G` is never called). The bare divisor on a one-cell axis is what raised
+    //     before (the VM's own words).
+    const H0 = "glim((U(x,KX)-r[1]*64)*127//((r[3]-1)*64),0,127)";
+    const V0 = "glim(((r[2]+r[4]-1)*64-U(y,KY))*127//((r[4]-1)*64),0,127)";
+    // The shipped two are fixed points of the minifier; a measured alternative is costed as
+    // the minifier leaves it.
+    for (const text of [POSITION, AXIS]) {
+      const c = await canonical(text);
+      expect(c.rounds, c.text).toBe(0);
+    }
+    const cost = async (text: string): Promise<number> =>
+      (await canonical(text)).cost;
+    const forms = {
+      before: await cost(before.replace("A0", "A")),
+      shipped:
+        (await cost(POSITION)) +
+        (await cost(AXIS)) -
+        PINNED_ONE_CELL.positionBefore,
+      inline:
+        (await cost(
+          "function A(r,x,y)return " +
+            "glim((U(x,KX)-r[1]*64)*127//glim(r[3]-1,1,9)//64,0,127)," +
+            "glim(((r[2]+r[4]-1)*64-U(y,KY))*127//glim(r[4]-1,1,9)//64,0,127)end",
+        )) - PINNED_ONE_CELL.positionBefore,
+      kind:
+        (await cost(
+          `function A(r,x,y)local k=r[5]return k~=1 and ${H0},k~=2 and ${V0} end`,
+        )) - PINNED_ONE_CELL.positionBefore,
+      perAxis:
+        (await cost(
+          `function A(r,x,y)return r[3]>1 and ${H0} or 0,r[4]>1 and ${V0} or 0 end`,
+        )) - PINNED_ONE_CELL.positionBefore,
+    };
+    expect([POSITION.length, AXIS.length]).toEqual(PINNED_ONE_CELL.parts);
+    expect(forms).toEqual(PINNED_ONE_CELL.forms);
+    expect(RUNTIME_NAMES).toContain("V");
+    expect(TRIM_FREED_NAMES).toContain("V");
+    await expect(
+      createLuaHost({
+        sim: new PadSim(blankPadState()),
+        system: TOUCH_LIBRARY,
+        systemTimer: TOUCH_LIBRARY_TIMER,
+        setup: "local r={0,0,1,6}local a=(0-r[1]*64)*127//((r[3]-1)*64)",
+        timer: MARKER,
+      }),
+      "the bare divisor on a one-cell axis",
+    ).rejects.toThrow("attempt to divide by zero");
+    // (6) THE ENTRY NEVER LANDS IN THE TOUCH TIMER WHILE A RECEIVE CALLBACK IS PACKED: `V` moved
+    //     page 3's placement, and first fit put `O` in the Timer - which re-runs its body every
+    //     period, so each run made a new `O` and `Y`'s `s.touch_cb~=O` ignored every host message
+    //     (test 18 caught it). Every fixture that fits, under three and five slots, with a receive
+    //     half: `O` in another slot; the multitouch and hand-over entries alike.
+    let pinned = 0;
+    for (const s of [
+      ...FIXTURES,
+      ...MULTITOUCH_FIXTURES,
+      ...LATCH_FIXTURES,
+      ...ONE_CELL_FIXTURES,
+    ]) {
+      for (const slots of [3, 5] as const) {
+        const e = emitSurface(s, { slots });
+        if (e.receive === undefined || !e.runtime.fits) continue;
+        const slot = e.runtime.placement.find((p) => p.name === "O")?.slot;
+        expect(slot, `${s.name} (${slots})`).not.toBe("timer");
+        pinned += 1;
+      }
+    }
+    expect(pinned).toBe(PINNED_ONE_CELL.entryPinned);
+    console.log(
+      `The one-cell fader (change 18b, 2026-09-23): A ${forms.before} -> A ${POSITION.length} + V ${AXIS.length} (+${forms.shipped}); the clamp inline in A +${forms.inline}, A handed the kind +${forms.kind}, len>1 per axis +${forms.perAxis}; ${POSITION_PROBE_COUNT} positions compared before/after in the VM, 0 differ`,
+    );
+  }, 120000);
 });
+
+/** The positions test 23's probe compares: 36 boxes an axis-pair (offset o, length 2..9-o), 136 coordinates each. */
+const POSITION_PROBE_COUNT = 36 * 136;
+
+/** The figures test 23 pins, this tree, 2026-09-23 (change 18b). */
+const PINNED_ONE_CELL = {
+  /** `A` as change 17 wrote it: both divisors bare. */
+  positionBefore: 133,
+  /** `A` and `V`, shipped. */
+  parts: [83, 61] as [number, number],
+  /** Over change 17's `A`, canonical: the shipped pair, and the three forms measured beside it. */
+  forms: { before: 133, shipped: 11, inline: 14, kind: 31, perAxis: 33 },
+  /** The fixture landings (three and five slots) that fit with a receive half - every one with `O` out of the Timer. */
+  entryPinned: 19,
+};
 
 /** The figures test 22 pins, this tree, 2026-09-23 (change 18). */
 const PINNED_LATCH = {
   /** The hand-over entry: 126 over `O` (273) and over the multitouch `O` (392) alike. */
   texts: { entry: 399, entryMultitouch: 518 },
-  /** Page 3 receiving with every element Off: over - 81 characters were free across the five slots at On, and the entry wants 126, `Y`'s rows 6 and the four words 8. The Timer carries what fits nowhere (first fit's fallback). */
-  page3Off: [852, 908, 858, 1076, 905] as (number | undefined)[],
+  /** Page 3 receiving with every element Off: over - 81 characters were free across the five slots at On (69 since change 18b's `V`), and the entry wants 126, `Y`'s rows 6 and the words (three since change 18b: the knob reads On). The Timer carries what fits nowhere (first fit's fallback). */
+  page3Off: [852, 908, 858, 1088, 903] as (number | undefined)[],
   page3OffFits: false,
-  /** One element Off is the same entry, the same `Y` and one word: over whichever it is. */
+  /** One element Off is the same entry, the same `Y` and one word: over whichever it is - but the knob, which since change 18b reads On whatever it carries, so page 3 with it "Off" is page 3 (`PINNED.page3Five`). */
   page3Single: [
-    "Filter 852/908/858/1076/899 over",
-    "Space 852/908/858/1076/899 over",
-    "Turn 852/908/858/1076/899 over",
-    "Go 852/908/858/1076/899 over",
+    "Filter 852/908/858/1088/899 over",
+    "Space 852/908/858/1088/899 over",
+    "Turn 893/908/905/897/868 fits",
+    "Go 852/908/858/1088/899 over",
   ],
   /** Every element Off and receiving: the three combinations carrying a fader, the button, the pad and the knob - the three change 11 put over beside a multitouch pad. */
   over: ["vbxk", "hbxk", "vhbxk"],
@@ -2792,7 +3068,7 @@ const PINNED_LATCH = {
 /** The figures test 16 pins, this tree, 2026-09-18 (change 11). */
 const PINNED_MULTITOUCH = {
   texts: { release: 243, entry: 392, xy: 509 },
-  five: 3010,
+  five: 3022,
   /** Every subset of the other kinds beside the pad but the three that carry a fader, the button AND the knob. */
   fits: [
     "x",
@@ -2810,25 +3086,25 @@ const PINNED_MULTITOUCH = {
     "bxk",
   ],
   over: ["vbxk", "hbxk", "vhbxk"],
-  /** 255/6, 255/0, 255/4, the Timer (over by 170), the Setup (change 17: the receive half, the Setup the fifth slot). */
-  page3Five: [863, 880, 852, 1076, 893] as (number | undefined)[],
+  /** 255/6, 255/0, 255/4, the Timer (over by 180 since change 18b's `V`; 170 before), the Setup (change 17: the receive half, the Setup the fifth slot). */
+  page3Five: [863, 880, 852, 1088, 893] as (number | undefined)[],
   /** Change 17: the tail defaults and the receive assignment are the Timer's, so the price is one digit on the pad's seventh column and two on its channel word (a multitouch pad does not receive: 128). */
   setupPriceOnePad: 3,
 };
 
-/** The figures pinned by test 7, this tree (change 10B; 10C - `R` 22 shorter; change 17, 2026-09-23 - the types, the receive half, `A`, `E=R`, the Setup the fifth slot). */
+/** The figures pinned by test 7, this tree (change 10B; 10C - `R` 22 shorter; change 17, 2026-09-23 - the types, the receive half, `A`, `E=R`, the Setup the fifth slot; change 18b, 2026-09-23 - `V`, the one-cell guard, 12 more wherever `A` is: 11 and a separator). */
 const PINNED = {
   /** `Y` beside every branch. */
   receive: 540,
-  five: 2908,
-  four: 2305,
+  five: 2920,
+  four: 2317,
   knobShare: 603,
   /** Two slots: the receive half packed with the runtime (the fader receives). */
-  oneFaderTwoSlots: 2007,
-  page3Two: 3560,
-  page3Three: [2683, 893] as [number, number | undefined],
-  /** 255/6, 255/0, 255/4, the Timer, the Setup (which carries `Q`, `A` and `K` since change 17). */
-  page3Five: [893, 908, 852, 906, 900] as (number | undefined)[],
+  oneFaderTwoSlots: 2019,
+  page3Two: 3572,
+  page3Three: [2695, 893] as [number, number | undefined],
+  /** 255/6, 255/0, 255/4, the Timer, the Setup (change 17: the Setup carried `Q`, `A` and `K`; change 18b: `Q`, `D` and `A`, `V` the Timer's, 69 free across the five where there were 81). */
+  page3Five: [893, 908, 905, 897, 868] as (number | undefined)[],
   /** Two slots carry no kind at all since change 10B; three (the runtime alone, no receive half) one kind alone since change 17. */
   fitsTwo: [] as string[],
   fitsThree: ["v", "h", "vh", "b", "x", "k"],

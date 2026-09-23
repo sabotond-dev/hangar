@@ -1,7 +1,7 @@
-// The emitter's tests (13-14 task 02; change 10B added the eighth and moved the figures, change 11 the ninth, change 18 the tenth): the
+// The emitter's tests (13-14 task 02; change 10B added the eighth and moved the figures, change 11 the ninth, change 18 the tenth, change 18b the eleventh): the
 // costs at the picker corner under two, three and five slots, the dead-branch pair, the map and
 // the rows, both class gates, the library's names, the brightness, the blank, and the change 10B
-// tail with the five-slot pack and the cap floor, and Latch's channel-word bit. Each loops over its surfaces and names the
+// tail with the five-slot pack and the cap floor, Latch's channel-word bit, and every surface's faders and pads run in the VM. Each loops over its surfaces and names the
 // surface in its message.
 //
 // EVERY FIGURE HERE IS MEASURED IN THIS TREE under the pinned `GridScript.compressScript` after
@@ -69,7 +69,6 @@ import { buildCellMap } from "./geometry";
 import { LANDING_SLOTS, landSurface } from "./land";
 import { TRIMMED_LIBRARY, TRIMMED_LIBRARY_TIMER } from "./library-trim";
 import {
-  BRANCH_TEXT,
   ENTRY,
   HAND_OVER_TEXT,
   MULTITOUCH_TEXT,
@@ -98,6 +97,7 @@ import {
   hasMultitouch,
   maxOf,
   minOf,
+  takesLatch,
   seventhOf,
   touchesOf,
   withBrightness,
@@ -1089,12 +1089,15 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         name,
         s.regions.map((r) => ({ ...r, latchTouch: false })),
       );
-    // THE ROW: the eighth column 512 higher on an Off region, every other column as it was.
+    // THE ROW: the eighth column 512 higher on an Off region, every other column as it was - on
+    // every kind that carries Latch; a knob's row does not move at all (change 18b: it reads On).
     for (const r of [...PAGE3_OPTIONS.regions, ...EIGHT.regions]) {
       const row = regionRow(r);
       expect(regionRow({ ...r, latchTouch: true }), r.name).toEqual(row);
       const offRow = regionRow({ ...r, latchTouch: false });
-      expect(offRow[7] - row[7], r.name).toBe(HAND_OVER_BIT);
+      expect(offRow[7] - row[7], r.name).toBe(
+        takesLatch(r.kind) ? HAND_OVER_BIT : 0,
+      );
       expect([...offRow.slice(0, 7), ...offRow.slice(8)]).toEqual([
         ...row.slice(0, 7),
         ...row.slice(8),
@@ -1116,6 +1119,10 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
             const on = channelWord(r);
             const w = channelWord({ ...r, latchTouch: false });
             expect(on).toBeLessThan(192);
+            if (kind === "knob") {
+              expect(w, "a knob stored Off reads On (change 18b)").toBe(on);
+              continue;
+            }
             expect(w).toBeGreaterThan(479);
             expect([
               lua(w, 16),
@@ -1135,7 +1142,30 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     // The table stays a fixed point of the minifier with the bit in it.
     const marked = renderRegionTable(off(PAGE3, "p").regions);
     expect((await canonical(marked)).rounds).toBe(0);
-    // THE SWAP: the entry and `Y`'s rows are the hand-over's exactly when an element is Off.
+    // THE SWAP: the entry and `Y`'s rows are the hand-over's exactly when an element is Off - and
+    // a knob stored Off (change 18b) is no Off element: page 3 with it is page 3, byte for byte.
+    const strings = (e: Emitted) => [
+      e.setup,
+      e.timer,
+      e.mapmode,
+      e.system,
+      e.systemTimer,
+    ];
+    for (const slots of SLOT_COUNTS) {
+      const knobOff = emitSurface(
+        surface(
+          PAGE3.name,
+          PAGE3.regions.map((r) =>
+            r.kind === "knob" ? { ...r, latchTouch: false } : r,
+          ),
+        ),
+        { slots },
+      );
+      expect(knobOff.handOver, `${slots}: a knob Off`).toBe(false);
+      expect(strings(knobOff)).toEqual(
+        strings(emitSurface(surface(PAGE3.name, PAGE3.regions), { slots })),
+      );
+    }
     for (const slots of SLOT_COUNTS) {
       const plain = emitSurface(PAGE3, { slots });
       const one = emitSurface(
@@ -1156,12 +1186,14 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       expect(all(one)).toContain(receivePart({ rows: true }, true));
       expect(all(one)).not.toContain(receivePart({ rows: true }));
     }
-    // THE ENCODINGS, MEASURED, every element Off: the price over the surface at On of (a) a keyed
-    // field `,h=1` after the numbered columns - nothing else reads it, the entry's read `J[g].h`;
-    // (b) a flag-word bit, 8 - the tail forced where it was omitted (`,0,127,8`), and two texts
-    // every surface carries read column 14 whole (`R`'s spring test `f//4>0`, the knob's `m`), each
-    // a variant of its own, the entry's read `J[g][14]>7`; (c) the channel-word bit, 512 (the one
-    // shipped) - the word's digits, `Y`'s rows the variant, the entry's read `J[g][8]>479`.
+    // THE ENCODINGS, MEASURED, every element that carries Latch Off (change 18b: not a knob): the
+    // price over the surface at On of (a) a keyed field `,h=1` after the numbered columns - nothing
+    // else reads it, the entry's read `J[g].h`; (b) a flag-word bit, 8 - the tail forced where it
+    // was omitted (`,0,127,8`), and `R`'s spring test, which reads column 14 whole (`f//4>0`), a
+    // variant (change 18 also priced the knob's `m`, which reads it whole too; since 18b no knob
+    // carries the bit, so the knob's text needs none), the entry's read `J[g][14]>7`; (c) the
+    // channel-word bit, 512 (the one shipped) - the word's digits, `Y`'s rows the variant, the
+    // entry's read `J[g][8]>479`.
     const keyedRow = (r: Region): string => `{${regionRow(r).join(",")},h=1}`;
     const flagRow = (r: Region): string => {
       const tail = regionTail(r);
@@ -1172,23 +1204,18 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       `{${regionRow({ ...r, latchTouch: false }).join(",")}}`;
     const rowPrice = (s: Surface, form: (r: Region) => string) =>
       s.regions
-        .filter((r) => r.kind !== "blank")
+        .filter((r) => takesLatch(r.kind))
         .reduce(
           (n, r) => n + form(r).length - `{${regionRow(r).join(",")}}`.length,
           0,
         );
     const costOfText = async (text: string) => (await canonical(text)).cost;
-    const knobReader =
-      (await costOfText(
-        BRANCH_TEXT.knob.replace("local m,a=r[14]", "local m,a=r[14]%8"),
-      )) - BRANCH_TEXT.knob.length;
     const receiveRows = receivePart({ rows: true });
     const readers = {
       keyed: 0,
       flag:
         (await costOfText(RELEASE.replace("f//4>0", "f//4%2>0"))) -
-        RELEASE.length +
-        knobReader,
+        RELEASE.length,
       channel:
         (await costOfText(receivePart({ rows: true }, true))) -
         receiveRows.length,
@@ -1203,11 +1230,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     const totals: Record<string, [number, number, number]> = {};
     for (const s of [PAGE3, PAGE3_OPTIONS, EIGHT, SIXTEEN]) {
       const a = rowPrice(s, keyedRow) + readers.keyed + entryRead.keyed;
-      const b =
-        rowPrice(s, flagRow) +
-        readers.flag +
-        entryRead.flag -
-        (s.regions.some((r) => r.kind === "knob") ? 0 : knobReader);
+      const b = rowPrice(s, flagRow) + readers.flag + entryRead.flag;
       const c = rowPrice(s, channelRow) + readers.channel + entryRead.channel;
       totals[s.name] = [a, b, c];
       table.push(`${s.name} ${a} / ${b} / ${c}`);
@@ -1234,6 +1257,113 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     expect(five).toEqual(PINNED.latchFive);
     console.log(["Latch, the encoding (change 18):", ...lines].join("\n"));
   }, 120000);
+  it("11. every surface here RUN, not only measured (change 18b): landed on five slots in a real Lua VM, every fader - the twelve's and the sixteen's 1 x 6 among them, and the representative 1 x 2 the cap floor grows by - and every XY pad takes a finger from its low end to its high end and sends on its own channel; an absolute controller exactly its min then its max; nothing raises", async () => {
+    const lines: string[] = [];
+    const typed: Surface = {
+      ...SIXTEEN,
+      name: "Sixteen typed",
+      regions: SIXTEEN.regions.map((r, i) => ({ ...r, cc: i + 1, channel: 1 })),
+    };
+    const off = (s: Surface): Surface =>
+      surface(
+        `${s.name} off`,
+        s.regions.map((r) => ({ ...r, latchTouch: false })),
+      );
+    // The cap floor's representative (cost.ts) at the smallest vertical size the editor allows,
+    // one cell wide: a channel pressure on 16, Receive off, Latch Off, relative at full with the
+    // spring at 100, min 127 and max 100 - four of them side by side.
+    const floor = surface(
+      "Floor",
+      [0, 1, 2, 3].map((col) =>
+        representativeRegion(col + 1, col, 0, { w: 1, h: 2 }),
+      ),
+    );
+    const surfaces: Surface[] = [
+      ONE,
+      PAGE3,
+      EIGHT,
+      TWELVE,
+      SIXTEEN,
+      FOUR_FADERS,
+      PAGE3_OPTIONS,
+      PAGE3_TOUCHES,
+      typed,
+      off(EIGHT),
+      off(TWELVE),
+      off(SIXTEEN),
+      floor,
+    ];
+    for (const s of surfaces) {
+      const e = emitSurface(atPickerCorner(s), { slots: 5 });
+      const sim = new PadSim(blankPadState());
+      const host = await createLuaHost({
+        sim,
+        system: e.system as string,
+        systemTimer: e.systemTimer as string,
+        setup: `self.tim=__hangar_timer ele={{map=function(s)${e.mapmode} end}}${e.setup}`,
+        timer: e.timer,
+      });
+      let ran = 0;
+      try {
+        host.tick();
+        for (const r of s.regions) {
+          if (r.kind !== "fader" && r.kind !== "xy") continue;
+          // Low end to high end: a vertical fader bottom to top, a horizontal one left to
+          // right, a pad bottom-left to top-right.
+          const horizontal =
+            r.kind === "fader" && r.orientation === "horizontal";
+          const from: [number, number] = horizontal
+            ? [KX[r.col], KY[r.row]]
+            : [KX[r.col], KY[r.row + r.h - 1]];
+          const to: [number, number] = horizontal
+            ? [KX[r.col + r.w - 1], KY[r.row]]
+            : [KX[r.col + r.w - 1], KY[r.row]];
+          const before = host.midi.length;
+          host.touchDown(0, ...from);
+          host.tick();
+          host.touchMove(0, ...to);
+          host.tick();
+          host.touchUp(0, ...to);
+          host.tick();
+          const mine = host.midi
+            .slice(before)
+            .filter((m) => m.ch === r.channel - 1);
+          expect(
+            mine.length,
+            `${s.name} / ${r.name} sent nothing`,
+          ).toBeGreaterThan(0);
+          const absoluteCc =
+            (r.mode ?? "absolute") === "absolute" &&
+            (r.output ?? "cc") === "cc";
+          if (absoluteCc) {
+            const on = (cc: number) =>
+              mine.filter((m) => m.cmd === 176 && m.p1 === cc).map((m) => m.p2);
+            expect(on(r.cc), `${s.name} / ${r.name}`).toEqual([
+              minOf(r),
+              maxOf(r),
+            ]);
+            if (r.kind === "xy")
+              expect(on(r.cc2 ?? -1), `${s.name} / ${r.name} Y`).toEqual([
+                minOf(r),
+                maxOf(r),
+              ]);
+          }
+          ran += 1;
+        }
+        host.run(25);
+        expect(host.errors, `${s.name}: ${host.errors.join(" | ")}`).toEqual(
+          [],
+        );
+      } finally {
+        host.close();
+      }
+      lines.push(`${s.name} ${ran}`);
+    }
+    console.log(
+      `Run in the VM on five slots, faders and pads per surface (change 18b): ${lines.join(", ")}`,
+    );
+    expect(lines).toEqual(PINNED.ran);
+  }, 120000);
 });
 
 /** The figures pinned above, this tree, 2026-09-18 (change 10B). */
@@ -1250,42 +1380,59 @@ const PINNED = {
   floorFromEmpty: [11, "budget"] as [number, string],
   /** M 169 (the research's 165), J at four rows 151 (13-15's 155 with the frame), the paint 128 (13-14's 101 plus layer 2's colour). */
   parts: [169, 151, 128],
-  /** Change 17: the receive half beside every branch, and the Setup's share of it. */
-  deadBranches: [2402, 3970, 1568],
-  /** Change 17: the Setup the fifth slot, the exact search placing what first fit could not. */
+  /** Change 17: the receive half beside every branch, and the Setup's share of it; change 18b: 12 more on both sides (`V`, 11 and a separator), the saving the same. */
+  deadBranches: [2414, 3982, 1568],
+  /** Change 17: the Setup the fifth slot, the exact search placing what first fit could not; change 18b: `V` among the parts (the Timer's), and the entry kept out of the Timer. */
   page3Placement: [
-    "R:timer",
-    "O:systemTimer",
-    "Q:setup",
-    "D:mapmode",
+    "R:mapmode",
+    "O:setup",
+    "Q:systemTimer",
+    "D:systemTimer",
     "A:setup",
-    "K:setup",
-    "I[1]:mapmode",
-    "I[3]:mapmode",
+    "V:timer",
+    "K:mapmode",
+    "I[1]:timer",
+    "I[3]:timer",
     "I[4]:system",
     "I[5]:systemTimer",
-    "Y:timer",
+    "Y:mapmode",
   ],
   /** J's price for every option on: 36 at change 10B; 38 since change 17 (the note button's channel word -17, where its flag bit was). */
   page3OptionsPrice: 38,
   /** Change 17: the pad's seventh column 103 -> 359 keeps its three digits; its channel word 15 -> 143 (a multitouch pad does not receive) is one more. */
   touchesSetupPrice: 1,
-  /** Page 3 with the pad at three fingers AND the knob: the Timer over by this much (runtime.spec.ts test 16). */
-  page3TouchesKnobOver: 168,
-  /** Change 18: what each Latch encoding makes its readers pay - a keyed field nothing, a flag bit `R`'s spring test and the knob's mode (`%2`, `%8`), the channel bit `Y`'s rows (`%512` once, into a local). */
-  latchReaders: { keyed: 0, flag: 5, channel: 6 },
-  /** Change 18: every element Off, over the surface at On - keyed field / flag bit / channel bit, rows + readers + the entry's read. The channel bit is the cheapest on every one. */
+  /** Page 3 with the pad at three fingers AND the knob: the Timer over by this much (runtime.spec.ts test 16; change 18b: 168 -> 180, `V`). */
+  page3TouchesKnobOver: 180,
+  /** Change 18: what each Latch encoding makes its readers pay - a keyed field nothing, a flag bit `R`'s spring test (`%2`; the knob's mode `%8` too until change 18b took Latch off the knob: 5 -> 2), the channel bit `Y`'s rows (`%512` once, into a local). */
+  latchReaders: { keyed: 0, flag: 2, channel: 6 },
+  /** Change 18: every element Off, over the surface at On - keyed field / flag bit / channel bit, rows + readers + the entry's read. The channel bit was the cheapest on every one; since change 18b (no knob carries Latch: page 3 prices three rows, not four, and the flag bit loses the knob's reader) it is still the cheapest on eight and sixteen elements - where the budget binds - and no longer on page 3 (the keyed field 2 less) or page 3 with every option (the flag bit 5 less). The encoding stays: re-encoding is not change 18b's. */
   latchEncodings: {
-    "Page 3": [22, 39, 21],
-    "Page 3 options": [22, 18, 19],
+    "Page 3": [18, 36, 20],
+    "Page 3 options": [18, 14, 19],
     Eight: [38, 76, 25],
     Sixteen: [70, 140, 33],
   } as Record<string, [number, number, number]>,
-  /** Change 18: 255/6, 255/0, 255/4, the Timer, the Setup at the corner, On -> every element Off (the hand-over entry, 121 more, and `Y`'s rows, 6). */
+  /** Change 18: 255/6, 255/0, 255/4, the Timer, the Setup at the corner, On -> every element Off (the hand-over entry, 126 more, and `Y`'s rows, 6); change 18b: `V` beside `A` (12), the packer re-placing - every one still fits, the sixteen's Setup still 908. */
   latchFive: [
-    "Four faders 830/903/558/111/482 fits -> 907/791/725/111/486 fits",
-    "Eight 852/907/832/231/614 fits -> 858/907/824/365/622 fits",
-    "Twelve 852/907/832/231/758 fits -> 858/907/824/365/770 fits",
-    "Sixteen 852/907/832/231/892 fits -> 858/907/824/365/908 fits",
+    "Four faders 892/903/508/111/482 fits -> 907/875/653/111/486 fits",
+    "Eight 852/907/894/181/614 fits -> 858/907/908/293/622 fits",
+    "Twelve 852/907/894/181/758 fits -> 858/907/908/293/770 fits",
+    "Sixteen 852/907/894/181/892 fits -> 858/907/908/293/908 fits",
+  ],
+  /** Change 18b (test 11): the faders and pads run per surface - every one of them sent. */
+  ran: [
+    "One 1",
+    "Page 3 2",
+    "Eight 4",
+    "Twelve 8",
+    "Sixteen 8",
+    "Four faders 4",
+    "Page 3 options 2",
+    "Page 3 touches 2",
+    "Sixteen typed 8",
+    "Eight off 4",
+    "Twelve off 8",
+    "Sixteen off 8",
+    "Floor 4",
   ],
 };
