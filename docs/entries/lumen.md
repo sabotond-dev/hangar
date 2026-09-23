@@ -541,3 +541,38 @@ compressScript does not strip them: a trailing comment was measured surviving
 verbatim into the budget. Everything worth saying about this configuration is
 said here, in TypeScript, where it costs nothing.
 ```
+
+## Change 17B, 2026-09-23: the Hue and Depth outputs, the cursor received, the pull-in (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+LUMEN sent one pair through the library's `A` - `@CC` for x and `@CC+1` for 127-y on one channel. Per output (answer 3) the two axes are two outputs, "Hue" and "Depth", continuous, each with Type, Channel, Number and Receive. The sysex
+colour report is not a MIDI voice output and is unchanged.
+
+- **Knobs.** Hue keeps the old two: `@CC` (`cc`, relabelled "Hue controller") all of 0..127 with its four old rungs
+  first; `@CH` (`channel`, "Hue MIDI channel") all sixteen in order (it was 0, 1, 9, 15 under kind `mode`; a saved copy
+  at index 2 or 3 reopens on the third or fourth channel). Appended: `@XT` `@XR` (Hue's Type and Receive), `@YT`
+  `@YCH` `@YCC` `@YR` (Depth's four; `@YCC` 17 by default - the old `@CC+1` - and not `@CCY`, of which `@CC` would be a
+  prefix). LUMEN's captured wild stamp lands `unreadable` (a grown rack, the known pattern); its null default record
+  still carries no stamp. The catalog's knob floor now counts every knob (LUMEN keeps two outside its outputs); the
+  cap of six still counts the knobs outside them.
+- **The send.** `A` sends controllers only on one channel, so LUMEN inlines it: the same per-contact last pair in the
+  library's `P[i]`, the same `e<4` gate (a press primes, a move sends), each axis through `M(t,c,n,o)` on its own type,
+  channel and number. At the defaults the wire is `A`'s, message for message - `lua-smoke.spec.ts`'s 12-11 comparison
+  against a bare `A` still passes. **The library's `A` has no caller now**; `library.ts` is untouched (dropping it would
+  move every card's system records), recorded for the next library change.
+- **The receive.** The host's message on an output's type, channel and (a controller) number sets that axis of the
+  held pair `s.u, s.v` (Depth's value is `127 - y`; the finger writes the pair too), and the cursor moves to the cell
+  the pair picks through the calibrated map, `C(N(s.u,s.v))`: the pad shows the colour the DAW's value is. Nothing is
+  sent back - no controller, no sysex. The other axis keeps the finger's last value (the top-left before any finger).
+- **Where it lives - the pull-in.** The Setup was 733; the typed per-axis send and the receive took a one-event draft
+  to 1,009. LUMEN is a still card (the listing says `static`), so an armed Timer is refused (it would read as motion at
+  tick 0). The Timer body holds the hex digit, the typed sender and the receive; the Setup declares `local s,M,D=self`,
+  defines its handler over them, calls `s:tim()` (the body runs once, synchronously, arming nothing - `33fc889`) and
+  takes `M,D=s.m,s.h`. The field paint stays in the Setup (the picture at tick 0 is the Setup's), and `self.f` hands
+  the cursor mover to the receive.
+- **Latch: already latched** - the whole pad is one control; a finger moving across it is the gesture.
+- **Cost:** Setup 730 / 733 -> 878 / 882 (defaults / corner; 26 free), Timer 0 -> 457 / 461. frames.json and the OG
+  image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "LUMEN: the Hue and Depth outputs ...": no Timer armed; 12-11's gesture sends 16 = 61
+  and 17 = 65 on channel 0 as `A` did; a received Hue 0, Depth 0 and Hue 127 walk the cursor to cells 0, 72 and 80,
+  nothing sent back (no controller, no sysex), four mismatches ignored; Hue as a pitch bend on wire channel 2 and Depth
+  on controller 40 channel 5 sent and received; Hue's Receive Off ignores Hue while Depth still receives.

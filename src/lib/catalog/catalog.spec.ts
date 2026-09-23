@@ -265,8 +265,11 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
       expect(outputProblems(entry), `${entry.id}: its MIDI outputs`).toEqual(
         [],
       );
+      // The floor counts every knob (change 17B): LUMEN's two MIDI knobs became two output blocks,
+      // leaving it two knobs outside them - still twelve a visitor can turn. The cap counts the
+      // knobs outside the outputs.
       expect(
-        counted,
+        entry.knobs.length,
         `${entry.id}: a Lua entry carries three to six knobs`,
       ).toBeGreaterThanOrEqual(3);
       // TUNE-01's six is lifted for the sync cards by the user's word (change 8, 2026-09-18,

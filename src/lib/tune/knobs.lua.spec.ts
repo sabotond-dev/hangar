@@ -43,8 +43,9 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       );
       // Change 17: the knobs a MIDI output names are its block's and do not count.
       const outputKnobs = roleOfKnob(entry).size;
+      // The floor counts every knob (change 17B: LUMEN keeps two outside its outputs).
       expect(
-        descriptors.length - outputKnobs,
+        descriptors.length,
         `${entry.id} knob count`,
       ).toBeGreaterThanOrEqual(3);
       // ORBIT carries fourteen by the user's word (change 8, 2026-09-18), and the three cards that
@@ -93,6 +94,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "ghost.cc (128)",
       "ghost.yCc (128)",
       "console.cc (128)",
+      "lumen.cc (128)",
+      "lumen.yCc (128)",
     ];
 
     // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).

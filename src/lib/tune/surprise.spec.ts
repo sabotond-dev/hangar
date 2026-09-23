@@ -431,7 +431,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "steps: channel",
       "console: cc, channel, midiType, midiReceive",
       "strip: cc, channel",
-      "lumen: cc, channel",
+      "lumen: cc, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
       "snake: channel",
       "quadrant: channel",
       "pomodoro: channel",
@@ -445,7 +445,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(42);
+    ).toBe(48);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,

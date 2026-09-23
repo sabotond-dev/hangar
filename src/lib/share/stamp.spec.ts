@@ -595,6 +595,7 @@ describe("the stamp: the envelope", () => {
         record.entry === "euclid" ||
         record.entry === "steps" ||
         record.entry === "ghost" ||
+        record.entry === "lumen" ||
         record.entry === "console";
       const replaced = record.entry === "chorus";
       expect(

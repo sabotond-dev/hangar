@@ -13144,4 +13144,86 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("LUMEN: the Hue and Depth outputs each send on their own Type, Channel and Number - at the defaults the pair A sent - and each receives: a host value moves the cursor to the colour it picks, sends nothing back, ignores the rest; the receive is pulled in, no Timer armed", async () => {
+    /** The cursor: the one cell whose layer-1 colour is the cursor white. */
+    const cursor = (sim: PadSim): number[] => {
+      const out: number[] = [];
+      for (let n = 0; n < 81; n++) {
+        const max = sim.layer(hwOfCell(n), 1).max;
+        if (max[0] === 255 && max[1] === 255 && max[2] === 255) out.push(n);
+      }
+      return out;
+    };
+    const gesture = (host: Awaited<ReturnType<typeof openCard>>["host"]) => {
+      host.touchDown(0, 60, 60);
+      host.tick();
+      host.touchMove(0, 61, 60);
+      host.tick();
+      host.touchMove(0, 61, 62);
+      host.tick();
+    };
+    {
+      const { host, sim } = await openCard("lumen", {}, true);
+      try {
+        expect(host.timerArmed, "the pull-in arms nothing").toBe(false);
+        gesture(host);
+        expect(wire(host.midi)).toEqual(["0:176:16:61", "0:176:17:65"]);
+        const sent = host.midi.length;
+        const sysex = host.sysex.length;
+        // RX: Hue 0 puts the cursor on the left; Depth 0 (y = 127) on the bottom row; Hue 127 right.
+        expect(host.midiIn(REPORT, 0, 176, 16, 0)).toBe(true);
+        const row = Math.floor(cursor(sim)[0] / 9);
+        expect(cursor(sim)).toEqual([row * 9]);
+        host.midiIn(REPORT, 0, 176, 17, 0);
+        expect(cursor(sim)).toEqual([72]);
+        host.midiIn(REPORT, 0, 176, 16, 127);
+        expect(cursor(sim)).toEqual([80]);
+        // Ignored: another channel, another number, a neighbour, another type.
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 1, 176, 16, 0],
+          [REPORT, 0, 176, 18, 0],
+          [14, 0, 176, 16, 0],
+          [REPORT, 0, 224, 0, 0],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(cursor(sim)).toEqual([80]);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        expect(host.sysex.length, "no sysex sent back").toBe(sysex);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // Hue a pitch bend on wire channel 2, Depth a controller 40 on 5; each received on its shape.
+    {
+      const { host, sim } = await openCard("lumen", {
+        xType: "224",
+        channel: "2",
+        yCc: "40",
+        yChannel: "5",
+      });
+      try {
+        gesture(host);
+        expect(wire(host.midi)).toEqual(["2:224:0:61", "5:176:40:65"]);
+        host.midiIn(REPORT, 2, 224, 0, 127);
+        host.midiIn(REPORT, 5, 176, 40, 0);
+        expect(cursor(sim)).toEqual([80]);
+      } finally {
+        host.close();
+      }
+    }
+    // Receive Off on Hue: its messages move nothing; Depth still receives.
+    {
+      const { host, sim } = await openCard("lumen", { xReceive: "0" });
+      try {
+        host.midiIn(REPORT, 0, 176, 16, 127);
+        expect(cursor(sim)).toEqual([]);
+        host.midiIn(REPORT, 0, 176, 17, 0);
+        expect(cursor(sim)).toEqual([72]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });
