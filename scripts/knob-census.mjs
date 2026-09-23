@@ -21,18 +21,22 @@ const { isControllerNumber, isMidiDestination } = await imp(
   "src/lib/tune/surprise.ts",
 );
 const { sectionOf } = await imp("src/lib/tune/sections.ts");
+// Change 17: a knob in a MIDI output's block is worded and drawn by its role there, as the panel does.
+const { roleOfKnob } = await imp("src/lib/tune/midi.ts");
 
 const JSON_OUT = process.argv.includes("--json");
 const rows = [];
 for (const entry of [...CATALOG].sort((a, b) => a.id.localeCompare(b.id))) {
   const knobs = stampKnobs(entry);
   const declared = new Map(entry.knobs.map((k) => [k.id, k]));
+  const roles = roleOfKnob(entry);
   for (const knob of knobs) {
     const own = declared.get(knob.id);
     const n = knob.options.length;
     const kind =
       knob.kind === "note" && isControllerNumber(knob) ? "amount" : knob.kind;
     const named = view.splitUnit(knob.label);
+    const role = roles.get(knob.id);
     const shown =
       n > 16
         ? `${knob.options.slice(0, 3).join(" ")} … ${knob.options.slice(-2).join(" ")}`
@@ -50,7 +54,7 @@ for (const entry of [...CATALOG].sort((a, b) => a.id.localeCompare(b.id))) {
       defaultIndex: knob.default,
       defaultRung: knob.options[knob.default],
       previewIndex: own?.previewIndex,
-      widget: view.widgetFor(kind, knob.options, knob.id),
+      widget: view.widgetFor(kind, knob.options, knob.id, role),
       section: sectionOf(knob),
       unit: named.unit ?? "",
       midi: isMidiDestination(knob),
@@ -60,7 +64,7 @@ for (const entry of [...CATALOG].sort((a, b) => a.id.localeCompare(b.id))) {
         knob.options.every(
           (v, i) => i === 0 || Number(v) > Number(knob.options[i - 1]),
         ),
-      words: knob.options.map((v) => view.wordFor(kind, v, knob.id)),
+      words: knob.options.map((v) => view.wordFor(kind, v, knob.id, role)),
     });
   }
 }
