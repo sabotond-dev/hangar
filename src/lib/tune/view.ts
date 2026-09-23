@@ -93,6 +93,17 @@ export type KnobView = {
    * so a typed field can map a number back to an index (13.1-07, D-09). Absent otherwise.
    */
   literals?: readonly string[];
+  /** The knob's part in a MIDI output's block (change 17), and the output's id; absent on every other knob. */
+  role?: KnobRole;
+  output?: string;
+};
+
+/** One MIDI output as the MIDI section draws it (change 17): its sub-head and its rows' knob ids by role. */
+export type OutputView = {
+  id: string;
+  name: string;
+  kind: "continuous" | "trigger";
+  knobs: Readonly<Partial<Record<KnobRole, string>>>;
 };
 
 /** Which of the two 908-character events a meter is showing. */
@@ -133,6 +144,8 @@ export type TuneView = {
    * so under Sync whenever it is not.
    */
   previewHeld: readonly string[];
+  /** The entry's MIDI outputs (change 17): one block each under MIDI; empty on a card not yet moved to the per-output model. */
+  outputs: readonly OutputView[];
 };
 
 // ---------------------------------------------------------------------------
@@ -279,6 +292,27 @@ const ID_WORDS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   arms: ARMS_WORDS,
   dim: DIM_WORDS,
   spring: RETURN_WORDS,
+};
+
+/**
+ * A knob's part in a MIDI output's block (change 17, tune/midi.ts's `OutputRole` restated - this
+ * module imports nothing): its Type and Receive are worded by the role, whatever the knob's id.
+ */
+export type KnobRole = "type" | "channel" | "number" | "receive";
+
+/** A Type knob's literals are status bytes (tune/midi.ts `MIDI_STATUS`). */
+export const MIDI_TYPE_WORDS: Readonly<Record<string, string>> = {
+  "176": "CC",
+  "224": "Pitch bend",
+  "208": "Channel pressure",
+  "144": "Note",
+  "192": "Program change",
+};
+
+/** A Receive knob's literals are the header INSTR its callback answers: 0 none (Off), 13 the host (On). */
+export const RECEIVE_WORDS: Readonly<Record<string, string>> = {
+  "0": "Off",
+  "13": "On",
 };
 
 /** The `mode` tables after the dial's own two words, tried in this order; every key is unique across them. */
@@ -448,8 +482,11 @@ export function wordFor(
   kind: KnobKindName,
   literal: string,
   id?: string,
+  role?: KnobRole,
 ): string | undefined {
   if (kind === "colour") return undefined;
+  if (role === "type") return MIDI_TYPE_WORDS[literal];
+  if (role === "receive") return RECEIVE_WORDS[literal];
   const own = id === undefined ? undefined : ID_WORDS[id]?.[literal];
   if (own !== undefined) return own;
   const table: Readonly<Record<string, string>> | undefined =
@@ -494,10 +531,14 @@ export function widgetFor(
   kind: KnobKindName,
   values: readonly string[],
   id?: string,
+  role?: KnobRole,
 ): KnobWidget {
   if (kind === "colour") return "colour";
   const n = values.length;
-  const words = values.map((v) => wordFor(kind, v, id));
+  // Change 17: a MIDI output's Type is segmented at two words (a trigger's Note / CC) and the
+  // select from three (a continuous output's: "Channel pressure" cannot share a line at 173px).
+  if (role === "type") return n <= INTEGER_WORD_ROW_MAX ? "words" : "select";
+  const words = values.map((v) => wordFor(kind, v, id, role));
   if (n > 0 && words.every((word) => word !== undefined)) {
     if (kind === "note" && n > NOTE_SELECT_MAX) return "stepper";
     const chars = words.reduce((sum, word) => sum + (word as string).length, 0);

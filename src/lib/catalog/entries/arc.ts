@@ -6,9 +6,9 @@
 // CC is glim(64+(v-128)*s.d//255+offset,0,127). THE ANIMATION IS THE DATA: columns 0..7 are a swirl
 // on layer 2 whose speed IS the rate (glf is rate-only), the 3x3 heart on layer 1 pulses at v scaled
 // by the depth, and column 8 is the offset fader - a finger's height there is a held -64..+63 added
-// to every CC, marked by one lit cell. Tap cell 40 to stop / resume. Two contacts: the fader's and
-// the swirl's. Knobs: @SWIRLC @ARMS @HEARTC @CC @CH @SHAPE. Setup 806 / Timer 437 at the corner.
-// History: docs/entries/arc.md (11-02, 11-09, 11-09.1, 12-05, 12.1-03, and change 6 of 2026-09-17).
+// to every CC, marked by one lit cell. Tap cell 40 to stop / resume. Knobs: @SWIRLC @ARMS @HEARTC @SHAPE
+// and the LFO output's block @TYPE @CH @CC @RX (change 17; a received value sets the LFO's centre).
+// History: docs/entries/arc.md (11-02, 11-09, 11-09.1, 12-05, 12.1-03, change 6 of 2026-09-17, change 17A).
 //
 // MECHANISM
 //   - Setup: `F(f)` sets layer 2's rate on all 81 cells; per cell in columns 0..7, layer 2 @SWIRLC
@@ -56,10 +56,19 @@
 //     sets both, because a MOVE never reaches the toggle.
 //
 // WHAT IT SENDS
-//   s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127),0) every Timer tick, 50 a
-//   second, running or stopped - a stopped ARC goes on sending its frozen value (one CC repeated is
-//   what makes it learnable; a silent stop would be indistinguishable from a Timer that raised),
-//   and the fader moves that held value live. At depth 0 the controller is 64 plus the offset.
+//   o = glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127) every Timer tick, 50 a second, running or
+//   stopped - a stopped ARC goes on sending its frozen value (one message repeated is what makes it
+//   learnable; a silent stop would be indistinguishable from a Timer that raised), and the fader
+//   moves that held value live. At depth 0 the value is 64 plus the offset. Since change 17 on the
+//   output's TYPE (@TYPE, the status: 176 a controller @CC,o; 224 a pitch bend 0,o - 64 is the
+//   centre; 208 a channel pressure o,0), kept in s.l as the last value sent.
+// WHAT IT RECEIVES (change 17)
+//   The host's message on the same type, channel and (a controller) number sets the LFO's CENTRE:
+//   the offset fader moves to the value (s.u, the inverse of the offset, rounded so the value comes
+//   back exactly at depth 0) and the Timer repaints its lit cell. A value equal to s.l is ARC's own
+//   coming back and is ignored. @RX is the header INSTR it answers (13 On, 0 Off). The callback is
+//   made by the TIMER, once per install - when s.touch_cb is not the one it saw (s.k) - because the
+//   Setup is 806 of 908; it acts only while that touch callback is still the element's.
 //
 // TRAPS
 //   - THE TWO glt(a,2,65535) CALLS ARE CORRECT AND MUST NOT BE REMOVED. 65535 is the keeper
@@ -95,12 +104,19 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import {
+  CHANNEL_VALUES,
+  CONTINUOUS_STATUSES,
+  RECEIVE_ON_INDEX,
+  RECEIVE_VALUES,
+  numberValues,
+} from "../../tune/midi";
 
 const SETUP =
   "--[[@cb]]local function F(f)for a=0,80 do glf(a,2,f)end end for n=0,80 do local a=glag(0,n)if n%9<8 then glc(a,2,@SWIRLC,1)glpfs(a,2,math.atan(n//9-4,n%9-4)*@ARMS//1%256,4,3)glt(a,2,65535)else glc(a,2,0,0,0,1)end glc(a,1,@HEARTC,1)glp(a,1,0)end self.r=4 self.d=127 self.h=0 self.s=1 self.f=4 self.u=256 self.c=0 self.n=1 self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then if i==s.z then s.z=nil elseif i==s.w then s.w=nil end return end local t if e==4 or e>8 then local n=N(x,y)if n%9==8 then s.z=i else s.w=s.w or i t=n==40 end end if i==s.z then s.u=U(y,KY)s.z=e<9 and i return end if i~=s.w then return end s.w=e<9 and i if t then s.s=1-s.s F(s.s<1 and 0 or s.f)return end s.d=127-y local r=1+x*31//127 if r~=s.r then s.r=r s.f=glim(r//2,1,120)if s.s>0 then F(s.f)end end end gtt(0,20)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 if p<s.h then s.n=(s.n*75+74)%65537 end s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v,c=@SHAPE,8+(s.u+32)//64*9 if c~=s.c then glp(glag(0,s.c),1,0)glp(glag(0,c),1,255)s.c=c end s:gms(@CH,176,@CC,glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127),0)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end";
+  "--[[@cb]]gtt(0,20)local s=self local p=(s.h+s.r*s.s)%256 if p<s.h then s.n=(s.n*75+74)%65537 end s.h=p if p<s.r or s.s<1 then for a=0,80 do glt(a,2,65535)end end local v,c=@SHAPE,8+(s.u+32)//64*9 if c~=s.c then glp(glag(0,s.c),1,0)glp(glag(0,c),1,255)s.c=c end local o,t=glim(64+(v-128)*s.d//255+63-s.u*127//512,0,127),@TYPE s.l=o s:gms(@CH,t,t==208 and o or t>223 and 0 or @CC,t==208 and 0 or o)for j=-1,1 do for k=-1,1 do glp(glag(0,40+j*9+k),1,v*s.d//127)end end if s.k~=s.touch_cb then s.k=s.touch_cb s.midirx_cb=function(s,h,v)if s.k==s.touch_cb and h[1]==@RX and v[1]==@CH and v[2]==@TYPE and(@TYPE>207 or v[3]==@CC)then local w=@TYPE==208 and v[3]or v[4]if w~=s.l then s.u=-((w-127)*512//127)end end end end";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -116,9 +132,9 @@ export const ARC: CatalogEntry = {
   source: SOURCE,
   preview: previewFor(SOURCE),
 
-  // Six knobs, each one literal token substitution (TUNE-01); every default is the INDEX of
-  // the value that reproduces the canonical text. The wave is last so a record's five older
-  // indices still land on the first five.
+  // Eight knobs, each one literal token substitution (TUNE-01); every default is the INDEX of
+  // the value that reproduces the canonical text. The wave, then change 17's type and receive, are
+  // last so a record's older indices still land on the knobs they were.
   knobs: [
     {
       id: "swirlColour",
@@ -166,9 +182,10 @@ export const ARC: CatalogEntry = {
       label: "CC number",
       kind: "amount",
       token: "@CC",
-      // The controller the LFO is sent on: 1 the modulation wheel, 74 filter cutoff by
-      // convention, 16 and 20 general-purpose.
-      values: ["1", "16", "20", "74", "102"],
+      // The controller the LFO is sent on, 0..127 (change 17): the five it offered before first
+      // (1 the modulation wheel, 16 and 20 general-purpose, 74 filter cutoff by convention, 102),
+      // so a saved copy's index lands on its controller, then the rest ascending.
+      values: numberValues(["1", "16", "20", "74", "102"]),
       default: 1,
     },
     {
@@ -177,24 +194,7 @@ export const ARC: CatalogEntry = {
       kind: "amount",
       token: "@CH",
       // ZERO-BASED, the first argument of gms (zona-docs/docs/ZONA_RECIPES.md:1058).
-      values: [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9",
-        "10",
-        "11",
-        "12",
-        "13",
-        "14",
-        "15",
-      ],
+      values: CHANNEL_VALUES,
       default: 0,
     },
     {
@@ -215,9 +215,43 @@ export const ARC: CatalogEntry = {
       ],
       default: 3,
     },
+    {
+      id: "midiType",
+      label: "MIDI type",
+      kind: "mode",
+      token: "@TYPE",
+      // The LFO output's type (change 17): the status byte - a controller, a pitch bend, a
+      // channel pressure; worded by view.ts's MIDI_TYPE_WORDS through the output's role.
+      values: CONTINUOUS_STATUSES,
+      default: 0,
+    },
+    {
+      id: "midiReceive",
+      label: "MIDI receive",
+      kind: "mode",
+      token: "@RX",
+      // The header INSTR the callback answers: 13 the host's REPORT (On), 0 nothing (Off).
+      values: RECEIVE_VALUES,
+      default: RECEIVE_ON_INDEX,
+    },
   ],
 
-  // The same six indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
+  // The one output (change 17): the LFO, continuous, its four rows in the MIDI section.
+  outputs: [
+    {
+      id: "lfo",
+      name: "LFO",
+      kind: "continuous",
+      tokens: {
+        type: "@TYPE",
+        channel: "@CH",
+        number: "@CC",
+        receive: "@RX",
+      },
+    },
+  ],
+
+  // The same eight indices keyed by knob id, the shape the tune panel reads; catalog.spec.ts
   // asserts the two agree.
   defaults: {
     swirlColour: 0,
@@ -226,6 +260,8 @@ export const ARC: CatalogEntry = {
     cc: 1,
     channel: 0,
     shape: 3,
+    midiType: 0,
+    midiReceive: RECEIVE_ON_INDEX,
   },
 
   // FALSE: the swirl is armed at Setup, so the card is lit and moving from the first tick.

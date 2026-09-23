@@ -12,6 +12,22 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  CHANNEL_VALUES,
+  CONTINUOUS_STATUSES,
+  RECEIVE_VALUES,
+  numberValues,
+  outputProblems,
+  resolveOutputs,
+  roleOfKnob,
+  typeValues,
+} from "../tune/midi";
+import { MIDI_TYPE_WORDS, RECEIVE_WORDS, wordFor } from "../tune/view";
+import {
+  OUTPUT_ROLE_LABELS,
+  PER_OUTPUT,
+  SAME_CHANNEL,
+} from "../tune/inspector-copy";
 // The copy module imports NOTHING (its own header says why), so naming it here
 // costs this file no chunk and lets the source scans below check a component
 // against the sentence it is supposed to be rendering rather than a copy of it.
@@ -1447,7 +1463,10 @@ describe("the tuning UI's structural rules", () => {
     expect(midi, "the MIDI section hands its knobs to the rack").not.toContain(
       "<KnobRack",
     );
-    expect(midi).toContain("{#each grouped.midi as knob (knob.id)}");
+    // Change 17: the outputs' blocks, then the MIDI knobs no output names.
+    expect(midi).toContain("{#each outputViews as out (out.id)}");
+    expect(midi).toContain("{#each blockRows(out) as knob (knob.id)}");
+    expect(midi).toContain("{#each looseMidi as knob (knob.id)}");
     expect(midi).toContain(
       "<MidiField {knob} onchange={changeKnob} onreset={resetKnob} />",
     );
@@ -1590,15 +1609,21 @@ describe("the tuning UI's structural rules", () => {
       for (const k of stampKnobs(entry)) {
         const kind =
           k.kind === "note" && isControllerNumber(k) ? "amount" : k.kind;
-        const widget = widgetFor(kind, k.options, k.id);
+        // Change 17: a knob in a MIDI output's block is worded by its role (model.ts reads it so).
+        const widget = widgetFor(
+          kind,
+          k.options,
+          k.id,
+          roleOfKnob(entry).get(k.id),
+        );
         expect(renderable.has(widget), `${entry.id}.${k.id}`).toBe(true);
         split[widget] = (split[widget] ?? 0) + 1;
       }
     }
     expect(
       split,
-      "the shelf's widget split moved: 138 knobs on 27 cards (docs/TUNING-REVIEW.md)",
-    ).toEqual({ colour: 39, words: 30, select: 10, stepper: 59 });
+      "the shelf's widget split moved: 140 knobs on 27 cards (docs/TUNING-REVIEW.md; change 17 added ARC's Type, a select, and Receive, a words row)",
+    ).toEqual({ colour: 39, words: 31, select: 11, stepper: 59 });
   });
 
   it("MIDI is one typed stepper row per MIDI knob over its closed list: the literal shown, a typed value mapped to its index or refused with the offered values, the cue on a Lua channel", () => {
@@ -1615,14 +1640,11 @@ describe("the tuning UI's structural rules", () => {
     const channel = ARC.knobs.find((knob) => knob.id === "channel");
     expect(cc, "Arc has a cc knob").toBeDefined();
     expect(channel, "Arc has a channel knob").toBeDefined();
-    const ccLiterals = cc!.values;
-    expect(ccLiterals, "Arc's cc list is the one D-09 ledgers").toEqual([
-      "1",
-      "16",
-      "20",
-      "74",
-      "102",
-    ]);
+    // Arc's CC is 0..127 since change 17 (its five old rungs first); D-09's ledgered list of
+    // five is the fixture the door is read against, as a literal.
+    expect(cc!.values.slice(0, 5)).toEqual(["1", "16", "20", "74", "102"]);
+    expect(cc!.values).toHaveLength(128);
+    const ccLiterals = ["1", "16", "20", "74", "102"];
     const channelLiterals = channel!.values;
     expect(channelLiterals[0], "a Lua channel is zero-based (X-08)").toBe("0");
     expect(channelLiterals).toHaveLength(16);
@@ -2392,4 +2414,192 @@ describe("the tuning UI's structural rules", () => {
       tuner.destroy();
     }
   });
+
+  it("the MIDI outputs (change 17): an entry declares each output - its name, continuous or trigger, the knobs its Type, Channel, Number and Receive are - and the view carries the blocks and each knob's role; Type and Receive are worded by the role; the region draws Same channel for all, a block per output under its name, the number row gone under a pitch bend or a channel pressure; ARC's LFO is the first", async () => {
+    // THE LADDERS every card declares an output with (tune/midi.ts).
+    expect(CONTINUOUS_STATUSES).toEqual(["176", "224", "208"]);
+    expect(
+      typeValues({
+        id: "t",
+        name: "T",
+        kind: "trigger",
+        tokens: { type: "@T", channel: "@C" },
+      }),
+    ).toEqual(["144", "176"]);
+    expect(
+      typeValues({
+        id: "t",
+        name: "T",
+        kind: "trigger",
+        once: true,
+        tokens: { type: "@T", channel: "@C" },
+      }),
+    ).toEqual(["144", "176", "192"]);
+    expect(CHANNEL_VALUES).toEqual(
+      Array.from({ length: 16 }, (_, i) => String(i)),
+    );
+    expect(numberValues()).toHaveLength(128);
+    expect(numberValues(["74", "1"]).slice(0, 3)).toEqual(["74", "1", "0"]);
+    expect(new Set(numberValues(["74", "1"])).size).toBe(128);
+    expect(RECEIVE_VALUES).toEqual(["0", "13"]);
+    // ARC's one output, resolved; its declaration holds, and a broken one is named.
+    expect(resolveOutputs(ARC)).toEqual([
+      {
+        id: "lfo",
+        name: "LFO",
+        kind: "continuous",
+        knobs: {
+          type: "midiType",
+          channel: "channel",
+          number: "cc",
+          receive: "midiReceive",
+        },
+      },
+    ]);
+    expect(outputProblems(ARC)).toEqual([]);
+    const broken = {
+      ...ARC,
+      outputs: [
+        {
+          id: "lfo",
+          name: "LFO",
+          kind: "trigger" as const,
+          tokens: { type: "@TYPE", channel: "@NOPE" },
+        },
+      ],
+    };
+    expect(outputProblems(broken)).toEqual([
+      "arc output lfo: the Type's literals are not its types",
+      "arc output lfo: channel names no knob (@NOPE)",
+    ]);
+    // THE WORDS by role, whatever the id: the Type three words (segmented), Receive two.
+    expect(wordFor("mode", "224", "midiType", "type")).toBe("Pitch bend");
+    expect(wordFor("mode", "13", "anything", "receive")).toBe("On");
+    expect(wordFor("mode", "224", "midiType")).toBeUndefined();
+    expect(widgetFor("mode", CONTINUOUS_STATUSES, "midiType", "type")).toBe(
+      "select",
+    );
+    expect(widgetFor("mode", ["144", "176"], "biteType", "type")).toBe("words");
+    expect(widgetFor("mode", RECEIVE_VALUES, "midiReceive", "receive")).toBe(
+      "words",
+    );
+    expect(MIDI_TYPE_WORDS["208"]).toBe("Channel pressure");
+    expect(RECEIVE_WORDS).toEqual({ "0": "Off", "13": "On" });
+    expect(OUTPUT_ROLE_LABELS).toEqual({
+      type: "Type",
+      channel: "Channel",
+      number: "Number",
+      receive: "Receive",
+    });
+    expect(
+      midiFieldLabel({ id: "channel", label: "MIDI channel", role: "channel" }),
+    ).toBe("Channel");
+    expect(
+      midiFieldLabel({ id: "cc", label: "CC number", role: "number" }),
+    ).toBe("Number");
+    // A Type row renders as the rack's segmented control; an output's Channel takes the Lua cue.
+    const typeRow = render(Knob, {
+      props: {
+        view: {
+          id: "midiType",
+          label: "Type",
+          kind: "mode",
+          widget: "words",
+          values: ["CC", "Pitch bend", "Channel pressure"].map((label) => ({
+            label,
+          })),
+          index: 1,
+          default: 0,
+          role: "type",
+          output: "lfo",
+        },
+        lock: false,
+        held: false,
+        onchange: () => undefined,
+        onreset: () => undefined,
+        onhold: () => undefined,
+      },
+    }).body;
+    expect(typeRow).toContain('role="radiogroup"');
+    expect(typeRow).toContain("Pitch bend");
+    const channelRow = render(MidiField, {
+      props: {
+        knob: {
+          id: "ring1Channel",
+          label: "Ring 1 MIDI channel",
+          kind: "amount",
+          widget: "stepper",
+          values: CHANNEL_VALUES.map((label) => ({ label })),
+          literals: CHANNEL_VALUES,
+          readout: "0",
+          index: 0,
+          default: 0,
+          role: "channel",
+          output: "ring1",
+        },
+        onchange: () => undefined,
+      },
+    }).body;
+    expect(channelRow, "an output's Channel carries the Lua cue").toContain(
+      LUA_CHANNEL_CUE,
+    );
+    expect(channelRow).toContain(">Channel<");
+
+    // THE VIEW, on a real tuner: ARC's knobs carry their roles, the view its one output.
+    await padReady();
+    const views: TuneView[] = [];
+    const tuner = await buildTuner({
+      entryId: "arc",
+      onview: (view) => void views.push(view),
+      onpreview: () => undefined,
+      onladder: () => undefined,
+      onover: () => undefined,
+    });
+    try {
+      for (let i = 0; i < 64; i++) await Promise.resolve();
+      const view = views.at(-1) as TuneView;
+      expect(view.outputs.map((o) => o.id)).toEqual(["lfo"]);
+      const byKnob = (id: string) => view.knobs.find((k) => k.id === id);
+      expect(byKnob("midiType")).toMatchObject({
+        role: "type",
+        output: "lfo",
+        widget: "select",
+      });
+      expect(byKnob("midiType")?.values.map((v) => v.label)).toEqual([
+        "CC",
+        "Pitch bend",
+        "Channel pressure",
+      ]);
+      expect(byKnob("midiReceive")).toMatchObject({
+        role: "receive",
+        widget: "words",
+        index: 1,
+      });
+      expect(byKnob("cc")).toMatchObject({ role: "number", widget: "stepper" });
+      expect(byKnob("channel")).toMatchObject({ role: "channel" });
+      expect(byKnob("shape")?.role).toBeUndefined();
+      expect(
+        groupBySection(view.knobs)
+          .midi.map((k) => k.id)
+          .sort(),
+      ).toEqual(["cc", "channel", "midiReceive", "midiType"]);
+    } finally {
+      tuner.destroy();
+    }
+
+    // THE REGION: the blocks, Same channel for all, the number gone under 224 and 208.
+    const region = code("src/lib/ui/TuningRegion.svelte");
+    for (const needle of [
+      "{#each outputViews as out (out.id)}",
+      'data-testid="midi-output"',
+      "data-output={out.id}",
+      "{out.name}",
+      "view={sameChannelView}",
+      'status === "224" || status === "208"',
+      'label: OUTPUT_ROLE_LABELS[knob.role ?? "type"]',
+    ])
+      expect(region, needle).toContain(needle);
+    expect(SAME_CHANNEL).toBe("Same channel for all");
+    expect(PER_OUTPUT).toBe("Per output");
+  }, 60000);
 });

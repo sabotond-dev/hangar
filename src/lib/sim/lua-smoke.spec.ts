@@ -12726,3 +12726,149 @@ describe("SNAKE remade (change 14)", () => {
     }
   }, 60000);
 });
+
+describe("ARC's MIDI output and MIDI RX (change 17, BENCH-2026-09-16.txt section 17)", () => {
+  /** ARC opened at its defaults with some indices overridden, on the real library. */
+  async function openArc(over: Record<string, number> = {}) {
+    const entry = entryById("arc");
+    const { setup, timer } = renderLua(entry, { ...entry.defaults, ...over });
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup,
+      timer,
+    });
+    return { entry, host, sim };
+  }
+  const index = (entry: CatalogEntry, id: string, literal: string): number => {
+    const knob = entry.knobs.find((k) => k.id === id);
+    const at = knob?.values.indexOf(literal) ?? -1;
+    if (at < 0) throw new Error(`${entry.id}.${id} has no ${literal}`);
+    return at;
+  };
+  /** Depth 0 (the finger at the bottom edge, x in column 2, clear of the stop cell): the LFO flat at its centre. */
+  function flatten(host: Awaited<ReturnType<typeof openArc>>["host"]): void {
+    host.touchDown(0, 40, host.coordMax);
+    host.tick();
+    host.touchUp(0, 40, host.coordMax);
+    host.tick();
+  }
+
+  it("sends on the output's Type and Channel: a controller on its number, a pitch bend (0, then the value - 64 is the centre 8192), a channel pressure (the value, then 0); the defaults a controller on 16, channel 0 as before", async () => {
+    const report: string[] = [];
+    for (const [type, expectShape] of [
+      ["176", (p1: number, p2: number) => p1 === 16 && p2 >= 0],
+      ["224", (p1: number) => p1 === 0],
+      ["208", (_p1: number, p2: number) => p2 === 0],
+    ] as const) {
+      const base = await openArc();
+      const over = {
+        midiType: index(base.entry, "midiType", type),
+        channel: index(base.entry, "channel", "4"),
+      };
+      base.host.close();
+      const { host } = await openArc(over);
+      try {
+        flatten(host);
+        host.run(20);
+        const sent = host.midi.filter((m) => m.cmd === Number(type));
+        expect(sent.length, `type ${type}: sends`).toBeGreaterThan(10);
+        expect(
+          host.midi.every((m) => m.cmd === Number(type) && m.ch === 4),
+        ).toBe(true);
+        expect(
+          sent.every((m) => expectShape(m.p1, m.p2)),
+          `type ${type}: ${JSON.stringify(sent.slice(0, 3))}`,
+        ).toBe(true);
+        const last = sent[sent.length - 1];
+        report.push(`type ${type} on channel 4: ${last.p1}, ${last.p2}`);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // At the defaults: a controller on 16, channel 0 - the wire ARC sent before change 17.
+    const { host } = await openArc();
+    try {
+      host.run(5);
+      expect(host.midi.length).toBeGreaterThan(0);
+      expect(
+        host.midi.every((m) => m.ch === 0 && m.cmd === 176 && m.p1 === 16),
+      ).toBe(true);
+    } finally {
+      host.close();
+    }
+    process.stdout.write(`\nARC's output (change 17):\n${report.join("\n")}\n`);
+  }, 60000);
+
+  it("receives: the host's value on its type, channel and number sets the LFO's centre (the offset fader and its lit cell move; at depth 0 the value comes back exactly); its own value coming back, another channel, another number, a neighbour's traffic and Receive Off are ignored", async () => {
+    const REPORT = 13;
+    const { entry, host, sim } = await openArc();
+    try {
+      flatten(host);
+      host.run(3);
+      const lastSent = () => host.midi[host.midi.length - 1].p2;
+      expect(lastSent(), "the centre at rest").toBe(64);
+      expect(
+        host.midiIn(REPORT, 0, 176, 16, 100),
+        "the Timer made the callback",
+      ).toBe(true);
+      host.run(3);
+      expect(lastSent(), "the received centre comes back at depth 0").toBe(100);
+      // The offset fader's lit cell: s.u = ceil(27 * 512 / 127) = 109, row (109+32)//64 = 2.
+      expect(sim.layer(screenToHw(8, 2), 1).pha).toBe(255);
+      expect(sim.layer(screenToHw(8, 4), 1).pha).toBe(0);
+      for (const v of [0, 1, 63, 64, 126, 127]) {
+        host.midiIn(REPORT, 0, 176, 16, v);
+        host.run(2);
+        expect(lastSent(), `centre ${v}`).toBe(v);
+      }
+      // Ignored: its own last value, another channel, another number, a neighbour's EXECUTE.
+      host.midiIn(REPORT, 0, 176, 16, 127);
+      host.midiIn(REPORT, 1, 176, 16, 20);
+      host.midiIn(REPORT, 0, 176, 17, 20);
+      host.midiIn(14, 0, 176, 16, 20);
+      host.run(2);
+      expect(lastSent()).toBe(127);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+    // A pitch bend on channel 9 receives on its status (the value its second byte); a channel
+    // pressure on its first byte.
+    for (const [type, msg] of [
+      ["224", [8, 224, 0, 90]],
+      ["208", [8, 208, 90, 0]],
+    ] as const) {
+      const { host: h } = await openArc({
+        midiType: index(entry, "midiType", type),
+        channel: index(entry, "channel", "8"),
+      });
+      try {
+        flatten(h);
+        h.run(3);
+        h.midiIn(REPORT, msg[0], msg[1], msg[2], msg[3]);
+        h.run(3);
+        const last = h.midi[h.midi.length - 1];
+        expect(type === "224" ? last.p2 : last.p1, `type ${type}`).toBe(90);
+      } finally {
+        h.close();
+      }
+    }
+    // Receive Off: the callback answers no header.
+    const { host: off } = await openArc({
+      midiReceive: index(entry, "midiReceive", "0"),
+    });
+    try {
+      flatten(off);
+      off.run(3);
+      off.midiIn(REPORT, 0, 176, 16, 100);
+      off.run(3);
+      expect(off.midi[off.midi.length - 1].p2).toBe(64);
+    } finally {
+      off.close();
+    }
+  }, 60000);
+});

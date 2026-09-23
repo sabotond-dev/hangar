@@ -326,7 +326,10 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
         guarded += 1;
       }
     }
-    expect(wide, "the wide knobs: ORBIT's four ring notes").toBe(4);
+    expect(
+      wide,
+      "the wide knobs: ORBIT's four ring notes and, since change 17, ARC's CC (0..127)",
+    ).toBe(5);
     // RE-CHOSEN BY PLAN 11-01, which removed nine hand-authored entries on the
     // user's bench report. The catalog's hand-authored knob total went 133 to
     // 91 and its colour knobs 45 to 29, so `guarded` went 88 to 62 - which is

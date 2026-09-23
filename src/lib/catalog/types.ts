@@ -57,6 +57,29 @@ export type LuaKnob = {
   previewIndex?: number;
 };
 
+/**
+ * One MIDI output an entry sends (change 17, BENCH-2026-09-16.txt section 17; docs/MIDI.md): the
+ * tuning panel draws it as a block under MIDI, named by what it is (Ring 1, X axis, Bite), its
+ * rows the knobs its `tokens` name - a Lua entry's `@TOKEN`, or a knob id. Type and Channel are
+ * required, Number where the type carries one, Receive where the card answers host MIDI.
+ */
+export type MidiOutput = {
+  /** Stable slug, unique within the entry. */
+  id: string;
+  /** The block's sub-head: what the output is, e.g. "LFO". */
+  name: string;
+  /** A continuous output (CC / Pitch bend / Channel pressure) or a trigger (Note / CC, Program change when `once`). */
+  kind: "continuous" | "trigger";
+  /** A trigger with no off - a program change is offered. */
+  once?: boolean;
+  tokens: {
+    type: string;
+    channel: string;
+    number?: string;
+    receive?: string;
+  };
+};
+
 /** One configuration in the catalog, ported or hand-authored. */
 export type CatalogEntry = {
   /** URL slug, stable forever. Matches ^[a-z][a-z0-9-]*$. */
@@ -81,6 +104,8 @@ export type CatalogEntry = {
    * row (change 7, 2026-09-18: CHORUS). Absent means true - every other card is as it was.
    */
   rollable?: boolean;
+  /** The MIDI outputs (change 17): absent on a card not yet moved to the per-output model (17B moves the rest). */
+  outputs?: readonly MidiOutput[];
 
   // TRUE iff this entry renders an all-zero frame at EVERY sampled tick with no
   // touch input. Not a preference - a fact about the configuration, asserted

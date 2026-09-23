@@ -20,6 +20,7 @@ import { PRESETS } from "../catalog/presets";
 import { CATALOG } from "../catalog";
 import type { CatalogEntry } from "../catalog/types";
 import { COLOUR_LATTICE_SIZE, presetKnobs } from "./knobs.preset";
+import { roleOfKnob } from "./midi";
 import {
   luaKnobs,
   STAMP_OPTION_CEILING,
@@ -40,13 +41,18 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       expect(descriptors.length, `${entry.id} knob count`).toBe(
         entry.knobs.length,
       );
+      // Change 17: the knobs a MIDI output names are its block's and do not count.
+      const outputKnobs = roleOfKnob(entry).size;
       expect(
-        descriptors.length,
+        descriptors.length - outputKnobs,
         `${entry.id} knob count`,
       ).toBeGreaterThanOrEqual(3);
       // ORBIT carries fourteen by the user's word (change 8, 2026-09-18), and the three cards that
       // took its clock idiom at change 12 carry Sync and Division past six; the cap holds elsewhere.
-      expect(descriptors.length, `${entry.id} knob count`).toBeLessThanOrEqual(
+      expect(
+        descriptors.length - outputKnobs,
+        `${entry.id} knob count`,
+      ).toBeLessThanOrEqual(
         { orbit: 14, steps: 8, "radar-points": 7, ghost: 7 }[entry.id] ?? 6,
       );
 
@@ -76,12 +82,14 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
     // ceiling rides TWO base-32 characters (stamp.ts's `fieldChars`), and the
     // guard it keeps is `STAMP_WIDE_CEILING`, 1,024. Named here by entry and
     // knob so a knob cannot go wide unannounced: ORBIT's four ring notes, 128
-    // options each (C-2 to G8), are the only ones.
+    // options each (C-2 to G8), and since change 17 every output's Number,
+    // 0..127 (ARC's CC first).
     const WIDE = [
       "orbit.note1 (128)",
       "orbit.note2 (128)",
       "orbit.note3 (128)",
       "orbit.note4 (128)",
+      "arc.cc (128)",
     ];
 
     // THE COLOUR EXEMPTION IS BY FORMAT, NOT BY A RAISED CEILING (10-08).

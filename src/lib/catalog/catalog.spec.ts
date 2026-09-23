@@ -19,6 +19,8 @@ import {
   ZONA_MODULE_TYPE,
 } from "./index";
 import { declaredDivergence } from "./divergence";
+import { outputProblems, roleOfKnob } from "../tune/midi";
+import { isMidiDestination } from "../tune/surprise";
 
 // CONT-03's gate. Exactly ten tests, and every one of them loops over the
 // entries INTERNALLY and names the offending entry in its message. That is
@@ -256,8 +258,15 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
     }
 
     for (const entry of luaEntries) {
+      // Change 17 (BENCH-2026-09-16.txt section 17, "every card gets the full set"): an output's
+      // Type, Channel, Number and Receive knobs are its MIDI block's and do not count here.
+      const roles = roleOfKnob(entry);
+      const counted = entry.knobs.filter((k) => !roles.has(k.id)).length;
+      expect(outputProblems(entry), `${entry.id}: its MIDI outputs`).toEqual(
+        [],
+      );
       expect(
-        entry.knobs.length,
+        counted,
         `${entry.id}: a Lua entry carries three to six knobs`,
       ).toBeGreaterThanOrEqual(3);
       // TUNE-01's six is lifted for the sync cards by the user's word (change 8, 2026-09-18,
@@ -265,9 +274,18 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
       // ring, Sync and Division; change 12: STEPS, RADAR POINTS and GHOST take Sync and Division);
       // the next gate amends the rule. Every other card keeps the cap.
       expect(
-        entry.knobs.length,
+        counted,
         `${entry.id}: a Lua entry carries three to six knobs`,
       ).toBeLessThanOrEqual(SYNC_CARD_KNOBS[entry.id] ?? 6);
+      // Every knob an output names is a MIDI destination by its words, so the section and the
+      // roll's scope rule (surprise.ts) read it as the wire.
+      for (const id of roles.keys()) {
+        const knob = entry.knobs.find((k) => k.id === id);
+        expect(
+          knob !== undefined && isMidiDestination(knob),
+          `${entry.id}/${id}: an output's knob names the wire`,
+        ).toBe(true);
+      }
       const tokens: string[] = [];
       for (const knob of entry.knobs) {
         expect(

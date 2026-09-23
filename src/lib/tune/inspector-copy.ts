@@ -67,12 +67,35 @@ export const CC_NUMBER_LABEL = "CC number";
 export const CHANNEL_LABEL = "Channel";
 
 /**
+ * A MIDI output's rows (change 17, BENCH-2026-09-16.txt section 17): the block's sub-head is the
+ * output's own name, its rows these four words; the control above the blocks sets every output's
+ * channel at once, and "Per output" leaves them. Sentence case (D-05).
+ */
+export const OUTPUT_ROLE_LABELS = {
+  type: "Type",
+  channel: "Channel",
+  number: "Number",
+  receive: "Receive",
+} as const;
+export const SAME_CHANNEL = "Same channel for all";
+export const PER_OUTPUT = "Per output";
+export const SAME_CHANNEL_HELPER =
+  "Sets every output below to one channel. Per output leaves each on its own.";
+export const RECEIVE_HELPER =
+  "When your DAW sends this output’s message, the card takes the value and shows it. Its own messages coming back are ignored.";
+
+/**
  * The visible label of a MIDI field: the PDF's word for `cc` and `channel`,
  * the knob's own for everything else - morph's `ccBase` reads `CC base` and
  * a preset's `send` reads `Send`, because the PDF's `CC number` would
  * misname a base (13.1-CONTEXT question 6, shipped this way).
  */
-export function midiFieldLabel(knob: { id: string; label: string }): string {
+export function midiFieldLabel(knob: {
+  id: string;
+  label: string;
+  role?: "type" | "channel" | "number" | "receive";
+}): string {
+  if (knob.role !== undefined) return OUTPUT_ROLE_LABELS[knob.role];
   if (knob.id === "cc") return CC_NUMBER_LABEL;
   if (knob.id === "channel") return CHANNEL_LABEL;
   return knob.label;

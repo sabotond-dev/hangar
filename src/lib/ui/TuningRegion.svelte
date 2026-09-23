@@ -32,6 +32,11 @@
     INSPECTOR_HEADLINE,
     INSPECTOR_LEDE,
     MIDI_HELPER,
+    OUTPUT_ROLE_LABELS,
+    PER_OUTPUT,
+    RECEIVE_HELPER as OUTPUT_RECEIVE_HELPER,
+    SAME_CHANNEL,
+    SAME_CHANNEL_HELPER,
     PREVIEW_INTERNAL_CLOCK,
     RANDOMIZE,
     RANDOMIZE_GLYPH,
@@ -45,9 +50,16 @@
   } from "$lib/tune/inspector-copy";
   import { SECTION_ORDER, groupBySection } from "$lib/tune/sections";
   import { isMidiDestination } from "$lib/tune/surprise";
-  import { knobPosition, type KnobView, type TuneView } from "$lib/tune/view";
+  import {
+    MIDI_TYPE_WORDS,
+    knobPosition,
+    type KnobView,
+    type OutputView,
+    type TuneView,
+  } from "$lib/tune/view";
   import BrightnessField from "./BrightnessField.svelte";
   import BudgetMessage from "./BudgetMessage.svelte";
+  import Knob from "./Knob.svelte";
   import KnobRack from "./KnobRack.svelte";
   import MidiField from "./MidiField.svelte";
   import StampNotice from "./StampNotice.svelte";
@@ -147,6 +159,9 @@
     onresult?: (id: string, canvas: HTMLCanvasElement) => void;
   } = $props();
 
+  /** Same channel for all's row id (change 17): not a knob, never stamped; `knob-midiSameChannel` on the page. */
+  const SAME_CHANNEL_ID = "midiSameChannel";
+
   /** The live region's trailing window: a knob dragged across 908 and back says nothing (05-UI-SPEC). */
   const VOICE_DELAY_MS = 500;
 
@@ -198,6 +213,71 @@
    * what Randomize preserves.
    */
   const grouped = $derived(groupBySection(knobViews));
+  /** The MIDI outputs (change 17), each block's knobs by role, and the MIDI knobs no output names. Through a parameter, as the readers above. */
+  const outputsOf = (current: TuneView | undefined): readonly OutputView[] =>
+    current?.outputs ?? [];
+  const outputViews = $derived(outputsOf(view));
+  const inBlock = $derived(
+    new Set(outputViews.flatMap((o) => Object.values(o.knobs))),
+  );
+  const looseMidi = $derived(grouped.midi.filter((k) => !inBlock.has(k.id)));
+  /** A block's rows in the order the panel draws them; Number goes where the Type carries none (a pitch bend, a channel pressure: status 224, 208). */
+  function blockRows(out: OutputView): KnobView[] {
+    const byId = (id: string | undefined) =>
+      id === undefined ? undefined : knobViews.find((k) => k.id === id);
+    const type = byId(out.knobs.type);
+    const status = type === undefined ? undefined : statusOf(type);
+    const noNumber = status === "224" || status === "208";
+    return [
+      type,
+      byId(out.knobs.channel),
+      noNumber ? undefined : byId(out.knobs.number),
+      byId(out.knobs.receive),
+    ].filter((k): k is KnobView => k !== undefined);
+  }
+  /** A Type knob's chosen status byte, read back through its word (the view carries words, not literals, for a worded knob). */
+  function statusOf(type: KnobView): string | undefined {
+    const word = type.values[type.index]?.label;
+    return Object.entries(MIDI_TYPE_WORDS).find(([, w]) => w === word)?.[0];
+  }
+  /** The outputs' Channel knobs, for Same channel for all. */
+  const channelKnobs = $derived(
+    outputViews
+      .map((o) => knobViews.find((k) => k.id === o.knobs.channel))
+      .filter((k): k is KnobView => k !== undefined),
+  );
+  /**
+   * Same channel for all (change 17): a select over Per output and the channels, in the rows' own
+   * numbering (the firmware's 0-based literal on a Lua card, X-08); it shows the channel every
+   * output shares, or Per output when they differ. Its default is where it stands, so its reset
+   * box never lights: Per output is not a value to go back to, it is the absence of one.
+   */
+  const sameChannelView = $derived.by((): KnobView | undefined => {
+    const first = channelKnobs[0];
+    if (first === undefined) return undefined;
+    const shared = channelKnobs.every((k) => k.index === first.index);
+    const index = shared ? first.index + 1 : 0;
+    return {
+      id: SAME_CHANNEL_ID,
+      label: SAME_CHANNEL,
+      kind: "mode",
+      widget: "select",
+      values: [
+        { label: PER_OUTPUT },
+        ...first.values.map((v) => ({ label: v.label })),
+      ],
+      index,
+      default: index,
+    };
+  });
+  /** Every output's channel to one index; Per output leaves them. */
+  function sameChannel(index: number): void {
+    if (index <= 0) return;
+    for (const knob of channelKnobs) {
+      if (knob.index !== index - 1) changeKnob(knob.id, index - 1);
+    }
+  }
+
   /** The knobs a roll may move: section 7's scope, colour included. */
   const rollableKnobs = $derived(
     knobViews.filter((knob) => !isMidiDestination(knob)),
@@ -554,14 +634,50 @@
   </div>
 {/snippet}
 
-<!-- MIDI: one typed field per MIDI knob (13.1-07, D-09), section 16's helper for a screen reader. -->
+<!-- MIDI (change 17): Same channel for all over the outputs, then one block per output - its name as the sub-head, Type / Channel / Number / Receive on the rack's grid (Number gone under a pitch bend or a channel pressure) - then any MIDI knob no output names, one typed field each (13.1-07, D-09); section 16's helper for a screen reader. -->
 {#snippet midi()}
   <div class="rows" data-testid="midi-grid">
-    {#each grouped.midi as knob (knob.id)}
+    {#if sameChannelView !== undefined}
+      <Knob
+        view={sameChannelView}
+        lock={false}
+        held={false}
+        onchange={sameChannel}
+        onreset={() => undefined}
+        onhold={() => undefined}
+      />
+    {/if}
+    {#each outputViews as out (out.id)}
+      <p
+        class="subhead type-micro"
+        data-testid="midi-output"
+        data-output={out.id}
+      >
+        {out.name}
+      </p>
+      {#each blockRows(out) as knob (knob.id)}
+        {#if knob.widget === "words" || knob.widget === "select"}
+          <Knob
+            view={{ ...knob, label: OUTPUT_ROLE_LABELS[knob.role ?? "type"] }}
+            lock={false}
+            held={false}
+            onchange={(index) => changeKnob(knob.id, index)}
+            onreset={() => resetKnob(knob.id)}
+            onhold={() => undefined}
+          />
+        {:else}
+          <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
+        {/if}
+      {/each}
+    {/each}
+    {#each looseMidi as knob (knob.id)}
       <MidiField {knob} onchange={changeKnob} onreset={resetKnob} />
     {/each}
   </div>
   <p class="sr-only">{MIDI_HELPER}</p>
+  {#if outputViews.length > 0}
+    <p class="sr-only">{SAME_CHANNEL_HELPER} {OUTPUT_RECEIVE_HELPER}</p>
+  {/if}
 {/snippet}
 
 <!-- Sync: the clock knobs; change 8's line while the preview holds one at its previewIndex (ORBIT's Sync at External - no MIDI clock reaches a browser). -->
@@ -683,6 +799,14 @@
 
   .rows > :global(* + *) {
     border-block-start: 1px solid var(--color-divider);
+  }
+
+  /* A MIDI output's sub-head (change 17): the eyebrow face in ink at the row's 4px start, a line of its own above its rows - the hairline rhythm's, no rule of its own; the Sandbox's axis blocks share the shape. */
+  .subhead {
+    margin: 0;
+    padding-block: 16px 8px;
+    padding-inline-start: 4px;
+    color: var(--color-ink);
   }
 
   /* Page 5's outlined buttons after the last section: equal cells 8px apart, the pinned actions' floor (Inspector.svelte), so the two rows wrap alike; wrap, never scroll (D-11). */

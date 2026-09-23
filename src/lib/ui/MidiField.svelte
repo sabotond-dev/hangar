@@ -58,9 +58,10 @@
   const label = $derived(midiFieldLabel(knob));
   /** Section 7's one comparison. */
   const changed = $derived(knob.index !== knob.default);
-  /** A Lua entry's channel: the contiguous run that starts at the firmware's 0; a preset's starts at 1 and gets no cue (W-16). */
+  /** A Lua entry's channel (an output block's Channel too, change 17): the contiguous run that starts at the firmware's 0; a preset's starts at 1 and gets no cue (W-16). */
   const zeroBasedChannel = $derived(
-    knob.id === "channel" && integerRun(literals)?.min === 0,
+    (knob.id === "channel" || knob.role === "channel") &&
+      integerRun(literals)?.min === 0,
   );
   /** A NOTE field (change 8: ORBIT's ring notes) takes a name or a number; its readout is the name. */
   const noteField = $derived(knob.kind === "note");

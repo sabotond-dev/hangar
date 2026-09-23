@@ -46,6 +46,7 @@ import {
   type EventWord,
 } from "./copy";
 import type { KnobDescriptor, PresetKnob } from "./knobs.preset";
+import { resolveOutputs, type OutputRole } from "./midi";
 import { applyKnob, baseStateFor, resetAll } from "./state";
 import { isControllerNumber, rollable, surpriseIndices } from "./surprise";
 import {
@@ -255,6 +256,7 @@ function valueView(
   options: readonly string[],
   index: number,
   id?: string,
+  role?: OutputRole,
 ): KnobValueView {
   const literal = options[index];
   const count = options.length;
@@ -266,7 +268,7 @@ function valueView(
       name,
     };
   }
-  const word = wordFor(kind, literal, id);
+  const word = wordFor(kind, literal, id, role);
   if (typeof word === "string") return { label: word };
   const integer = integerReadout(options, index);
   return { label: integer ?? positionText(index, count) };
@@ -290,13 +292,16 @@ function colourViews(options: readonly string[]): readonly KnobValueView[] {
 function knobViews(
   knobs: readonly KnobDescriptor[],
   indices: Readonly<Record<string, number>>,
+  roles: ReadonlyMap<string, { role: OutputRole; output: string }> = new Map(),
 ): readonly KnobView[] {
   return knobs.map((knob) => {
     // A MIDI destination over CC numbers reads as an amount whatever kind it was declared under
     // (change 16, surprise.ts's isControllerNumber): the preset's Send is `note` over 16..80.
     const kind: KnobKindName =
       knob.kind === "note" && isControllerNumber(knob) ? "amount" : knob.kind;
-    const widget = widgetFor(kind, knob.options, knob.id);
+    // Change 17: a knob in a MIDI output's block is worded by its role there (Type, Receive).
+    const part = roles.get(knob.id);
+    const widget = widgetFor(kind, knob.options, knob.id, part?.role);
     const index = indices[knob.id];
     const named = splitUnit(knob.label);
     const head = {
@@ -305,6 +310,8 @@ function knobViews(
       unit: named.unit,
       kind,
       widget,
+      role: part?.role,
+      output: part?.output,
       // A note knob's readout is the note's name (change 7: CHORUS's twelve roots are a select,
       // and "C#3" is what its word row would have said); every other integer knob shows its literal.
       readout:
@@ -325,7 +332,7 @@ function knobViews(
         widget === "colour" && isColourLattice(knob.options)
           ? colourViews(knob.options)
           : knob.options.map((_, at) =>
-              valueView(kind, widget, knob.options, at, knob.id),
+              valueView(kind, widget, knob.options, at, knob.id, part?.role),
             ),
       index,
       default: knob.default,
@@ -390,6 +397,13 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
   // still gets both meters.
   const tuned: readonly PresetKnob[] = compilerKnobs(entry);
   const knobs: readonly KnobDescriptor[] = stampKnobs(entry);
+  // Change 17: the entry's MIDI outputs, and each named knob's role in its block - resolved once.
+  const outputs = resolveOutputs(entry);
+  const outputRoles = new Map<string, { role: OutputRole; output: string }>();
+  for (const output of outputs) {
+    for (const [role, id] of Object.entries(output.knobs))
+      outputRoles.set(id, { role: role as OutputRole, output: output.id });
+  }
 
   const indices: Record<string, number> = {};
   for (const knob of knobs) {
@@ -552,7 +566,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
     payload = encodeFor(entry, indices);
     options.onview({
       entryId: entry.id,
-      knobs: knobViews(knobs, indices),
+      knobs: knobViews(knobs, indices, outputRoles),
       setup: meterView("setup", numbers.setup, feed),
       timer: meterView("timer", numbers.timer, feed),
       brightness,
@@ -566,6 +580,7 @@ export async function buildTuner(options: TunerOptions): Promise<Tuner> {
             indices[knob.id] !== knob.previewIndex,
         )
         .map((knob) => knob.id),
+      outputs,
     });
   }
 
