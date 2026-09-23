@@ -6,9 +6,11 @@
 // after the lift. Death is a flash, a pause and a restart from the two-cell snake; every game's
 // food walk is seeded by the generation count at its restart, so the module never replays one
 // short game (change 14, 2026-09-21; the first game from Setup is byte-identical to the one
-// before it). Knobs: @SPEED (both events), @SNAKEC, @FOODC, @NOTE, @CH. Setup 877 of 908 at the
-// picker corner (871 at the defaults), Timer 739 (732); restsBlack false. Kind "lua".
-// History: docs/entries/snake.md (09-08 authoring, 11-16's corner sweep, change 14's remake).
+// before it). Knobs: @SPEED (both events), @SNAKEC, @FOODC, and since change 17B two MIDI
+// outputs - Bite (@TYPE @CH @NOTE) and Death (@DT @DCH @DN). Setup 896 of 908 at the picker corner
+// (890 at the defaults), Timer 768 (757); restsBlack false. Kind "lua".
+// History: docs/entries/snake.md (09-08 authoring, 11-16's corner sweep, change 14's remake;
+// change 17B).
 //
 // MECHANISM
 //   - self.b is the body as a RING BUFFER of cell indices, self.p the ring slot of the head,
@@ -16,7 +18,9 @@
 //     self.v the direction as a column step and a row step; self.f the food cell; self.t set by
 //     the first finger of a game (the autopilot's off switch); self.c the generation counter,
 //     incremented on every Timer call and NEVER reset; self.g the food walk's seed for this
-//     game; self.d the death countdown (nil while alive); self.z the note to release.
+//     game; self.d the death countdown (nil while alive); self.z the note to release - since
+//     change 17B a triple {channel, off-status, number}, so the release leaves on the output that
+//     played it.
 //   - THREE SETUP LOCALS PUBLISHED ON SELF, read back into Timer locals (`local P,I,F=s.P,s.I,
 //     s.F`): a Timer body is a separate chunk, `self.P(...)` would be a field call
 //     host-surface.spec.ts refuses, and a GLOBAL function the classifier would refuse too (it
@@ -48,14 +52,21 @@
 //     hold it; the third blacks the board; two calls dark; the sixth restarts. 1.32 s at the
 //     default 220 ms, 0.66 s at 110, 1.8 s at 300.
 //
-// WHAT IT SENDS
-//   bite   s:gms(@CH,144,@NOTE+s.l%12,100,0) - a chromatic octave climbing with the length
-//   death  s:gms(@CH,144,@NOTE-12,110,0) - an octave below anything a bite can reach
-//   off    s:gms(@CH,128,m,0,0) on the NEXT Timer call, before anything else - the note in s.z
+// WHAT IT SENDS (two outputs since change 17B, each Note or CC; `T*3//2-88` is the note-off 128,
+// or the controller again at 0)
+//   Bite   s:gms(@CH,@TYPE,m,100), m = (@NOTE+s.l%12)%128 - a chromatic octave climbing with the
+//          length from the Bite's Number (the wrap keeps a top Number inside seven bits)
+//   Death  s:gms(@DCH,@DT,@DN,110) - its own Number since 17B, 36 by default: the old @NOTE-12, an
+//          octave below anything a bite reaches at the defaults
+//   off    s:gms(z[1],z[2],z[3],0) on the NEXT Timer call, before anything else - the triple in s.z
 //          (RADAR POINTS's pending-list shape, one note deep: a bite and a death are mutually
 //          exclusive, so one note is ever pending). Nothing hangs; one note-on per bite, ever.
 //   At most two messages a generation (an off and an on), far under the 256-byte per-cycle
-//   protocol buffer (about eighteen 14-byte voice messages).
+//   protocol buffer (about eighteen 14-byte voice messages). At the defaults the wire is the
+//   first game's as before, tick for tick (lua-smoke.spec.ts holds the old entry's sequence).
+// WHAT IT RECEIVES (change 17B): nothing. The notes are a game's events - a bite, a death - and
+//   hold no value a received note could set; the Setup assigns `self.midirx_cb=nil`. The latch:
+//   one control, the steer - a finger re-steering from wherever it is IS the game.
 //
 // TRAPS
 //   - EVERY LOOP IS BOUNDED BY A LITERAL (0..80 four times, 39..40, 1..12); no while, no
@@ -86,12 +97,17 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import {
+  CHANNEL_VALUES,
+  TRIGGER_STATUSES,
+  numberValues,
+} from "../../tune/midi";
 
 const SETUP =
-  "--[[@cb]]local function P(k,r,g,b)local a=glag(0,k)glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end local function I(s)for k=0,80 do P(k,0,0,0)end s.b={}s.o={}s.p=1 s.l=2 s.u=1 s.v=0 s.f=41 s.t=nil s.d=nil s.g=s.c for k=39,40 do s.b[k-39]=k s.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)end local function F(s,n)local g=0 for k=0,80 do if k~=n and not s.o[k]then g=k break end end local w=s.f for _=1,12 do w=(w*7+23+s.g)%81 if w~=n and not s.o[w]then g=w break end end s.f=g P(g,@FOODC)end self.P=P self.I=I self.F=F self.c=0 I(self)self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then return end s.t=1 local h=s.b[s.p]local n=N(x,y)local c=n%9-h%9 local r=n//9-h//9 local m=c<0 and -c or c local w=r<0 and -r or r if m>w then if s.u==0 then s.u=c>0 and 1 or -1 s.v=0 end elseif w>0 then if s.v==0 then s.v=r>0 and 1 or -1 s.u=0 end end end gtt(0,@SPEED)";
+  "--[[@cb]]local function P(k,r,g,b)local a=glag(0,k)glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end local function I(s)for k=0,80 do P(k,0,0,0)end s.b={}s.o={}s.p=1 s.l=2 s.u=1 s.v=0 s.f=41 s.t=nil s.d=nil s.g=s.c for k=39,40 do s.b[k-39]=k s.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)end local function F(s,n)local g=0 for k=0,80 do if k~=n and not s.o[k]then g=k break end end local w=s.f for _=1,12 do w=(w*7+23+s.g)%81 if w~=n and not s.o[w]then g=w break end end s.f=g P(g,@FOODC)end self.P=P self.I=I self.F=F self.c=0 I(self)self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then return end s.t=1 local h=s.b[s.p]local n=N(x,y)local c=n%9-h%9 local r=n//9-h//9 local m=c<0 and -c or c local w=r<0 and -r or r if m>w then if s.u==0 then s.u=c>0 and 1 or -1 s.v=0 end elseif w>0 then if s.v==0 then s.v=r>0 and 1 or -1 s.u=0 end end end self.midirx_cb=nil gtt(0,@SPEED)";
 
 const TIMER =
-  "--[[@cb]]gtt(0,@SPEED)local s=self local P,I,F=s.P,s.I,s.F s.c=s.c+1 local z=s.z if z then s:gms(@CH,128,z,0,0)s.z=nil end local d=s.d if d then d=d-1 s.d=d if d==3 then for k=0,80 do P(k,0,0,0)end elseif d==0 then I(s)end return end local h=s.b[s.p]if not s.t then local o=s.u~=0 local d=o and s.f//9-h//9 or s.f%9-h%9 if d~=0 then d=d>0 and 1 or -1 if o then s.v=d s.u=0 else s.u=d s.v=0 end end end local n=(h//9+s.v)%9*9+(h%9+s.u)%9 if s.o[n]then local m=@NOTE-12 s:gms(@CH,144,m,110,0)s.z=m for k=0,80 do if s.o[k]then P(k,@FOODC)end end s.d=6 return end s.p=(s.p+1)%81 if n==s.f then s.l=s.l+1 F(s,n)local m=@NOTE+s.l%12 s:gms(@CH,144,m,100,0)s.z=m else local t=s.b[(s.p-s.l)%81]s.o[t]=nil P(t,0,0,0)end s.b[s.p]=n s.o[n]=1 P(n,@SNAKEC)";
+  "--[[@cb]]gtt(0,@SPEED)local s=self local P,I,F=s.P,s.I,s.F s.c=s.c+1 local z=s.z if z then s:gms(z[1],z[2],z[3],0)s.z=nil end local d=s.d if d then d=d-1 s.d=d if d==3 then for k=0,80 do P(k,0,0,0)end elseif d==0 then I(s)end return end local h=s.b[s.p]if not s.t then local o=s.u~=0 local d=o and s.f//9-h//9 or s.f%9-h%9 if d~=0 then d=d>0 and 1 or -1 if o then s.v=d s.u=0 else s.u=d s.v=0 end end end local n=(h//9+s.v)%9*9+(h%9+s.u)%9 if s.o[n]then s:gms(@DCH,@DT,@DN,110)s.z={@DCH,@DT*3//2-88,@DN}for k=0,80 do if s.o[k]then P(k,@FOODC)end end s.d=6 return end s.p=(s.p+1)%81 if n==s.f then s.l=s.l+1 F(s,n)local m=(@NOTE+s.l%12)%128 s:gms(@CH,@TYPE,m,100)s.z={@CH,@TYPE*3//2-88,m}else local t=s.b[(s.p-s.l)%81]s.o[t]=nil P(t,0,0,0)end s.b[s.p]=n s.o[n]=1 P(n,@SNAKEC)";
 
 const SOURCE: CatalogSource = { kind: "lua", setup: SETUP, timer: TIMER };
 
@@ -146,23 +162,80 @@ export const SNAKE: CatalogEntry = {
     },
     {
       id: "note",
-      label: "Lowest note",
+      label: "Bite MIDI note",
       kind: "note",
       token: "@NOTE",
-      // A bite plays this plus (length % 12), a death this minus twelve: 83 at the top, 24 at
-      // the bottom across the four values. Each note-on is released on the next generation.
-      values: ["48", "60", "36", "72"],
+      // The Bite output's Number (change 17B; "Lowest note" before it): a bite plays this plus
+      // (length % 12), wrapped inside 0..127. All of 0..127, its four old rungs first so a saved copy
+      // keeps its note. The death was this minus twelve until 17B and is its own Number now.
+      values: numberValues(["48", "60", "36", "72"]),
       default: 0,
     },
     {
       id: "channel",
-      label: "Channel",
-      kind: "mode",
+      label: "Bite MIDI channel",
+      kind: "amount",
       token: "@CH",
-      // ZERO-BASED, the first argument of gms. Four channels, not sixteen. THREE TIMES in the
-      // Timer: the release, the death and the bite.
-      values: ["0", "1", "9", "15"],
+      // The Bite output's Channel (change 17B; both notes' before it). ZERO-BASED, the first argument
+      // of gms; the rows read 1..16; sixteen since 17B (four before: 0, 1, 9, 15). A note's release
+      // reads its channel from the pending triple, so it leaves where its note-on did.
+      values: CHANNEL_VALUES,
       default: 0,
+    },
+    {
+      id: "midiType",
+      label: "Bite MIDI type",
+      kind: "mode",
+      token: "@TYPE",
+      // The Bite output's type (change 17B): 144 a note, 176 a controller; its off, a generation
+      // later, is @TYPE*3//2-88 (a note-off, or the controller at 0).
+      values: TRIGGER_STATUSES,
+      default: 0,
+    },
+    {
+      id: "deathType",
+      label: "Death MIDI type",
+      kind: "mode",
+      token: "@DT",
+      // The Death output's type (change 17B).
+      values: TRIGGER_STATUSES,
+      default: 0,
+    },
+    {
+      id: "deathChannel",
+      label: "Death MIDI channel",
+      kind: "amount",
+      token: "@DCH",
+      // The Death output's Channel (change 17B), the Bite's by default.
+      values: CHANNEL_VALUES,
+      default: 0,
+    },
+    {
+      id: "deathNote",
+      label: "Death MIDI note",
+      kind: "note",
+      token: "@DN",
+      // The Death output's Number (change 17B): 36 by default - the old @NOTE-12 at the default
+      // lowest note, an octave below anything a bite reaches.
+      values: numberValues(),
+      default: 36,
+    },
+  ],
+
+  // Two outputs (change 17B), both triggers, neither receiving: the Bite (a chromatic climb from
+  // its note, one per bite) and the Death (one note when the snake dies). docs/entries/snake.md.
+  outputs: [
+    {
+      id: "bite",
+      name: "Bite",
+      kind: "trigger",
+      tokens: { type: "@TYPE", channel: "@CH", number: "@NOTE" },
+    },
+    {
+      id: "death",
+      name: "Death",
+      kind: "trigger",
+      tokens: { type: "@DT", channel: "@DCH", number: "@DN" },
     },
   ],
 
@@ -174,6 +247,10 @@ export const SNAKE: CatalogEntry = {
     food: 0,
     note: 0,
     channel: 0,
+    midiType: 0,
+    deathType: 0,
+    deathChannel: 0,
+    deathNote: 36,
   },
 
   // FALSE: a two-cell snake and its food at phase 255 from tick 0. frames.spec.ts test 5.

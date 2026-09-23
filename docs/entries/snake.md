@@ -313,3 +313,30 @@ probe's phase test was never able to see (its own comment on SNAKE says so).
 
 The rack is unchanged, so every SNAKE stamp - the shelf's and any tuned link - still decodes to
 the same five indices and opens the remade card at that state.
+
+## Change 17B, 2026-09-23: the Bite and Death outputs, no receive (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+SNAKE plays two kinds of note: a bite (a chromatic climb with the length) and a death (one low note). Each is an
+output now - "Bite" and "Death", triggers (each released a generation later, so they have an off: Note or CC) - with
+Type, Channel and Number. "Bite" is the brief's own example name.
+
+- **Knobs.** The Bite keeps the old two: `@NOTE` (`note`, relabelled "Bite MIDI note" - the note the bites climb from)
+  all of 0..127 with its four old rungs first, and `@CH` (`channel`, "Bite MIDI channel") all sixteen in order (it was
+  0, 1, 9, 15 under kind `mode`). Appended: `@TYPE` (`midiType`, the Bite's), `@DT`, `@DCH` and `@DN` (`deathNote`, 36
+  by default - the old `@NOTE-12` at the default). Nine knobs, three outside the outputs. SNAKE's captured wild stamp
+  lands `unreadable` - a grown rack, the known pattern - where it landed `restored`.
+- **The send.** A bite `s:gms(@CH,@TYPE,m,100)` with `m=(@NOTE+s.l%12)%128` (the wrap keeps a Number near the top
+  inside seven bits); a death `s:gms(@DCH,@DT,@DN,110)`. The pending release was one note on `@CH`; with two outputs
+  it is a triple `{channel, off-status, number}` in `s.z`, released as `s:gms(z[1],z[2],z[3],0)`, so a note is
+  released on the output that played it. At the defaults the wire is the first game's as before, tick for tick
+  (lua-smoke.spec.ts's pre-change sequence is unmoved).
+- **No receive.** The notes are a game's events and hold no value; the Setup assigns `self.midirx_cb=nil` (13 free
+  after it).
+- **Latch: one control** - the steer; a finger re-steering from wherever it is on every sample is the game (change 14),
+  and no second control sits beside it.
+- **Cost:** Setup 871 / 877 -> 890 / 896 (defaults / corner; 12 free), Timer 732 / 739 -> 757 / 768 (140 free).
+  frames.json and the OG image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "SNAKE: the Bite and Death outputs ...": the autopilot's first game with the Bite
+  as controllers from 60 on wire channel 5 and the Death as note 40 on 9 - the first bite 63 at 100, every bite
+  released at 0 on its controller, the death on and off on 9, nothing else on the wire; no callback over a previous
+  landing's.

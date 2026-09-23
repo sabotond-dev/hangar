@@ -12530,8 +12530,12 @@ describe("SNAKE remade (change 14)", () => {
     const channel = knobValueOf(entry, "channel");
     const lowest = knobValueOf(entry, "note");
     const rendered = renderLua(entry);
+    // Since change 17B the release reads the pending note's channel, off-status and number from a
+    // triple (the Bite and the Death are two outputs); at the default Types the off is 144*3//2-88,
+    // 128 - the wire below still reads it.
     expect(
-      rendered.timer.includes(`:gms(${channel},128,`),
+      rendered.timer.includes("s:gms(z[1],z[2],z[3],0)") &&
+        rendered.timer.includes(`{${channel},144*3//2-88,`),
       "snake: the Timer sends NOTE-OFF, status 128, through gms",
     ).toBe(true);
     // The walk, read off the entry: `(w*7+23+s.g)%81`, seeded per game.
@@ -13623,6 +13627,44 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       } finally {
         host.close();
       }
+    }
+  }, 60000);
+
+  it("SNAKE: the Bite and Death outputs each send on their own Type, Channel and Number - at the defaults the first game's notes on channel 0 as before - each released a generation later on its own output; neither receives (the Setup assigns nil); one control, the steer", async () => {
+    const { host } = await openCard(
+      "snake",
+      {
+        midiType: "176",
+        channel: "5",
+        note: "60",
+        deathChannel: "9",
+        deathNote: "40",
+      },
+      true,
+    );
+    try {
+      // Nobody touching: the autopilot plays the first game - bites, then a death.
+      host.run(900);
+      const sent = wire(host.midi);
+      const bites = sent.filter(
+        (m) => m.startsWith("5:176:") && m.endsWith(":100"),
+      );
+      expect(bites.length, "bites on controller 60 + length").toBeGreaterThan(
+        2,
+      );
+      expect(bites[0]).toBe("5:176:63:100");
+      for (const b of bites)
+        expect(sent, `${b} is released`).toContain(b.replace(/:100$/, ":0"));
+      expect(sent).toContain("9:144:40:110");
+      expect(sent).toContain("9:128:40:0");
+      expect(
+        sent.every((m) => m.startsWith("5:176:") || m.startsWith("9:1")),
+        sent.slice(0, 6).join(" "),
+      ).toBe(true);
+      expect(host.midiIn(REPORT, 5, 176, 63, 100), "no callback").toBe(false);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
     }
   }, 60000);
 });
