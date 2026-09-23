@@ -600,6 +600,7 @@ describe("the stamp: the envelope", () => {
         record.entry === "pomodoro" ||
         record.entry === "steps" ||
         record.entry === "ghost" ||
+        record.entry === "quadrant" ||
         record.entry === "lumen" ||
         record.entry === "console";
       const replaced = record.entry === "chorus";

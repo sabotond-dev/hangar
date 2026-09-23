@@ -100,6 +100,10 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "console.cc (128)",
       "lumen.cc (128)",
       "lumen.yCc (128)",
+      "quadrant.note (128)",
+      "quadrant.note2 (128)",
+      "quadrant.note3 (128)",
+      "quadrant.note4 (128)",
       "pomodoro.note (128)",
       "pomodoro.transportNote (128)",
     ];

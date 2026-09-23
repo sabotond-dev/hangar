@@ -139,3 +139,32 @@ those claims.
 THE LUA CARRIES NO COMMENTS beyond the nine-character event marker, because
 compressScript does not strip them and they would be charged to the budget.
 ```
+
+## Change 17B, 2026-09-23: four quadrants, four outputs, each lit by the host; the pull-in (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+QUADRANT's four targets sent `@NOTE+q` on one channel. They are four pads, and a drum map names four notes that are
+rarely neighbours (kick 36, snare 38, hat 42), so per output (answer 3) each quadrant is its own output - "Top left",
+"Top right", "Bottom left", "Bottom right", triggers - with Type (Note / CC), Channel, Number and Receive.
+
+- **Knobs.** The top-left quadrant keeps the old two: `@NOTE` (`note`, relabelled "Top left MIDI note") all of 0..127
+  with its four old rungs first, and `@CH` (`channel`, "Top left MIDI channel") all sixteen in order (it was 0, 1, 9, 15
+  under kind `mode`). Appended in quadrant order: `type1 receive1`, then `typeJ channelJ noteJ receiveJ` (49, 50, 51 by
+  default - the old `@NOTE+q` at the default lowest note). Eighteen knobs, two outside the outputs. QUADRANT's captured
+  wild stamp, which landed `restored` until now, lands `unreadable` - a grown rack, the known pattern.
+- **The send.** Per quadrant `j = q+1`: on `s:gms(h[j],T[j],N[j],100)`, off `s:gms(h[j],T[j]*3//2-88,N[j],0)` (a
+  note-off, or the controller at 0), from tables built once. At the defaults the wire is QUADRANT's before the change.
+- **The receive.** A host note-on on a quadrant's type, channel and number lights it as a press does (`B(q,255)`); its
+  note-off - a note-on at 0, a controller at 0 - darkens it. Nothing is sent back: the Sandbox button's receive. No new
+  audition row: row 40 (c) asks the button's question and row 41 the pull-in's.
+- **Where it lives - the pull-in.** The Setup was 838 of 908; four tables and a receive beside the paint did not fit
+  (921 in one draft). QUADRANT is a still card (listing `static`), so its Timer is pulled in by `s:tim()` and never
+  armed: the Timer body paints the field (inside the Setup, so tick 0 is the same picture), builds the tables and the
+  receive; the Setup holds `B` (handed over as `s.b`) and the handler, and takes `T,h,N=s.t,s.h,s.n`.
+- **Latch: already latched** - a contact keeps the quadrant it pressed (`s.k[i]`); only an onset picks one, so a finger
+  slid from one quadrant into the next holds the first note.
+- **Cost:** Setup 835 / 838 -> 537 / 537 (defaults / corner; 371 free), Timer 0 -> 718 / 726. frames.json and the OG
+  image unmoved.
+- **Proved.** `lua-smoke.spec.ts` "QUADRANT: the four quadrants ...": no Timer armed; a press in the top-left slid into
+  the top-right and lifted sends 48 on and off alone; the bottom-right 51; the host's 50 lights the bottom-left and its
+  note-off darkens it, a note-on at 0 is an off, three mismatches leave it lit, nothing sent back; the top-right as
+  controller 20 on wire channel 3, sent and received; the bottom-right's Receive Off.

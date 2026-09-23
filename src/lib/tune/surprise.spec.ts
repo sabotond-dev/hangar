@@ -433,7 +433,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
       "strip: cc, channel",
       "lumen: cc, channel, xType, xReceive, yType, yChannel, yCc, yReceive",
       "snake: channel",
-      "quadrant: channel",
+      "quadrant: note, channel, type1, receive1, type2, channel2, note2, receive2, type3, channel3, note3, receive3, type4, channel4, note4, receive4",
       "pomodoro: note, channel, alarmType, transportType, transportChannel, transportNote",
       "wheels: cc, channel",
       "radar-points: channel",
@@ -445,7 +445,7 @@ describe("SURPRISE ME never lands over budget (TUNE-07)", () => {
     expect(
       excluded.reduce((n, line) => n + line.split(", ").length, 0),
       "the knobs excluded (change 17B: every output knob a card gains)",
-    ).toBe(78);
+    ).toBe(93);
     // Not theatre: the labels alone name the wire too, camelCase and all.
     expect(isMidiDestination({ id: "x", label: "First controller" })).toBe(
       true,

@@ -13461,4 +13461,79 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("QUADRANT: the four quadrants are four outputs, each on its own Type, Channel and Number - at the defaults 48..51 on channel 0 as before - and each receives: a host note-on lights its quadrant and its off darkens it, nothing sent back; a finger keeps the quadrant it pressed (already latched); the receive is pulled in, no Timer armed", async () => {
+    /** Quadrant q's first cell's layer-1 phase (B's origin: q%2*5 + q//2*5*9). */
+    const lit = (sim: PadSim, q: number): number =>
+      sim.layer(hwOfCell((q % 2) * 5 + Math.floor(q / 2) * 45), 1).pha;
+    const XY = [
+      [20, 20],
+      [100, 20],
+      [20, 100],
+      [100, 100],
+    ] as const;
+    {
+      const { host, sim } = await openCard("quadrant", {}, true);
+      try {
+        expect(host.timerArmed, "the pull-in arms nothing").toBe(false);
+        // Press the top-left, slide across into the top-right and lift: 48 alone.
+        host.touchDown(0, ...XY[0]);
+        host.tick();
+        host.touchMove(0, 60, 20);
+        host.tick();
+        host.touchMove(0, ...XY[1]);
+        host.tick();
+        host.touchUp(0, ...XY[1]);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["0:144:48:100", "0:128:48:0"]);
+        host.touchDown(1, ...XY[3]);
+        host.tick();
+        host.touchUp(1, ...XY[3]);
+        host.tick();
+        expect(wire(host.midi, 2)).toEqual(["0:144:51:100", "0:128:51:0"]);
+        const sent = host.midi.length;
+        // RX: note 50 lights the bottom-left; its note-off darkens it; nothing is sent back.
+        expect(host.midiIn(REPORT, 0, 144, 50, 90)).toBe(true);
+        expect(lit(sim, 2)).toBe(255);
+        for (const [instr, ch, cmd, p1, p2] of [
+          [REPORT, 1, 128, 50, 0],
+          [14, 0, 128, 50, 0],
+          [REPORT, 0, 176, 50, 0],
+        ] as const)
+          host.midiIn(instr, ch, cmd, p1, p2);
+        expect(lit(sim, 2), "mismatches leave it lit").toBe(255);
+        host.midiIn(REPORT, 0, 128, 50, 0);
+        expect(lit(sim, 2)).toBe(0);
+        host.midiIn(REPORT, 0, 144, 49, 100);
+        host.midiIn(REPORT, 0, 144, 49, 0);
+        expect(lit(sim, 1), "a note-on at 0 is an off").toBe(0);
+        expect(host.midi.length, "nothing sent back").toBe(sent);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // The top-right a controller 20 on wire channel 3; the bottom-right's Receive Off.
+    {
+      const { host, sim } = await openCard("quadrant", {
+        type2: "176",
+        channel2: "3",
+        note2: "20",
+        receive4: "0",
+      });
+      try {
+        host.touchDown(0, ...XY[1]);
+        host.tick();
+        host.touchUp(0, ...XY[1]);
+        host.tick();
+        expect(wire(host.midi)).toEqual(["3:176:20:100", "3:176:20:0"]);
+        host.midiIn(REPORT, 3, 176, 20, 127);
+        expect(lit(sim, 1)).toBe(255);
+        host.midiIn(REPORT, 0, 144, 51, 100);
+        expect(lit(sim, 3), "Receive Off").toBe(0);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
 });
