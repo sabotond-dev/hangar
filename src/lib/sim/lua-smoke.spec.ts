@@ -13751,4 +13751,24 @@ describe("the hand-authored cards' MIDI outputs, MIDI RX and latch (change 17B, 
       }
     }
   }, 60000);
+
+  it("STAGE: no MIDI to send or receive - the Setup assigns midirx_cb=nil over a previous landing's, the keystroke unchanged; a slide lines a zone up and never cuts (already latched)", async () => {
+    const { host } = await openCard("stage", {}, true);
+    try {
+      // A press on zone 4 cuts with one keystroke; a slide across onto zone 5 lines it up and
+      // sends nothing more.
+      host.touchDown(0, 64, 64);
+      host.tick();
+      host.touchMove(0, 110, 64);
+      host.tick();
+      host.touchUp(0, 110, 64);
+      host.tick();
+      expect(host.hid.length, "one keystroke for one press").toBe(1);
+      expect(host.midi).toEqual([]);
+      expect(host.midiIn(REPORT, 0, 176, 16, 100), "no callback").toBe(false);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+  }, 60000);
 });

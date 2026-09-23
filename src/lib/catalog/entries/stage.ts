@@ -5,9 +5,12 @@
 // ZONA can press one, so it works on a machine with nothing installed. Slide onto another zone
 // and it is LINED UP (an @LIVEC pulse through the idle base); the one under a held finger breathes
 // fastest. Knobs: @KEY0 (nine adjacent usage ids), @MOD, @LIVEC, @ZONEC - no fifth knob, because
-// a knob would move the stamp's shape character. Setup 653 of 908 at the picker corner (640 at
-// the defaults), Timer 136; restsBlack false, `animated`. Kind "lua": PadState has no keyboard.
-// History: docs/entries/stage.md (11-02, 11-09 gesture costings, the four-corner table, 11-16).
+// a knob would move the stamp's shape character. No MIDI: the Setup assigns `self.midirx_cb=nil`
+// (change 17B: a previous landing's receive callback never survives this one). Setup 672 of 908 at
+// the picker corner (659 at the defaults), Timer 136; restsBlack false, `animated`. Kind "lua":
+// PadState has no keyboard.
+// History: docs/entries/stage.md (11-02, 11-09 gesture costings, the four-corner table, 11-16;
+// change 17B).
 //
 // MECHANISM
 //   - Zone z: zone-row z//3, zone-column z%3, top-left cell z//3*27 + z%3*3, its four corners
@@ -71,7 +74,7 @@
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
 
 const SETUP =
-  "--[[@cb]]local function Z(z,f,g)local r=z//3*27+z%3*3 for j=0,3 do local a=glag(0,r+j%2*2+j//2*18)if f>0 then glc(a,1,@LIVEC,1)glpfs(a,1,0,f,3)glt(a,1,30000)else glc(a,1,0,0,0,1)glp(a,1,0)glt(a,1,0)end if g>0 then glc(a,2,@LIVEC,1)else glc(a,2,@ZONEC,1)end glp(a,2,255)end end for z=0,8 do Z(z,0,0)end Z(0,4,1)self.l=0 self.p=0 self.touch_cb=function(s,i,e,x,y)local z=x*3//128+y*3//128*3 if e==4 or e>8 then if z~=s.l then Z(s.l,0,0)s.l=z end Z(z,e>8 and 4 or 24,1)gks(10,1,1,@MOD,0,2,@KEY0+z,1,0,@MOD)elseif e==1 then if z~=s.l and z~=s.p then if s.p~=s.l then Z(s.p,0,0)end s.p=z Z(z,10,0)end elseif e>=5 then Z(s.l,4,1)end end gtt(0,2560)";
+  "--[[@cb]]local function Z(z,f,g)local r=z//3*27+z%3*3 for j=0,3 do local a=glag(0,r+j%2*2+j//2*18)if f>0 then glc(a,1,@LIVEC,1)glpfs(a,1,0,f,3)glt(a,1,30000)else glc(a,1,0,0,0,1)glp(a,1,0)glt(a,1,0)end if g>0 then glc(a,2,@LIVEC,1)else glc(a,2,@ZONEC,1)end glp(a,2,255)end end for z=0,8 do Z(z,0,0)end Z(0,4,1)self.l=0 self.p=0 self.touch_cb=function(s,i,e,x,y)local z=x*3//128+y*3//128*3 if e==4 or e>8 then if z~=s.l then Z(s.l,0,0)s.l=z end Z(z,e>8 and 4 or 24,1)gks(10,1,1,@MOD,0,2,@KEY0+z,1,0,@MOD)elseif e==1 then if z~=s.l and z~=s.p then if s.p~=s.l then Z(s.p,0,0)end s.p=z Z(z,10,0)end elseif e>=5 then Z(s.l,4,1)end end self.midirx_cb=nil gtt(0,2560)";
 
 const TIMER =
   "--[[@cb]]gtt(0,2560)local function R(z)local r=z//3*27+z%3*3 for j=0,3 do glt(glag(0,r+j%2*2+j//2*18),1,30000)end end R(self.l)R(self.p)";

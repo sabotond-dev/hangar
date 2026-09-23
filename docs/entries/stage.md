@@ -302,3 +302,13 @@ and correctly leaves alone: a coalesced tap is not a move.
 STAGE also USES the code rather than merely tolerating it: Z(z,e>8 and 4 or
 24,1) lights the zone at rate 4 for a fast tap and 24 for a held press.
 ```
+
+## Change 17B, 2026-09-23: no MIDI, and a previous landing's receive cleared (`BENCH-2026-09-16.txt` sections 17 and 18)
+
+STAGE sends keystrokes (`gks`), not MIDI, so it declares no output and gains no knob (the rack, the stamp and both
+captured wild records are unmoved: they still land `restored`). Section 17's decision - every card assigns its own
+receive callback or nil - is its one change: the Setup closes with `self.midirx_cb=nil`. Setup 640 / 653 -> 659 / 672
+(defaults / corner; 236 free), Timer 136 unmoved; frames.json and the OG image unmoved. **Latch: already latched** - a
+press cuts (the onset alone sends the keystroke) and a slide onto another zone only lines it up, never cuts: the
+gesture the card was built around. `lua-smoke.spec.ts` "STAGE: no MIDI ...": one keystroke for a press slid across
+onto the next zone, no MIDI, no callback over a previous landing's.
