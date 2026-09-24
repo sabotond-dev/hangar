@@ -306,6 +306,14 @@ describe("the stamp: format x", () => {
           heartColour: "255,255,255",
         },
       },
+      {
+        id: "ghost",
+        payload: "w70cff804000000000h",
+        moved: {
+          recordColour: "0,200,255",
+          ghostColour: "255,140,0",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

@@ -102,6 +102,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -141,13 +142,14 @@ export const GHOST: CatalogEntry = {
       // Layer 1 (the comet under your own finger) and the library's gradient on layer 0. Every
       // channel inside 0..255: the firmware truncates rather than clamps. The erase key on
       // layer 1 does NOT take this colour - Setup writes cell 80 red after the loop.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "0,255,180",
         "0,200,255",
         "255,140,0",
         "120,255,0",
         "255,255,255",
-      ],
+      ]),
       default: 0,
     },
     {
@@ -157,13 +159,14 @@ export const GHOST: CatalogEntry = {
       token: "@GHOSTC",
       // Layer 2 - the replay. Clearly different from the recording colour: telling your hand
       // from its ghost is the point of two layers.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "255,80,255",
         "255,140,0",
         "0,200,255",
         "180,255,255",
         "255,255,255",
-      ],
+      ]),
       default: 0,
     },
     {
