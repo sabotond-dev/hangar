@@ -322,11 +322,17 @@
     adopt();
   }
 
+  /** The preview's pad is registered with the host (change 20: the mirror swaps engines under it). */
+  let held = false;
+
   function adopt(): void {
-    if (host === undefined || engine === undefined || canvas === undefined)
+    // Mirroring, the plate is the mirror's even before (or without) the preview's engine.
+    const shown = mirroring ? mirror.engine : engine;
+    if (host === undefined || shown === undefined || canvas === undefined)
       return;
-    host.register(PREVIEW_ID, canvas, mirroring ? mirror.engine : engine);
+    host.register(PREVIEW_ID, canvas, shown);
     host.setHero(PREVIEW_ID);
+    held = true;
   }
 
   async function openPreview(): Promise<void> {
@@ -350,6 +356,7 @@
     previewGeneration += 1;
     host?.setHero(undefined);
     host?.unregister(PREVIEW_ID);
+    held = false;
     engine = undefined;
     canvas = undefined;
   }
@@ -385,12 +392,18 @@
   function swapPlate(on: boolean): void {
     if (on) {
       unmirror ??= mirror.onFrame(() => host?.invalidate(PREVIEW_ID));
-      host?.replaceEngine(PREVIEW_ID, mirror.engine);
+      if (held) host?.replaceEngine(PREVIEW_ID, mirror.engine);
+      else adopt();
       return;
     }
     unmirror?.();
     unmirror = undefined;
+    if (!held) return;
     if (engine !== undefined) host?.replaceEngine(PREVIEW_ID, engine);
+    else {
+      host?.unregister(PREVIEW_ID);
+      held = false;
+    }
   }
 
   $effect(() => {

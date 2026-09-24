@@ -272,15 +272,17 @@
   }
 
   function adopt(): void {
+    // Mirroring, the plate is the mirror's even before (or without) the simulator's engine.
+    const shown = mirroring ? mirror.engine : engine;
     if (
       host === undefined ||
-      engine === undefined ||
+      shown === undefined ||
       canvas === undefined ||
       listed === undefined
     ) {
       return;
     }
-    host.register(listed.id, canvas, mirroring ? mirror.engine : engine);
+    host.register(listed.id, canvas, shown);
     host.setHero(listed.id);
     ready = true;
   }
@@ -301,19 +303,28 @@
   /** The mirror's frame listener while it is on: the host repaints on its own frame, never per report. */
   let unmirror: (() => void) | undefined;
 
-  /** Hand the plate to the mirror's engine, or back to the simulator's, under the same id. */
+  /**
+   * Hand the plate to the mirror's engine, or back to the simulator's, under the same id. `ready`
+   * says the pad is registered: before that, adopt() registers whichever engine is showing; after
+   * the mirror, a card with no simulator engine goes back to its unlit plate.
+   */
   function swapPlate(on: boolean): void {
     if (on) {
       unmirror ??= mirror.onFrame(() => {
         if (listed !== undefined) host?.invalidate(listed.id);
       });
-      if (listed !== undefined) host?.replaceEngine(listed.id, mirror.engine);
+      if (ready && listed !== undefined) {
+        host?.replaceEngine(listed.id, mirror.engine);
+      } else adopt();
       return;
     }
     unmirror?.();
     unmirror = undefined;
-    if (listed !== undefined && engine !== undefined) {
-      host?.replaceEngine(listed.id, engine);
+    if (!ready || listed === undefined) return;
+    if (engine !== undefined) host?.replaceEngine(listed.id, engine);
+    else {
+      host?.unregister(listed.id);
+      ready = false;
     }
   }
 
