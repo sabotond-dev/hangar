@@ -4255,6 +4255,103 @@ exactly (as an extra rung if it is off the lattice, so no rest frame moves), eve
 re-measured at the lattice's corner, older links to those cards landing at their defaults (the
 stamp's known pattern for a grown knob).
 
+**Done - change 19, 2026-09-24 (every colour knob a full RGB picker; nothing asked, every decision recorded).** One
+commit per card, the machinery in ORBIT's, no push, no device, no deploy: `c5d92d9` the machinery and ORBIT; `1f2ccd4`
+CHORUS; `8b9ca90` ARC; `089df4d` GHOST; `467ad02` MORPH; `5889a5d` SONAR; `9e0a7a4` STEPS; `e2d459d` CONSOLE; `471af83`
+STRIP; `5e2ded1` LUMEN; `3679700` STAGE; `9d2b47b` fix(stamp) STAGE's captured `x` stamp; `557e6b7` SNAKE; `fe37598`
+refactor(snake) its TRAPS line; `5d04477` POMODORO; `3416a49` WHEELS; `d20dad7` RADAR POINTS; `fe5bb5d` TRACKPAD;
+`3ae723b` TRACKPAD COMET; `d19c1ae` RADAR; `83a7398` NINE PADS; `31134cd` test(e2e) SNAKE's walk; `1096c2b` fix(e2e)
+ORBIT's library fixture; then this paragraph with `docs/TESTING.md`'s "2026-09-24 change 19", `docs/TUNING-REVIEW.md`
+(35 rows and a change-19 paragraph) and the gate records `gate/change-19.*` (before, at `d7748ab`) and
+`gate/change-19-after.*` (at `cfcfd3e`, on a clean worktree with its own `npm ci`, removed after). The census's 35 knobs
+are on NINETEEN cards (22 is the Lua cards; CULL, QUADRANT and FOUR FADERS carry no colour).
+
+| Card | Knobs converted | Default, on / off the lattice | Setup / Timer: old palette's corner -> picker corner |
+| --- | --- | --- | --- |
+| ORBIT | ring1Colour..ring4Colour | 0,200,255 off; 0,255,120 off; 120,0,255 off; 255,255,255 on | 869 / 777 -> 869 / 777 |
+| CHORUS | bloomColour | 255,200,80 off | 798 / 602 -> 798 / 602 |
+| ARC | swirlColour, heartColour | 0,110,255 off; 255,255,120 off | 806 / 743 -> 806 / 743 |
+| GHOST | recordColour, ghostColour | 0,255,180 off; 255,80,255 off | 749 / 560 -> 749 / 560 |
+| MORPH | trailColour | 180,255,255 off | 786 / 535 -> 786 / 535 |
+| SONAR | sweepColour | 120,255,255 off | 591 / 668 -> 591 / 668 |
+| STEPS | armed, sweep | 0,40,60 off; 0,200,255 off | 743 / 826 -> 746 / 826 |
+| CONSOLE | level, rail, mute | 0,200,255 off; 60,60,60 off; 255,40,0 off | 882 / 240 -> 890 / 240 |
+| STRIP | bar, vernier, rail | 0,200,255 off; 255,180,60 off; 0,25,50 off | 839 / 476 -> 849 / 476 |
+| LUMEN | cursor | 255,255,255 on | 882 / 461 -> 882 / 461 |
+| STAGE | live, zone | 255,40,0 off; 40,40,50 off | 665 / 136 -> 672 / 136 |
+| SNAKE | body, food | 0,255,120 off; 255,140,0 off | 890 / 764 -> 896 / 768 |
+| POMODORO | ring, break | 255,120,0 off; 0,140,255 off | 758 / 659 -> 766 / 669 |
+| WHEELS | pitch, mod, divider | 0,180,255 off; 255,150,0 off; 90,90,110 off | 896 / 895 -> 900 / 895 |
+| RADAR POINTS | sweepColour | 120,255,255 off | 897 / 758 -> 897 / 758 |
+| TRACKPAD | colour | 214,255,78 off | 903 / 526 -> 903 / 526 |
+| TRACKPAD COMET | colour, head | 214,255,78 off (both) | 903 / 443 -> 903 / 443 |
+| RADAR | colour | 255,68,0 on | 856 / 412 -> 856 / 412 |
+| NINE PADS | colour | 0,68,204 on | 752 / 764 -> 752 / 764 |
+
+**How each knob is built, and the defaults kept.** `src/lib/catalog/lattice.ts` (new) `paletteLattice`: the card's old
+colours FIRST, in their old order, then every RGB444 cell no old colour occupies - 4,096 rungs, one per cell. An old
+colour off the multiples of 17 stands IN its cell (`0,200,255` where `0,204,255` would be), so 31 of the 35 defaults,
+off the lattice, are kept byte-exact, and so are all the other old colours; the stamp's three-character colour field
+still names one rung. Every index is where it was - the defaults (`entry.defaults` unmoved), a saved copy's, every
+spec's, the residue probe's "first value of every knob" - so the wire at the defaults is byte-identical (lua-smoke's
+per-card sha256 against `0f8c474`) and no rest frame, frames.json record or OG image moved (the gate: equal). **How the
+picker learns a per-knob palette:** the knob's `palette` field (`LuaKnob.palette`, the old colours, which are also its
+first rungs; an entry writes `...onLattice([...])`) rides `luaKnobs` to the model, which gives the view `palette` (how
+many lead) and `cells` (each index's cell - a Lua card's index is not its cell, a preset's is); `ColourPicker.svelte`
+reads the knob's cell through `cells` for its three rails, hands a rail's cell back as a knob index, announces the
+literal the pad receives, and draws the first `palette` rungs under the rails as the quick-pick row (the shipped
+`Knob.svelte` swatch row, `colour-quick`), checked while the knob stands on one; its three circles are the only radii
+(moved to :833 / :860 / :875). The chip reads the three channels. Randomize rolls a lattice knob over its 4,096 rungs
+(one per cell, so over the lattice) as it rolls a preset's; CHORUS stays out. Brightness: every site stays declared in
+`brightness.ts`; a lattice literal is scaled as a palette one was (lua-smoke reads 221,85,153 at 170 as 147,56,102 on
+a layer, on every knob).
+
+**The sweep's sampling.** A lattice knob is never enumerated through the minifier: lua-entries test 5 walks it at its
+old colours and the 27 cells of 0 / 17 / 255 (every literal length, the corner `255,255,255` among them), test 6 measures
+those 27 and its own colours; brightness.spec and `hash-wire` walk the same sample; the codec alone walks all 4,096
+(the round-trip sweep's Pass D, 143,360 rungs in 0.4 s). The sweep 4 / 19 green in 124 s. **The budget movers:** none
+of the gated figures - the sweep had charged every Lua colour knob at 255,255,255 since 10-08 - but the reachable
+maximum grew on STEPS, CONSOLE (882 -> 890, 18 free), STRIP, STAGE, SNAKE, POMODORO and WHEELS (900 / 895, the
+tightest); all inside, no function moved to a Timer, no system slot. **Stamps:** a link minted before on each card
+still parses and lands `older` (stamp.spec, nineteen captured payloads); the wild fixture's STAGE `x` stamp lands
+`older` too. **The library fixture** (change 21A's c4 finding, reproduced: the import landed `older`, `waitForURL`
+timed out): ORBIT's `orbit-copy.hangar.json` re-exported through `transfer.ts`, every index kept, the four colour
+entries 4096 - 1 passed.
+
+**Screenshots** (`shots/c19/` in the scratchpad: ORBIT, CONSOLE and NINE PADS at 1440 and 393 with a chip opened, and
+ORBIT's quick row at 1440 with white picked for ring 2): seen - the rails at the cell, `0 + 200 + 255`, the quick row
+of five / four / five with the default outlined, a quick pick landing on its index; nothing fixed. At 393 a row of five
+wraps 4 + 1 (`Knob.svelte`'s bare row keeps two empty 44 columns; on the refuse list, and the palette row wrapped the
+same before); at 1440 ORBIT's quick row sits under the pinned actions until the inspector scrolls.
+
+**Counts, carried + delta** (carried = the tree at my start, `d7748ab`): quick 97 / 1072 + 1 todo -> 100 / 1120 + 1
+todo on the whole tree at `cfcfd3e` (change 19's **+22**; `QUICK_TESTS` 1120 committed by change 20 on the same tree,
+the figure my three green runs read); check 682 -> 691 (19's +1); lint clean; e2e runs 119 -> 122 (19's +0); utilities
+**44 -> 44**; testids 347 -> 357 (19's +1, `colour-quick`); copy exports and SCOPED CSS unmoved by 19 (moved by 20 and
+21A); frames.json, OG and the four fixtures **equal**. **The gate:** the catalog wire 0 moved, 0 removed, 1,834 added -
+every one a lattice knob's sampled cell walked alone; every default, corner, old single-knob and cross-product record
+byte-identical; the Sandbox set moved by 21A's 304 added fixtures alone. **Chunks** on the gate's build: c3 26 / 2 red
+(rack-grid's two Sandbox-inspector titles, 21A's; the widget walk, red once at its first step under load, 1 passed
+alone), c1 33 / 2 red twice (a different device title each run, each passing alone), library 1.
+
+**Departures from the brief:** (1) every old colour kept, first, standing in its cell - not the default alone as an
+extra rung (a cell names one rung in the stamp; old indices kept); (2) the wire moved by added single-knob records, the
+cross-product held at the old rungs; (3) STAGE committed red and fixed in `9d2b47b`; (4) the library fixture from 21A's
+finding; (5) the gate and the runs on a clean worktree, three executors sharing the tree; (6) files outside the brief's
+list, named in `docs/TESTING.md`. CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) old colours standing in their cells (their cells' own lattice literal not offered on
+that card) - right, or the default alone as an extra rung? (2) the quick row wrapping 4 + 1 on a phone - let it span the
+picker's width (a `Knob.svelte` change)? (3) should a preset's picker get a quick row too (its shelf colour and a few
+more)? (4) a caption over the quick row ("Card colours")? (5) ORBIT's four-way selector stacks in the head at 1440 - a
+select there?
+
+**Suggestions, since you asked how HANGAR could be better:** a typed colour field beside the rails (r,g,b or hex,
+snapped to RGB444); an eyedropper - click a lit cell of the preview to take its colour; a "recent colours" row shared
+across cards; a harmonise action that recolours every colour knob of a card from one pick; a "same colour as" link
+between two knobs (ORBIT's rings); a before / after toggle on the preview while tuning; and a gallery of saved copies on
+the front door.
+
 20. Live mirror - the browser shows what the connected ZONA is doing (2026-09-24)
 --------------------------------------------------------------------------------
 
