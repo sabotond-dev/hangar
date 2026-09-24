@@ -148,8 +148,12 @@ const flat = doc.replace(/\s+/g, " ");
  * answers - the lights arrive and are the pad's, no finger on the wire, the MIDI it
  * sent, off is silence. Their Config cells name Aurora and "any card", never the
  * blocked name, so test 2's one-optional-row rule is untouched.
+ *
+ * 51 -> 52 the same day (change 21A, docs/MIDI.md sections 9 and 10): the Sandbox's
+ * Touch note and a fader that plays notes - five clauses (a)-(e). Its Config cell
+ * is "any sandbox surface" in lower case, so `namesIn` claims nothing from it.
  */
-const ROW_COUNT = 51;
+const ROW_COUNT = 52;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

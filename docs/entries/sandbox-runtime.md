@@ -824,3 +824,73 @@ a set, as a blank; the knob's remembered fields lose `latchTouch`. Change 18's e
 test 10, every element that carries Latch Off): the channel bit is still the cheapest on eight and sixteen elements
 (25, 33) and no longer on page 3 (the keyed field 18 against 20) or page 3 with every option (the flag bit 14 against
 19). The encoding stays; re-encoding is not change 18b's.
+
+## Extra messages and a Note on a continuous output (2026-09-24, change 21A; `BENCH-2026-09-16.txt` section 21)
+
+2026-09-24: an element's MIDI output became a list - its own outputs and up to three extra messages, Touch or Value -
+and a continuous output's Type gained Note, played Pitch or Gate. `docs/MIDI.md` sections 9 and 10 are the manual; this
+is the runtime's side.
+
+### `W`, the Touch gate, and its two calls
+
+    function W(s,r,x,y)[local c=0 for _,g in pairs(S)do if J[g]==r then c=c+1 end end if c==(x and 1 or 0)then ]
+      [for _,g in pairs(r.m or{})do local w,v=g[1],g[3]if v>0 then
+        [if x and v>127 then local a,b=A(r,x,y)v=(v>128 and b or a)*126//127+1 end ]
+        s:gms(w%16,176+w//16*(x and 16 or 24),g[2],x and v or 0)end end ]
+      [for j=1,r[5]==4 and 2 or 1 do local h=j>1 and r[15]or r[8]local t=h%128//16 if t>4 then
+        if x then local u=r[18+j]or r[12]local k=t>5 and r[5+j]or u
+          s:gms(h%16,144,k,t>5 and glim(u,1,127)or r[5+j])r[21+j]=k
+        elseif r[21+j]then s:gms(h%16,128,r[21+j],0)r[21+j]=nil end end end ]
+    [end ]end
+
+Each bracket is a piece `touchPart` puts in only when a region needs it: the holders' count (a multitouch pad with a
+Touch extra - on at the first finger, off at the last), the extras' loop (a Touch extra), the landing's axis (a Touch
+note From X or Y, which also packs `A` and `V` on a surface of buttons and knobs), the own-notes loop (a continuous
+Note). The status on is `176+16*code` (a note 144, a CC 176) and off `176+24*code` (a note-off 128, the CC 176 at 0).
+The entry calls `W` after the branch on every landing - `I[r[5]](s,i,r,x,y,o)if o then W(s,r,x,y)end` - so an onset, a
+9 and a hand-over's arrival all land it, the element's own messages first; `R` calls `W(s,r)` right after it forgot the
+contact and before the kind's own release (`if not r then return end W(s,r)`; the multitouch `R` the same inside its
+`if r then`), so every release path `R` covers - a lift, the sweep's expiry, the same id pressed again, another contact
+landing on the region, a hand-over's departure - sends the off, and only once: `R` returns at once for a contact it has
+already forgotten. The texts are `withTouchEntry` and `withTouchRelease` of the four entries and two releases; nothing
+else in them moves.
+
+### `D`, note-aware, and the Value extras
+
+`sendPart` rebuilds `D` from `SEND`'s own pieces. Under a Note the word is read `h%128//16` (CC 0, pressure 2, pitch
+bend 3 exactly as `h//16%4` read them - the receive and hand-over bits fall away under `%128` - and the Notes 5 and 6);
+a Pitch value is quantised down onto its scale before the change test; the change then re-notes a SOUNDING Pitch when it
+lands on another note (`(r[n+3]or v)~=v` - found by test 24's knob ribbon, whose first detent after a landing landed on
+the note already sounding: `fce13fd`), and a Gate sends nothing on a move. The Value loop sends each extra whose column
+is this call's beside the element's own send, inside the same `if s then` - so a receive's store (`D` with no element)
+sends no extra either.
+
+### Every existing surface byte-identical
+
+`extrasOptionsOf` is undefined for a surface with no sent extra and no continuous Note, and then `runtimeParts` builds
+exactly the texts it did: the emit.spec test 12 walks the gate's 46 earlier fixtures under two, three and five slots
+with `extras: []`, a scale, a mode and a velocity present but inert - every string equal - and the gate's Sandbox set
+kept all 874 of its records (304 added by sixteen new fixtures). The figures runtime.spec tests 7, 16, 22 and 23 pin, and emit.spec tests 1
+to 11's, did not move.
+
+### Proved in the VM (`runtime.spec.ts` test 24)
+
+Page 3's pad with a Touch note (C3 at 100): the landing sends `176:21:63 176:22:63 144:48:100`, a move `176:21:127
+176:22:127`, the lift `128:48:0`. From Y: `144:127`, `144:63`, `144:1` at the top, middle and bottom rows. The off
+exactly once on a lift, the sweep (230 ticks), a 9, the same id pressed again (`144 128 144 128`), another finger
+(`144 128 144 128`), a hand-over's departure onto an Off button (`144:48:100 128:48:0 176:95:127 176:95:0`) and its
+arrival from it (`176:95:127 176:95:0 176:21:63 176:22:63 144:48:100 128:48:0`). A Touches-2 pad's note: on with the
+first finger, nothing with the second or the first one's lift, off with the last; a lost last finger's sweep the off. A
+Value CC 74 on channel 2 follows a fader exactly (`0,25,50,76,101,127` both). A Touch CC 64 under a button: `176:30:127
+176:64:127 176:64:0 176:30:0`. Three extras on one pad in order. The same gestures on page 3 with and without the pad's
+note send the same messages but the note's. A C major ribbon 60..72 slid up its six LEDs: `60 62 64 67 69 72`, each
+off before the next on; a Gate fader on 60: `144:60:76` at row 2, nothing on a move, `144:60:1` at the bottom. Both modes
+on every release path, never two notes at once from one fader; the notes' hand-over (`144:64:100 128:64:0 144:60:50
+128:60:0 144:67:100 128:67:0`); a spring ribbon's return silent; a relative ribbon `60` then `62`; a pad's X ribbon on
+minor pentatonic from 48 plays 58 for the chromatic 59; a knob ribbon's notes each different from the last.
+
+### Costs
+
+`docs/MIDI.md` section 10's table and budgets (emit.spec.ts test 12): `W` 146 to 585 by its pieces, `D` 174 -> 299 / 399
+/ 524, `O` +24, `R` +6; page 3 receiving cannot take a Touch note on its pad, with every Receive off it can; the cap
+floor with every option on 4 from empty (the meter's representative unmoved, 11 and 14).

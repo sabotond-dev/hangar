@@ -1,0 +1,60 @@
+# 13.2 gate --before change-21a
+HEAD 0c4bab8 (0c4bab85b09c528c990fc044b85c379ce1301480); dirty (src e2e scripts docs) 14; free memory 0.91 GB; 2026-09-24T07:49:22Z
+
+## the wire
+16029 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET e9534dba289c477e122cad13a2c5b8fb9826c15bf9b2ce7b620d6ef1615a08e4
+874 Sandbox strings from 46 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 98a518420ff6e4d7ccbee2ed893208fb40d41b8eab7d53fe70bd0d99d2744209
+874 Sandbox strings from 46 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 51e5da185509c0d458918698ac152b0cec75d4c91f370266877fa4140769965e
+
+## the strings
+218 files; 3496 distinct literals (8409 occurrences); 8 copy modules; 348 data-testids
+literal census sha256 a92e085927f1e2d8a86a6828db85ddc18b7182c45f9584f5c1f8e0613099748a
+copy exports   sha256 5f741734d4c7e186a045a28d7dd0bafe8c9bf44e5351b2bd6ac7aec6b106a44b
+data-testids   sha256 c6dcbd312d6f2e9beb5bc8a3fd6b46504ef95551d0172a180b1a4fb256eaa22c
+
+## the comment lines
+219 files; 58603 lines, 38737 code, 15373 comment, 4493 blank, 4709 header
+
+## check and lint
+check: 1790236215187 COMPLETED 685 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 1
+  
+  > hangar@0.0.1 lint
+  > prettier --check . && eslint .
+  
+  Checking formatting...
+  [[33mwarn[39m] src/lib/tune/view.ts
+  [[33mwarn[39m] Code style issues found in the above file. Run Prettier with --write to fix.
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: no Vitest summary lines found on stdin. A run that printed no summary proves nothing, so this is a failure, not a pass.
+quick exit 1
+
+## the build
+build exit 0; stamp 4f1dadd
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 3751af99a6c7c580efa019f16f4e8f3c5faff8cab0f5eee84b0da0f920c7abe1 (14 stylesheets)
+14 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 3751af99a6c7c580efa019f16f4e8f3c5faff8cab0f5eee84b0da0f920c7abe1
+SCOPED CSS sha256 d514ae96bfbba93de73bab4bbd5bdf91968268bfd0193099a77edf8057e0438f
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 8863a147d7494dc5f94a4d29baf51efa3368ac2fb83359ad84948e1c6545af9f (73 files)
+
+## the titles
+TITLES sha256 4f43d8d27ea11b0eeafb73c48b3813adba13cab54394670777ed0bf9467e5103 (1081 vitest titles incl. todo, 119 playwright runs)
+
+recorded: .planning/phases/13.2-readability/gate/change-21a.{txt,wire.json,wire-set.json,strings.json,lines.json,vitest.json,titles.txt,utilities.txt,js.txt}

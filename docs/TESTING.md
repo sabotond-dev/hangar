@@ -7955,3 +7955,91 @@ brief did not ask for, a recorded BOTOR finding fixed; (5) NINE PADS' latch over
 for free" (the brief's "unless it is plainly the design"), on CHORUS's precedent; (6) `view.ts` words the chromatic
 twelve as a degree list; `brightness.ts` declares NINE PADS' palette; `e2e/rack-grid.e2e.ts` groups an output block.
 STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.
+
+## 2026-09-24 change 21A - the Sandbox's extra messages (a Touch note beside an XY pad's X and Y) and a Note on every continuous output, Pitch or Gate
+
+`BENCH-2026-09-16.txt` section 21 and its addition. The manual is `docs/MIDI.md` sections 9 and 10, the runtime's side
+`docs/entries/sandbox-runtime.md`'s dated section "Extra messages and a Note on a continuous output". Commits, no push,
+no device, no deploy, every Lua cost under the pinned `compressScript` after `initLuaFormatter()` at the RGB444 picker
+corner: `92bf1c1` feat(sandbox) the model (schema's `extras` and the Note fields, model.ts's readers); `51983ae`
+feat(sandbox) the runtime and the emitter (`W`, the note-aware `D`, the entry's and `R`'s calls, the row's keys);
+`fce13fd` fix(sandbox) a Pitch re-notes only onto another note (found by test 24); `b94209a` feat(sandbox) the
+inspector (the Note rows, the extra blocks, "+ Add message", the editor's door, the words, the route's one line);
+`7376ad7` test(sandbox) the specs, the walk and sixteen gate fixtures; `021b8b1` fix(sandbox) an extra's summary on a
+line of its own (found on the screenshots). Then this section, `docs/MIDI.md`, the runtime's section, audition row 52
+(`audition.spec.ts` 51 -> 52), the Done paragraph "21A" under section 21 and the gate records `gate/change-21a.*`
+(before, at `0c4bab8`, changes 19's and 20's edits in flight) and `gate/change-21a-after.*` (at `021b8b1`).
+
+**What the suites prove, new and moved.**
+
+- `runtime.spec.ts` +1. 24, in the VM: page 3's pad with a Touch note sends X and Y then 144 at 100 on the landing, the
+  CCs on a move, 128 on the lift; From Y 127 / 63 / 1 at the top, middle and bottom rows; the off exactly once on a lift,
+  the sweep, a 9, the same id pressed again, another finger, a Latch Off hand-over's departure and its arrival; a
+  Touches-2 pad's note a gate for the pad (the first finger down, the last one up; a lost last finger's sweep); a Value
+  CC 74 on channel 2 following a fader value for value; a Touch CC 127 / 0 under a button's own press; three extras on
+  one pad in order; the same gestures on page 3 with and without the note sending the same but the note; a C major
+  ribbon 60..72 (`60 62 64 67 69 72`, each off before the next on, never two held); a Gate on 60 at the landing's value
+  (76; 1 at the bottom, never 0); both modes on every release path; the notes' hand-over; a spring ribbon's silent return;
+  a relative ribbon; a pad's X ribbon on minor pentatonic (58 for 59); a knob ribbon (no note twice running - RED before
+  `fce13fd`). Tests 6, 7 and 14 run the thirteen new fixtures (the class gates, canonical, the trimmed halves); test 6
+  holds `W` to change 21A's surfaces (the names with and without every piece).
+- `emit.spec.ts` +1. 12: the triple (the word, the number, the velocity / axis / column) and the row's keyed tail against
+  a table of its own - row 18 / 171 / 144 against 49 / 263 / 196, data and readers; the gate's 46 earlier fixtures
+  byte-identical under two, three and five slots with the new fields present and inert; the variant texts canonical
+  (`W` 146 / 220 / 237 / 296 / 585, `D` 174 -> 299 / 399 / 524, `O` 273 -> 297, `R` 232 -> 238, the multitouch `R` 243 ->
+  249); page 3 at the corner 893/908/905/897/877 fits -> with the pad's Touch note 858/908/854/1147/908 over; every
+  Receive off 893/908/907/728/502 -> 858/908/882/904/590 fits, and with the fader a C major ribbon too 858/908/858/1131/907
+  over; the cap floor with every option on (change 21A's too) 4 from empty; over at five slots receiving - plain none, a
+  Touch note on every element `vbxk hbxk vhbxk`, every continuous element a Pitch note `vbk hbk vhbk bxk vbxk hbxk
+vhbxk`. Tests 1 to 11 unmoved (the floor 11 and 14: `cost.ts`'s representative is not changed).
+- `sandbox-ui.spec.ts` +1. 32: "+ Add message" per kind, one entry, refused at three, on a blank, over a set and in
+  Play; remove, the last taking the field; `reshapeExtra`; the typed fields' refusals and one entry per typed value; the
+  editor's `message` door; a fader's Note, Mode and Scale, the pad's Y Gate note, no Note on a multitouch pad; nothing of
+  21A remembered; the schema refusing twelve bad shapes; the panel - two blocks with their summaries, `Message n`, the
+  remove box's name, `aria-expanded`, the rows per trigger, the disabled add at three, nothing over a set, the Note rows
+  with the catalog's scale words, no Receive under a Note; the route's line. Moved: 5 (the numeric fields +3), 16 (a
+  set's refused type is a pitch bend now - a fader offers a Note), 29 (a fader offers a Note: one more entry).
+- `audition.spec.ts`: 51 -> 52 rows.
+- e2e +1 title, `sandbox.e2e.ts`'s extra-messages walk: the pad's Touch note from "+ Add message", From Y one Undo; a
+  fader on Note, Pitch, C major 48..60; in Play a tap on the pad's top row reads `Note on C4 ch 1 → 127` then its off,
+  and a slide up rows 3, 2 and 1 of the fader reads E3, G3 and A3 on and off (the lower rows sit under the shell's footer
+  at 720 tall in Play - found by the walk's first run); the draft recovered.
+- `scripts/gate/sandbox-fixtures.mjs` +16 (thirteen `runtime/` and three `emit/`).
+
+**Counts, carried + delta.** Carried (the tree at my start, `0c4bab8` with changes 19's and 20's edits in flight): check
+685, utilities 44, testids 348, `QUICK_TESTS` 1072 / `QUICK_FILES` 97 in the script; the before-record's quick term
+printed no summary (the machine at 0.9 GB free), so no quick figure was proved at my start. After: quick \*\*100 / 1120
+
+- 1 todo**, green at `--maxWorkers=2` twice (1,117 on the first run with change 19's tests then in flight, 1,120 on the
+  second and in the gate's quick term, `check-counts` matching); mine +3 (runtime 24, emit 12, sandbox-ui 32).
+  `QUICK_TESTS` I did not edit: change 20's `cfcfd3e` moved it to 1120 from its run on the whole tree at `31134cd`, which
+  carried my `7376ad7`. Check **691** (mine +0 files); lint clean; utilities **44 -> 44** (D-21); testids 348 -> 357, mine
+  +6 (`extra-block`, `extra-fold`, `extra-summary`, `extra-remove`, `extra-add`, `extra-{field}-message`), change 20's +3;
+  copy exports: `sandbox/copy.ts` 203 -> 231 (+28, none gone), `mirror/copy.ts` change 20's; titles 1,081 -> 1,121 vitest
+  and 119 -> 122 playwright runs (mine +3 and +1); OG and the four fixtures unmoved. **SCOPED CSS\*_ `d514ae96…` ->
+  `d9255ffa…`, mine by name (RegionInspector.svelte): `.extra`, `.extra-head`, `.fold`, `.fold-name`, `.fold-summary`,
+  `.fold:hover .fold-summary` / `.fold:focus-visible .fold-summary`, `.chevron`, `.fold-rows`, `.fold-rows[hidden]`,
+  `.fold-rows > _`, `.add`, and `.fold-summary` in the reduced-motion list - no radius; changes 19's and 20's own
+  components moved it too.
+
+**The wire.** The base set `e9534dba…` -> `529219e8…`: every moved record an `E/<card>/` of change 19's colour knobs
+(ORBIT, CHORUS, ARC, GHOST, MORPH, SONAR, STEPS, CONSOLE, STRIP, LUMEN, STAGE, SNAKE, POMODORO, WHEELS, RADAR POINTS, the
+TRACKPADs, RADAR, NINE PADS) - **no `S/page3`, preset, library or defaults record moved; none of it is mine**. The
+Sandbox set `51e5da18…` -> `61085205…` (874 -> 1,178 strings, 46 -> 62 fixtures): all 874 records equal, none gone, 304
+added by the sixteen new fixtures. The full wire `98a51842…` -> `f673bf93…`. The script ran `--after change-21a --against
+change-21a --check 691` and exits 1 at the wire by design (change 19's cards); the terms after it are compared above by
+hand.
+
+**Chunks** by files on the gate's build at `021b8b1`: c4 (`catalog`, `fidelity`, `first-experience`, `library`,
+`sandbox`) **24 passed, 2 red** - `first-experience.e2e.ts`'s hero-motion title (green alone) and `library.e2e.ts`'s
+import of an ORBIT copy, which times out waiting for the workspace on both runs: ORBIT's rack moved under change 19
+(`c5d92d9`), not a Sandbox path. Every `sandbox.e2e.ts` title green, the walk among them. A first c4 run lost its server
+to the machine's memory (0.14 GB free, 21 connection-refused).
+
+**Departures and findings.** (1) The addition folded in (Note on a continuous output, Pitch / Gate), as the coordinator
+relayed. (2) A Note does not receive (the brief's leave). (3) Found and fixed (Rule 1): a knob ribbon's first detent
+re-noted the note already sounding (`fce13fd`). (4) Found on the screenshots, fixed: the head's summary cut in the
+control column (`021b8b1`). (5) Found by the walk: the plate's lower rows sit under the shell's footer at 1280 x 720 in
+Play, so a walk cannot press them there. (6) Not fixed: the plate's CC-number label on a continuous Note shows its stored
+number (a Gate's note as a number, a Pitch's unused controller) - `SurfaceEditor.svelte` is the plate, change 20's area.
+(7) `cost.ts`'s representative is not changed; the floor with every 21A option on is measured beside it.

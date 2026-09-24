@@ -282,3 +282,91 @@ output block's head is a full-width button on the rack's grid, the name in the l
 the house mono (`Note · Ch 1 · C1 · Receive`), a chevron of straight lines at its end, that opens and closes the block
 (click, Enter, Space; `aria-expanded`); every block arrives folded when a card has more than four outputs (STEPS'
 eight), open at four or fewer.
+
+## 9. Extra messages (change 21A, 2026-09-24)
+
+Andrew Huang, testing HANGAR and a ZONA, asked whether a touch on an XY pad could play a note on and off beside its X
+and Y (`BENCH-2026-09-16.txt` section 21). The Sandbox's answer: an element's MIDI output is a list - its own outputs,
+then up to **three extra messages**, each with a trigger.
+
+| Trigger   | On                                                                  | Off                                       | Types                            | Kinds                                                 |
+| --------- | ------------------------------------------------------------------- | ----------------------------------------- | -------------------------------- | ----------------------------------------------------- |
+| **Touch** | the finger lands (an onset, a 9, a Latch Off hand-over's arrival)   | the finger leaves - every path `R` covers | Note (a velocity), CC (127 / 0)  | every kind that takes touch: fader, button, pad, knob |
+| **Value** | follows the element's value like its own output, sent on the change | -                                         | CC, Pitch bend, Channel pressure | fader, XY pad (its X or its Y), absolute knob         |
+
+- **The model** (`store/schema.ts` `Extra`): `{ trigger, type, channel 1..16, number 0..127, velocity?, source? }`. A
+  Touch note's `velocity` is 1..127 fixed (absent 100), or `"x"` / `"y"` - the landing's position on the element's box
+  through the calibrated axes (`A`), mapped `p*126//127+1`: 1 at the low edge, 127 at the high one, never 0 (a
+  note-off). A Value message's `source` is an XY pad's axis (absent X). A Touch CC sends 127 on and 0 off - a gate on
+  its controller, not the element's Min / Max (those scale the element's own value).
+- **The order**: at the landing the element's own messages first, then the Touch messages (a synth hears X and Y before
+  the note starts on them); at the release the Touch offs first, then the element's own release.
+- **A multitouch pad** (Touches > 1): the Touch note is a **gate for the pad** - on at the first finger down, off at the
+  last finger up (`W` counts the region's holders). A Value message follows the pad's first slot.
+- **Never received, never echoed.** Receive stays on the element's own outputs; the receive callback stores a value
+  without sending (`D` with no element), and an extra sends only where the element's own output would.
+- **Not offered where it cannot work**: a Value message on a button (its value is its press) or a relative knob (its
+  detents are steps) - a stored one is kept in the record and not sent; a blank takes none.
+- **The wire**: a row's keyed field `m={{w,n,v},...}` - `w` the word as the channel word spells a type (the channel plus
+  16 x the code: a note -2, a CC 0, a channel pressure 2, a pitch bend 3; never a receive bit), `n` the number (0 under a
+  pitch bend or a pressure), `v` a Touch note's velocity or 128 / 129 for X / Y, a Touch CC's 127, a Value message's
+  column negated (19 a fader's, a knob's and a pad's X, 20 its Y; a multitouch pad's first slot 20 and 21). The sign
+  tells the two triggers apart. Measured against a table of its own keyed by region index (`P={[2]={...}}`): the row
+  field is cheaper on every surface measured, data and readers - page 3 with one Touch note 18 against 49, page 3 with
+  three extras on every element 171 against 263, sixteen with a Touch note on every button 144 against 196 - because
+  `W` and `D` hold the row, not its index.
+- **The Lua** (`runtime.ts`, only on a surface that carries one): `W(s,r,x,y)`, called by the entry after the branch on
+  a landing (`if o then W(s,r,x,y)end`) and by `R` on every release (`W(s,r)`), sends the Touch ons and offs; `D` sends
+  each Value message beside the element's own (`g[3]==-n`). Their costs are section 10's table.
+
+## 10. A Note on a continuous output (change 21A, 2026-09-24)
+
+"then we need to add note on off inside midi output for each element no?" - "Both, as a choice": the Type of a
+**fader, an absolute knob and each axis of a one-touch XY pad** gains **Note**, played by a **Note mode**:
+
+- **Pitch** - a ribbon. The value picks the note: Min..Max is the note range, and a **Scale** (Chromatic, Major, Minor,
+  Dorian, Mixolydian, Lydian, Phrygian, Major pentatonic, Minor pentatonic - the catalog's own scale words, `tune/view.ts`
+  `SCALE_WORDS`) rooted on **Min** quantises it DOWN: the largest scale degree at or under the value's distance above
+  Min's pitch class (`model.ts` `pitchOf`, the runtime's twin). A touch plays the value's note at the fixed Velocity
+  (1..127, default 100); sliding onto another note sends the old note's off and then the new note's on - never two held
+  by one finger; the lift sends the off. A relative ribbon or a knob plays its held note at the landing (the Min until it
+  has moved) and re-notes as it moves.
+- **Gate** - a touch plays the fixed **Note** (typed as a name or a number) at the value where it lands as its velocity
+  (through Min..Max; never 0 - `glim(u,1,127)`); moving changes the value and not the note; the lift sends the off.
+- **Receive**: a Note does not receive (the row is hidden under a Note) - a note is an event, not a held value: under
+  Pitch a received note would have to be placed back through the scale, under Gate its only number is a velocity the
+  element does not keep between touches.
+- **Not offered** on a pad with more than one touch (its fingers are transient slots, and one output cannot hold a note
+  per finger) or a relative knob (a controller alone); a button keeps its Note / CC.
+- **The wire**: the channel word's code - Gate the button's -2, **Pitch -3** - with the receive-off bit always set (a Note
+  never receives): an X word 80..95 under Pitch, 96..111 under Gate, read `h%128//16` 5 and 6 by the note-aware `D` (the
+  continuous codes 0, 2 and 3 read the same). Under Pitch the number column carries the velocity; a non-chromatic
+  Pitch's degrees ride the row as `[24]={...}` (the Y axis `[25]`). The sounding note is column 22 (23 for Y).
+
+| Text (canonical, `emit.spec.ts` test 12)                                   | Characters      |
+| -------------------------------------------------------------------------- | --------------- |
+| `W` with a Touch extra / with From X or Y / with the pad's gate            | 146 / 220 / 237 |
+| `W` with a continuous Note / with every piece                              | 296 / 585       |
+| `D` (174) with a Value extra / with a Note / with both                     | 299 / 399 / 524 |
+| the entry `O` with its call (273), `R` with its call (232, multitouch 243) | 297, 238 (249)  |
+
+**Only a surface that carries an extra or a Note carries any of it**: every one of the gate's 46 earlier Sandbox
+fixtures emits byte-identical strings (with the new fields present and inert too), and the gate's Sandbox set moved only
+by its sixteen new fixtures (874 records equal, 304 added). **Budgets** at the picker corner under five slots (255/6,
+255/0, 255/4, Timer, Setup): page 3 receiving 893/908/905/897/877 (69 free) cannot take a Touch note on its pad
+(858/908/854/1147/908, over); with every Receive off it can (893/908/907/728/502 -> 858/908/882/904/590), and a C major
+ribbon on the fader beside it is over again (858/908/858/1131/907). Every element receiving, a Touch note on every element
+puts the three kind combinations change 11 put over beside a multitouch pad over (`vbxk`, `hbxk`, `vhbxk`); every
+continuous element a Pitch note, seven (`vbk`, `hbk`, `vhbk`, `bxk`, `vbxk`, `hbxk`, `vhbxk`). The cap floor with every
+option on - change 21A's Pitch on Major and three dearest extras beside the representative's every other option - is
+**4** 1 x 2 faders from an empty surface; `cost.ts`'s representative is unmoved (11, and 14 from twelve).
+
+**The inspector** (`RegionInspector.svelte`): under a Note, `Note mode` (Pitch / Gate - the word `Mode` is Behavior's
+Absolute / Relative), then Pitch's Scale and Velocity or Gate's Note, in place of the number; Min / Max's helper names the
+note range. After the element's own rows, one block per extra on 17C's folding head - `Message n`, a chevron, and on a
+line of its own the summary (`Touch · Note · Ch 1 · C3 · Vel 100`, `Value · CC · Ch 2 · 74 · from Y`), the remove box in
+the lock column - with Trigger (where the kind takes both), Type, Channel, Number (a note name under Note), Velocity
+(Fixed / From X / From Y, then its stepper) and Source (a pad's Value); then **+ Add message** (disabled at three): a Touch
+note on a pad and a button, a Value CC on a fader and an absolute knob. Extras show on one element at a time (13A's
+multi-edit does not reach them), are not remembered (13B), and ride the Grid Editor profile file (13C) in its five
+strings, which are the landing's.

@@ -4313,3 +4313,104 @@ lifting sends the off; velocity fixed (default 100). Gate - a touch plays the fi
 value at the landing as its velocity (through Min..Max), lifting sends the off; the value does not
 move the note while held. Buttons keep Note / CC as they have. The "+ Add message" Touch note stays
 for a note beside the element's own output (an XY pad's X and Y CCs plus a gate).
+
+**Done - change 21A, 2026-09-24 (the Sandbox: extra messages, and a Note on every continuous output; nothing asked,
+every decision recorded).** Six commits before the docs, no push, no device, no deploy: `92bf1c1` feat(sandbox) the
+model; `51983ae` feat(sandbox) the runtime and the emitter; `fce13fd` fix(sandbox) a Pitch re-notes only onto another
+note; `b94209a` feat(sandbox) the inspector; `7376ad7` test(sandbox) the VM, the encoding and the budget, the panel, the
+walk; `021b8b1` fix(sandbox) an extra's summary on a line of its own; then this paragraph with `docs/MIDI.md` sections 9
+and 10, `docs/TESTING.md`'s "2026-09-24 change 21A", the dated section in `docs/entries/sandbox-runtime.md`, audition
+row 52 and the gate records `gate/change-21a.*` (before, at `0c4bab8`) and `gate/change-21a-after.*` (at `021b8b1`).
+
+**The model.** A region's `extras` - up to three `{ trigger, type, channel 1..16, number 0..127, velocity?, source? }`.
+TOUCH (every kind that takes touch): on at the landing - an onset, a 9, a Latch Off hand-over's arrival - a Note at its
+velocity (Fixed 1..127, default 100, or From X / From Y: the landing's position on the element's box through the
+calibrated axes, `p*126//127+1`, never 0) or a CC at 127; off on every path `R` covers - the lift, the sweep's expiry, a
+9, the same id pressed again, another finger on the region, a hand-over's departure - the note-off or the CC at 0.
+VALUE (a fader, an XY pad by its `source` X or Y, an absolute knob): the element's own scaled value on its own type
+(CC, Pitch bend, Channel pressure), channel and number, sent when the element's own output is. **A multitouch pad's
+Touch note is a gate for the pad: on at the first finger down, off at the last finger up** (decided); its Value
+follows the first slot. Extras never receive and are never echoed. The order: the element's own messages first at the
+landing, the Touch offs first at the release. A button's Touch note is a second note under its press; a blank takes
+none; a Value on a button or a relative knob is kept and not sent. **The addition, folded in:** a fader's, an absolute
+knob's and a one-touch pad's either axis's Type gains **Note** - **Pitch** (Min..Max the range, a Scale of nine -
+Chromatic, Major, Minor, Dorian, Mixolydian, Lydian, Phrygian, Major and Minor pentatonic, the catalog's own words -
+rooted on Min, the value quantised DOWN onto it; a slide sends the old note's off then the new one's on, never two held;
+Velocity fixed, default 100) or **Gate** (the fixed Note at the landing's value as its velocity, never 0; a move changes
+nothing). A Note does not receive (a note is an event, not a held value); not on a multitouch pad or a relative knob.
+
+**The encoding and its cost.** A row's keyed field `m={{w,n,v},...}` - the word as the channel word spells a type, the
+number, and a Touch note's velocity or 128 / 129 for X / Y, a Touch CC's 127, a Value's column negated (the sign tells
+the triggers apart). Measured against a table of its own keyed by region index: the row field is cheaper everywhere
+measured, data and readers - page 3 with one Touch note 18 against 49, three extras on each of page 3's four 171 against
+263, a Touch note on each of sixteen's buttons 144 against 196. A Pitch is the channel word's code -3 (Gate the button's
+-2) with the receive-off bit always set; its velocity rides the number column, its scale `[24]={...}` (`[25]` for Y).
+**The variant**: `W` (146 with a Touch extra, 220 with From X / Y, 237 with the multitouch gate, 296 with a Note, 585
+every piece), the entry `O` +24 (its call), `R` +6, `D` 174 -> 299 (a Value) / 399 (a Note) / 524 (both) - swapped in only
+when a region carries an extra or a Note: **every one of the gate's 46 earlier Sandbox fixtures is byte-identical** (with
+the new fields present and inert too), and the gate's Sandbox set kept all 874 of its records, 304 added by sixteen new
+fixtures.
+
+**Five slots at the picker corner** (255/6, 255/0, 255/4, Timer, Setup): page 3 receiving 893/908/905/897/877 (69 free)
+-> with a Touch note on its pad 858/908/854/1147/908 - **over**; with every Receive off 893/908/907/728/502 ->
+858/908/882/904/590, **fits**; the fader a C major ribbon beside it 858/908/858/1131/907, over. **The cap floor with every
+option on** (change 21A's Pitch on Major and three dearest extras beside the representative's every other option): **4**
+1 x 2 faders from an empty surface; `cost.ts`'s representative unmoved (11, and 14 from twelve). **No longer fit**, every
+element receiving: with a Touch note on every element the three combinations change 11 put over beside a multitouch pad
+(`vbxk`, `hbxk`, `vhbxk`); with every continuous element a Pitch note seven (`vbk`, `hbk`, `vhbk`, `bxk`, `vbxk`, `hbxk`,
+`vhbxk`). Andrew Huang's case - a pad with its X, Y and a Touch note - fits alone and on page 3 with every Receive
+off; page 3 with every element receiving is over.
+
+**The VM cases** (`runtime.spec.ts` 24): the pad's `176:21:63 176:22:63 144:48:100`, the move's CCs, `128:48:0`; From Y
+127 / 63 / 1; the off exactly once on a lift, the sweep, a 9, the same id again, another finger, a hand-over's departure
+onto an Off button and its arrival from it; the multitouch gate (and a lost last finger's sweep); a Value CC 74 on channel
+2 value for value with its fader; a Touch CC 127 / 0; three extras in order; page 3 with and without the note sending the
+same but the note; the C major ribbon `60 62 64 67 69 72` each off before the next on; the Gate at 76 and at 1; both
+modes on every release path; the notes' hand-over; a spring's silent return; a relative ribbon; a pad's X ribbon; a
+knob's (which found the re-note of the sounding note: `fce13fd`). `emit.spec.ts` 12 the encoding, the variant, the
+byte-identity and the budgets; `sandbox-ui.spec.ts` 32 the editor, the schema and the panel; the e2e walk: the pad's
+Touch note From Y reads `Note on C4 ch 1 → 127` and its off in the Play monitor, a C major fader slid over three rows
+reads E3, G3 and A3 on and off.
+
+**The inspector.** Under a Note: `Note mode` (Pitch / Gate; `Mode` is Behavior's word), Pitch's Scale and Velocity or
+Gate's Note in place of the number, no Receive, Min / Max's helper naming the note range. After the element's own rows a
+block per extra on 17C's folding head - `Message n`, a chevron, the summary on a line of its own (`Touch · Note · Ch 1 ·
+C4 · Vel from Y`, `Value · CC · Ch 1 · 60 · from Y`), the remove box (a cross of two straight lines, 44 px) in the lock
+column - with Trigger, Type, Channel, Number, Velocity and Source; then "+ Add message", disabled at three. One element at
+a time (13A's multi-edit does not reach extras); not remembered (13B - nor a continuous Note, its Mode, Scale or
+Velocity); the Grid Editor profile file (13C) carries them in the landing's strings. **Screenshots** (`shots/c21b/` in the
+scratchpad: the pad with a Touch note From Y and a Value CC from Y, open, folded and whole, and a fader on Note / Pitch /
+Major, at 1440 x 900 and 393 x 852; wrangler dev on 4174, stopped by port through PowerShell, 5173 untouched): seen - the
+blocks, the three-word Velocity row, the remove boxes in the lock column, the Note rows; fixed on seeing them - at 1440 and
+393 the summary was cut to `Touch · Note · Ch 1 · C…` in the control column (`021b8b1`).
+
+**Counts, carried + delta** (carried = the tree at my start, `0c4bab8`, changes 19's and 20's edits in flight - the
+before-record's quick term printed no summary at 0.9 GB free): quick **100 / 1120 + 1 todo**, green twice at
+`--maxWorkers=2` and in the gate (mine +3: runtime 24, emit 12, sandbox-ui 32); `QUICK_TESTS` not edited by me - change
+20's `cfcfd3e` set 1120 on the whole tree at `31134cd`, which carried my tests. Check 685 -> **691** (mine +0); lint
+clean; e2e titles +1 (122 runs); audition rows 51 -> **52**; utilities **44 -> 44**; testids 348 -> 357 (mine +6);
+`sandbox/copy.ts` exports 203 -> 231 (+28); SCOPED CSS `d514ae96…` -> `d9255ffa…`, mine by name (`.extra`,
+`.extra-head`, `.fold`, `.fold-name`, `.fold-summary`, `.chevron`, `.fold-rows`, `.add` and their states); catalog 27;
+OG and the four fixtures unmoved. **The gate**: the wire set `e9534dba…` -> `529219e8…` by change 19's colour knobs
+alone (`E/<card>/`; no Sandbox page 3, preset, library or defaults record), the Sandbox set `51e5da18…` -> `61085205…`
+by new fixtures alone; the script exits 1 at the wire by design. **Chunk** c4 by files on the gate's build: 24 passed,
+every Sandbox title green; red, `first-experience`'s hero-motion title (green alone) and `library`'s ORBIT-copy import
+(ORBIT's rack moved under change 19's `c5d92d9`, both runs).
+
+**Departures from the brief:** (1) the addition (Note, Pitch / Gate) folded in as relayed; (2) a Note does not receive;
+(3) a Touch CC is 127 / 0, not the element's Min / Max; (4) Pitch quantises down onto the scale, not into equal zones
+per scale note; (5) no Note and no per-finger notes on a multitouch pad; (6) the Note mode's label is `Note mode`; (7)
+two fixes after the feature commits (the re-note, the summary line); (8) `audition.spec.ts`'s count and the route's one
+line are outside the brief's file list, as 17C's and 18's were; (9) `cost.ts`'s representative is unchanged (the
+floor with every 21A option on is measured beside it); (10) not fixed: the plate's CC-number label on a continuous Note
+shows its stored number (a Gate's note as a number, a Pitch's unused controller) - `SurfaceEditor.svelte` is the plate,
+change 20's area; the shared-controller pass ignores extras. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays
+`[ ]`.
+
+**What I would have asked:** (1) a multitouch pad's Touch note - one gate for the pad, or a note per finger? (2) Pitch -
+the value quantised down onto the scale (a semitone's width per step, so C and D get two, E and B one), or the ribbon cut
+into equal zones per scale note? (3) should a received note place a Pitch ribbon's finger (a DAW's note lighting the
+ribbon)? (4) a Touch CC at 127 / 0, or the element's Min / Max? (5) page 3 with every element receiving cannot take a
+Touch note - should Receive default off near the budget, or say so on the meter? (6) the plate's number under a Note -
+the note name, the scale, or nothing? (7) should extras' controllers join the shared-controller pass? (8) remember a
+Note (and its Mode, Scale, Velocity) for the next element of the kind, as every other Type is?
