@@ -610,8 +610,10 @@ export function touchPart(options: ExtrasOptions): string {
  * (the three continuous codes 0, 2, 3 as `h//16%4` reads them, and the two Notes 5 and 6): a Pitch
  * value is quantised DOWN onto its scale, rooted on the Min, before the change test (the row's
  * column 24, 25 for Y: the degrees; absent is Chromatic, the value itself - model.ts `pitchOf` is the
- * twin); a Pitch whose note sounds (column 22, 23) re-notes on a change - the old note's off, then the
- * new one's on at the number column's velocity - and a Gate sends nothing on a move. Under `value`
+ * twin); a Pitch whose note sounds (column 22, 23) re-notes when the value lands on ANOTHER note
+ * (`(r[n+3]or v)~=v`: a knob's first detent after a landing can land on the note already sounding,
+ * whose last value was never set) - the old note's off, then the new one's on at the number column's
+ * velocity - and a Gate sends nothing on a move. Under `value`
  * every Value extra whose column is this call's (`v == -n`: 19 a fader's, a knob's or a pad's X,
  * 20 a pad's Y; a multitouch pad's first slot 20 and 21) sends the same scaled value on its own word
  * and number, as the element's own output does - and, like it, not when `s` is nil (the receive's
@@ -626,7 +628,7 @@ const SEND_CHANGE = "if v~=r[n]then r[n]=v ";
 const SEND_WORD = "h=h or r[8]local t=h//16%4 ";
 const SEND_OWN = "s:gms(h%16,176+t*16,t==2 and v or c,t==2 and 0 or v)";
 const SEND_RENOTE =
-  "elseif t<6 and r[n+3]then s:gms(h%16,128,r[n+3],0)s:gms(h%16,144,v,c)r[n+3]=v end ";
+  "elseif t<6 and(r[n+3]or v)~=v then s:gms(h%16,128,r[n+3],0)s:gms(h%16,144,v,c)r[n+3]=v end ";
 const SEND_VALUE =
   "for _,g in pairs(r.m or{})do if g[3]==-n then t=g[1]//16%4 " +
   "s:gms(g[1]%16,176+t*16,t==2 and v or g[2],t==2 and 0 or v)end end ";
