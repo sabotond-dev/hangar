@@ -314,6 +314,13 @@ describe("the stamp: format x", () => {
           ghostColour: "255,140,0",
         },
       },
+      {
+        id: "morph",
+        payload: "wifff20010201000h1000i1000j1",
+        moved: {
+          trailColour: "255,255,255",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

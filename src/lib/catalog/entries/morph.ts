@@ -118,6 +118,7 @@ import {
   type LuaKnob,
   type MidiOutput,
 } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -232,13 +233,14 @@ export const MORPH: CatalogEntry = {
       token: "@TRAILC",
       // Layer 2, the comet, and the finger on layer 0. Every channel inside 0..255: the
       // firmware truncates rather than clamps.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "180,255,255",
         "255,255,255",
         "0,200,255",
         "255,180,120",
         "120,255,180",
-      ],
+      ]),
       default: 0,
     },
     {
