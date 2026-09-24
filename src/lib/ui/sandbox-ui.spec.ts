@@ -27,6 +27,7 @@ import {
   VELOCITY_RANGE,
   extraSummary,
   messageName,
+  plateNoteRange,
   ARRANGE_HELPER,
   BUTTON_MIN_MAX_HELPER,
   CC_RANGE,
@@ -5332,5 +5333,110 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     expect(code(ROUTE)).toContain(
       "onmessage={(action) => editor?.message(action)}",
     );
+  });
+
+  it("33. the plate's numeral under a Note output (fix-up 21): with the numbers on, a fader, a knob and each of an XY pad's axes on Note never show the stored number - Gate the note it plays by name, Pitch its range from Min to Max as notes - a pitch bend and a channel pressure keep their short word and a controller its number; and the inspector's + Add message is a full-width action row, an extra's head on the row's four columns", () => {
+    const { editor } = fresh();
+    editor.choose("fader");
+    editor.clickCell(0, 0);
+    editor.choose("knob");
+    editor.clickCell(2, 0);
+    editor.choose("xy");
+    editor.clickCell(6, 0);
+    editor.cancel();
+    const [fader, knob, pad] = editor.surface.regions;
+    const drawn = (text: string) => `>${text}</text>`;
+    const numbers = () =>
+      render(SurfaceEditor, {
+        props: {
+          view: editor.state(),
+          onclick: noop,
+          onmove: noop,
+          onmark: noop,
+          oncancel: noop,
+          ondelete: noop,
+          show: { numbers: true, names: true },
+        },
+      }).body;
+    // A controller its number, as before.
+    let html = numbers();
+    expect(html).toContain(drawn(String(fader.cc)));
+    expect(html).toContain(drawn(String(knob.cc)));
+    expect(html).toContain(drawn(`${pad.cc} ${pad.cc2}`));
+    expect(plateNoteRange("C3", "C5")).toBe("C3–C5");
+
+    // THE FADER. Pitch (the default mode): the range, Min to Max as notes - C-1 to G9 unset.
+    editor.select(fader.id);
+    expect(editor.setOutput("note")).toBe(true);
+    html = numbers();
+    expect(html).toContain(drawn("C-1–G9"));
+    expect(html, "the stored number is gone").not.toContain(
+      drawn(String(fader.cc)),
+    );
+    expect(editor.editNumber("min", "48")).toBe(true);
+    editor.commitField();
+    expect(editor.editNumber("max", "72")).toBe(true);
+    editor.commitField();
+    expect(editor.setScale("x", "major")).toBe(true);
+    expect(numbers()).toContain(drawn("C3–C5"));
+    // Gate: the note it plays, by name, never the number.
+    expect(editor.setNoteMode("x", "gate")).toBe(true);
+    expect(editor.editNumber("note", "D#4")).toBe(true);
+    editor.commitField();
+    expect(byId(editor, fader.id).cc).toBe(63);
+    html = numbers();
+    expect(html).toContain(drawn("D#4"));
+    expect(html).not.toContain(drawn("63"));
+    expect(html).not.toContain(drawn("C3–C5"));
+    // A pitch bend and a channel pressure: the short word (change 17), no number.
+    expect(editor.setOutput("pitchbend")).toBe(true);
+    expect(numbers()).toContain(drawn("PB"));
+    expect(editor.setOutput("pressure")).toBe(true);
+    expect(numbers()).toContain(drawn("CP"));
+    expect(editor.setOutput("cc")).toBe(true);
+    expect(numbers()).toContain(drawn("63"));
+
+    // THE KNOB: its numeral bottom-left, the same rule.
+    editor.select(knob.id);
+    expect(editor.setOutput("note")).toBe(true);
+    expect(editor.setNoteMode("x", "gate")).toBe(true);
+    html = numbers();
+    expect(html).toMatch(
+      new RegExp(`data-testid="surface-cc"[^>]*>${noteName(knob.cc)}</text>`),
+    );
+    expect(html).not.toContain(drawn(String(knob.cc)));
+    expect(editor.setNoteMode("x", "pitch")).toBe(true);
+    expect(numbers()).toContain(drawn("C-1–G9"));
+
+    // THE XY PAD: each axis by its own rule - X a Pitch range, Y a Gate's note, Y a pressure.
+    editor.select(pad.id);
+    expect(editor.setOutput("note")).toBe(true);
+    expect(editor.setOutputY("note")).toBe(true);
+    expect(editor.setNoteMode("y", "gate")).toBe(true);
+    expect(editor.editNumber("noteY", "E2")).toBe(true);
+    editor.commitField();
+    html = numbers();
+    expect(html).toContain(drawn("C-1–G9 E2"));
+    expect(html).not.toContain(drawn(`${pad.cc} ${pad.cc2}`));
+    expect(editor.setOutputY("pressure")).toBe(true);
+    expect(numbers()).toContain(drawn("C-1–G9 CP"));
+
+    // THE INSPECTOR: + Add message a full-width action row (no label | control row holds it);
+    // an extra's head the row's four columns, the remove box in the lock column.
+    editor.select(fader.id);
+    expect(editor.addExtra()).toBe(true);
+    html = inspector(editor);
+    expect(html).toMatch(
+      /class="add-row[ "][^>]*>\s*<button[^>]*data-testid="extra-add"/,
+    );
+    expect(html).not.toMatch(
+      /class="row[ "][^>]*>\s*<button[^>]*data-testid="extra-add"/,
+    );
+    expect(count(html, 'class="extra-head')).toBe(1);
+    const source = code(`${UI}/RegionInspector.svelte`);
+    expect(source).toMatch(
+      /\.extra-head \{\s*display: grid;\s*grid-template-columns: var\(--tune-label-w, 96px\) minmax\(0, 1fr\) 44px 44px;\s*grid-template-areas: "fold fold fold lock";/,
+    );
+    expect(source).toMatch(/\.extra-head > \.remove \{\s*grid-area: lock;/);
   });
 });

@@ -25,6 +25,7 @@
     PLATE_NAME,
     TYPE_SHORT,
     cellLine,
+    plateNoteRange,
     elementsLine,
     placeInstruction,
     selectedCountLine,
@@ -44,14 +45,17 @@
     cellIndex,
     colourByte,
     hasNumber,
+    isContinuousNote,
     lockedOf,
+    maxOf,
+    minOf,
+    noteModeOf,
     outputOf,
     springOf,
     springPosition,
     toDisplay,
-    typeOf,
-    typeYOf,
-    type MidiType,
+    typeOfAxis,
+    type OutputAxis,
     type Region,
   } from "$lib/sandbox/model";
   import { noteName } from "$lib/tune/view";
@@ -185,9 +189,25 @@
   const restOf = (r: Region): number =>
     springOf(r) ? springPosition(r) / 127 : REST_VALUE;
 
-  /** An output's number as the plate draws it (change 17): the controller, or the type's short word where it has none (a pitch bend, a channel pressure). */
-  const numberOf = (type: MidiType, cc: number): string =>
-    hasNumber(type) ? String(cc) : TYPE_SHORT[type as keyof typeof TYPE_SHORT];
+  /**
+   * An output's numeral as the plate draws it (change 17): the controller, or the type's short word
+   * where it has none (a pitch bend, a channel pressure). Under a Note (fix-up 21, BENCH-2026-09-16.txt
+   * section 21) never the stored number: Gate the note it plays by name (the Number worded by its
+   * Type, 17C's rule), Pitch the range it plays, Min to Max as notes (`C3–C5`) - one cell of a
+   * fader holds the longest (`C#-1–G#9`, eight characters).
+   */
+  function numberOf(r: Region, axis: OutputAxis): string {
+    const type = typeOfAxis(r, axis);
+    const number = axis === "y" ? (r.cc2 ?? 0) : r.cc;
+    if (isContinuousNote(r, axis)) {
+      return noteModeOf(r, axis) === "gate"
+        ? noteName(number)
+        : plateNoteRange(noteName(minOf(r)), noteName(maxOf(r)));
+    }
+    return hasNumber(type)
+      ? String(number)
+      : TYPE_SHORT[type as keyof typeof TYPE_SHORT];
+  }
 
   /** The controller numeral a kind shows (change 13C's toggle): a button's note by name, an XY pad's pair, a blank none. */
   function numeralOf(r: Region): string | undefined {
@@ -197,9 +217,9 @@
       case "button":
         return outputOf(r) === "note" ? noteName(r.cc) : String(r.cc);
       case "xy":
-        return `${numberOf(typeOf(r), r.cc)} ${numberOf(typeYOf(r), r.cc2 ?? 0)}`;
+        return `${numberOf(r, "x")} ${numberOf(r, "y")}`;
       default:
-        return numberOf(typeOf(r), r.cc);
+        return numberOf(r, "x");
     }
   }
 
@@ -958,7 +978,7 @@
                 x={f.cx}
                 y={f.bottom - PITCH * 0.45}
                 font-size={LABEL}
-                style:fill>{numberOf(typeOf(r), r.cc)}</text
+                style:fill>{numberOf(r, "x")}</text
               >
             {:else}
               {@const gLeft = f.left + PITCH * 0.3}
@@ -993,7 +1013,7 @@
                 x={f.cx}
                 y={f.cy + PITCH * 0.42}
                 font-size={LABEL}
-                style:fill>{numberOf(typeOf(r), r.cc)}</text
+                style:fill>{numberOf(r, "x")}</text
               >
             {/if}
             <text

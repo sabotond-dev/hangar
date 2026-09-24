@@ -187,6 +187,9 @@ export const TYPE_HELPER =
   "Pitch bend and channel pressure carry no number. A pitch bend sends the value as its high byte, so 64 is the center.";
 /** The plate's word for an output with no number (change 17): a pitch bend, a channel pressure. */
 export const TYPE_SHORT = { pitchbend: "PB", pressure: "CP" } as const;
+/** The plate's numeral for a Pitch note output (fix-up 21): the range it plays, Min to Max as notes. */
+export const plateNoteRange = (low: string, high: string): string =>
+  `${low}–${high}`;
 /** An XY pad's two outputs (change 17), each with its own Type, number and channel. */
 export const X_AXIS = "X axis";
 export const Y_AXIS = "Y axis";
