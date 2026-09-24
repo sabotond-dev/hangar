@@ -1,0 +1,982 @@
+# 13.2 gate --after change-20 --against change-20 --check 692
+HEAD 8308a17 (8308a17796bac89640684432f2f33d27e0a71360); dirty (src e2e scripts docs) 8; free memory 0.19 GB; 2026-09-24T08:24:37Z
+before-record HEAD d7748abecef6183518326de745c2335c145a5d27
+
+## the wire
+16705 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET eadaaedc6de0584b0a7e59bb988c7d036ac852a1f89ae6bf8168de04220e3359
+874 Sandbox strings from 46 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL 6869375b2fb0db13ac0fad2e21263e4d1b66ad8d46c0d93b3be33ea77000dab1
+874 Sandbox strings from 46 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 51e5da185509c0d458918698ac152b0cec75d4c91f370266877fa4140769965e
+
+## the strings
+222 files; 3600 distinct literals (8760 occurrences); 9 copy modules; 357 data-testids
+literal census sha256 f35cf1540f266642244bf09bcc808bbe24e04667bd9c34bed0704fa44a36233f
+copy exports   sha256 9fdf5a67a17724ca28f19df41176f8c0b67b39cf56162a84ea1f07187db0983d
+data-testids   sha256 12ca66ac43b1ef394488f54949ce77b0ef42ac9294dab088beea051152afbd91
+- 1 -> 2	" · "
+- 9 -> 14	"$lib/protocol"
+- 2 -> 3	"${},${},${}"
+- 8 -> 9	", "
+- 11 -> 16	"EXECUTE"
+- 6 -> 8	"FETCH"
+- 2 -> 3	"I[r[5]](s,i,r,x,y,o)"
+- 1 -> 2	"MIDI"
+- 7 -> 11	"REPORT"
+- 3 -> 4	"Scale"
+- 2 -> 3	"Source"
+- 1 -> 2	"Value"
+- 1 -> 2	"Velocity"
+- 1 -> 2	"ZONA"
+- 19 -> 25	"blank"
+- 109 -> 118	"button"
+- 39 -> 42	"cc"
+- 7 -> 6	"cc2"
+- 55 -> 58	"channel"
+- 3 -> 4	"chevron"
+- 1 -> 6	"chromatic"
+- 5 -> 7	"closed"
+- 68 -> 70	"colour"
+- 23 -> 27	"connected"
+- 11 -> 12	"control"
+- 1 -> 2	"coords numerals"
+- 3 -> 4	"end"
+- 1 -> 2	"end end end"
+- 12 -> 17	"field"
+- 1 -> 2	"fold"
+- 1 -> 2	"fold-name type-micro"
+- 1 -> 2	"fold-rows"
+- 1 -> 2	"fold-summary"
+- 1 -> 2	"function D(s,r,n,c,v,h)v=r[12]+(r[13]-r[12])*v//127 "
+- 12 -> 13	"glyph"
+- 25 -> 26	"knob"
+- 12 -> 13	"label type-micro"
+- 1 -> 3	"major"
+- 6 -> 7	"message type-helper"
+- 1 -> 3	"minor"
+- 1 -> 3	"mode-line type-helper"
+- 70 -> 98	"note"
+- 22 -> 35	"number"
+- 9 -> 17	"off"
+- 13 -> 16	"option"
+- 6 -> 8	"output"
+- 2 -> 3	"outputY"
+- 2 -> 13	"pitch"
+- 6 -> 9	"pitchbend"
+- 60 -> 63	"play"
+- 5 -> 8	"pressure"
+- 1 -> 2	"quiet type-helper"
+- 4 -> 5	"requested"
+- 24 -> 26	"row"
+- 18 -> 22	"scale"
+- 5 -> 6	"snapshotting"
+- 40 -> 41	"sr-only"
+- 3 -> 5	"starting"
+- 9 -> 10	"swatch"
+- 11 -> 12	"switching"
+- 5 -> 6	"toggle"
+- 4 -> 19	"touch"
+- 86 -> 88	"true"
+- 68 -> 69	"undefined"
+- 3 -> 14	"value"
+- 2 -> 12	"velocity"
+- 14 -> 15	"writing"
+- 43 -> 51	"xy"
++ 0 -> 2	" ? "
++ 0 -> 1	" | "
++ 0 -> 1	"$lib/sim/lua-host"
++ 0 -> 1	"${} is not a colour"
++ 0 -> 1	"${} shares a cell"
++ 0 -> 1	"${} · no lights reported"
++ 0 -> 1	"${} · waiting for its lights"
++ 0 -> 1	"${}-extra"
++ 0 -> 1	"${}if o then W(s,r,x,y)end "
++ 0 -> 2	")}\n      {:else if region !== undefined && hasNumber(typeOf(region))}\n        {@render numeric("
++ 0 -> 1	")}\n      {:else if region !== undefined && hasNumber(typeYOf(region))}\n        {@render numeric("
++ 0 -> 1	"+ Add message"
++ 0 -> 1	",${}={${}}"
++ 0 -> 1	",[${}]={${}}"
++ 0 -> 1	"./preview"
++ 0 -> 1	"000${}${}${}${}${}"
++ 0 -> 1	"042${}${}${}"
++ 0 -> 1	"053${}${}${}${}"
++ 0 -> 1	"A velocity is 1 to 127."
++ 0 -> 1	"An element carries three extra messages at most."
++ 0 -> 1	"Ch ${}"
++ 0 -> 1	"Fixed"
++ 0 -> 1	"Fixed at"
++ 0 -> 1	"Fixed plays the note at the velocity below. From X or From Y takes it from where the finger lands."
++ 0 -> 1	"From X"
++ 0 -> 1	"From Y"
++ 0 -> 1	"From your ZONA · read-only"
++ 0 -> 1	"Gate"
++ 0 -> 4	"LEDPREVIEW"
++ 0 -> 1	"MIDI from ZONA"
++ 0 -> 1	"Message ${}"
++ 0 -> 1	"Mirror ZONA"
++ 0 -> 1	"Mirroring ZONA"
++ 0 -> 1	"Mirroring ZONA · page ${}"
++ 0 -> 1	"Note mode"
++ 0 -> 1	"Nothing sent yet. Play your ZONA and what it sends shows here."
++ 0 -> 1	"Pitch"
++ 0 -> 1	"Pitch: the value picks the note, from Min to Max, and sliding plays the next one. Gate: a touch plays the note with the value where it lands as its velocity. A note doesn’t receive."
++ 0 -> 1	"Remove message"
++ 0 -> 1	"Show what your ZONA is lighting and the MIDI it sends. Read-only: nothing is stored or changed."
++ 0 -> 1	"The axis whose value the message follows."
++ 0 -> 1	"The last twelve messages your ZONA sent, newest first."
++ 0 -> 1	"The notes Pitch plays, counted up from Min: a value between two of them plays the lower one."
++ 0 -> 1	"These are your ZONA's own lights and MIDI. It does not report where your fingers are."
++ 0 -> 1	"Touch"
++ 0 -> 1	"Trigger"
++ 0 -> 1	"Under Pitch, Min and Max are the lowest and highest note, and the scale starts on Min. A Min above the Max inverts the direction."
++ 0 -> 1	"Up to three more messages beside the element’s own. Touch sends on when a finger lands and off when it lifts; Value follows the element’s value. Extra messages never receive."
++ 0 -> 1	"Vel ${}"
++ 0 -> 3	"add"
++ 0 -> 1	"box remove"
++ 0 -> 2	"cells"
++ 0 -> 1	"colour-quick"
++ 0 -> 2	"dorian"
++ 0 -> 1	"elseif r[21+j]then s:gms(h%16,128,r[21+j],0)r[21+j]=nil end end end "
++ 0 -> 1	"elseif t<6 and(r[n+3]or v)~=v then s:gms(h%16,128,r[n+3],0)s:gms(h%16,144,v,c)r[n+3]=v end "
++ 0 -> 1	"end "
++ 0 -> 1	"extra"
++ 0 -> 1	"extra-${}-${}"
++ 0 -> 1	"extra-add"
++ 0 -> 1	"extra-block"
++ 0 -> 1	"extra-fold"
++ 0 -> 1	"extra-head"
++ 0 -> 1	"extra-remove"
++ 0 -> 1	"extra-summary"
++ 0 -> 1	"fetch-led-preview"
++ 0 -> 3	"fixed"
++ 0 -> 1	"for _,g in pairs(r.m or{})do if g[3]==-n then t=g[1]//16%4 "
++ 0 -> 1	"for _,g in pairs(r.m or{})do local w,v=g[1],g[3]if v>0 then "
++ 0 -> 1	"for _,g in pairs(r[n+5])do if g<=d and g>u then u=g end end v=v-d+u end "
++ 0 -> 1	"for j=1,r[5]==4 and 2 or 1 do local h=j>1 and r[15]or r[8]local t=h%128//16 if t>4 then "
++ 0 -> 1	"from ${}"
++ 0 -> 1	"function W(s,r,x,y)"
++ 0 -> 4	"gate"
++ 0 -> 1	"h=h or r[8]local t=h%128//16 "
++ 0 -> 1	"h=h or r[8]local t=h//16%4 "
++ 0 -> 1	"if not r then return end "
++ 0 -> 1	"if not r then return end W(s,r)"
++ 0 -> 1	"if r then W(s,r)local t"
++ 0 -> 1	"if r then local t"
++ 0 -> 1	"if s then "
++ 0 -> 1	"if t<5 then ${}${}"
++ 0 -> 1	"if t==5 and r[n+5]then local d,u=(v-r[12])%12,0 "
++ 0 -> 1	"if v~=r[n]then r[n]=v "
++ 0 -> 1	"if x and v>127 then local a,b=A(r,x,y)v=(v>128 and b or a)*126//127+1 end "
++ 0 -> 1	"if x then local u=r[18+j]or r[12]local k=t>5 and r[5+j]or u "
++ 0 -> 1	"local c=0 for _,g in pairs(S)do if J[g]==r then c=c+1 end end if c==(x and 1 or 0)then "
++ 0 -> 2	"lydian"
++ 0 -> 3	"major-pentatonic"
++ 0 -> 3	"minor-pentatonic"
++ 0 -> 2	"mirror-note"
++ 0 -> 2	"mirror-status"
++ 0 -> 1	"mirror-toggle"
++ 0 -> 2	"mixolydian"
++ 0 -> 1	"no placeholder block to replace"
++ 0 -> 3	"note-mode"
++ 0 -> 1	"note-y"
++ 0 -> 1	"noteMode"
++ 0 -> 1	"noteModeY"
++ 0 -> 7	"noteY"
++ 0 -> 2	"on"
++ 0 -> 1	"outlined add"
++ 0 -> 2	"phrygian"
++ 0 -> 3	"remove"
++ 0 -> 1	"s:gms(g[1]%16,176+t*16,t==2 and v or g[2],t==2 and 0 or v)end end "
++ 0 -> 1	"s:gms(h%16,144,k,t>5 and glim(u,1,127)or r[5+j])r[21+j]=k "
++ 0 -> 1	"s:gms(h%16,176+t*16,t==2 and v or c,t==2 and 0 or v)"
++ 0 -> 1	"s:gms(w%16,176+w//16*(x and 16 or 24),g[2],x and v or 0)end end "
++ 0 -> 1	"scaleY"
++ 0 -> 4	"set"
++ 0 -> 1	"switches"
++ 0 -> 1	"velocity-y"
++ 0 -> 7	"velocityY"
++ 0 -> 4	"y"
++ 0 -> 1	"{${}${}}"
+
+## the comment lines
+223 files; 60841 lines, 40418 code, 15786 comment, 4637 blank, 4758 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/arc.ts | 271 | 274 | 129 | 131 | 105 | 105 |
+| src/lib/catalog/entries/chorus.ts | 255 | 257 | 125 | 126 | 99 | 99 |
+| src/lib/catalog/entries/console.ts | 229 | 233 | 115 | 118 | 89 | 89 |
+| src/lib/catalog/entries/ghost.ts | 301 | 304 | 139 | 141 | 103 | 103 |
+| src/lib/catalog/entries/morph.ts | 340 | 342 | 154 | 155 | 113 | 113 |
+| src/lib/catalog/entries/orbit.ts | 355 | 363 | 118 | 119 | 80 | 80 |
+| src/lib/catalog/entries/sonar.ts | 220 | 222 | 100 | 101 | 78 | 78 |
+| src/lib/catalog/entries/steps.ts | 315 | 318 | 139 | 141 | 99 | 99 |
+| src/lib/catalog/lattice.ts (new) | - | 133 | - | 31 | - | 13 |
+| src/lib/catalog/types.ts | 231 | 238 | 108 | 114 | 11 | 11 |
+| src/lib/mirror/copy.ts (new) | - | 45 | - | 14 | - | 7 |
+| src/lib/mirror/frame.ts (new) | - | 66 | - | 22 | - | 6 |
+| src/lib/mirror/mirror.svelte.ts (new) | - | 289 | - | 66 | - | 19 |
+| src/lib/protocol/decode.ts | 48 | 59 | 20 | 29 | 6 | 6 |
+| src/lib/protocol/descriptors.ts | 423 | 459 | 189 | 212 | 13 | 15 |
+| src/lib/protocol/index.ts | 10 | 11 | 3 | 3 | 3 | 3 |
+| src/lib/protocol/preview.ts (new) | - | 92 | - | 32 | - | 10 |
+| src/lib/sandbox/copy.ts | 441 | 489 | 122 | 132 | 14 | 14 |
+| src/lib/sandbox/editor.ts | 1742 | 1992 | 270 | 308 | 13 | 15 |
+| src/lib/sandbox/emit.ts | 384 | 515 | 98 | 118 | 13 | 13 |
+| src/lib/sandbox/model.ts | 601 | 828 | 202 | 258 | 12 | 12 |
+| src/lib/sandbox/runtime.ts | 849 | 991 | 329 | 379 | 10 | 10 |
+| src/lib/share/stamp.ts | 519 | 546 | 157 | 162 | 13 | 13 |
+| src/lib/sim/host.ts | 533 | 567 | 122 | 136 | 13 | 13 |
+| src/lib/store/schema.ts | 609 | 732 | 161 | 193 | 15 | 15 |
+| src/lib/transport/fixtures/synthetic.ts | 540 | 718 | 125 | 175 | 13 | 13 |
+| src/lib/tune/knobs.lua.ts | 49 | 51 | 32 | 33 | 10 | 10 |
+| src/lib/tune/knobs.preset.ts | 719 | 721 | 209 | 210 | 12 | 12 |
+| src/lib/tune/model.ts | 1066 | 1094 | 267 | 272 | 13 | 13 |
+| src/lib/tune/view.ts | 921 | 972 | 257 | 272 | 16 | 16 |
+| src/lib/ui/ColourPicker.svelte | 897 | 945 | 358 | 363 | 74 | 72 |
+| src/lib/ui/MidiMonitor.svelte | 324 | 333 | 23 | 26 | 13 | 13 |
+| src/lib/ui/MirrorToggle.svelte (new) | - | 71 | - | 11 | - | 10 |
+| src/lib/ui/radius-allowlist.ts | 269 | 270 | 72 | 73 | 13 | 13 |
+| src/lib/ui/sandbox/PlayMonitor.svelte | 165 | 174 | 14 | 17 | 10 | 10 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 1814 | 2391 | 118 | 148 | 16 | 16 |
+| src/routes/playground/[id]/+page.svelte | 926 | 1018 | 138 | 154 | 15 | 17 |
+| src/routes/sandbox/[draftId]/+page.svelte | 1380 | 1467 | 109 | 122 | 15 | 18 |
+| **totals (217 -> 223 files)** | 57997 | 60841 | 15191 | 15786 | 4686 | 4758 |
+
+38 file(s) moved
+
+## check and lint
+check: 1790238401037 COMPLETED 693 FILES 31 ERRORS 0 WARNINGS 1 FILES_WITH_PROBLEMS
+lint exit 1
+  
+  > hangar@0.0.1 lint
+  > prettier --check . && eslint .
+  
+  Checking formatting...
+  [[33mwarn[39m] src/lib/sandbox/zz-scratch21.spec.ts
+  [[33mwarn[39m] Code style issues found in the above file. Run Prettier with --write to fix.
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: no Vitest summary lines found on stdin. A run that printed no summary proves nothing, so this is a failure, not a pass.
+quick exit 1
+
+## the build
+build exit 0; stamp 471af83
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 31441 B, sha256 469998b3b08dba73754feb5a3ea01f81f01d960edac2beefd0b8f9f190017764
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 4ab8b5524d7bdfc4609a1b45efcea13b9810bd2e25166f880d251d449642eabb (15 stylesheets)
+15 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 4ab8b5524d7bdfc4609a1b45efcea13b9810bd2e25166f880d251d449642eabb
+SCOPED CSS sha256 d81e9df4292e4ef11884b9c5af3c8c0ce19901149cef401e463a449035fec30a
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 32cd910875c9eb4bcb83cbdb5cabe60131eee108470d3f0e8f538a607173e032 (74 files)
+
+## the titles
+TITLES sha256 029293e9e0a7673a13e5bddd4ca3a1011e6133c891fa79e38c4daba959cc01fa (1111 vitest titles incl. todo, 122 playwright runs)
+
+## src/ against the before-record's HEAD d7748abecef6183518326de745c2335c145a5d27
+git diff --name-status: 48 modified, 9 added, 0 deleted, 0 renamed
+  A	src/lib/catalog/lattice.ts
+  A	src/lib/mirror/copy.ts
+  A	src/lib/mirror/frame.ts
+  A	src/lib/mirror/mirror.spec.ts
+  A	src/lib/mirror/mirror.svelte.ts
+  A	src/lib/protocol/preview.spec.ts
+  A	src/lib/protocol/preview.ts
+  A	src/lib/ui/MirrorToggle.svelte
+  A	src/lib/ui/mirror-ui.spec.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte:  src/lib/ui/ColourPicker.svelte | 88 ++++++++++++++++++++++++++++++++----------
+ 1 file changed, 68 insertions(+), 20 deletions(-)
+
+## comparison against change-20
+wire moved: set e9534dba289c477e122cad13a2c5b8fb9826c15bf9b2ce7b620d6ef1615a08e4 -> eadaaedc6de0584b0a7e59bb988c7d036ac852a1f89ae6bf8168de04220e3359; full 98a518420ff6e4d7ccbee2ed893208fb40d41b8eab7d53fe70bd0d99d2744209 -> 6869375b2fb0db13ac0fad2e21263e4d1b66ad8d46c0d93b3be33ea77000dab1
+  + E/orbit/knob ring1Colour=5/setup
+  + E/orbit/knob ring1Colour=5/timer
+  + E/orbit/knob ring1Colour=6/setup
+  + E/orbit/knob ring1Colour=6/timer
+  + E/orbit/knob ring1Colour=20/setup
+  + E/orbit/knob ring1Colour=20/timer
+  + E/orbit/knob ring1Colour=21/setup
+  + E/orbit/knob ring1Colour=21/timer
+  + E/orbit/knob ring1Colour=22/setup
+  + E/orbit/knob ring1Colour=22/timer
+  + E/orbit/knob ring1Colour=36/setup
+  + E/orbit/knob ring1Colour=36/timer
+  + E/orbit/knob ring1Colour=244/setup
+  + E/orbit/knob ring1Colour=244/timer
+  + E/orbit/knob ring1Colour=245/setup
+  + E/orbit/knob ring1Colour=245/timer
+  + E/orbit/knob ring1Colour=258/setup
+  + E/orbit/knob ring1Colour=258/timer
+  + E/orbit/knob ring1Colour=259/setup
+  + E/orbit/knob ring1Colour=259/timer
+  + E/orbit/knob ring1Colour=260/setup
+  + E/orbit/knob ring1Colour=260/timer
+  + E/orbit/knob ring1Colour=274/setup
+  + E/orbit/knob ring1Colour=274/timer
+  + E/orbit/knob ring1Colour=275/setup
+  + E/orbit/knob ring1Colour=275/timer
+  + E/orbit/knob ring1Colour=276/setup
+  + E/orbit/knob ring1Colour=276/timer
+  + E/orbit/knob ring1Colour=290/setup
+  + E/orbit/knob ring1Colour=290/timer
+  + E/orbit/knob ring1Colour=499/setup
+  + E/orbit/knob ring1Colour=499/timer
+  + E/orbit/knob ring1Colour=500/setup
+  + E/orbit/knob ring1Colour=500/timer
+  + E/orbit/knob ring1Colour=514/setup
+  + E/orbit/knob ring1Colour=514/timer
+  + E/orbit/knob ring1Colour=3842/setup
+  + E/orbit/knob ring1Colour=3842/timer
+  + E/orbit/knob ring1Colour=3843/setup
+  + E/orbit/knob ring1Colour=3843/timer
+  + E/orbit/knob ring1Colour=3857/setup
+  + E/orbit/knob ring1Colour=3857/timer
+  + E/orbit/knob ring1Colour=3858/setup
+  + E/orbit/knob ring1Colour=3858/timer
+  + E/orbit/knob ring1Colour=3859/setup
+  + E/orbit/knob ring1Colour=3859/timer
+  + E/orbit/knob ring1Colour=3873/setup
+  + E/orbit/knob ring1Colour=3873/timer
+  + E/orbit/knob ring1Colour=4081/setup
+  + E/orbit/knob ring1Colour=4081/timer
+  + E/orbit/knob ring1Colour=4082/setup
+  + E/orbit/knob ring1Colour=4082/timer
+  + E/orbit/knob ring2Colour=5/setup
+  + E/orbit/knob ring2Colour=5/timer
+  + E/orbit/knob ring2Colour=6/setup
+  + E/orbit/knob ring2Colour=6/timer
+  + E/orbit/knob ring2Colour=20/setup
+  + E/orbit/knob ring2Colour=20/timer
+  + E/orbit/knob ring2Colour=21/setup
+  + E/orbit/knob ring2Colour=21/timer
+  + E/orbit/knob ring2Colour=22/setup
+  + E/orbit/knob ring2Colour=22/timer
+  + E/orbit/knob ring2Colour=36/setup
+  + E/orbit/knob ring2Colour=36/timer
+  + E/orbit/knob ring2Colour=244/setup
+  + E/orbit/knob ring2Colour=244/timer
+  + E/orbit/knob ring2Colour=245/setup
+  + E/orbit/knob ring2Colour=245/timer
+  + E/orbit/knob ring2Colour=258/setup
+  + E/orbit/knob ring2Colour=258/timer
+  + E/orbit/knob ring2Colour=259/setup
+  + E/orbit/knob ring2Colour=259/timer
+  + E/orbit/knob ring2Colour=260/setup
+  + E/orbit/knob ring2Colour=260/timer
+  + E/orbit/knob ring2Colour=274/setup
+  + E/orbit/knob ring2Colour=274/timer
+  + E/orbit/knob ring2Colour=275/setup
+  + E/orbit/knob ring2Colour=275/timer
+  + E/orbit/knob ring2Colour=276/setup
+  + E/orbit/knob ring2Colour=276/timer
+  + E/orbit/knob ring2Colour=290/setup
+  + E/orbit/knob ring2Colour=290/timer
+  + E/orbit/knob ring2Colour=499/setup
+  + E/orbit/knob ring2Colour=499/timer
+  + E/orbit/knob ring2Colour=500/setup
+  + E/orbit/knob ring2Colour=500/timer
+  + E/orbit/knob ring2Colour=514/setup
+  + E/orbit/knob ring2Colour=514/timer
+  + E/orbit/knob ring2Colour=3842/setup
+  + E/orbit/knob ring2Colour=3842/timer
+  + E/orbit/knob ring2Colour=3843/setup
+  + E/orbit/knob ring2Colour=3843/timer
+  + E/orbit/knob ring2Colour=3857/setup
+  + E/orbit/knob ring2Colour=3857/timer
+  + E/orbit/knob ring2Colour=3858/setup
+  + E/orbit/knob ring2Colour=3858/timer
+  + E/orbit/knob ring2Colour=3859/setup
+  + E/orbit/knob ring2Colour=3859/timer
+  + E/orbit/knob ring2Colour=3873/setup
+  + E/orbit/knob ring2Colour=3873/timer
+  + E/orbit/knob ring2Colour=4081/setup
+  + E/orbit/knob ring2Colour=4081/timer
+  + E/orbit/knob ring2Colour=4082/setup
+  + E/orbit/knob ring2Colour=4082/timer
+  + E/orbit/knob ring3Colour=5/setup
+  + E/orbit/knob ring3Colour=5/timer
+  + E/orbit/knob ring3Colour=6/setup
+  + E/orbit/knob ring3Colour=6/timer
+  + E/orbit/knob ring3Colour=20/setup
+  + E/orbit/knob ring3Colour=20/timer
+  + E/orbit/knob ring3Colour=21/setup
+  + E/orbit/knob ring3Colour=21/timer
+  + E/orbit/knob ring3Colour=22/setup
+  + E/orbit/knob ring3Colour=22/timer
+  + E/orbit/knob ring3Colour=36/setup
+  + E/orbit/knob ring3Colour=36/timer
+  + E/orbit/knob ring3Colour=244/setup
+  + E/orbit/knob ring3Colour=244/timer
+  + E/orbit/knob ring3Colour=245/setup
+  + E/orbit/knob ring3Colour=245/timer
+  + E/orbit/knob ring3Colour=258/setup
+  + E/orbit/knob ring3Colour=258/timer
+  + E/orbit/knob ring3Colour=259/setup
+  + E/orbit/knob ring3Colour=259/timer
+  + E/orbit/knob ring3Colour=260/setup
+  + E/orbit/knob ring3Colour=260/timer
+  + E/orbit/knob ring3Colour=274/setup
+  + E/orbit/knob ring3Colour=274/timer
+  + E/orbit/knob ring3Colour=275/setup
+  + E/orbit/knob ring3Colour=275/timer
+  + E/orbit/knob ring3Colour=276/setup
+  + E/orbit/knob ring3Colour=276/timer
+  + E/orbit/knob ring3Colour=290/setup
+  + E/orbit/knob ring3Colour=290/timer
+  + E/orbit/knob ring3Colour=499/setup
+  + E/orbit/knob ring3Colour=499/timer
+  + E/orbit/knob ring3Colour=500/setup
+  + E/orbit/knob ring3Colour=500/timer
+  + E/orbit/knob ring3Colour=514/setup
+  + E/orbit/knob ring3Colour=514/timer
+  + E/orbit/knob ring3Colour=3842/setup
+  + E/orbit/knob ring3Colour=3842/timer
+  + E/orbit/knob ring3Colour=3843/setup
+  + E/orbit/knob ring3Colour=3843/timer
+  + E/orbit/knob ring3Colour=3857/setup
+  + E/orbit/knob ring3Colour=3857/timer
+  + E/orbit/knob ring3Colour=3858/setup
+  + E/orbit/knob ring3Colour=3858/timer
+  + E/orbit/knob ring3Colour=3859/setup
+  + E/orbit/knob ring3Colour=3859/timer
+  + E/orbit/knob ring3Colour=3873/setup
+  + E/orbit/knob ring3Colour=3873/timer
+  + E/orbit/knob ring3Colour=4081/setup
+  + E/orbit/knob ring3Colour=4081/timer
+  + E/orbit/knob ring3Colour=4082/setup
+  + E/orbit/knob ring3Colour=4082/timer
+  + E/orbit/knob ring4Colour=5/setup
+  + E/orbit/knob ring4Colour=5/timer
+  + E/orbit/knob ring4Colour=6/setup
+  + E/orbit/knob ring4Colour=6/timer
+  + E/orbit/knob ring4Colour=20/setup
+  + E/orbit/knob ring4Colour=20/timer
+  + E/orbit/knob ring4Colour=21/setup
+  + E/orbit/knob ring4Colour=21/timer
+  + E/orbit/knob ring4Colour=22/setup
+  + E/orbit/knob ring4Colour=22/timer
+  + E/orbit/knob ring4Colour=36/setup
+  + E/orbit/knob ring4Colour=36/timer
+  + E/orbit/knob ring4Colour=244/setup
+  + E/orbit/knob ring4Colour=244/timer
+  + E/orbit/knob ring4Colour=245/setup
+  + E/orbit/knob ring4Colour=245/timer
+  + E/orbit/knob ring4Colour=258/setup
+  + E/orbit/knob ring4Colour=258/timer
+  + E/orbit/knob ring4Colour=259/setup
+  + E/orbit/knob ring4Colour=259/timer
+  + E/orbit/knob ring4Colour=260/setup
+  + E/orbit/knob ring4Colour=260/timer
+  + E/orbit/knob ring4Colour=274/setup
+  + E/orbit/knob ring4Colour=274/timer
+  + E/orbit/knob ring4Colour=275/setup
+  + E/orbit/knob ring4Colour=275/timer
+  + E/orbit/knob ring4Colour=276/setup
+  + E/orbit/knob ring4Colour=276/timer
+  + E/orbit/knob ring4Colour=290/setup
+  + E/orbit/knob ring4Colour=290/timer
+  + E/orbit/knob ring4Colour=499/setup
+  + E/orbit/knob ring4Colour=499/timer
+  + E/orbit/knob ring4Colour=500/setup
+  + E/orbit/knob ring4Colour=500/timer
+  + E/orbit/knob ring4Colour=514/setup
+  + E/orbit/knob ring4Colour=514/timer
+  + E/orbit/knob ring4Colour=3842/setup
+  + E/orbit/knob ring4Colour=3842/timer
+  + E/orbit/knob ring4Colour=3843/setup
+  + E/orbit/knob ring4Colour=3843/timer
+  + E/orbit/knob ring4Colour=3857/setup
+  + E/orbit/knob ring4Colour=3857/timer
+  + E/orbit/knob ring4Colour=3858/setup
+  + E/orbit/knob ring4Colour=3858/timer
+  + E/orbit/knob ring4Colour=3859/setup
+  + E/orbit/knob ring4Colour=3859/timer
+  + E/orbit/knob ring4Colour=3873/setup
+  + E/orbit/knob ring4Colour=3873/timer
+  + E/orbit/knob ring4Colour=4081/setup
+  + E/orbit/knob ring4Colour=4081/timer
+  + E/orbit/knob ring4Colour=4082/setup
+  + E/orbit/knob ring4Colour=4082/timer
+  + E/chorus/knob bloomColour=5/setup
+  + E/chorus/knob bloomColour=5/timer
+  + E/chorus/knob bloomColour=6/setup
+  + E/chorus/knob bloomColour=6/timer
+  + E/chorus/knob bloomColour=20/setup
+  + E/chorus/knob bloomColour=20/timer
+  + E/chorus/knob bloomColour=21/setup
+  + E/chorus/knob bloomColour=21/timer
+  + E/chorus/knob bloomColour=22/setup
+  + E/chorus/knob bloomColour=22/timer
+  + E/chorus/knob bloomColour=36/setup
+  + E/chorus/knob bloomColour=36/timer
+  + E/chorus/knob bloomColour=245/setup
+  + E/chorus/knob bloomColour=245/timer
+  + E/chorus/knob bloomColour=246/setup
+  + E/chorus/knob bloomColour=246/timer
+  + E/chorus/knob bloomColour=259/setup
+  + E/chorus/knob bloomColour=259/timer
+  + E/chorus/knob bloomColour=260/setup
+  + E/chorus/knob bloomColour=260/timer
+  + E/chorus/knob bloomColour=261/setup
+  + E/chorus/knob bloomColour=261/timer
+  + E/chorus/knob bloomColour=275/setup
+  + E/chorus/knob bloomColour=275/timer
+  + E/chorus/knob bloomColour=276/setup
+  + E/chorus/knob bloomColour=276/timer
+  + E/chorus/knob bloomColour=277/setup
+  + E/chorus/knob bloomColour=277/timer
+  + E/chorus/knob bloomColour=291/setup
+  + E/chorus/knob bloomColour=291/timer
+  + E/chorus/knob bloomColour=500/setup
+  + E/chorus/knob bloomColour=500/timer
+  + E/chorus/knob bloomColour=501/setup
+  + E/chorus/knob bloomColour=501/timer
+  + E/chorus/knob bloomColour=515/setup
+  + E/chorus/knob bloomColour=515/timer
+  + E/chorus/knob bloomColour=3843/setup
+  + E/chorus/knob bloomColour=3843/timer
+  + E/chorus/knob bloomColour=3844/setup
+  + E/chorus/knob bloomColour=3844/timer
+  + E/chorus/knob bloomColour=3858/setup
+  + E/chorus/knob bloomColour=3858/timer
+  + E/chorus/knob bloomColour=3859/setup
+  + E/chorus/knob bloomColour=3859/timer
+  + E/chorus/knob bloomColour=3860/setup
+  + E/chorus/knob bloomColour=3860/timer
+  + E/chorus/knob bloomColour=3874/setup
+  + E/chorus/knob bloomColour=3874/timer
+  + E/chorus/knob bloomColour=4081/setup
+  + E/chorus/knob bloomColour=4081/timer
+  + E/chorus/knob bloomColour=4082/setup
+  + E/chorus/knob bloomColour=4082/timer
+  + E/arc/knob swirlColour=5/setup
+  + E/arc/knob swirlColour=5/timer
+  + E/arc/knob swirlColour=6/setup
+  + E/arc/knob swirlColour=6/timer
+  + E/arc/knob swirlColour=20/setup
+  + E/arc/knob swirlColour=20/timer
+  + E/arc/knob swirlColour=21/setup
+  + E/arc/knob swirlColour=21/timer
+  + E/arc/knob swirlColour=22/setup
+  + E/arc/knob swirlColour=22/timer
+  + E/arc/knob swirlColour=36/setup
+  + E/arc/knob swirlColour=36/timer
+  + E/arc/knob swirlColour=244/setup
+  + E/arc/knob swirlColour=244/timer
+  + E/arc/knob swirlColour=245/setup
+  + E/arc/knob swirlColour=245/timer
+  + E/arc/knob swirlColour=258/setup
+  + E/arc/knob swirlColour=258/timer
+  + E/arc/knob swirlColour=259/setup
+  + E/arc/knob swirlColour=259/timer
+  + E/arc/knob swirlColour=260/setup
+  + E/arc/knob swirlColour=260/timer
+  + E/arc/knob swirlColour=274/setup
+  + E/arc/knob swirlColour=274/timer
+  + E/arc/knob swirlColour=275/setup
+  + E/arc/knob swirlColour=275/timer
+  + E/arc/knob swirlColour=276/setup
+  + E/arc/knob swirlColour=276/timer
+  + E/arc/knob swirlColour=290/setup
+  + E/arc/knob swirlColour=290/timer
+  + E/arc/knob swirlColour=499/setup
+  + E/arc/knob swirlColour=499/timer
+  + E/arc/knob swirlColour=500/setup
+  + E/arc/knob swirlColour=500/timer
+  + E/arc/knob swirlColour=514/setup
+  + E/arc/knob swirlColour=514/timer
+  + E/arc/knob swirlColour=3842/setup
+  + E/arc/knob swirlColour=3842/timer
+  + E/arc/knob swirlColour=3843/setup
+  + E/arc/knob swirlColour=3843/timer
+  + E/arc/knob swirlColour=3857/setup
+  + E/arc/knob swirlColour=3857/timer
+  + E/arc/knob swirlColour=3858/setup
+  + E/arc/knob swirlColour=3858/timer
+  + E/arc/knob swirlColour=3859/setup
+  + E/arc/knob swirlColour=3859/timer
+  + E/arc/knob swirlColour=3873/setup
+  + E/arc/knob swirlColour=3873/timer
+  + E/arc/knob swirlColour=4081/setup
+  + E/arc/knob swirlColour=4081/timer
+  + E/arc/knob swirlColour=4082/setup
+  + E/arc/knob swirlColour=4082/timer
+  + E/arc/knob heartColour=5/setup
+  + E/arc/knob heartColour=5/timer
+  + E/arc/knob heartColour=6/setup
+  + E/arc/knob heartColour=6/timer
+  + E/arc/knob heartColour=20/setup
+  + E/arc/knob heartColour=20/timer
+  + E/arc/knob heartColour=21/setup
+  + E/arc/knob heartColour=21/timer
+  + E/arc/knob heartColour=22/setup
+  + E/arc/knob heartColour=22/timer
+  + E/arc/knob heartColour=36/setup
+  + E/arc/knob heartColour=36/timer
+  + E/arc/knob heartColour=245/setup
+  + E/arc/knob heartColour=245/timer
+  + E/arc/knob heartColour=246/setup
+  + E/arc/knob heartColour=246/timer
+  + E/arc/knob heartColour=260/setup
+  + E/arc/knob heartColour=260/timer
+  + E/arc/knob heartColour=261/setup
+  + E/arc/knob heartColour=261/timer
+  + E/arc/knob heartColour=275/setup
+  + E/arc/knob heartColour=275/timer
+  + E/arc/knob heartColour=276/setup
+  + E/arc/knob heartColour=276/timer
+  + E/arc/knob heartColour=277/setup
+  + E/arc/knob heartColour=277/timer
+  + E/arc/knob heartColour=291/setup
+  + E/arc/knob heartColour=291/timer
+  + E/arc/knob heartColour=500/setup
+  + E/arc/knob heartColour=500/timer
+  + E/arc/knob heartColour=501/setup
+  + E/arc/knob heartColour=501/timer
+  + E/arc/knob heartColour=515/setup
+  + E/arc/knob heartColour=515/timer
+  + E/arc/knob heartColour=3844/setup
+  + E/arc/knob heartColour=3844/timer
+  + E/arc/knob heartColour=3845/setup
+  + E/arc/knob heartColour=3845/timer
+  + E/arc/knob heartColour=3858/setup
+  + E/arc/knob heartColour=3858/timer
+  + E/arc/knob heartColour=3859/setup
+  + E/arc/knob heartColour=3859/timer
+  + E/arc/knob heartColour=3860/setup
+  + E/arc/knob heartColour=3860/timer
+  + E/arc/knob heartColour=3874/setup
+  + E/arc/knob heartColour=3874/timer
+  + E/arc/knob heartColour=4082/setup
+  + E/arc/knob heartColour=4082/timer
+  + E/arc/knob heartColour=4083/setup
+  + E/arc/knob heartColour=4083/timer
+  + E/ghost/knob recordColour=5/setup
+  + E/ghost/knob recordColour=5/timer
+  + E/ghost/knob recordColour=6/setup
+  + E/ghost/knob recordColour=6/timer
+  + E/ghost/knob recordColour=20/setup
+  + E/ghost/knob recordColour=20/timer
+  + E/ghost/knob recordColour=21/setup
+  + E/ghost/knob recordColour=21/timer
+  + E/ghost/knob recordColour=22/setup
+  + E/ghost/knob recordColour=22/timer
+  + E/ghost/knob recordColour=36/setup
+  + E/ghost/knob recordColour=36/timer
+  + E/ghost/knob recordColour=244/setup
+  + E/ghost/knob recordColour=244/timer
+  + E/ghost/knob recordColour=245/setup
+  + E/ghost/knob recordColour=245/timer
+  + E/ghost/knob recordColour=258/setup
+  + E/ghost/knob recordColour=258/timer
+  + E/ghost/knob recordColour=259/setup
+  + E/ghost/knob recordColour=259/timer
+  + E/ghost/knob recordColour=260/setup
+  + E/ghost/knob recordColour=260/timer
+  + E/ghost/knob recordColour=274/setup
+  + E/ghost/knob recordColour=274/timer
+  + E/ghost/knob recordColour=275/setup
+  + E/ghost/knob recordColour=275/timer
+  + E/ghost/knob recordColour=276/setup
+  + E/ghost/knob recordColour=276/timer
+  + E/ghost/knob recordColour=290/setup
+  + E/ghost/knob recordColour=290/timer
+  + E/ghost/knob recordColour=499/setup
+  + E/ghost/knob recordColour=499/timer
+  + E/ghost/knob recordColour=500/setup
+  + E/ghost/knob recordColour=500/timer
+  + E/ghost/knob recordColour=514/setup
+  + E/ghost/knob recordColour=514/timer
+  + E/ghost/knob recordColour=3842/setup
+  + E/ghost/knob recordColour=3842/timer
+  + E/ghost/knob recordColour=3843/setup
+  + E/ghost/knob recordColour=3843/timer
+  + E/ghost/knob recordColour=3857/setup
+  + E/ghost/knob recordColour=3857/timer
+  + E/ghost/knob recordColour=3858/setup
+  + E/ghost/knob recordColour=3858/timer
+  + E/ghost/knob recordColour=3859/setup
+  + E/ghost/knob recordColour=3859/timer
+  + E/ghost/knob recordColour=3873/setup
+  + E/ghost/knob recordColour=3873/timer
+  + E/ghost/knob recordColour=4081/setup
+  + E/ghost/knob recordColour=4081/timer
+  + E/ghost/knob recordColour=4082/setup
+  + E/ghost/knob recordColour=4082/timer
+  + E/ghost/knob ghostColour=5/setup
+  + E/ghost/knob ghostColour=5/timer
+  + E/ghost/knob ghostColour=6/setup
+  + E/ghost/knob ghostColour=6/timer
+  + E/ghost/knob ghostColour=20/setup
+  + E/ghost/knob ghostColour=20/timer
+  + E/ghost/knob ghostColour=21/setup
+  + E/ghost/knob ghostColour=21/timer
+  + E/ghost/knob ghostColour=22/setup
+  + E/ghost/knob ghostColour=22/timer
+  + E/ghost/knob ghostColour=36/setup
+  + E/ghost/knob ghostColour=36/timer
+  + E/ghost/knob ghostColour=244/setup
+  + E/ghost/knob ghostColour=244/timer
+  + E/ghost/knob ghostColour=245/setup
+  + E/ghost/knob ghostColour=245/timer
+  + E/ghost/knob ghostColour=259/setup
+  + E/ghost/knob ghostColour=259/timer
+  + E/ghost/knob ghostColour=260/setup
+  + E/ghost/knob ghostColour=260/timer
+  + E/ghost/knob ghostColour=261/setup
+  + E/ghost/knob ghostColour=261/timer
+  + E/ghost/knob ghostColour=275/setup
+  + E/ghost/knob ghostColour=275/timer
+  + E/ghost/knob ghostColour=276/setup
+  + E/ghost/knob ghostColour=276/timer
+  + E/ghost/knob ghostColour=277/setup
+  + E/ghost/knob ghostColour=277/timer
+  + E/ghost/knob ghostColour=291/setup
+  + E/ghost/knob ghostColour=291/timer
+  + E/ghost/knob ghostColour=500/setup
+  + E/ghost/knob ghostColour=500/timer
+  + E/ghost/knob ghostColour=501/setup
+  + E/ghost/knob ghostColour=501/timer
+  + E/ghost/knob ghostColour=515/setup
+  + E/ghost/knob ghostColour=515/timer
+  + E/ghost/knob ghostColour=3843/setup
+  + E/ghost/knob ghostColour=3843/timer
+  + E/ghost/knob ghostColour=3844/setup
+  + E/ghost/knob ghostColour=3844/timer
+  + E/ghost/knob ghostColour=3858/setup
+  + E/ghost/knob ghostColour=3858/timer
+  + E/ghost/knob ghostColour=3859/setup
+  + E/ghost/knob ghostColour=3859/timer
+  + E/ghost/knob ghostColour=3860/setup
+  + E/ghost/knob ghostColour=3860/timer
+  + E/ghost/knob ghostColour=3874/setup
+  + E/ghost/knob ghostColour=3874/timer
+  + E/ghost/knob ghostColour=4081/setup
+  + E/ghost/knob ghostColour=4081/timer
+  + E/ghost/knob ghostColour=4082/setup
+  + E/ghost/knob ghostColour=4082/timer
+  + E/morph/knob trailColour=5/setup
+  + E/morph/knob trailColour=5/timer
+  + E/morph/knob trailColour=6/setup
+  + E/morph/knob trailColour=6/timer
+  + E/morph/knob trailColour=20/setup
+  + E/morph/knob trailColour=20/timer
+  + E/morph/knob trailColour=21/setup
+  + E/morph/knob trailColour=21/timer
+  + E/morph/knob trailColour=22/setup
+  + E/morph/knob trailColour=22/timer
+  + E/morph/knob trailColour=36/setup
+  + E/morph/knob trailColour=36/timer
+  + E/morph/knob trailColour=244/setup
+  + E/morph/knob trailColour=244/timer
+  + E/morph/knob trailColour=245/setup
+  + E/morph/knob trailColour=245/timer
+  + E/morph/knob trailColour=259/setup
+  + E/morph/knob trailColour=259/timer
+  + E/morph/knob trailColour=260/setup
+  + E/morph/knob trailColour=260/timer
+  + E/morph/knob trailColour=261/setup
+  + E/morph/knob trailColour=261/timer
+  + E/morph/knob trailColour=275/setup
+  + E/morph/knob trailColour=275/timer
+  + E/morph/knob trailColour=276/setup
+  + E/morph/knob trailColour=276/timer
+  + E/morph/knob trailColour=277/setup
+  + E/morph/knob trailColour=277/timer
+  + E/morph/knob trailColour=291/setup
+  + E/morph/knob trailColour=291/timer
+  + E/morph/knob trailColour=500/setup
+  + E/morph/knob trailColour=500/timer
+  + E/morph/knob trailColour=501/setup
+  + E/morph/knob trailColour=501/timer
+  + E/morph/knob trailColour=515/setup
+  + E/morph/knob trailColour=515/timer
+  + E/morph/knob trailColour=3842/setup
+  + E/morph/knob trailColour=3842/timer
+  + E/morph/knob trailColour=3843/setup
+  + E/morph/knob trailColour=3843/timer
+  + E/morph/knob trailColour=3857/setup
+  + E/morph/knob trailColour=3857/timer
+  + E/morph/knob trailColour=3858/setup
+  + E/morph/knob trailColour=3858/timer
+  + E/morph/knob trailColour=3859/setup
+  + E/morph/knob trailColour=3859/timer
+  + E/morph/knob trailColour=3873/setup
+  + E/morph/knob trailColour=3873/timer
+  + E/morph/knob trailColour=4081/setup
+  + E/morph/knob trailColour=4081/timer
+  + E/morph/knob trailColour=4082/setup
+  + E/morph/knob trailColour=4082/timer
+  + E/sonar/knob sweepColour=5/setup
+  + E/sonar/knob sweepColour=5/timer
+  + E/sonar/knob sweepColour=6/setup
+  + E/sonar/knob sweepColour=6/timer
+  + E/sonar/knob sweepColour=20/setup
+  + E/sonar/knob sweepColour=20/timer
+  + E/sonar/knob sweepColour=21/setup
+  + E/sonar/knob sweepColour=21/timer
+  + E/sonar/knob sweepColour=22/setup
+  + E/sonar/knob sweepColour=22/timer
+  + E/sonar/knob sweepColour=36/setup
+  + E/sonar/knob sweepColour=36/timer
+  + E/sonar/knob sweepColour=245/setup
+  + E/sonar/knob sweepColour=245/timer
+  + E/sonar/knob sweepColour=246/setup
+  + E/sonar/knob sweepColour=246/timer
+  + E/sonar/knob sweepColour=259/setup
+  + E/sonar/knob sweepColour=259/timer
+  + E/sonar/knob sweepColour=260/setup
+  + E/sonar/knob sweepColour=260/timer
+  + E/sonar/knob sweepColour=261/setup
+  + E/sonar/knob sweepColour=261/timer
+  + E/sonar/knob sweepColour=275/setup
+  + E/sonar/knob sweepColour=275/timer
+  + E/sonar/knob sweepColour=276/setup
+  + E/sonar/knob sweepColour=276/timer
+  + E/sonar/knob sweepColour=277/setup
+  + E/sonar/knob sweepColour=277/timer
+  + E/sonar/knob sweepColour=291/setup
+  + E/sonar/knob sweepColour=291/timer
+  + E/sonar/knob sweepColour=500/setup
+  + E/sonar/knob sweepColour=500/timer
+  + E/sonar/knob sweepColour=501/setup
+  + E/sonar/knob sweepColour=501/timer
+  + E/sonar/knob sweepColour=515/setup
+  + E/sonar/knob sweepColour=515/timer
+  + E/sonar/knob sweepColour=3842/setup
+  + E/sonar/knob sweepColour=3842/timer
+  + E/sonar/knob sweepColour=3843/setup
+  + E/sonar/knob sweepColour=3843/timer
+  + E/sonar/knob sweepColour=3857/setup
+  + E/sonar/knob sweepColour=3857/timer
+  + E/sonar/knob sweepColour=3858/setup
+  + E/sonar/knob sweepColour=3858/timer
+  + E/sonar/knob sweepColour=3859/setup
+  + E/sonar/knob sweepColour=3859/timer
+  + E/sonar/knob sweepColour=3873/setup
+  + E/sonar/knob sweepColour=3873/timer
+  + E/sonar/knob sweepColour=4081/setup
+  + E/sonar/knob sweepColour=4081/timer
+  + E/sonar/knob sweepColour=4082/setup
+  + E/sonar/knob sweepColour=4082/timer
+  + E/steps/knob armed=4/setup
+  + E/steps/knob armed=4/timer
+  + E/steps/knob armed=5/setup
+  + E/steps/knob armed=5/timer
+  + E/steps/knob armed=19/setup
+  + E/steps/knob armed=19/timer
+  + E/steps/knob armed=20/setup
+  + E/steps/knob armed=20/timer
+  + E/steps/knob armed=21/setup
+  + E/steps/knob armed=21/timer
+  + E/steps/knob armed=35/setup
+  + E/steps/knob armed=35/timer
+  + E/steps/knob armed=243/setup
+  + E/steps/knob armed=243/timer
+  + E/steps/knob armed=244/setup
+  + E/steps/knob armed=244/timer
+  + E/steps/knob armed=258/setup
+  + E/steps/knob armed=258/timer
+  + E/steps/knob armed=259/setup
+  + E/steps/knob armed=259/timer
+  + E/steps/knob armed=260/setup
+  + E/steps/knob armed=260/timer
+  + E/steps/knob armed=274/setup
+  + E/steps/knob armed=274/timer
+  + E/steps/knob armed=275/setup
+  + E/steps/knob armed=275/timer
+  + E/steps/knob armed=276/setup
+  + E/steps/knob armed=276/timer
+  + E/steps/knob armed=290/setup
+  + E/steps/knob armed=290/timer
+  + E/steps/knob armed=499/setup
+  + E/steps/knob armed=499/timer
+  + E/steps/knob armed=500/setup
+  + E/steps/knob armed=500/timer
+  + E/steps/knob armed=514/setup
+  + E/steps/knob armed=514/timer
+  + E/steps/knob armed=3840/setup
+  + E/steps/knob armed=3840/timer
+  + E/steps/knob armed=3841/setup
+  + E/steps/knob armed=3841/timer
+  + E/steps/knob armed=3855/setup
+  + E/steps/knob armed=3855/timer
+  + E/steps/knob armed=3856/setup
+  + E/steps/knob armed=3856/timer
+  + E/steps/knob armed=3857/setup
+  + E/steps/knob armed=3857/timer
+  + E/steps/knob armed=3871/setup
+  + E/steps/knob armed=3871/timer
+  + E/steps/knob armed=4080/setup
+  + E/steps/knob armed=4080/timer
+  + E/steps/knob armed=4081/setup
+  + E/steps/knob armed=4081/timer
+  + E/steps/knob armed=4095/setup
+  + E/steps/knob armed=4095/timer
+  + E/steps/knob sweep=4/setup
+  + E/steps/knob sweep=4/timer
+  + E/steps/knob sweep=5/setup
+  + E/steps/knob sweep=5/timer
+  + E/steps/knob sweep=19/setup
+  + E/steps/knob sweep=19/timer
+  + E/steps/knob sweep=20/setup
+  + E/steps/knob sweep=20/timer
+  + E/steps/knob sweep=21/setup
+  + E/steps/knob sweep=21/timer
+  + E/steps/knob sweep=35/setup
+  + E/steps/knob sweep=35/timer
+  + E/steps/knob sweep=243/setup
+  + E/steps/knob sweep=243/timer
+  + E/steps/knob sweep=244/setup
+  + E/steps/knob sweep=244/timer
+  + E/steps/knob sweep=257/setup
+  + E/steps/knob sweep=257/timer
+  + E/steps/knob sweep=258/setup
+  + E/steps/knob sweep=258/timer
+  + E/steps/knob sweep=259/setup
+  + E/steps/knob sweep=259/timer
+  + E/steps/knob sweep=273/setup
+  + E/steps/knob sweep=273/timer
+  + E/steps/knob sweep=274/setup
+  + E/steps/knob sweep=274/timer
+  + E/steps/knob sweep=275/setup
+  + E/steps/knob sweep=275/timer
+  + E/steps/knob sweep=289/setup
+  + E/steps/knob sweep=289/timer
+  + E/steps/knob sweep=498/setup
+  + E/steps/knob sweep=498/timer
+  + E/steps/knob sweep=499/setup
+  + E/steps/knob sweep=499/timer
+  + E/steps/knob sweep=513/setup
+  + E/steps/knob sweep=513/timer
+  + E/steps/knob sweep=3842/setup
+  + E/steps/knob sweep=3842/timer
+  + E/steps/knob sweep=3843/setup
+  + E/steps/knob sweep=3843/timer
+  + E/steps/knob sweep=3857/setup
+  + E/steps/knob sweep=3857/timer
+  + E/steps/knob sweep=3858/setup
+  + E/steps/knob sweep=3858/timer
+  + E/steps/knob sweep=3859/setup
+  + E/steps/knob sweep=3859/timer
+  + E/steps/knob sweep=3873/setup
+  + E/steps/knob sweep=3873/timer
+  + E/steps/knob sweep=4081/setup
+  + E/steps/knob sweep=4081/timer
+  + E/steps/knob sweep=4082/setup
+  + E/steps/knob sweep=4082/timer
+FAIL: the wire
