@@ -4237,3 +4237,20 @@ fader 1 onto fader 2 moves fader 1's output only (lua-smoke.spec.ts's VM case, b
 and 18 for the same slide); NINE PADS' pads latch the same way (`4ef97cb`); AURORA, PINWHEEL, STARFIELD, JOYSTICK and
 DIAL were already latched (the first finger claims `s.f`). The Done paragraph "17C" under section 17; audition rows
 45 and 46.
+
+19. Every colour knob a full RGB picker (2026-09-24)
+--------------------------------------------------------------------------------
+
+> review every card's color picker and fix those that have the older one where you can only
+> select certain colors an not RGB sliders.
+> also suggest me more features and stuff how can we make HANGAR better
+
+Read before building: the census lists 35 colour knobs on 22 hand-authored cards whose rungs are a
+fixed palette of three to five colours (ORBIT's four rings, CHORUS, ARC's two, GHOST's two, MORPH,
+SONAR, STEPS, CONSOLE, STRIP, LUMEN, STAGE, SNAKE, POMODORO, WHEELS, RADAR POINTS, the TRACKPADs,
+RADAR, NINE PADS); the ported presets' colour knobs are already the RGB444 lattice with the full
+picker. Recorded: every palette colour knob becomes the full picker - the RGB444 lattice the
+presets use, the card's old palette kept as the picker's quick-pick row and its old default kept
+exactly (as an extra rung if it is off the lattice, so no rest frame moves), every cost
+re-measured at the lattice's corner, older links to those cards landing at their defaults (the
+stamp's known pattern for a grown knob).
