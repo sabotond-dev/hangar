@@ -394,6 +394,13 @@ describe("the stamp: format x", () => {
           divider: "120,90,0",
         },
       },
+      {
+        id: "radar-points",
+        payload: "wc02f47201001",
+        moved: {
+          sweepColour: "255,60,120",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

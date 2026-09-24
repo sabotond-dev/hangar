@@ -101,6 +101,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   RECEIVE_ON_INDEX,
@@ -168,13 +169,14 @@ export const RADAR_POINTS: CatalogEntry = {
       token: "@SWEEPC",
       // Layer 2 (the ring and its 0.42 s wake) and layer 0 (the emitter, the finger). The
       // armed-point pink on layer 1 is fixed so the ring stays readable against it.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "120,255,255",
         "255,60,120",
         "0,255,140",
         "255,255,255",
         "180,0,255",
-      ],
+      ]),
       default: 0,
     },
     {
