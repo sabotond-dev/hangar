@@ -14,21 +14,32 @@ import {
   BUTTON_OUTPUTS,
   CONTINUOUS_TYPES,
   ELEMENT_KINDS,
+  EXTRAS_MAX,
+  EXTRA_TRIGGERS,
   MIDI_TYPES,
   GROUP_MAX,
+  NOTE_MODES,
   ORIENTATIONS,
   REGION_MODES,
+  SCALE_IDS,
   SPEEDS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
   TOUCHES_MAX,
+  TOUCH_TYPES,
+  VALUE_TYPES,
   type ButtonOutput,
   type ColourInput,
   type ElementKind,
+  type Extra,
+  type ExtraAxis,
+  type ExtraTrigger,
   type MidiType,
+  type NoteMode,
   type Orientation,
   type Region,
   type RegionMode,
+  type ScaleId,
   type Speed,
   type Surface,
 } from "../store/schema";
@@ -37,21 +48,32 @@ export {
   BUTTON_OUTPUTS,
   CONTINUOUS_TYPES,
   ELEMENT_KINDS,
+  EXTRAS_MAX,
+  EXTRA_TRIGGERS,
   MIDI_TYPES,
   GROUP_MAX,
+  NOTE_MODES,
   ORIENTATIONS,
   REGION_MODES,
+  SCALE_IDS,
   SPEEDS,
   SURFACE_ELEMENT_CAP,
   SURFACE_SIZE,
   TOUCHES_MAX,
+  TOUCH_TYPES,
+  VALUE_TYPES,
   type ButtonOutput,
   type ColourInput,
   type ElementKind,
+  type Extra,
+  type ExtraAxis,
+  type ExtraTrigger,
   type MidiType,
+  type NoteMode,
   type Orientation,
   type Region,
   type RegionMode,
+  type ScaleId,
   type Speed,
   type Surface,
 };
@@ -147,8 +169,17 @@ export function typesOf(region: Region): readonly MidiType[] {
   if (region.kind === "blank") return [];
   if (region.kind === "button") return BUTTON_OUTPUTS;
   if (region.kind === "knob" && isRelative(region)) return ["cc"];
-  return CONTINUOUS_TYPES;
+  // Change 21A: a Note on every continuous output but a pad's with more than one touch (its
+  // fingers are transient slots, and one output cannot hold a note per finger).
+  if (touchesOf(region) > TOUCHES_MIN) return CONTINUOUS_TYPES;
+  return NOTE_CONTINUOUS_TYPES;
 }
+
+/** A continuous output's four types since change 21A, in the interface's order: the three, then Note. */
+export const NOTE_CONTINUOUS_TYPES: readonly MidiType[] = [
+  ...CONTINUOUS_TYPES,
+  "note",
+];
 
 /** The region's (X axis's) type: its own when the kind offers it, a controller otherwise. */
 export function typeOf(region: Region): MidiType {
@@ -158,9 +189,179 @@ export function typeOf(region: Region): MidiType {
 
 /** An XY pad's Y axis type; a controller on every other kind. */
 export const typeYOf = (region: Region): MidiType =>
-  region.kind === "xy" && CONTINUOUS_TYPES.includes(region.outputY ?? "cc")
+  region.kind === "xy" && typesOf(region).includes(region.outputY ?? "cc")
     ? (region.outputY ?? "cc")
     : "cc";
+
+// ---------------------------------------------------------------------------
+// Change 21A: a Note on a continuous output (BENCH-2026-09-16.txt section 21, the addition).
+
+/** The two axes' outputs: the fader's, the knob's and the pad's X axis is "x". */
+export type OutputAxis = "x" | "y";
+
+/** The type an axis sends: `typeOf` on X, `typeYOf` on Y. */
+export const typeOfAxis = (region: Region, axis: OutputAxis): MidiType =>
+  axis === "y" ? typeYOf(region) : typeOf(region);
+
+/** True when the axis's own output is a Note on a continuous kind (a button's note is its own, change 10B). */
+export const isContinuousNote = (region: Region, axis: OutputAxis): boolean =>
+  region.kind !== "button" &&
+  (axis === "x" || region.kind === "xy") &&
+  typeOfAxis(region, axis) === "note";
+
+/** True when either of the region's own outputs is a continuous Note. */
+export const hasNoteOutput = (region: Region): boolean =>
+  isContinuousNote(region, "x") || isContinuousNote(region, "y");
+
+/** A continuous Note's mode: Pitch unless set. */
+export const noteModeOf = (region: Region, axis: OutputAxis): NoteMode =>
+  (axis === "y" ? region.noteModeY : region.noteMode) ?? "pitch";
+
+/** A Pitch output's scale: Chromatic unless set. */
+export const scaleOf = (region: Region, axis: OutputAxis): ScaleId =>
+  (axis === "y" ? region.scaleY : region.scale) ?? "chromatic";
+
+/** A Pitch output's fixed velocity, 1..127: 100 unless set. */
+export const DEFAULT_VELOCITY = 100;
+export const noteVelocityOf = (region: Region, axis: OutputAxis): number =>
+  (axis === "y" ? region.velocityY : region.velocity) ?? DEFAULT_VELOCITY;
+
+/**
+ * Each scale's degrees in semitones from its root - the root is the output's Min - read from the
+ * catalog's own scale tables' sets (tune/view.ts SCALE_WORDS names every one; model.spec-free: the
+ * UI spec holds the two equal). Chromatic is every semitone, so it is never written to the row.
+ */
+export const SCALE_DEGREES: Readonly<Record<ScaleId, readonly number[]>> = {
+  chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  major: [0, 2, 4, 5, 7, 9, 11],
+  minor: [0, 2, 3, 5, 7, 8, 10],
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
+  phrygian: [0, 1, 3, 5, 7, 8, 10],
+  "major-pentatonic": [0, 2, 4, 7, 9],
+  "minor-pentatonic": [0, 3, 5, 7, 10],
+};
+
+/**
+ * The note a Pitch output plays for a value already scaled through Min..Max (the runtime's `D`
+ * twin): the value quantised DOWN onto the scale rooted on Min - the largest degree at or under
+ * the value's distance above the root's pitch class. Chromatic is the value itself.
+ */
+export function pitchOf(
+  region: Region,
+  axis: OutputAxis,
+  value: number,
+): number {
+  const degrees = SCALE_DEGREES[scaleOf(region, axis)];
+  const d = (((value - minOf(region)) % 12) + 12) % 12;
+  let u = 0;
+  for (const g of degrees) if (g <= d && g > u) u = g;
+  return value - d + u;
+}
+
+// ---------------------------------------------------------------------------
+// Change 21A: the extra messages (BENCH-2026-09-16.txt section 21).
+
+/** The extras a region stores: none on a blank (it takes no touch and sends nothing), else its own, at most three. */
+export const extrasOf = (region: Region): readonly Extra[] =>
+  region.kind === "blank" ? [] : (region.extras ?? []).slice(0, EXTRAS_MAX);
+
+/**
+ * The triggers a kind honours: Touch on every kind that takes touch; Value where the element keeps
+ * a value it sends through the scale - a fader, an XY pad, an absolute knob (a button's value is
+ * its press, a relative knob's detents are steps). A blank none.
+ */
+export function extraTriggersOf(region: Region): readonly ExtraTrigger[] {
+  if (region.kind === "blank") return [];
+  if (region.kind === "button") return ["touch"];
+  if (region.kind === "knob" && isRelative(region)) return ["touch"];
+  return EXTRA_TRIGGERS;
+}
+
+/** The types an extra's trigger offers: a Touch a note or a CC (a gate), a Value the continuous three. */
+export const extraTypesOf = (trigger: ExtraTrigger): readonly MidiType[] =>
+  trigger === "touch" ? TOUCH_TYPES : VALUE_TYPES;
+
+/** A Touch note's velocity: its fixed 1..127, or the landing's axis; 100 unless set. */
+export const extraVelocityOf = (extra: Extra): number | ExtraAxis =>
+  extra.velocity ?? DEFAULT_VELOCITY;
+
+/** A Value message's axis on an XY pad: X unless set; X on every other kind. */
+export const extraSourceOf = (region: Region, extra: Extra): ExtraAxis =>
+  region.kind === "xy" ? (extra.source ?? "x") : "x";
+
+/** The extras the module is sent: the stored ones whose trigger the kind honours now (a Value kept while a knob is relative is kept, not sent). */
+export const sentExtrasOf = (region: Region): readonly Extra[] =>
+  extrasOf(region).filter((x) => extraTriggersOf(region).includes(x.trigger));
+
+/** A velocity is 1..127: 0 would be a note-off. */
+export const VELOCITY_MIN = 1;
+
+/** The typed fields of an extra's block (change 21A): its channel, its number, a Touch note's fixed velocity. */
+export type ExtraField = "channel" | "number" | "velocity";
+
+/** True when every number of an extra is in its range and every word one of its own (the schema's rules; the kind's are `extraTriggersOf`). */
+export function extraFits(extra: Extra): boolean {
+  const int = (n: unknown, lo: number, hi: number): boolean =>
+    typeof n === "number" && Number.isInteger(n) && n >= lo && n <= hi;
+  const axis = (v: unknown): boolean => v === "x" || v === "y";
+  return (
+    EXTRA_TRIGGERS.includes(extra.trigger) &&
+    MIDI_TYPES.includes(extra.type) &&
+    int(extra.channel, CHANNEL_MIN, CHANNEL_MAX) &&
+    int(extra.number, CC_MIN, CC_MAX) &&
+    (extra.velocity === undefined ||
+      axis(extra.velocity) ||
+      int(extra.velocity, VELOCITY_MIN, VALUE_MAX)) &&
+    (extra.source === undefined || axis(extra.source))
+  );
+}
+
+/**
+ * An extra in its canonical shape for the region: a type its trigger offers (the trigger's first
+ * otherwise - a Touch a note, a Value a CC); a velocity only on a Touch note and never the default
+ * 100; a source only on a Value message on an XY pad and never the default X.
+ */
+export function reshapeExtra(region: Region, extra: Extra): Extra {
+  const types = extraTypesOf(extra.trigger);
+  const type = types.includes(extra.type) ? extra.type : types[0];
+  const out: {
+    -readonly [K in keyof Extra]: Extra[K];
+  } = {
+    trigger: extra.trigger,
+    type,
+    channel: extra.channel,
+    number: extra.number,
+  };
+  if (
+    extra.trigger === "touch" &&
+    type === "note" &&
+    extra.velocity !== undefined &&
+    extra.velocity !== DEFAULT_VELOCITY
+  )
+    out.velocity = extra.velocity;
+  if (extra.trigger === "value" && region.kind === "xy" && extra.source === "y")
+    out.source = "y";
+  return out;
+}
+
+/** The extra "+ Add message" appends (change 21A): a Touch note on an XY pad and a button, a Value CC on a fader and a knob; on the element's channel, number 60 (C4) or its controller plus one. */
+export function newExtraFor(region: Region): Extra | undefined {
+  if (region.kind === "blank") return undefined;
+  const touch =
+    region.kind === "xy" ||
+    region.kind === "button" ||
+    !extraTriggersOf(region).includes("value");
+  return touch
+    ? { trigger: "touch", type: "note", channel: region.channel, number: 60 }
+    : {
+        trigger: "value",
+        type: "cc",
+        channel: region.channel,
+        number: Math.min(CC_MAX, region.cc + 1),
+      };
+}
 
 /** An XY pad's Y axis channel, 1..16: its own, or the X axis's (an older draft's one channel serves both). */
 export const channelYOf = (region: Region): number =>
@@ -182,6 +383,10 @@ export const receiveOf = (region: Region): boolean => region.receive !== false;
 export function receivesOf(region: Region): boolean {
   if (!receiveOf(region) || region.kind === "blank") return false;
   if (region.kind === "knob" && isRelative(region)) return false;
+  // Change 21A: a continuous Note does not receive - a note is an event, not a held value: under
+  // Pitch a received note would have to be placed back through the scale, under Gate its only
+  // number is a velocity the element does not keep between touches (decided, recorded).
+  if (hasNoteOutput(region)) return false;
   return touchesOf(region) === TOUCHES_MIN;
 }
 
@@ -205,6 +410,22 @@ export const STATUS_OF: Readonly<Record<MidiType, number>> = {
   pitchbend: 224,
 };
 
+/**
+ * Change 21A: a continuous Note's code - Gate the button's note (-2: status 144, the number, the
+ * value at the landing its velocity), Pitch one lower (-3: the value picks the note, the number
+ * column carries the velocity). A Note never receives, so its X word always carries the
+ * receive-off bit: Pitch 80..95, Gate 96..111, read `h%128//16` 5 and 6 by the note-aware `D`
+ * (runtime.ts); a Y word carries no receive bit (-48..-33, -32..-17), which Lua's `%128` reads
+ * the same.
+ */
+export const PITCH_CODE = -3;
+
+/** An axis's code in its channel word: the type's, and a continuous Note under Pitch `PITCH_CODE`. */
+export const typeCodeOfAxis = (region: Region, axis: OutputAxis): number =>
+  isContinuousNote(region, axis) && noteModeOf(region, axis) === "pitch"
+    ? PITCH_CODE
+    : TYPE_CODES[typeOfAxis(region, axis)];
+
 /** The channel word's receive-off bit: a region that does not receive is 128 higher (every receiving word is under 64). */
 export const RECEIVE_OFF_BIT = 128;
 
@@ -218,10 +439,9 @@ export const RECEIVE_OFF_BIT = 128;
  */
 export function channelWord(region: Region, axis: "x" | "y" = "x"): number {
   const channel = axis === "y" ? channelYOf(region) : region.channel;
-  const type = axis === "y" ? typeYOf(region) : typeOf(region);
   return (
     wireChannel(channel) +
-    16 * TYPE_CODES[type] +
+    16 * typeCodeOfAxis(region, axis) +
     (axis === "x" && !receivesOf(region) ? RECEIVE_OFF_BIT : 0) +
     (axis === "x" && handsOver(region) ? HAND_OVER_BIT : 0)
   );
@@ -576,7 +796,14 @@ export function cellsOf(region: Region): number[] {
 
 /** A structurally identical copy - the shape a duplicate starts from. */
 export function cloneRegion(region: Region): Region {
-  return { ...region, colour: [...region.colour] };
+  return {
+    ...region,
+    colour: [...region.colour],
+    // Change 21A: the extras are the copy's own (a field absent stays absent).
+    ...(region.extras === undefined
+      ? {}
+      : { extras: region.extras.map((x) => ({ ...x })) }),
+  };
 }
 
 /** The empty surface. */

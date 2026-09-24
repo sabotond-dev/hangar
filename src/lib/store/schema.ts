@@ -176,6 +176,73 @@ export const CONTINUOUS_TYPES: readonly MidiType[] = [
 ];
 
 /**
+ * Change 21A (2026-09-24, BENCH-2026-09-16.txt section 21): a continuous output's own Type may be
+ * a Note, played one of two ways - Pitch (a ribbon: the value picks the note, Min..Max the range, a
+ * Scale quantising it) or Gate (a touch plays the fixed number, the value at the landing its
+ * velocity). Absent is Pitch.
+ */
+export type NoteMode = "pitch" | "gate";
+
+export const NOTE_MODES: readonly NoteMode[] = ["pitch", "gate"];
+
+/** A Pitch output's scale (change 21A), rooted on its Min; absent is Chromatic. The degrees are sandbox/model.ts's. */
+export type ScaleId =
+  | "chromatic"
+  | "major"
+  | "minor"
+  | "dorian"
+  | "mixolydian"
+  | "lydian"
+  | "phrygian"
+  | "major-pentatonic"
+  | "minor-pentatonic";
+
+export const SCALE_IDS: readonly ScaleId[] = [
+  "chromatic",
+  "major",
+  "minor",
+  "dorian",
+  "mixolydian",
+  "lydian",
+  "phrygian",
+  "major-pentatonic",
+  "minor-pentatonic",
+];
+
+/**
+ * An extra message's trigger (change 21A): Touch (on when a finger lands on the element, off when
+ * it lifts) or Value (follows the element's value like its own output).
+ */
+export type ExtraTrigger = "touch" | "value";
+
+export const EXTRA_TRIGGERS: readonly ExtraTrigger[] = ["touch", "value"];
+
+/** The types a Touch message offers - a gate - and a Value message's (the continuous three). */
+export const TOUCH_TYPES: readonly MidiType[] = ["note", "cc"];
+export const VALUE_TYPES: readonly MidiType[] = ["cc", "pitchbend", "pressure"];
+
+/** An element carries at most this many extra messages. */
+export const EXTRAS_MAX = 3;
+
+/** An axis an extra reads on an XY pad: a Touch note's velocity, a Value message's source. */
+export type ExtraAxis = "x" | "y";
+
+/**
+ * One extra message (change 21A). `channel` 1..16 as the user sees it, `number` 0..127 (a note under
+ * Note, a controller under CC; unused under Pitch bend and Channel pressure). `velocity` is a Touch
+ * note's: 1..127 fixed, or the landing's X or Y position; absent is 100. `source` is a Value
+ * message's axis on an XY pad; absent is X. Extras never receive.
+ */
+export type Extra = {
+  readonly trigger: ExtraTrigger;
+  readonly type: MidiType;
+  readonly channel: number;
+  readonly number: number;
+  readonly velocity?: number | ExtraAxis;
+  readonly source?: ExtraAxis;
+};
+
+/**
  * The surface's Colour input (change 17, answer 1iii): a controller on `channel` numbered
  * `cc + n - 1` recolours the surface's n-th element. Absent is off.
  */
@@ -215,7 +282,12 @@ export const TOUCHES_MAX = 5;
  * onto (sandbox/model.ts `latchTouchOf`). It is not the button's `latch`,
  * which is its Toggle. A draft written before it reads On. Change 18b: a
  * knob does not carry it - a knob stored `false` (change 18 allowed it for a
- * few hours) is still a valid record and reads On (`takesLatch`).
+ * few hours) is still a valid record and reads On (`takesLatch`). Change 21A
+ * (2026-09-24): `extras` is up to three extra messages beside the element's own
+ * outputs (absent: none); `output` / `outputY` may be `note` on a continuous
+ * kind, played by `noteMode` / `noteModeY` (absent Pitch), `scale` / `scaleY`
+ * (absent Chromatic) and, under Pitch, `velocity` / `velocityY` (1..127, absent
+ * 100) - a draft written before them reads exactly as it did.
  */
 export type Region = {
   readonly id: string;
@@ -245,6 +317,13 @@ export type Region = {
   readonly channelY?: number;
   readonly receive?: boolean;
   readonly latchTouch?: boolean;
+  readonly extras?: readonly Extra[];
+  readonly noteMode?: NoteMode;
+  readonly noteModeY?: NoteMode;
+  readonly scale?: ScaleId;
+  readonly scaleY?: ScaleId;
+  readonly velocity?: number;
+  readonly velocityY?: number;
 };
 
 /**
@@ -403,6 +482,30 @@ export function isEnvelope(value: unknown): value is { schema: 1 } {
   return isObject(value) && value.schema === SCHEMA_VERSION;
 }
 
+/**
+ * One extra message (change 21A) only if every field is its own shape: a trigger, a type the
+ * trigger offers (a Touch a note or a CC, a Value a CC, a pitch bend or a channel pressure), a
+ * channel 1..16, a number 0..127, a velocity 1..127 or an axis, a source axis.
+ */
+function isExtra(value: unknown): value is Extra {
+  if (!isObject(value)) return false;
+  const trigger = value.trigger as ExtraTrigger;
+  if (!EXTRA_TRIGGERS.includes(trigger)) return false;
+  const types = trigger === "touch" ? TOUCH_TYPES : VALUE_TYPES;
+  if (!types.includes(value.type as MidiType)) return false;
+  const { channel, number, velocity, source } = value;
+  if (!(isInt(channel) && channel >= 1 && channel <= 16)) return false;
+  if (!(isInt(number) && number >= 0 && number <= 127)) return false;
+  const axis = (v: unknown): boolean => v === "x" || v === "y";
+  if (
+    velocity !== undefined &&
+    !axis(velocity) &&
+    !(isInt(velocity) && velocity >= 1 && velocity <= 127)
+  )
+    return false;
+  return source === undefined || axis(source);
+}
+
 /** A region only if every field is; exported for the clipboard's reader (change 13A). */
 export function isRegion(value: unknown): value is Region {
   if (!isObject(value)) return false;
@@ -449,11 +552,31 @@ export function isRegion(value: unknown): value is Region {
   ) {
     return false;
   }
+  // Change 21A: a Y axis may be a note too.
   if (
     value.outputY !== undefined &&
-    !CONTINUOUS_TYPES.includes(value.outputY as MidiType)
+    !CONTINUOUS_TYPES.includes(value.outputY as MidiType) &&
+    value.outputY !== "note"
   ) {
     return false;
+  }
+  // Change 21A: the note's mode, scale and velocity per axis, and the extras - each absent or its own shape.
+  for (const field of ["noteMode", "noteModeY"]) {
+    const v = value[field];
+    if (v !== undefined && !NOTE_MODES.includes(v as NoteMode)) return false;
+  }
+  for (const field of ["scale", "scaleY"]) {
+    const v = value[field];
+    if (v !== undefined && !SCALE_IDS.includes(v as ScaleId)) return false;
+  }
+  for (const field of ["velocity", "velocityY"]) {
+    const v = value[field];
+    if (v !== undefined && !(isInt(v) && v >= 1 && v <= 127)) return false;
+  }
+  if (value.extras !== undefined) {
+    const extras = value.extras;
+    if (!Array.isArray(extras) || extras.length > EXTRAS_MAX) return false;
+    if (!extras.every(isExtra)) return false;
   }
   if (
     value.channelY !== undefined &&
