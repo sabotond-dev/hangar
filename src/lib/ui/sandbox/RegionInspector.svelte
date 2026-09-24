@@ -2191,22 +2191,27 @@
 
   /*
     17C's folding head (TuningRegion.svelte's rules): a full-width button - the block's name in the
-    label column (the eyebrow face, ink), the one-line summary across the control column (the house
-    mono, quiet), a chevron of straight lines in the reset column - 44px, square, no fill.
+    label column (the eyebrow face, ink) and a chevron of straight lines in the reset column, then the
+    one-line summary (the house mono, quiet) on a line of its own across all three - at 1440 the
+    control column alone cut it to `Touch · Note · Ch 1 · C…` (seen on the screenshots); 44px at
+    least, square, no fill.
   */
   .fold {
     appearance: none;
     display: grid;
     grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px;
-    grid-template-areas: "name summary chevron";
+    grid-template-areas:
+      "name . chevron"
+      "summary summary summary";
     column-gap: 8px;
+    row-gap: 2px;
     align-items: center;
     box-sizing: border-box;
     inline-size: 100%;
     min-inline-size: 0;
     min-block-size: 44px;
     margin: 0;
-    padding: 0 0 0 4px;
+    padding: 6px 0 8px 4px;
     border: 0;
     background: transparent;
     font: inherit;
@@ -2262,18 +2267,6 @@
 
   .fold-rows > :global(*) {
     border-block-start: 1px solid var(--color-divider);
-  }
-
-  /* Under 380px of the block the name takes a line of its own and the summary the next, the chevron beside both. */
-  @container (width < 380px) {
-    .fold {
-      grid-template-columns: minmax(0, 1fr) 44px;
-      grid-template-areas:
-        "name chevron"
-        "summary chevron";
-      row-gap: 2px;
-      padding-block: 6px;
-    }
   }
 
   /* "+ Add message" across the label and control columns, 44 tall, the row's own inset. */
