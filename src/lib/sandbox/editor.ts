@@ -7,7 +7,9 @@
 // on empty clears, a marquee is `selectTouching`; `choose(kind)` arms a kind for every `clickCell`
 // (Alt+click fills) until `cancel()`. Every structural command takes the set as one, one entry:
 // `moveSelectedTo`, `nudgeSelected`, `editNumber` and the setters (change 17's `setOutput`, `setOutputY`,
-// `setReceive`, `setColourInput`; change 18's `setLatchTouch`), `paste` / `duplicate`, and 13B's align / distribute / transform / rename.
+// `setReceive`, `setColourInput`; change 18's `setLatchTouch`; change 21A's `setNoteMode`, `setScale` and the
+// extras - `addExtra`, `removeExtra`, `setExtra`, `editExtraField`, one element at a time), `paste` / `duplicate`,
+// and 13B's align / distribute / transform / rename.
 // Decided at 13-16 / 13.1-03 (13-CONTEXT D-03, D-14 Q4; 13.1-CONTEXT D-03); see .planning/phases/13.1-bench-corrections-four/13.1-03-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -28,6 +30,7 @@ import {
   CHANNEL_RANGE,
   DISTRIBUTE_NO_ROOM,
   NOTE_RANGE,
+  VELOCITY_RANGE,
   PASTE_AT_CAP,
   PASTE_NO_SPACE,
   VALUE_RANGE,
@@ -76,6 +79,24 @@ import {
   TOUCHES_MIN,
   VALUE_MAX,
   VALUE_MIN,
+  EXTRAS_MAX,
+  NOTE_MODES,
+  SCALE_IDS,
+  VELOCITY_MIN,
+  extraFits,
+  extraTriggersOf,
+  extrasOf,
+  isContinuousNote,
+  newExtraFor,
+  noteModeOf,
+  noteVelocityOf,
+  reshapeExtra,
+  scaleOf,
+  type Extra,
+  type ExtraField,
+  type NoteMode,
+  type OutputAxis,
+  type ScaleId,
   boundingBox,
   ccCeiling,
   cellIndex,
@@ -117,7 +138,9 @@ export type Placement =
  * The typed fields the inspector renders, in the model's names: the three MIDI fields, and
  * since change 10B the min, the max, a fader's spring value and a button's note - the note
  * is the `cc` field read and typed as a name or a number (view.ts's noteNumber) - and since
- * change 17 an XY pad's Y axis channel.
+ * change 17 an XY pad's Y axis channel; since change 21A a continuous Note's number under Gate
+ * (`note` the X axis's, `noteY` the Y axis's `cc2`, both typed as a name or a number) and its
+ * velocity under Pitch (`velocity`, `velocityY`, 1..127).
  */
 export type NumericField =
   | "cc"
@@ -127,7 +150,10 @@ export type NumericField =
   | "min"
   | "max"
   | "springValue"
-  | "note";
+  | "note"
+  | "noteY"
+  | "velocity"
+  | "velocityY";
 
 export const NUMERIC_FIELDS: readonly NumericField[] = [
   "cc",
@@ -138,7 +164,32 @@ export const NUMERIC_FIELDS: readonly NumericField[] = [
   "max",
   "springValue",
   "note",
+  "noteY",
+  "velocity",
+  "velocityY",
 ];
+
+/** What the inspector asks of change 21A's controls, through `SandboxEditor.message`. */
+export type MessageAction =
+  | {
+      readonly kind: "note-mode";
+      readonly axis: OutputAxis;
+      readonly mode: NoteMode;
+    }
+  | {
+      readonly kind: "scale";
+      readonly axis: OutputAxis;
+      readonly scale: ScaleId;
+    }
+  | { readonly kind: "add" }
+  | { readonly kind: "remove"; readonly index: number }
+  | { readonly kind: "set"; readonly index: number; readonly extra: Extra }
+  | {
+      readonly kind: "field";
+      readonly index: number;
+      readonly field: ExtraField;
+      readonly text: string;
+    };
 
 /** A field showing typed text the model refused, with the message that stays until corrected. */
 export type FieldProblem = {
@@ -340,6 +391,13 @@ export const REMEMBERED_FIELDS: Readonly<
 export function rememberKind(region: Region): KindDefaults {
   const out: Record<string, unknown> = {};
   for (const field of REMEMBERED_FIELDS[region.kind]) {
+    // Change 21A: a Note on a continuous output is not remembered - a new element starts on CC.
+    if (
+      (field === "output" || field === "outputY") &&
+      region.kind !== "button" &&
+      region[field] === "note"
+    )
+      continue;
     const value =
       field === "note"
         ? outputOf(region) === "note"
@@ -373,6 +431,8 @@ export function withKindDefaults(
     if (field === "output" && !typesOf(region).includes(value as MidiType))
       continue;
     if (field === "outputY" && !CONTINUOUS_TYPES.includes(value as MidiType))
+      continue;
+    if (field === "output" && value === "note" && region.kind !== "button")
       continue;
     out[field] = value;
   }
@@ -927,11 +987,13 @@ export class SandboxEditor {
     };
     const trimmed = text.trim();
     let patch: Partial<Omit<Region, "id">>;
-    if (field === "note") {
-      // A name or a number, both through view.ts's one reader; the note is the cc field.
+    if (field === "note" || field === "noteY") {
+      // A name or a number, both through view.ts's one reader; the note is the cc field (the Y
+      // axis's cc2 under a Gate, change 21A - every member a pad).
+      if (field === "noteY" && !this.allOfKind("xy")) return false;
       const n = noteNumber(trimmed);
       if (n === undefined) return refuse(NOTE_RANGE);
-      patch = { cc: n };
+      patch = field === "note" ? { cc: n } : { cc2: n };
     } else {
       if (!/^-?[0-9]+$/.test(trimmed)) return refuse(WHOLE_NUMBER);
       const n = Number.parseInt(trimmed, 10);
@@ -957,6 +1019,13 @@ export class SandboxEditor {
           if (!this.allOfKind("xy")) return false;
           if (n < CHANNEL_MIN || n > CHANNEL_MAX) return refuse(CHANNEL_RANGE);
           patch = { channelY: n };
+          break;
+        case "velocity":
+        case "velocityY":
+          // Change 21A: a Pitch Note's fixed velocity, 1..127 (0 would be a note-off).
+          if (field === "velocityY" && !this.allOfKind("xy")) return false;
+          if (n < VELOCITY_MIN || n > VALUE_MAX) return refuse(VELOCITY_RANGE);
+          patch = field === "velocity" ? { velocity: n } : { velocityY: n };
           break;
         case "min":
         case "max":
@@ -1111,6 +1180,12 @@ export class SandboxEditor {
         return String(springValueOf(region));
       case "note":
         return noteName(region.cc);
+      case "noteY":
+        return noteName(region.cc2 ?? 0);
+      case "velocity":
+        return String(noteVelocityOf(region, "x"));
+      case "velocityY":
+        return String(noteVelocityOf(region, "y"));
     }
   }
 
@@ -1230,9 +1305,11 @@ export class SandboxEditor {
     return true;
   }
 
-  /** An XY pad's Y axis Type (change 17): CC / Pitch bend / Channel pressure; one entry. */
+  /** An XY pad's Y axis Type (change 17): CC / Pitch bend / Channel pressure, and since change 21A Note on a one-touch pad; one entry. */
   setOutputY(output: MidiType): boolean {
-    if (!this.allOfKind("xy") || !CONTINUOUS_TYPES.includes(output))
+    if (!this.allOfKind("xy")) return false;
+    // Change 21A: a Note where the pad offers it (one touch).
+    if (!this.selectedRegions.every((r) => typesOf(r).includes(output)))
       return false;
     if (this.selectedRegions.every((r) => (r.outputY ?? "cc") === output))
       return true;
@@ -1263,6 +1340,179 @@ export class SandboxEditor {
     this.applyPatch({ latchTouch }, "option");
     this.emit();
     return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // Change 21A (BENCH-2026-09-16.txt section 21): a continuous Note's Mode and Scale, and the
+  // extra messages.
+
+  /**
+   * A continuous Note's Mode - Pitch or Gate - on one axis of every member, one entry; refused
+   * unless every member's axis is a continuous Note, and in Play.
+   */
+  setNoteMode(axis: OutputAxis, mode: NoteMode): boolean {
+    if (this._mode === "play" || !NOTE_MODES.includes(mode)) return false;
+    const regions = this.selectedRegions;
+    if (
+      regions.length === 0 ||
+      !regions.every((r) => isContinuousNote(r, axis))
+    )
+      return false;
+    if (regions.every((r) => noteModeOf(r, axis) === mode)) return true;
+    this.applyPatch(
+      axis === "y" ? { noteModeY: mode } : { noteMode: mode },
+      "option",
+    );
+    this._fields = {};
+    this.emit();
+    return true;
+  }
+
+  /** A Pitch Note's Scale on one axis of every member (Chromatic the field's absence), one entry; refused as `setNoteMode`. */
+  setScale(axis: OutputAxis, scale: ScaleId): boolean {
+    if (this._mode === "play" || !SCALE_IDS.includes(scale)) return false;
+    const regions = this.selectedRegions;
+    if (
+      regions.length === 0 ||
+      !regions.every((r) => isContinuousNote(r, axis))
+    )
+      return false;
+    if (regions.every((r) => scaleOf(r, axis) === scale)) return true;
+    const value = scale === "chromatic" ? undefined : scale;
+    this.applyPatch(
+      axis === "y" ? { scaleY: value } : { scale: value },
+      "option",
+    );
+    this.emit();
+    return true;
+  }
+
+  /**
+   * The inspector's one door for change 21A (the route hands it through as `onmessage`): the Note
+   * mode and the Scale, and the extras' add, remove, replace and typed field. Returns a typed
+   * field's refusal line; undefined for everything else.
+   */
+  message(action: MessageAction): string | undefined {
+    switch (action.kind) {
+      case "note-mode":
+        this.setNoteMode(action.axis, action.mode);
+        return undefined;
+      case "scale":
+        this.setScale(action.axis, action.scale);
+        return undefined;
+      case "add":
+        this.addExtra();
+        return undefined;
+      case "remove":
+        this.removeExtra(action.index);
+        return undefined;
+      case "set":
+        this.setExtra(action.index, action.extra);
+        return undefined;
+      case "field":
+        return this.editExtraField(action.index, action.field, action.text);
+    }
+  }
+
+  /** The one element whose extras the inspector edits: a single selection, not a blank, not in Play (13A's multi-edit does not reach extras). */
+  private extraTarget(): Region | undefined {
+    if (this._mode === "play") return undefined;
+    const region = this.selected;
+    return region === undefined || region.kind === "blank" ? undefined : region;
+  }
+
+  /** The extras written back: the field gone when the list is empty, so an element without extras is the record it was. */
+  private writeExtras(extras: readonly Extra[], key?: string): boolean {
+    const problem = this.applyPatch(
+      { extras: extras.length === 0 ? undefined : extras },
+      "option",
+      key,
+    );
+    if (problem !== undefined) return false;
+    this.emit();
+    return true;
+  }
+
+  /** "+ Add message": the kind's first extra appended (model.ts `newExtraFor`), one entry; refused at three, on a blank, over a set and in Play. */
+  addExtra(): boolean {
+    const region = this.extraTarget();
+    if (region === undefined) return false;
+    const extras = extrasOf(region);
+    const next = newExtraFor(region);
+    if (extras.length >= EXTRAS_MAX || next === undefined) return false;
+    return this.writeExtras([...extras, next]);
+  }
+
+  /** An extra removed by its place in the list, one entry. */
+  removeExtra(index: number): boolean {
+    const region = this.extraTarget();
+    if (region === undefined) return false;
+    const extras = extrasOf(region);
+    if (index < 0 || index >= extras.length) return false;
+    return this.writeExtras(extras.filter((_, i) => i !== index));
+  }
+
+  /**
+   * An extra replaced whole: a trigger the kind honours, a type the trigger offers, a channel 1..16,
+   * a number 0..127, a velocity 1..127 or an axis, a source axis. One entry, coalesced under `key`
+   * when a typed field sends it keystroke by keystroke. A Trigger or Type that changes what the
+   * extra is resets what no longer applies (model.ts `reshapeExtra`).
+   */
+  setExtra(index: number, extra: Extra, key?: string): boolean {
+    const region = this.extraTarget();
+    if (region === undefined) return false;
+    const extras = extrasOf(region);
+    if (index < 0 || index >= extras.length) return false;
+    if (!extraTriggersOf(region).includes(extra.trigger)) return false;
+    if (!extraFits(extra)) return false;
+    const next = reshapeExtra(region, extra);
+    if (JSON.stringify(next) === JSON.stringify(extras[index])) return true;
+    return this.writeExtras(
+      extras.map((x, i) => (i === index ? next : x)),
+      key,
+    );
+  }
+
+  /**
+   * An extra's typed field - its Channel, its Number (a note name or a number under Note, a
+   * controller number under CC) or a Touch note's fixed Velocity - applied on every accepted
+   * keystroke under one key, so a typed value is one Undo. Returns the refusal's line, or
+   * undefined when the value was applied.
+   */
+  editExtraField(
+    index: number,
+    field: ExtraField,
+    text: string,
+  ): string | undefined {
+    const region = this.extraTarget();
+    const extra = region === undefined ? undefined : extrasOf(region)[index];
+    if (extra === undefined) return undefined;
+    const trimmed = text.trim();
+    let next: Extra;
+    if (field === "number" && extra.type === "note") {
+      const n = noteNumber(trimmed);
+      if (n === undefined) return NOTE_RANGE;
+      next = { ...extra, number: n };
+    } else {
+      if (!/^-?[0-9]+$/.test(trimmed)) return WHOLE_NUMBER;
+      const n = Number.parseInt(trimmed, 10);
+      if (field === "channel") {
+        if (n < CHANNEL_MIN || n > CHANNEL_MAX) return CHANNEL_RANGE;
+        next = { ...extra, channel: n };
+      } else if (field === "number") {
+        if (n < CC_MIN || n > CC_MAX) return CC_RANGE;
+        next = { ...extra, number: n };
+      } else {
+        if (n < VELOCITY_MIN || n > VALUE_MAX) return VELOCITY_RANGE;
+        next = { ...extra, velocity: n };
+      }
+    }
+    this.setExtra(
+      index,
+      next,
+      fieldKey(this.selectionKey(), `extra-${index}-${field}`),
+    );
+    return undefined;
   }
 
   /**

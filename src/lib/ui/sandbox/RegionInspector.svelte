@@ -112,6 +112,34 @@
     CC_RANGE,
     CHANNEL_RANGE,
     WHOLE_NUMBER,
+    ADD_MESSAGE,
+    ADD_MESSAGE_FULL,
+    ADD_MESSAGE_HELPER,
+    FIXED_VELOCITY,
+    NOTE_GATE,
+    NOTE_MODE,
+    NOTE_MODE_HELPER,
+    NOTE_PITCH,
+    PITCH_MIN_MAX_HELPER,
+    REMOVE_MESSAGE,
+    SCALE,
+    SCALE_HELPER,
+    SOURCE,
+    SOURCE_HELPER,
+    TRIGGER,
+    TRIGGER_TOUCH,
+    TRIGGER_VALUE,
+    TYPE_SHORT,
+    VELOCITY,
+    VELOCITY_FIXED,
+    VELOCITY_FROM_X,
+    VELOCITY_FROM_Y,
+    VELOCITY_HELPER,
+    channelShort,
+    extraSummary,
+    fromAxis,
+    messageName,
+    velocityShort,
     conflictLine,
     deleteElements,
     elementsLine,
@@ -125,6 +153,7 @@
   import {
     DEFAULT_COLOUR,
     type EditorState,
+    type MessageAction,
     type NumericField,
   } from "$lib/sandbox/editor";
   import type { Alignment, Axis } from "$lib/sandbox/geometry";
@@ -163,6 +192,28 @@
     receiveOf,
     typeOf,
     typeYOf,
+    EXTRAS_MAX,
+    NOTE_MODES,
+    SCALE_DEGREES,
+    SCALE_IDS,
+    VALUE_TYPES,
+    VELOCITY_MIN,
+    extraSourceOf,
+    extraTriggersOf,
+    extraVelocityOf,
+    extrasOf,
+    hasNoteOutput,
+    isContinuousNote,
+    noteModeOf,
+    noteVelocityOf,
+    scaleOf,
+    typesOf,
+    type Extra,
+    type ExtraField,
+    type ExtraTrigger,
+    type NoteMode,
+    type OutputAxis,
+    type ScaleId,
     type ColourInput,
     type MidiType,
     type Orientation,
@@ -171,6 +222,7 @@
     type Speed,
   } from "$lib/sandbox/model";
   import { BRIGHTNESS_SURFACE_HELPER } from "$lib/tune/inspector-copy";
+  import { SCALE_WORDS, noteName } from "$lib/tune/view";
   import BrightnessField from "$lib/ui/BrightnessField.svelte";
   import Inspector, {
     type InspectorSection,
@@ -192,6 +244,7 @@
     onoutputy,
     onreceive,
     onlatchtouch,
+    onmessage,
     oncolourinput,
     ongroup,
     ontouches,
@@ -229,6 +282,8 @@
     onreceive?: (receive: boolean) => void;
     /** Latch (change 18): On keeps the finger, Off hands it over; one entry. */
     onlatchtouch?: (latchTouch: boolean) => void;
+    /** Change 21A: a Note's mode and scale, and the extras (editor.ts `message`); a typed field's refusal comes back. */
+    onmessage?: (action: MessageAction) => string | undefined;
     /** The surface's Color input (change 17): a channel and a first CC, or undefined for off. */
     oncolourinput?: (input: ColourInput | undefined) => void;
     ongroup?: (group: number) => void;
@@ -368,6 +423,9 @@
     max: "max",
     springValue: "spring-value",
     note: "note",
+    noteY: "note-y",
+    velocity: "velocity",
+    velocityY: "velocity-y",
   };
 
   /** Each typed field's closed range: the stepper's boxes and arrows walk it by one (the model refuses outside it). */
@@ -380,6 +438,9 @@
     max: [VALUE_MIN, VALUE_MAX],
     springValue: [VALUE_MIN, VALUE_MAX],
     note: [CC_MIN, CC_MAX],
+    noteY: [CC_MIN, CC_MAX],
+    velocity: [VELOCITY_MIN, VALUE_MAX],
+    velocityY: [VELOCITY_MIN, VALUE_MAX],
   };
 
   /** A segmented control's or a select's words: the model's value and the copy's word. */
@@ -400,16 +461,63 @@
     value: o,
     label: o === "cc" ? OUTPUT_CC : OUTPUT_NOTE,
   }));
+  /** A type's word in the inspector: CC, Note, Pitch bend, Channel pressure. */
+  const typeWord = (t: MidiType): string =>
+    t === "pitchbend"
+      ? TYPE_PITCH_BEND
+      : t === "pressure"
+        ? TYPE_PRESSURE
+        : t === "note"
+          ? OUTPUT_NOTE
+          : OUTPUT_CC;
   /** A continuous output's three types (change 17, answer 2): a select, as one word is long. */
   const TYPE_WORDS: readonly Word[] = CONTINUOUS_TYPES.map((t) => ({
     value: t,
-    label:
-      t === "pitchbend"
-        ? TYPE_PITCH_BEND
-        : t === "pressure"
-          ? TYPE_PRESSURE
-          : OUTPUT_CC,
+    label: typeWord(t),
   }));
+  /** Change 21A: the four, Note last, where every member offers a Note (not a relative knob, not a pad with more than one touch). */
+  const TYPE_WORDS_NOTE: readonly Word[] = [
+    ...TYPE_WORDS,
+    { value: "note", label: OUTPUT_NOTE },
+  ];
+  const typeWords = (): readonly Word[] =>
+    members.every((r) => typesOf(r).includes("note"))
+      ? TYPE_WORDS_NOTE
+      : TYPE_WORDS;
+  /** A continuous Note's two modes (change 21A). */
+  const NOTE_MODE_WORDS: readonly Word[] = NOTE_MODES.map((m) => ({
+    value: m,
+    label: m === "pitch" ? NOTE_PITCH : NOTE_GATE,
+  }));
+  /** A Pitch output's scales (change 21A), worded by the catalog's own scale table (tune/view.ts SCALE_WORDS, keyed by the degrees). */
+  const SCALE_LIST: readonly Word[] = SCALE_IDS.map((id) => ({
+    value: id,
+    label: (SCALE_WORDS as Readonly<Record<string, string>>)[
+      SCALE_DEGREES[id].join(",")
+    ],
+  }));
+  /** An extra's words (change 21A): its two triggers, a Touch's two types, a Touch note's three velocities, a Value's two sources on a pad. */
+  const TRIGGER_WORDS: readonly Word[] = [
+    { value: "touch", label: TRIGGER_TOUCH },
+    { value: "value", label: TRIGGER_VALUE },
+  ];
+  const TOUCH_TYPE_WORDS: readonly Word[] = [
+    { value: "note", label: OUTPUT_NOTE },
+    { value: "cc", label: OUTPUT_CC },
+  ];
+  const VALUE_TYPE_WORDS: readonly Word[] = VALUE_TYPES.map((t) => ({
+    value: t,
+    label: typeWord(t),
+  }));
+  const VELOCITY_WORDS: readonly Word[] = [
+    { value: "fixed", label: VELOCITY_FIXED },
+    { value: "x", label: VELOCITY_FROM_X },
+    { value: "y", label: VELOCITY_FROM_Y },
+  ];
+  const SOURCE_WORDS: readonly Word[] = [
+    { value: "x", label: X_AXIS },
+    { value: "y", label: Y_AXIS },
+  ];
   /** The Color input's first values when it is switched on (change 17): the last channel, CC 0 up. */
   const COLOUR_INPUT_START: ColourInput = { channel: CHANNEL_MAX, cc: CC_MIN };
   /** A checkbox's two states as two words (change 16c): Spring, Toggle. */
@@ -492,6 +600,12 @@
         return maxOf(first);
       case "springValue":
         return springValueOf(first);
+      case "noteY":
+        return first.cc2 ?? 0;
+      case "velocity":
+        return noteVelocityOf(first, "x");
+      case "velocityY":
+        return noteVelocityOf(first, "y");
     }
   }
   const rankOf = (field: NumericField): number =>
@@ -516,9 +630,87 @@
         (r) =>
           r.kind === "blank" ||
           (r.kind === "knob" && isRelative(r)) ||
-          touchesOf(r) > 1,
+          touchesOf(r) > 1 ||
+          hasNoteOutput(r),
       ),
   );
+  /** Change 21A: the Min / Max helper says what they are under a Pitch Note. */
+  const minMaxHelper = $derived(
+    members.some((r) =>
+      (["x", "y"] as const).some(
+        (axis) => isContinuousNote(r, axis) && noteModeOf(r, axis) === "pitch",
+      ),
+    )
+      ? PITCH_MIN_MAX_HELPER
+      : MIN_MAX_HELPER,
+  );
+
+  // -------------------------------------------------------------------------
+  // Change 21A: the extra messages - one element at a time (13A's multi-edit does not reach them),
+  // a folding block each on 17C's head, "+ Add message" after them.
+
+  const extraUid = `${uid}-extra`;
+  /** Each block open unless folded; the key names the element and the block. */
+  let extraFolds = $state<Record<string, boolean>>({});
+  const extraKey = (index: number): string => `${region?.id ?? ""}:${index}`;
+  const extraOpen = (index: number): boolean =>
+    extraFolds[extraKey(index)] !== true;
+  function toggleExtra(index: number): void {
+    extraFolds = { ...extraFolds, [extraKey(index)]: extraOpen(index) };
+  }
+  /** A typed field's text while it is being typed, and its refusal (the Color input's rule). */
+  let extraTyped = $state<
+    { key: string; text: string; problem?: string } | undefined
+  >(undefined);
+  function typeExtra(
+    index: number,
+    field: ExtraField,
+    text: string,
+    committed: boolean,
+  ): void {
+    const key = `${extraKey(index)}:${field}`;
+    if (committed) {
+      oncommit();
+      if (extraTyped?.problem === undefined) extraTyped = undefined;
+      return;
+    }
+    const problem = onmessage?.({ kind: "field", index, field, text });
+    extraTyped = { key, text, problem };
+  }
+  /** A step box or an arrow: the next value, applied as the extra whole. */
+  function stepExtra(
+    index: number,
+    extra: Extra,
+    field: ExtraField,
+    value: number,
+  ) {
+    extraTyped = undefined;
+    onmessage?.({ kind: "set", index, extra: { ...extra, [field]: value } });
+  }
+  const setExtra = (index: number, extra: Extra): void => {
+    extraTyped = undefined;
+    onmessage?.({ kind: "set", index, extra });
+  };
+  /** An extra's type word on its head: CC, Note, PB, CP (the plate's own short words). */
+  const typeShort = (t: MidiType): string =>
+    t === "pitchbend" || t === "pressure" ? TYPE_SHORT[t] : typeWord(t);
+  /** The head's one line: `Touch · Note · Ch 1 · C3 · Vel 100`, `Value · CC · Ch 2 · 74 · from Y`. */
+  function extraSummaryOf(r: Region, extra: Extra): string {
+    const parts = [
+      extra.trigger === "touch" ? TRIGGER_TOUCH : TRIGGER_VALUE,
+      typeShort(extra.type),
+      channelShort(extra.channel),
+    ];
+    if (extra.type === "note") parts.push(noteName(extra.number));
+    else if (extra.type === "cc") parts.push(String(extra.number));
+    if (extra.trigger === "touch" && extra.type === "note") {
+      const v = extraVelocityOf(extra);
+      parts.push(velocityShort(typeof v === "number" ? v : fromAxis(v)));
+    }
+    if (extra.trigger === "value" && r.kind === "xy")
+      parts.push(fromAxis(extraSourceOf(r, extra)));
+    return extraSummary(parts);
+  }
 
   /** The Color input's typed fields (change 17): the text while one is being typed, and its refusal. */
   type ColourField = "channel" | "cc";
@@ -662,7 +854,7 @@
             lock,
           )}
           hint={false}
-          inputmode={field === "note" ? "text" : "numeric"}
+          inputmode={field === "note" || field === "noteY" ? "text" : "numeric"}
           readonly={play}
           placeholder={mixed ? MIXED : undefined}
           {mixed}
@@ -1058,8 +1250,8 @@
       {@const typeX = shared(typeOf)}
       {@const typeY = shared(typeYOf)}
       <!-- The pad's shared rows first - Min and Max serve both axes, Receive the pad - then its two outputs, each under its axis. -->
-      {@render numeric("min", MIN, MIN_MAX_HELPER, undefined)}
-      {@render numeric("max", MAX, MIN_MAX_HELPER, helperId("min"))}
+      {@render numeric("min", MIN, minMaxHelper, undefined)}
+      {@render numeric("max", MAX, minMaxHelper, helperId("min"))}
       {#if canReceive}
         {@render receiveRow()}
       {/if}
@@ -1069,12 +1261,14 @@
         "field-output",
         OUTPUT_TYPE,
         TYPE_HELPER,
-        TYPE_WORDS,
+        typeWords(),
         typeX,
         (value) => onoutput?.(value as MidiType),
         undefined,
       )}
-      {#if region !== undefined && hasNumber(typeOf(region))}
+      {#if typeX === "note"}
+        {@render noteRows("x")}
+      {:else if region !== undefined && hasNumber(typeOf(region))}
         {@render numeric("cc", CC_NUMBER, undefined, undefined)}
       {/if}
       {@render numeric("channel", CHANNEL, undefined, undefined)}
@@ -1084,12 +1278,14 @@
         "field-output-y",
         OUTPUT_TYPE,
         TYPE_HELPER,
-        TYPE_WORDS,
+        typeWords(),
         typeY,
         (value) => onoutputy?.(value as MidiType),
         undefined,
       )}
-      {#if region !== undefined && hasNumber(typeYOf(region))}
+      {#if typeY === "note"}
+        {@render noteRows("y")}
+      {:else if region !== undefined && hasNumber(typeYOf(region))}
         {@render numeric("cc2", CC_NUMBER, undefined, undefined)}
       {/if}
       {@render numeric("channelY", CHANNEL, undefined, undefined)}
@@ -1098,30 +1294,304 @@
         (r) => r.kind === "knob" && isRelative(r),
       )}
       <!-- A fader's or a knob's Type - not under a knob's relative modes, which send relative CC steps. -->
+      {@const type = shared(typeOf)}
       {#if sharedKind !== undefined && !relativeKnob}
         {@render selectRow(
           outputId,
           "field-output",
           OUTPUT_TYPE,
           TYPE_HELPER,
-          TYPE_WORDS,
-          shared(typeOf),
+          typeWords(),
+          type,
           (value) => onoutput?.(value as MidiType),
           undefined,
         )}
       {/if}
-      {#if region !== undefined && hasNumber(typeOf(region))}
+      <!-- Change 21A: under Note its Note mode, then Pitch's Scale and Velocity or Gate's Note, in place of the number. -->
+      {#if type === "note" && !relativeKnob}
+        {@render noteRows("x")}
+      {:else if region !== undefined && hasNumber(typeOf(region))}
         {@render numeric("cc", CC_NUMBER, undefined, undefined)}
       {/if}
       {@render numeric("channel", CHANNEL, undefined, undefined)}
       <!-- Min and Max (answer 6a) - not under a knob's relative modes, where a detent is a step. -->
       {#if !relativeKnob}
-        {@render numeric("min", MIN, MIN_MAX_HELPER, undefined)}
-        {@render numeric("max", MAX, MIN_MAX_HELPER, helperId("min"))}
+        {@render numeric("min", MIN, minMaxHelper, undefined)}
+        {@render numeric("max", MAX, minMaxHelper, helperId("min"))}
       {/if}
     {/if}
     {#if canReceive && sharedKind !== "xy"}
       {@render receiveRow()}
+    {/if}
+    {#if region !== undefined && region.kind !== "blank"}
+      {@render extraBlocks(region)}
+    {/if}
+  </div>
+{/snippet}
+
+<!-- Change 21A: a continuous Note's rows on one axis - its Note mode (Pitch / Gate), then under Pitch the Scale and the fixed Velocity, under Gate the Note it plays. -->
+{#snippet noteRows(axis: OutputAxis)}
+  {@const mode = shared((r) => noteModeOf(r, axis))}
+  {@render segmented(
+    `${outputId}-mode-${axis}`,
+    axis === "y" ? "field-note-mode-y" : "field-note-mode",
+    NOTE_MODE,
+    NOTE_MODE_HELPER,
+    NOTE_MODE_WORDS,
+    mode,
+    (value) =>
+      onmessage?.({ kind: "note-mode", axis, mode: value as NoteMode }),
+    undefined,
+  )}
+  {#if mode === "pitch"}
+    {@render selectRow(
+      `${outputId}-scale-${axis}`,
+      axis === "y" ? "field-scale-y" : "field-scale",
+      SCALE,
+      SCALE_HELPER,
+      SCALE_LIST,
+      shared((r) => scaleOf(r, axis)),
+      (value) => onmessage?.({ kind: "scale", axis, scale: value as ScaleId }),
+      undefined,
+    )}
+    {@render numeric(
+      axis === "y" ? "velocityY" : "velocity",
+      VELOCITY,
+      undefined,
+      undefined,
+    )}
+  {:else if mode === "gate"}
+    {@render numeric(
+      axis === "y" ? "noteY" : "note",
+      NOTE_NUMBER,
+      undefined,
+      undefined,
+    )}
+  {/if}
+{/snippet}
+
+<!-- Change 21A: the extra messages - a block per extra on 17C's folding head (the name, the summary, a chevron) with the remove box in the lock column, then "+ Add message". One element only. -->
+{#snippet extraBlocks(r: Region)}
+  {@const extras = extrasOf(r)}
+  {@const triggers = extraTriggersOf(r)}
+  {@const full = extras.length >= EXTRAS_MAX}
+  {#each extras as extra, index (index)}
+    {@const open = extraOpen(index)}
+    {@const rowsId = `${extraUid}-${index}`}
+    <div class="extra" data-testid="extra-block" data-index={index}>
+      <div class="extra-head">
+        <button
+          type="button"
+          class="fold"
+          data-testid="extra-fold"
+          aria-expanded={open}
+          aria-controls={rowsId}
+          onclick={() => toggleExtra(index)}
+        >
+          <span class="fold-name type-micro">{messageName(index + 1)}</span>
+          <span class="fold-summary" data-testid="extra-summary"
+            >{extraSummaryOf(r, extra)}</span
+          >
+          <svg class="chevron" viewBox="0 0 20 20" aria-hidden="true">
+            {#if open}
+              <polyline points="6,8 10,12 14,8" />
+            {:else}
+              <polyline points="8,6 12,10 8,14" />
+            {/if}
+          </svg>
+        </button>
+        <button
+          class="box remove"
+          type="button"
+          data-testid="extra-remove"
+          aria-label={`${REMOVE_MESSAGE} ${index + 1}`}
+          title={REMOVE_MESSAGE}
+          disabled={play}
+          aria-describedby={lock}
+          onclick={() => {
+            extraTyped = undefined;
+            onmessage?.({ kind: "remove", index });
+          }}
+        >
+          <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true">
+            <line x1="5" y1="5" x2="15" y2="15" />
+            <line x1="15" y1="5" x2="5" y2="15" />
+          </svg>
+        </button>
+      </div>
+      <div class="fold-rows" id={rowsId} hidden={!open}>
+        {#if triggers.length > 1}
+          {@render segmented(
+            `${rowsId}-trigger`,
+            "extra-trigger",
+            TRIGGER,
+            undefined,
+            TRIGGER_WORDS,
+            extra.trigger,
+            (value) =>
+              setExtra(index, { ...extra, trigger: value as ExtraTrigger }),
+            undefined,
+          )}
+        {/if}
+        {#if extra.trigger === "touch"}
+          {@render segmented(
+            `${rowsId}-type`,
+            "extra-type",
+            OUTPUT_TYPE,
+            undefined,
+            TOUCH_TYPE_WORDS,
+            extra.type,
+            (value) => setExtra(index, { ...extra, type: value as MidiType }),
+            undefined,
+          )}
+        {:else}
+          {@render selectRow(
+            `${rowsId}-type`,
+            "extra-type",
+            OUTPUT_TYPE,
+            TYPE_HELPER,
+            VALUE_TYPE_WORDS,
+            extra.type,
+            (value) => setExtra(index, { ...extra, type: value as MidiType }),
+            undefined,
+          )}
+        {/if}
+        {@render extraStepper(
+          index,
+          extra,
+          "channel",
+          CHANNEL,
+          CHANNEL_MIN,
+          CHANNEL_MAX,
+          extra.channel,
+          String(extra.channel),
+        )}
+        {#if hasNumber(extra.type)}
+          {@render extraStepper(
+            index,
+            extra,
+            "number",
+            extra.type === "note" ? NOTE_NUMBER : CC_NUMBER,
+            CC_MIN,
+            CC_MAX,
+            extra.number,
+            extra.type === "note"
+              ? noteName(extra.number)
+              : String(extra.number),
+          )}
+        {/if}
+        {#if extra.trigger === "touch" && extra.type === "note"}
+          {@const velocity = extraVelocityOf(extra)}
+          {@render segmented(
+            `${rowsId}-velocity`,
+            "extra-velocity",
+            VELOCITY,
+            VELOCITY_HELPER,
+            VELOCITY_WORDS,
+            typeof velocity === "number" ? "fixed" : velocity,
+            (value) =>
+              setExtra(index, {
+                ...extra,
+                velocity: value === "fixed" ? undefined : (value as "x" | "y"),
+              }),
+            undefined,
+          )}
+          {#if typeof velocity === "number"}
+            {@render extraStepper(
+              index,
+              extra,
+              "velocity",
+              FIXED_VELOCITY,
+              VELOCITY_MIN,
+              VALUE_MAX,
+              velocity,
+              String(velocity),
+            )}
+          {/if}
+        {/if}
+        {#if extra.trigger === "value" && r.kind === "xy"}
+          {@render segmented(
+            `${rowsId}-source`,
+            "extra-source",
+            SOURCE,
+            SOURCE_HELPER,
+            SOURCE_WORDS,
+            extraSourceOf(r, extra),
+            (value) =>
+              setExtra(index, { ...extra, source: value as "x" | "y" }),
+            undefined,
+          )}
+        {/if}
+      </div>
+    </div>
+  {/each}
+  <!-- "+ Add message": a Touch note on a pad and a button, a Value CC on a fader and a knob; disabled at three. -->
+  <div class="field">
+    <div class="row">
+      <button
+        class="outlined add"
+        type="button"
+        data-testid="extra-add"
+        disabled={play || full}
+        title={full ? ADD_MESSAGE_FULL : ADD_MESSAGE_HELPER}
+        aria-describedby={describedBy(`${extraUid}-helper`, lock)}
+        onclick={() => onmessage?.({ kind: "add" })}>{ADD_MESSAGE}</button
+      >
+      <span class="sr-only" id="{extraUid}-helper"
+        >{full ? ADD_MESSAGE_FULL : ADD_MESSAGE_HELPER}</span
+      >
+    </div>
+  </div>
+{/snippet}
+
+<!-- An extra's typed field (change 21A): Stepper.svelte over its range, the Color input's rule - a keystroke applies a value in range at once, a refusal stays with its line under the row. -->
+{#snippet extraStepper(
+  index: number,
+  extra: Extra,
+  field: ExtraField,
+  label: string,
+  lo: number,
+  hi: number,
+  value: number,
+  text: string,
+)}
+  {@const id = `${extraUid}-${index}-${field}`}
+  {@const typed =
+    extraTyped?.key === `${extraKey(index)}:${field}` ? extraTyped : undefined}
+  <div class="field" class:invalid={typed?.problem !== undefined}>
+    <div class="row">
+      <label class="label type-micro" for={id}>{label}</label>
+      <div class="control">
+        <Stepper
+          {id}
+          testid="extra-{field}"
+          inputTestid="extra-{field}"
+          value={typed?.text ?? text}
+          rank={value - lo}
+          count={hi - lo + 1}
+          invalid={typed?.problem !== undefined}
+          describedBy={describedBy(
+            typed?.problem !== undefined ? `${id}-message` : undefined,
+            lock,
+          )}
+          hint={false}
+          inputmode={field === "number" && extra.type === "note"
+            ? "text"
+            : "numeric"}
+          readonly={play}
+          ontext={(t, committed) => typeExtra(index, field, t, committed)}
+          onrank={(rank) => stepExtra(index, extra, field, lo + rank)}
+        />
+      </div>
+    </div>
+    {#if typed?.problem !== undefined}
+      <p
+        class="message type-helper"
+        id="{id}-message"
+        data-testid="extra-{field}-message"
+      >
+        {typed.problem}
+      </p>
     {/if}
   </div>
 {/snippet}
@@ -1705,6 +2175,112 @@
     padding-block-start: 0;
   }
 
+  /* An extra message's block (change 21A): its head, then its rows; a container, so the head queries its own width as a row does. */
+  .extra {
+    container-type: inline-size;
+    min-inline-size: 0;
+  }
+
+  /* The head on the rack's grid: the fold button across label, control and reset, the remove box in the lock column. */
+  .extra-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    column-gap: 8px;
+    align-items: center;
+  }
+
+  /*
+    17C's folding head (TuningRegion.svelte's rules): a full-width button - the block's name in the
+    label column (the eyebrow face, ink), the one-line summary across the control column (the house
+    mono, quiet), a chevron of straight lines in the reset column - 44px, square, no fill.
+  */
+  .fold {
+    appearance: none;
+    display: grid;
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px;
+    grid-template-areas: "name summary chevron";
+    column-gap: 8px;
+    align-items: center;
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 44px;
+    margin: 0;
+    padding: 0 0 0 4px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: var(--color-ink);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .fold-name {
+    grid-area: name;
+    min-inline-size: 0;
+  }
+
+  .fold-summary {
+    grid-area: summary;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-ink-quiet);
+    transition: color 140ms ease-out;
+  }
+
+  .fold:hover .fold-summary,
+  .fold:focus-visible .fold-summary {
+    color: var(--color-ink);
+  }
+
+  .chevron {
+    grid-area: chevron;
+    justify-self: center;
+    inline-size: 20px;
+    block-size: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+  }
+
+  /* The rows under an open head, each with the rack's hairline above it; a folded block takes no room. */
+  .fold-rows {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+  }
+
+  .fold-rows[hidden] {
+    display: none;
+  }
+
+  .fold-rows > :global(*) {
+    border-block-start: 1px solid var(--color-divider);
+  }
+
+  /* Under 380px of the block the name takes a line of its own and the summary the next, the chevron beside both. */
+  @container (width < 380px) {
+    .fold {
+      grid-template-columns: minmax(0, 1fr) 44px;
+      grid-template-areas:
+        "name chevron"
+        "summary chevron";
+      row-gap: 2px;
+      padding-block: 6px;
+    }
+  }
+
+  /* "+ Add message" across the label and control columns, 44 tall, the row's own inset. */
+  .add {
+    grid-column: label-start / control-end;
+  }
+
   /* The Arrange row (13B): eight square icon boxes, four to a line (the alignments, then the centres and the spacings) - a body of 385 held 7 + 1 (change 16c). */
   .arrange {
     display: grid;
@@ -1806,7 +2382,8 @@
     .label,
     .option,
     .word,
-    .box {
+    .box,
+    .fold-summary {
       transition: none;
     }
   }

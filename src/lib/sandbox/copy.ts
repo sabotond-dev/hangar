@@ -203,6 +203,54 @@ export const COLOR_INPUT_HELPER =
 export const NOTE_NUMBER = "Note";
 export const NOTE_HELPER =
   "A name or a number: C#3 or 49. On sends the note at Max as its velocity; off sends note-off.";
+/**
+ * Change 21A (BENCH-2026-09-16.txt section 21, the addition): a Note on a continuous output - the
+ * Type's fourth word is OUTPUT_NOTE - played by a Note mode, Pitch or Gate; under Pitch a Scale and
+ * a fixed Velocity, under Gate the Note (NOTE_NUMBER).
+ */
+export const NOTE_MODE = "Note mode";
+export const NOTE_PITCH = "Pitch";
+export const NOTE_GATE = "Gate";
+export const NOTE_MODE_HELPER =
+  "Pitch: the value picks the note, from Min to Max, and sliding plays the next one. Gate: a touch plays the note with the value where it lands as its velocity. A note doesn’t receive.";
+export const SCALE = "Scale";
+export const SCALE_HELPER =
+  "The notes Pitch plays, counted up from Min: a value between two of them plays the lower one.";
+export const VELOCITY = "Velocity";
+export const PITCH_MIN_MAX_HELPER =
+  "Under Pitch, Min and Max are the lowest and highest note, and the scale starts on Min. A Min above the Max inverts the direction.";
+/** The extra messages (change 21A): up to three on an element, each a block under MIDI output. */
+export const ADD_MESSAGE = "+ Add message";
+export const ADD_MESSAGE_HELPER =
+  "Up to three more messages beside the element’s own. Touch sends on when a finger lands and off when it lifts; Value follows the element’s value. Extra messages never receive.";
+export const ADD_MESSAGE_FULL =
+  "An element carries three extra messages at most.";
+export const messageName = (n: number): string => `Message ${n}`;
+export const REMOVE_MESSAGE = "Remove message";
+export const TRIGGER = "Trigger";
+export const TRIGGER_TOUCH = "Touch";
+export const TRIGGER_VALUE = "Value";
+export const VELOCITY_FIXED = "Fixed";
+export const VELOCITY_FROM_X = "From X";
+export const VELOCITY_FROM_Y = "From Y";
+export const VELOCITY_HELPER =
+  "Fixed plays the note at the velocity below. From X or From Y takes it from where the finger lands.";
+export const FIXED_VELOCITY = "Fixed at";
+export const SOURCE = "Source";
+export const SOURCE_HELPER = "The axis whose value the message follows.";
+export const VELOCITY_RANGE = "A velocity is 1 to 127.";
+/**
+ * An extra's one-line summary on its block's head, the parts joined by a middle dot:
+ * `Touch · Note · Ch 1 · C3 · Vel 100`, `Value · CC · Ch 2 · 74 · from Y`.
+ */
+export const extraSummary = (parts: readonly string[]): string =>
+  parts.join(" · ");
+export const channelShort = (channel: number): string => `Ch ${channel}`;
+export const velocityShort = (velocity: number | string): string =>
+  `Vel ${velocity}`;
+export const fromAxis = (axis: "x" | "y"): string =>
+  `from ${axis === "x" ? "X" : "Y"}`;
+
 /** A button's radio group (answer 9b). */
 export const GROUP = "Group";
 export const GROUP_NONE = "None";
