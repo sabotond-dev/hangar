@@ -8177,3 +8177,126 @@ existed stays byte-identical; (3) the Sandbox set moved by change 21A alone; (4)
 the chunks ran on a clean worktree - three executors shared the tree; (7) files outside the brief's list:
 `brightness.spec.ts`, `colour-picker.spec.ts`, `knobs.lua.spec.ts`, `view.spec.ts`, `catalog.spec.ts`,
 `radius-allowlist.ts`, `knobs.preset.ts`, `model.ts`, `hash-wire.mjs`, the e2e fixture, seven entries' comments.
+
+## 2026-09-24 change 20 - the live mirror: the connected ZONA's own lights on the plate, the MIDI it sent in the monitor
+
+`BENCH-2026-09-16.txt` section 20; the research is `docs/MIRROR.md`. Built against the firmware
+and Grid Editor as read and against the fake ZONA; no agent wrote to a device.
+
+**What the protocol gives, read before building** (`docs/MIRROR.md` sections 1-3): LEDPREVIEW
+(0x042) carries each changed LED's FINAL colour after the layer mix, by hardware index (the strip
+is a serpentine), sent beside every host heartbeat of TYPE above 127, with every event pass while
+such a heartbeat is under 2 s old, and whole to a FETCH; EVENT (0x050) skips the touch element,
+EVENTVIEW (0x053) and EVENTPREVIEW (0x051) carry no coordinate, so **no frame carries a ZONA
+finger** and the mirror shows lights and MIDI and says so; `rx_mode` type 3 is receive routing and
+is not touched; every `midi_send` is echoed to the serial host as a MIDI EXECUTE from the module's
+address, a message received from the computer comes back as a REPORT from the global one. The
+mirror sends the TYPE 255 heartbeat HANGAR already sent after every write - every 100 ms while on -
+and one LEDPREVIEW FETCH on the click; off is silence, and the module's own 2 s timeout ends
+editor mode.
+
+**Proved, by file:**
+
+- `src/lib/protocol/preview.spec.ts` (new, 8): a full 81-record report through the shipped decode
+  guard, the package's first-record fields agreeing; one event pass's message (EVENTVIEW + a sent
+  MIDI + a LED EXECUTE) class by class; a received MIDI message refused; the record run bounded
+  by the bytes present, an index past 81 and a non-hex record dropped, no raw block no picture;
+  EVENT / EVENTVIEW / EVENTPREVIEW declare no touch coordinate in the pinned package; the FETCH is
+  33 bytes, addressed to the ZONA, body `042f`, no filter; the fake answers the FETCH with all 81
+  and an editor heartbeat with only what moved; `preview.ts` imports nothing at runtime.
+- `src/lib/mirror/mirror.spec.ts` (new, 10): the click writes one TYPE 255 heartbeat (global) and
+  one LEDPREVIEW FETCH (the ZONA's own address) and nothing else; one heartbeat per period, the
+  FETCH once, nothing once off and both subscriptions released; the ZONA's lights land in screen
+  order (whole and changed-only), a neighbour's never; the sent MIDI logged, a received one and a
+  neighbour's not, a fresh log per click; quiet while the install store owns the port, then the
+  heartbeat and the request; a failed write dropped and retried; a disconnect ends it with no
+  write after; no start without a connected ZONA, and the silent line at 2 s; the serpentine
+  equal to the vendored `hwToScreen` at all 81, the engine keeping its picture through a reset;
+  the source's closed vocabulary (no config, store, page, discard, rx_mode, Lua) and its four
+  static specifiers.
+- `src/lib/sim/host.spec.ts` (+1): twenty `invalidate()` calls between two paints are one paint,
+  not before the hero's interval, under reduced motion too, off screen held until it is back.
+- `src/lib/ui/mirror-ui.spec.ts` (new, 4): the toggle exists only in the session's `connected`
+  phase, `aria-pressed` carries the state and the words do not change, no radius; the status
+  line's three forms, counting pages from one; the monitors' labels; both routes' wiring (the
+  mirror's engine in and out under the same id, `invalidate`, the pointer refused, `mirror.stop()`
+  on leaving, the Sandbox's toggle Play's alone).
+- Amended: `forbidden-instructions.spec.ts` test 4, nine builders (LEDPREVIEW joins the class
+  set; the instructions are still EXECUTE and FETCH); `tune-ui.spec.ts` and `sandbox-ui.spec.ts`,
+  the monitor guards' regexes take the mirror's first branch (the workspace mounts the bar twice,
+  one per branch); `audition.spec.ts` ROW_COUNT 47 -> 51.
+- `e2e/install.e2e.ts`, a fifth block of two titles on the desktop project, against the same
+  responder (`synthetic.ts` answers the FETCH and the editor heartbeat; `e2e/fake-zona.ts` gains
+  `setLeds` and `eventPassHex`): on `/playground/aurora/` no toggle before a connection; one click
+  and the plate's pixels are the ZONA's four LEDs at their screen cells and nothing else (both
+  row directions of the serpentine, both ends); the status and cannot lines, no coordinates; the
+  monitor bar on this preset card reads `CC 16` from `ZONA` and not the received note; a
+  volunteered LED EXECUTE repaints its cell; **the whole write log from the click, decoded in
+  Node, is TYPE 255 heartbeats and one LEDPREVIEW FETCH - nothing else**; off hands the plate back
+  and five heartbeat periods later nothing more was written; not one CONFIG, PAGESTORE, page
+  switch or discard in the visit. In the Sandbox the toggle is Play's alone, the Play plate and
+  monitor read the module, leaving Play ends it under the same write rule. No touch frame is
+  pushed: there is none to fake.
+
+**Found and fixed (Rule 1):** both routes' `adopt()` required the simulator's engine, so a mirror
+switched on while that engine was still loading - or on a card whose engine failed - would never
+have reached the plate (`88f4041`).
+
+**Counts, carried + delta** (carried = the tree at my start, `d7748ab`: quick 97 / 1072 + 1 todo,
+check 682, e2e 104 titles / 119 runs, utilities 44, testids 347, copy modules 8, audition rows 47):
+quick -> **100 / 1120 + 1 todo** on the whole tree at `31134cd`, green twice at `--maxWorkers=2`
+(mine +3 files, +23 tests: preview 8, mirror 10, mirror-ui 4, host 1; the other +25 are changes 19
+and 21A's); `QUICK_FILES` 97 -> **100**, `QUICK_TESTS` 1072 -> **1120** (`cfcfd3e`). Check 682 ->
+**691** files, 0 errors, 0 warnings (mine +8: preview.ts, preview.spec.ts, frame.ts,
+mirror.svelte.ts, mirror.spec.ts, copy.ts, MirrorToggle.svelte, mirror-ui.spec.ts); lint clean
+(the whole tree, after `cfcfd3e`); e2e titles / runs 104 / 119 -> mine **+2 / +2** (the gate's after-record read 122
+runs with change 21's); audition rows 47 -> **51**; utilities **44 -> 44** (0 disappeared, 0
+appeared; markup-named intact); testids +3 mine (`mirror-toggle`, `mirror-status`,
+`mirror-note`); copy modules 8 -> **9** (`src/lib/mirror/copy.ts`, nine exports:
+`MIRROR_LABEL`, `MIRROR_HELPER`, `mirrorStatus`, `MIRROR_CANNOT`, `MIRROR_MONITOR_SOURCE`,
+`MIRROR_MONITOR_STATUS`, `MIRROR_MONITOR_EMPTY`, `MIRROR_PLAY_MONITOR`,
+`MIRROR_PLAY_MONITOR_HELPER`); SCOPED CSS by name, mine: the workspace's `.switches`, and
+`MirrorToggle.svelte`'s `.toggle`, `.toggle:hover`, `.toggle.pressed`, `.toggle:focus-visible` and
+its reduced-motion rule (no radius anywhere).
+
+**The gate** (`--before change-20` at `d7748ab`, the tree clean; `--after change-20 --against
+change-20 --check 692` at `8308a17`, changes 19 and 21's work committed and uncommitted around
+it): **the wire - no record of mine moved**: the set `e9534dba…` -> `eadaaedc…` and the full
+`98a51842…` -> `6869375b…` by 36 added `E/orbit` records alone (change 19's lattice rungs), not one
+existing record changed; the Sandbox set `51e5da18…` **equal**. The script exits 1 at the wire by
+design; the later terms, compared by hand: strings moved by the literals listed above and change
+21's; check and lint and the quick term were red in that run on change 21's uncommitted scratch
+spec (`zz-scratch21.spec.ts`, 31 errors, since gone), so check and quick were re-run on the
+committed tree above; the build green; the fixtures' four hashes **equal**; utilities 44 -> 44.
+
+**Chunks**, by files through `scripts/gate/e2e-chunks.sh`, each on a fresh build of the tree, with
+changes 19 and 21's builds, servers, probes and suites running beside mine and 0.02-0.52 GB free
+throughout - no run was clean, and every run is listed. **The mirror's two titles passed in every
+run whose server stayed up, four of four.** The install file alone at `ef05335`'s tree: **17 / 19**
+(an attempt-2 fetch, `CONFIG/FETCH` 11 for 10; one extra write attempt, 6 for 5), then **18 / 19**
+(ORBIT's brightness picture ratio, mid change 19's lattice work). c1 at `1096c2b`'s build: **24 /
+35** - the other eleven are attempt-2 retries (`refetch-system-timer ok 2`, `PAGECOUNT/FETCH` 2 for
+1), 30 s timeouts and ORBIT's ratio again, at 0.1 GB free; the session file alone on the same
+build: **16 / 16**. c4 at `1096c2b`'s build: **25 / 26**, the one failure the Sandbox's Latch walk's
+monitor line (`CC 2 ch 1 → 127`), the identical assertion red in the shared scratchpad's
+2026-09-23 log before change 20 existed. Discarded as proving nothing, the server lost mid-run
+(`ERR_CONNECTION_REFUSED` from then on): c1 and c4 on the gate's build (22 / 35, 16 / 26), c1 and
+c4 at `cfcfd3e` (2 / 35, 11 / 26), the install file alone at `1096c2b` (13 / 19). None of the
+failing titles opens the mirror; the mirror is off unless clicked and writes nothing then. A
+chunk run on a quiet machine is owed, and is the first thing to run.
+
+**Departures from the brief:** (1) no touch rings: the protocol carries no ZONA finger (EVENT
+skips the touch element; EVENTVIEW / EVENTPREVIEW have no coordinate) - the mirror shows lights
+and MIDI and says so, and the e2e pushes no touch frame; (2) no `rx_mode` switch: type 3 is
+receive routing, so the mirror sends no Lua and restores nothing but its own silence; (3) a ninth
+descriptor, `fetchLedPreview`, in `descriptors.ts` (not `sequence.ts`, which I read and did not
+extend - the builders live in the one module that encodes), and the forbidden-instructions test
+widened to nine; (4) the heartbeat period is 100 ms, not the Editor's 300 - it is the mirror's
+frame rate for firmware-animated layers (`docs/MIRROR.md` section 5); (5) the mirror is quiet
+while the install store owns the port (snapshot, write, page switch, write lock) - the browser
+refuses a second writer; (6) the workspace's monitor bar now mounts on every card while
+mirroring, preset cards included (the two structural specs amended); (7) `SimHost.invalidate()`
+added to the host to coalesce reports into the shared frame, and it paints under reduced motion
+(a mirror is the module's state, not the site's motion); (8) the fix commit `88f4041`; (9) two
+e2e titles went into `install.e2e.ts` (the fake ZONA lives there) rather than a new file, so the
+chunk lists are unchanged. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.

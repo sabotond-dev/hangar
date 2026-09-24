@@ -4371,6 +4371,38 @@ with the MIDI the module actually sent in the monitor beside it; read-only, swit
 click, the simulator one click back. Built against the protocol and the fake ZONA; the hardware
 answer is the user's bench.
 
+Done, 2026-09-24 (change 20; `docs/MIRROR.md`, `docs/TESTING.md` "2026-09-24 change 20"). **Mirror
+ZONA** - one outlined toggle on the name row beside the mode switch, on the Playground workspace and
+in the Sandbox's Play, present only while a ZONA is connected - puts the module's own lights on the
+plate (the same canvas, painter and colours as the simulator; the records are the frame buffer's
+final values, the number the simulator computes) with `Mirroring ZONA · page N` under it, and the
+MIDI the module sent in the monitor beside it, labelled ZONA; a second click, leaving Play or the
+page, or a disconnect hands both back to the simulator. **What the protocol could not give: where
+the fingers are.** EVENT skips the touch element and EVENTVIEW / EVENTPREVIEW carry no coordinate,
+so no frame carries a ZONA finger; the plate says so under the status line, and there are no rings.
+`rx_mode` type 3 turned out to be receive routing, so nothing is switched by Lua. **What it sends,
+the whole write log:** the TYPE 255 heartbeat HANGAR already sent after every write, every 100 ms
+while on (LEDPREVIEW reaches a host only while it counts as an editor), and one LEDPREVIEW FETCH on
+the click (a full 81-LED report; a new ninth descriptor); off is silence, and the module's own 2 s
+timeout ends editor mode. Never while the install store owns the port; never a config, store, page
+switch or discard (the e2e decodes every chunk the page wrote from the click on and finds heartbeats
+and one FETCH). Commits `8f4e0a5` (decode), `4981589` (engine), `ba0b649` (UI), `88f4041` (fix: the
+mirror reached no plate before or without the simulator's engine), `ef05335` (e2e), `8308a17`
+(MIRROR.md, runbook row P, audition rows 48-51), `cfcfd3e` (gate constants), and this record.
+**Counts, carried + delta** (the tree at my start, `d7748ab`): quick 97 / 1072 + 1 todo -> **100 /
+1120 + 1 todo** on the whole tree at `31134cd`, green twice at `--maxWorkers=2` (mine +3 files, +23
+tests; the other +25 are changes 19 and 21A's); check 682 -> **691** (mine +8); lint clean; e2e mine
++2 titles / +2 runs; audition rows 47 -> **51**; utilities **44 -> 44**; testids +3 mine; copy
+modules 8 -> **9** (`mirror/copy.ts`, nine exports); the wire: no record of mine moved (the
+after-gate's only moves are change 19's 36 added `E/orbit` records; the Sandbox set equal).
+**Chunks:** no clean run was possible beside the other two executors (0.02-0.52 GB free); the
+mirror's two e2e titles passed in all four runs whose server stayed up; c1 24 / 35 and c4 25 / 26 at
+`1096c2b`'s build, every other failure an attempt-2 retry, a 30 s timeout, ORBIT's brightness ratio
+or the Latch walk's known monitor line, and the session file alone 16 / 16 - a quiet-machine chunk
+run is owed (TESTING.md lists every run). Audition rows 48-51 and runbook row P are the hardware
+answers: do the lights arrive and match the pad (serpentine and all), is there really no finger on
+the wire, does the MIDI echo arrive, and is off really silence. CAT-04 stays `[ ]`.
+
 21. One element, several MIDI messages - a touch note on the XY pad (2026-09-24)
 --------------------------------------------------------------------------------
 
