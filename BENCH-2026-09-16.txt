@@ -4254,3 +4254,22 @@ presets use, the card's old palette kept as the picker's quick-pick row and its 
 exactly (as an extra rung if it is off the lattice, so no rest frame moves), every cost
 re-measured at the lattice's corner, older links to those cards landing at their defaults (the
 stamp's known pattern for a grown knob).
+
+20. Live mirror - the browser shows what the connected ZONA is doing (2026-09-24)
+--------------------------------------------------------------------------------
+
+Suggested with nine others after change 19; the user's word:
+
+> do 3. first
+
+(3: "Live mirror. When a ZONA is connected, the browser shows what the pad is actually lighting and
+where your fingers are.") Facts read before briefing: the grid protocol carries LEDPREVIEW (class
+0x042), EVENT / EVENTPREVIEW / EVENTVIEW (0x050 / 0x051 / 0x053) and MIDI (0x000); the Grid
+Editor consumes LEDPREVIEW and EVENTPREVIEW / EVENTVIEW (`grid-editor/src/renderer/serialport/
+message-stream.store.ts:319-373`, `instructions.ts:259-280`) for its own LED preview and element
+highlighting; `rx_mode` type 3 is EVENTVIEW routing. Recorded: a Mirror mode on the card workspace
+and the Sandbox - when a ZONA is connected, the plate can show the module's own LED state
+(from LEDPREVIEW) and the live touch points (from the event traffic) in place of the simulator,
+with the MIDI the module actually sent in the monitor beside it; read-only, switched on by a
+click, the simulator one click back. Built against the protocol and the fake ZONA; the hardware
+answer is the user's bench.
