@@ -72,6 +72,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 
 const SETUP =
   "--[[@cb]]local function Z(z,f,g)local r=z//3*27+z%3*3 for j=0,3 do local a=glag(0,r+j%2*2+j//2*18)if f>0 then glc(a,1,@LIVEC,1)glpfs(a,1,0,f,3)glt(a,1,30000)else glc(a,1,0,0,0,1)glp(a,1,0)glt(a,1,0)end if g>0 then glc(a,2,@LIVEC,1)else glc(a,2,@ZONEC,1)end glp(a,2,255)end end for z=0,8 do Z(z,0,0)end Z(0,4,1)self.l=0 self.p=0 self.touch_cb=function(s,i,e,x,y)local z=x*3//128+y*3//128*3 if e==4 or e>8 then if z~=s.l then Z(s.l,0,0)s.l=z end Z(z,e>8 and 4 or 24,1)gks(10,1,1,@MOD,0,2,@KEY0+z,1,0,@MOD)elseif e==1 then if z~=s.l and z~=s.p then if s.p~=s.l then Z(s.p,0,0)end s.p=z Z(z,10,0)end elseif e>=5 then Z(s.l,4,1)end end self.midirx_cb=nil gtt(0,2560)";
@@ -124,7 +125,8 @@ export const STAGE: CatalogEntry = {
       kind: "colour",
       token: "@LIVEC",
       // The live scene, on both layers. Red first: a red tally light is what "on air" means.
-      values: ["255,40,0", "255,0,120", "0,255,120", "255,180,0"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,40,0", "255,0,120", "0,255,120", "255,180,0"]),
       default: 0,
     },
     {
@@ -132,8 +134,9 @@ export const STAGE: CatalogEntry = {
       label: "Idle colour",
       kind: "colour",
       token: "@ZONEC",
-      // The scenes that are not live, on layer 2 only. Deliberately dim: a map, not data.
-      values: ["40,40,50", "50,40,30", "30,50,40", "50,30,50"],
+      // The scenes that are not live, on layer 2 only. Its four are deliberately dim: a map, not data.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["40,40,50", "50,40,30", "30,50,40", "50,30,50"]),
       default: 0,
     },
   ],

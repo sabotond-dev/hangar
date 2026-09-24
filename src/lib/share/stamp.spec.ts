@@ -361,6 +361,14 @@ describe("the stamp: format x", () => {
           cursor: "255,240,200",
         },
       },
+      {
+        id: "stage",
+        payload: "wc00f07322",
+        moved: {
+          live: "255,0,120",
+          zone: "50,40,30",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);
