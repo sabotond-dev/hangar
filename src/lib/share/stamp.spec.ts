@@ -321,6 +321,13 @@ describe("the stamp: format x", () => {
           trailColour: "255,255,255",
         },
       },
+      {
+        id: "sonar",
+        payload: "wp02f472001",
+        moved: {
+          sweepColour: "255,60,120",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);
