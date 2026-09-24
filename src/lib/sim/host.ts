@@ -73,6 +73,12 @@ type Entry = {
   inWindow: boolean;
   intersecting: boolean;
   wasRunning: boolean;
+  /**
+   * The engine's frame moved from OUTSIDE the tick loop and is not painted yet (change 20: the
+   * mirror writes the module's reported lights into its frame as they arrive). invalidate() sets
+   * it; paint() clears it.
+   */
+  dirty: boolean;
   lastPaint: number;
   unobserve: () => void;
   /** Removes BOTH context listeners; held on the entry because removeEventListener matches on function identity. */
@@ -198,6 +204,7 @@ export class SimHost {
       // Hidden until the observer's first callback; the immediate paint below still shows its picture.
       intersecting: false,
       wasRunning: false,
+      dirty: false,
       lastPaint: this.deps.now(),
       unobserve: noop,
       unlisten: noop,
@@ -242,6 +249,22 @@ export class SimHost {
     if (this.destroyed) return;
     const now = this.deps.now();
     for (const entry of this.entries.values()) this.paint(entry, now);
+  }
+
+  /**
+   * An engine's frame changed from outside the tick loop (change 20, docs/MIRROR.md section 6: the
+   * mirror engine is written as the ZONA reports its lights). Marks the pad dirty and wakes the loop;
+   * the loop paints it ONCE, no sooner than its paint interval after the last paint, however many
+   * reports arrived in between - never one paint per report. It paints under reduced motion too: a
+   * mirror is the module's own state, not motion the site adds. A pad off screen stays dirty until
+   * it is back. Unknown ids and a destroyed host are ignored.
+   */
+  invalidate(id: string): void {
+    if (this.destroyed) return;
+    const entry = this.entries.get(id);
+    if (typeof entry === "undefined") return;
+    entry.dirty = true;
+    this.wake();
   }
 
   /** Drop one pad, releasing its backing store. The engine belongs to the session, not to one mount. */
@@ -367,6 +390,16 @@ export class SimHost {
         this.paint(entry, now);
         entry.wasRunning = false;
       }
+      // An outside frame (invalidate): painted once it is due, the loop kept alive until then.
+      if (entry.dirty && entry.inWindow && entry.intersecting) {
+        const due = shouldPaint(
+          now,
+          entry.lastPaint,
+          intervalFor(entry.hero, this.deps.lowPower),
+        );
+        if (due) this.paint(entry, now);
+        else any = true;
+      }
     }
 
     if (any) this.rafId = this.deps.raf(this.onFrame);
@@ -479,6 +512,7 @@ export class SimHost {
 
   private paint(entry: Entry, now: number): void {
     entry.lastPaint = now;
+    entry.dirty = false;
     // The other half: an ANIMATING card comes back on its next paint with no event at all.
     if (this.lost(entry) && !this.reacquire(entry)) return;
     if (

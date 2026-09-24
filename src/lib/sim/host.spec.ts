@@ -810,6 +810,46 @@ describe("the simulator host (src/lib/sim/host.ts)", () => {
     h.host.destroy();
   });
 
+  it("paints an outside frame once per paint interval however often it is invalidated, under reduced motion too, and only on screen (change 20)", () => {
+    // The mirror's engine never ticks: its frame is written as the ZONA reports its lights and the
+    // host is told through invalidate(). Many reports between two paints are one paint.
+    const h = harness({ reduced: true });
+    const canvas = h.canvas();
+    const still = fakeEngine(0);
+    h.host.setHero("m");
+    h.host.register("m", canvas, still);
+    h.clock.step(0);
+    expect(h.clock.pending, "a still engine leaves the loop idle").toBe(0);
+    const before = canvas.paints.length;
+
+    for (let i = 0; i < 20; i++) h.host.invalidate("m");
+    expect(h.clock.pending, "twenty invalidations ask for one frame").toBe(1);
+    h.clock.step(10);
+    expect(
+      canvas.paints.length - before,
+      "not due yet: the hero's interval runs from the last paint",
+    ).toBe(0);
+    expect(h.clock.pending, "the loop stays alive until it is due").toBe(1);
+    h.clock.step(HERO_INTERVAL_MS + 1);
+    expect(canvas.paints.length - before, "one paint for twenty").toBe(1);
+    expect(h.clock.pending, "and then the loop is idle again").toBe(0);
+
+    // Off screen it waits, dirty, and paints on the frame it comes back.
+    h.io.report(canvas, false);
+    h.host.invalidate("m");
+    h.clock.step(200);
+    expect(canvas.paints.length - before).toBe(1);
+    h.io.report(canvas, true);
+    h.clock.step(300);
+    expect(canvas.paints.length - before).toBe(2);
+
+    // Unknown ids and a destroyed host are nothing.
+    h.host.invalidate("nobody");
+    h.host.destroy();
+    h.host.invalidate("m");
+    expect(h.clock.pending).toBe(0);
+  });
+
   it("re-stills the pad on a swap under reduced motion, and ignores an id it does not know", () => {
     const h = harness({ reduced: true });
     const canvas = h.canvas();
