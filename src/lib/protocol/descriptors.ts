@@ -3,8 +3,10 @@
 // durable snapshot needs a key that names one module), and since 13-12 the
 // three page instructions - pageActive (the switch), fetchPageCount (the
 // enumeration, never a hard-coded four) and discardPage (reload the active page
-// from flash, UNPROVEN on hardware). The set is closed at eight; the NVM erase
-// and the page clear stay forbidden (forbidden-instructions.spec.ts). Parameter
+// from flash, UNPROVEN on hardware). Since change 20 (docs/MIRROR.md) a ninth,
+// fetchLedPreview - the mirror's one read request, a full LED report, which
+// changes no configuration, no page and no layer. The set is closed at nine; the
+// NVM erase and the page clear stay forbidden (forbidden-instructions.spec.ts). Parameter
 // names are copied verbatim from grid-editor's instructions.ts and the pinned
 // package's class tables - they are generated from firmware tables, so a
 // paraphrase is a silent fork. This is the ONLY shipped module that encodes a packet.
@@ -345,6 +347,40 @@ export function fetchPageCount(sx: number, sy: number): GridRequest {
     },
     filter: { class_name: "PAGECOUNT", class_instr: "REPORT" },
     timeoutMs: TIMEOUTS.fetchMs,
+    correlateById: false,
+  };
+}
+
+/**
+ * ASK THE MODULE FOR EVERY LED'S COLOUR (change 20, docs/MIRROR.md section 1).
+ *
+ * Class LEDPREVIEW, code 0x042, FETCH with no class parameters - the Editor's
+ * own FetchLedpreview (instructions.ts:269-290), class name read from the
+ * pinned package's table. grid_decode.c:739-756 accepts it addressed IS_ME |
+ * IS_GLOBAL, raises every LED's change flag (grid_led.c:470-478) and answers
+ * with a LEDPREVIEW REPORT of all 81 - the frame buffer's final colours, after
+ * the layer mix. Nothing else moves: the change flags exist only to decide what
+ * a preview report carries. ADDRESSED like the serial-number fetch, so on a rig
+ * only the ZONA answers.
+ *
+ * NO FILTER, and that is the firmware's shape: the REPORT is not correlated
+ * to the request (no LASTHEADER) and arrives through the class stream every
+ * other LED report arrives through, where the mirror reads it. The mirror
+ * sends it once, on the visitor's click, after the heartbeat that makes the
+ * module an editor (src/lib/mirror/mirror.svelte.ts).
+ *
+ * Source-verified, wire-unproven: docs/HARDWARE-AUDITION.md row 48 and
+ * docs/INSTALL-RUNBOOK.md row P are where it meets a module.
+ */
+export function fetchLedPreview(sx: number, sy: number): GridRequest {
+  return {
+    label: "fetch-led-preview",
+    descr: {
+      brc_parameters: { DX: sx, DY: sy },
+      class_name: "LEDPREVIEW",
+      class_instr: "FETCH",
+      class_parameters: {},
+    },
     correlateById: false,
   };
 }

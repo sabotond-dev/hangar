@@ -11,6 +11,16 @@ export interface DecodedClass {
   class_instr: string;
   class_parameters: Record<string, number | string | undefined>;
   brc_parameters: Record<string, number>;
+  /**
+   * The class block between its STX and its ETX, exactly as the package's
+   * frame decoder cut it (change 20). The class table decodes a fixed field
+   * set; LEDPREVIEW carries a RUN of eight-character records after its
+   * LENGTH and the table names only the first, so the run is read off these
+   * bytes (preview.ts), where grid-editor reads it too
+   * (message-stream.store.ts:164-184). Optional: a class built by hand in a
+   * test or a fixture need not carry it.
+   */
+  raw?: readonly number[];
 }
 
 export type DecodedFrame =
@@ -42,6 +52,7 @@ export function decodeFrame(bytes: number[]): DecodedFrame {
     class_parameters: cls.class_parameters,
     // Every class in a frame shares one decoded BRC header.
     brc_parameters: cls.brc_parameters,
+    raw: (cls as { raw?: number[] }).raw,
   }));
   return { ok: true, classes };
 }

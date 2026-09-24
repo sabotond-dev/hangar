@@ -313,6 +313,153 @@ export function serialNumberReportFrame(
   );
 }
 
+// ---------------------------------------------------------------------------
+// What a module sends while a host mirrors it (change 20, docs/MIRROR.md). A firmware message
+// routinely carries SEVERAL class blocks - one event pass appends its EVENTVIEW, its MIDI and, while
+// an editor is connected, a LEDPREVIEW EXECUTE to the same message (grid_ui.c:711-760) - and
+// encode_packet emits exactly one, so these builders print a class block the way firmware's
+// sprintf does and splice any number of them under one module header.
+
+/** The instruction nibble as firmware prints it, lower-case hex (grid_protocol.h; dist/index.js:134-139). */
+const INSTR_CHAR = { REPORT: "d", EXECUTE: "e", FETCH: "f" } as const;
+
+const hex = (value: number, width: number): string =>
+  value.toString(16).padStart(width, "0");
+
+/** STX, the text, ETX - one class block as bytes. */
+const block = (text: string): number[] => [
+  STX,
+  ...[...text].map((ch) => ch.charCodeAt(0)),
+  ETX,
+];
+
+/** One LED's final colour by HARDWARE index, as a LEDPREVIEW record carries it. */
+export interface LedRecordSpec {
+  num: number;
+  r: number;
+  g: number;
+  b: number;
+}
+
+/**
+ * A LEDPREVIEW class block: LENGTH (four hex characters), then NUM RED GRE BLU per LED, two hex
+ * each (grid_led.c:497-537). REPORT beside a heartbeat or answering a FETCH; EXECUTE inside an
+ * event pass's message.
+ */
+export function ledPreviewBlock(
+  instr: "REPORT" | "EXECUTE",
+  leds: readonly LedRecordSpec[],
+): number[] {
+  const body = leds
+    .map((l) => hex(l.num, 2) + hex(l.r, 2) + hex(l.g, 2) + hex(l.b, 2))
+    .join("");
+  return block(`042${INSTR_CHAR[instr]}${hex(body.length, 4)}${body}`);
+}
+
+/**
+ * A MIDI class block: CHANNEL COMMAND PARAM1 PARAM2, two hex each. EXECUTE is what a
+ * configuration's midi_send puts on the wire (grid_lua_api.c:888-897); REPORT is a message the
+ * module received from the computer (grid_usb_midi.c:141-175).
+ */
+export function midiBlock(
+  midi: { ch: number; cmd: number; p1: number; p2: number },
+  instr: "REPORT" | "EXECUTE" = "EXECUTE",
+): number[] {
+  return block(
+    `000${INSTR_CHAR[instr]}${hex(midi.ch, 2)}${hex(midi.cmd, 2)}${hex(midi.p1, 2)}${hex(midi.p2, 2)}`,
+  );
+}
+
+/**
+ * An EVENTVIEW class block as grid_ui.c:632-679 prints it: page, element, event, VALUE1, MIN1,
+ * MAX1 (four hex each) and the element's name. For the touch element the three values are read
+ * from an index the value table leaves invalid (grid_ui.c:56-69) - the frame has no coordinates.
+ */
+export function eventViewBlock(view: {
+  page: number;
+  element: number;
+  event: number;
+  value1?: number;
+  min1?: number;
+  max1?: number;
+  name?: string;
+}): number[] {
+  const name = view.name ?? "";
+  return block(
+    `053${INSTR_CHAR.EXECUTE}${hex(view.page, 2)}${hex(view.element, 2)}${hex(view.event, 2)}` +
+      `${hex(view.value1 ?? 0, 4)}${hex(view.min1 ?? 0, 4)}${hex(view.max1 ?? 0, 4)}` +
+      `${hex(name.length, 2)}${name}`,
+  );
+}
+
+/**
+ * One module message carrying the given class blocks, in order, from the module's own address to
+ * the global one - a real header off encode_packet (its placeholder block cut out), LEN and the
+ * checksum rewritten by seal().
+ */
+export function moduleFrame(
+  from: { sx: number; sy: number },
+  blocks: readonly number[][],
+): number[] {
+  const msg = inbound(
+    {
+      brc_parameters: GLOBAL,
+      class_name: "LEDPREVIEW",
+      class_instr: "EXECUTE",
+      class_parameters: { LENGTH: 0 },
+    },
+    from,
+  );
+  // The header is SOH, BRC, hex characters and EOB: no byte 2 before the placeholder's STX.
+  const stx = msg.indexOf(STX);
+  const etx = msg.indexOf(ETX, stx);
+  if (stx < 0 || etx < 0) throw new Error("no placeholder block to replace");
+  return seal([...msg.slice(0, stx), ...blocks.flat(), ...msg.slice(etx + 1)]);
+}
+
+/** A ZONA's LEDs, black: 81 of them, by hardware index (grid_module.c:455-458). */
+export const ZONA_LEDS = 81;
+
+/**
+ * Set some of the fake module's LEDs, raising each one's change flag as the frame buffer does
+ * when a value moves (grid_led.c:390-402). What the next editor heartbeat reports.
+ */
+export function setLeds(
+  state: ZonaState,
+  changes: readonly LedRecordSpec[],
+): void {
+  const leds = ledsOf(state);
+  const changed = (state.ledChanged ??= new Array<boolean>(ZONA_LEDS).fill(
+    false,
+  ));
+  for (const { num, r, g, b } of changes) {
+    const was = leds[num];
+    if (was[0] === r && was[1] === g && was[2] === b) continue;
+    leds[num] = [r, g, b];
+    changed[num] = true;
+  }
+}
+
+const ledsOf = (state: ZonaState): [number, number, number][] =>
+  (state.leds ??= Array.from(
+    { length: ZONA_LEDS },
+    () => [0, 0, 0] as [number, number, number],
+  ));
+
+/** The records a report carries: every flagged LED, or all 81 after a FETCH raised every flag; the flags clear (grid_led.c:516). */
+function takeReport(state: ZonaState, all: boolean): LedRecordSpec[] {
+  const leds = ledsOf(state);
+  const changed = state.ledChanged ?? [];
+  const out: LedRecordSpec[] = [];
+  for (let num = 0; num < ZONA_LEDS; num++) {
+    if (!all && !changed[num]) continue;
+    const [r, g, b] = leds[num];
+    out.push({ num, r, g, b });
+  }
+  state.ledChanged = new Array<boolean>(ZONA_LEDS).fill(false);
+  return out;
+}
+
 /**
  * The two elements are held in two maps, each keyed by event number: `configs` keyed by event is what
  * the `moduleState` factory in e2e/install.e2e.ts and every state literal in synthetic.spec.ts pass,
@@ -340,6 +487,19 @@ export interface ZonaState {
    * other type above 127 clears it (:717); a page switch is silently refused while it is clear (:319).
    */
   pageChangeEnabled?: boolean;
+  /**
+   * The frame buffer's final colours by HARDWARE index, [r, g, b] each (change 20). Absent means
+   * 81 black LEDs, materialised on first use. What a LEDPREVIEW FETCH reports whole.
+   */
+  leds?: [number, number, number][];
+  /** The LEDs whose value moved since the last report (grid_led.c:390-402, :516). setLeds() raises them. */
+  ledChanged?: boolean[];
+  /**
+   * grid_sys editor_connected (change 20): set by a host heartbeat TYPE above 127
+   * (grid_decode.c:720-726). The fake has no clock, so it never times out here; the 2 s timeout is
+   * firmware's (grid_esp32_port.c:473-481) and docs/HARDWARE-AUDITION.md row 51 is where it is seen.
+   */
+  editorConnected?: boolean;
 }
 
 /** Firmware's initial page count, in the fixture and nowhere shipped (grid_ui.c:77). */
@@ -491,8 +651,26 @@ export function zonaResponder(
       // is on the state, and it is what lets a switch after a write succeed
       // only when the restore heartbeat went first.
       const type = Number(class_parameters.TYPE);
-      if (type > 127) state.pageChangeEnabled = type === 255;
-      return [];
+      if (type <= 127) return [];
+      state.pageChangeEnabled = type === 255;
+      // grid_decode.c:720-734 (change 20): the heartbeat also marks the editor connected and, when
+      // any LED moved since the last report, answers with a LEDPREVIEW REPORT of those LEDs.
+      state.editorConnected = true;
+      if (!(state.ledChanged ?? []).some(Boolean)) return [];
+      return [
+        moduleFrame(state, [
+          ledPreviewBlock("REPORT", takeReport(state, false)),
+        ]),
+      ];
+    }
+    if (class_name === "LEDPREVIEW" && class_instr === "FETCH" && meOrGlobal) {
+      // grid_decode.c:739-756 (change 20): every flag raised, all 81 reported. No layer, config or
+      // page moves - the mirror's one read request.
+      return [
+        moduleFrame(state, [
+          ledPreviewBlock("REPORT", takeReport(state, true)),
+        ]),
+      ];
     }
     if (class_name === "PAGESTORE" && class_instr === "EXECUTE" && meOrGlobal) {
       // grid_decode.c:955-961: the store copies RAM into flash, then the

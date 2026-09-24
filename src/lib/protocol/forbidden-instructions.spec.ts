@@ -6,6 +6,7 @@ import { EVENT_SETUP, EVENT_TIMER } from "./constants";
 import {
   discardPage,
   fetchConfig,
+  fetchLedPreview,
   fetchPageCount,
   fetchSerialNumber,
   hostHeartbeat,
@@ -70,6 +71,16 @@ const repo = (rel: string) =>
  * unchanged: TYPE 254, the heartbeat that DISABLES page changes, is still
  * never sent. Test 4 is widened to eight builders; the instruction set is
  * unchanged at EXECUTE and FETCH. The file stays at five tests.
+ *
+ * AMENDMENT (change 20, 2026-09-24, docs/MIRROR.md). The live mirror asks the
+ * module for its lights: LEDPREVIEW/FETCH, addressed to the ZONA, which raises
+ * the module's LED change flags and answers with a report of all 81 - no
+ * configuration, no page, no layer moves (grid_decode.c:739-756). It is a
+ * read, so it joins the set rather than a forbidden list, and test 4 widens to
+ * NINE builders: the class set gains LEDPREVIEW, the instruction set is still
+ * EXECUTE and FETCH. Everything else the mirror sends is the existing TYPE 255
+ * heartbeat; it sends no Lua, so no rx_mode switch exists to forbid. The file
+ * stays at five tests.
  */
 const SCANNED_DIRS = ["src/lib"];
 
@@ -148,7 +159,7 @@ describe("forbidden instructions (D-06)", () => {
     expect(descriptorSource()).toMatch(/TYPE:\s*255/);
   });
 
-  it("the builders produce only the eight instructions HANGAR is allowed to send", () => {
+  it("the builders produce only the nine instructions HANGAR is allowed to send", () => {
     const built = [
       hostHeartbeat(),
       fetchConfig(0, 0, 0, EVENT_SETUP),
@@ -160,10 +171,13 @@ describe("forbidden instructions (D-06)", () => {
       pageActive(0, 0, 1),
       fetchPageCount(0, 0),
       discardPage(),
+      // Change 20: the mirror's full LED report. Nine, and closed again.
+      fetchLedPreview(0, 0),
     ];
     expect([...new Set(built.map((r) => r.descr.class_name))].sort()).toEqual([
       "CONFIG",
       "HEARTBEAT",
+      "LEDPREVIEW",
       ["PAGE", "ACTIVE"].join(""),
       "PAGECOUNT",
       ["PAGE", "DISCARD"].join(""),

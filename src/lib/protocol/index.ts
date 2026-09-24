@@ -6,4 +6,5 @@ export * from "./decode";
 export * from "./descriptors";
 export * from "./framing";
 export * from "./match";
+export * from "./preview";
 export * from "./write-guard";
