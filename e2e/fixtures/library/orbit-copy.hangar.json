@@ -27,19 +27,19 @@
     },
     {
       "id": "ring1Colour",
-      "options": 5
+      "options": 4096
     },
     {
       "id": "ring2Colour",
-      "options": 5
+      "options": 4096
     },
     {
       "id": "ring3Colour",
-      "options": 5
+      "options": 4096
     },
     {
       "id": "ring4Colour",
-      "options": 5
+      "options": 4096
     },
     {
       "id": "trail",

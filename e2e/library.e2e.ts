@@ -13,8 +13,10 @@
 // catalog as it stood on 2026-09-18 (its `rack` was orbit's fourteen knobs;
 // re-exported through transfer.ts at change 17B, 2026-09-23, when ORBIT's four
 // ring outputs grew the rack to twenty-five - the fourteen indices kept, the
-// eleven new knobs at their defaults; a resized knob turns this import `older`
-// and this title red, which is the point), and somebody-elses.json carries `app: "grid-editor"`.
+// eleven new knobs at their defaults; and again at change 19, 2026-09-24, when the four
+// ring colours grew to the RGB444 lattice, 4,096 rungs, the old colours first - every
+// index kept; a resized knob turns this import `older` and this title red, which is
+// the point), and somebody-elses.json carries `app: "grid-editor"`.
 //
 // The store is seeded by hand in the record's own shape (schema.ts), the way
 // first-experience.e2e.ts plants the intro's draft.
