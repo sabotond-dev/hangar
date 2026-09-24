@@ -1,0 +1,77 @@
+# 13.2 gate --after fixup-21 --against fixup-21 --check 691
+HEAD 81b31b0 (81b31b087903e56101845b1c44812a74eb29e5f1); dirty (src e2e scripts docs) 0; free memory 0.06 GB; 2026-09-24T11:10:07Z
+before-record HEAD cf54963fae4929c5f2413ab6ffceec258069d9fb
+
+## the wire
+17863 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET 529219e8a34675e6632852283794c5f332a24884abc6052dde05e009f9008338
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL f673bf93c83ae3d2f8f3a34acce28a91ad71d66a51dd61495ea11c759316ea92
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 61085205acce657009c98a6418291927adb3aab00972c7018b4986a8fb7d9913
+
+## the strings
+222 files; 3601 distinct literals (8760 occurrences); 9 copy modules; 357 data-testids
+literal census sha256 b5291f663a843282c5dde92036bd99cce2323c5c634ae594225633292356bc97
+copy exports   sha256 08194098355685f77b9132a8ef26f9d1990d052a17f42c8340858aeae6b0d168
+data-testids   sha256 12ca66ac43b1ef394488f54949ce77b0ef42ac9294dab088beea051152afbd91
+- 17 -> 16	"field"
+- 4 -> 5	"gate"
+- 26 -> 25	"row"
++ 0 -> 1	"add-row"
+
+## the comment lines
+223 files; 60922 lines, 40466 code, 15815 comment, 4641 blank, 4759 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/sandbox/copy.ts | 489 | 492 | 132 | 133 | 14 | 14 |
+| src/lib/ui/sandbox/RegionInspector.svelte | 2384 | 2412 | 149 | 150 | 16 | 16 |
+| src/lib/ui/sandbox/SurfaceEditor.svelte | 1596 | 1616 | 169 | 175 | 17 | 17 |
+| **totals (223 -> 223 files)** | 60871 | 60922 | 15807 | 15815 | 4759 | 4759 |
+
+3 file(s) moved
+
+## check and lint
+check: 1790248258633 COMPLETED 691 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 100 files, 1121 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 81b31b0
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 9b60d8a3a48f5478572d80a0da8a2eefba68b24fb5096cf65309d7d90c16812e (15 stylesheets)
+15 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 9b60d8a3a48f5478572d80a0da8a2eefba68b24fb5096cf65309d7d90c16812e
+SCOPED CSS sha256 c673a834843f984f9dbcb27d2082e290359de183ad6a78787b2c9e3e2baee770
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 748e1005c3fb165a91744a23342ef40ce23a8e22a693158bfe21454985f46a74 (74 files)
+
+## the titles
+TITLES sha256 8bd18af3b1de398af635974615bb5e609c319a908a9f551a60d49459463a06ce (1122 vitest titles incl. todo, 122 playwright runs)
+
+## src/ against the before-record's HEAD cf54963fae4929c5f2413ab6ffceec258069d9fb
+git diff --name-status: 4 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against fixup-21
+wire: equal (set 529219e8a34675e6632852283794c5f332a24884abc6052dde05e009f9008338, full f673bf93c83ae3d2f8f3a34acce28a91ad71d66a51dd61495ea11c759316ea92)
+sandbox set: equal (61085205acce657009c98a6418291927adb3aab00972c7018b4986a8fb7d9913)
+FAIL: the literal census (f35cf1540f266642244bf09bcc808bbe24e04667bd9c34bed0704fa44a36233f -> b5291f663a843282c5dde92036bd99cce2323c5c634ae594225633292356bc97; the -/+ lines above name every literal whose count moved)
