@@ -4292,3 +4292,24 @@ Pitch bend, Channel pressure, on its own channel and number). A Touch note's vel
 note. Receive stays on the element's own outputs only. Sandbox first (21A, now); the playground's
 XY cards (AURORA, PINWHEEL, STARFIELD, JOYSTICK, RADAR) take a Touch note output after change 19
 lands (21B).
+
+> in the MIDI output type Channel pressure equals note on off?
+
+Answered: no - channel pressure (208) is one continuous pressure value for the channel, no note;
+note on / off (144 / 128) starts and stops a numbered note.
+
+> then we need to add note on off inside midi output for each element no?
+
+Asked what Type = Note does on a continuous element (a fader, a knob, an XY axis): the value picks
+the pitch, a gate with the value as velocity, both as a choice, or keep it under "+ Add message".
+
+> Both, as a choice
+
+Recorded 2026-09-24 (folded into 21A): every continuous element's own output Type list gains
+**Note**, with a **Mode: Pitch / Gate** choice. Pitch - a ribbon: a touch plays the note the value
+picks (Min..Max as the note range, a Scale select - Chromatic plus the common scales - quantising
+it, the Number unused), sliding to the next note sends the old note's off then the new note's on,
+lifting sends the off; velocity fixed (default 100). Gate - a touch plays the fixed Number, the
+value at the landing as its velocity (through Min..Max), lifting sends the off; the value does not
+move the note while held. Buttons keep Note / CC as they have. The "+ Add message" Touch note stays
+for a note beside the element's own output (an XY pad's X and Y CCs plus a gate).
