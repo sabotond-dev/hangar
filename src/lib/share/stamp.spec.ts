@@ -336,6 +336,15 @@ describe("the stamp: format x", () => {
           sweep: "255,90,0",
         },
       },
+      {
+        id: "console",
+        payload: "wi000f50234f5001",
+        moved: {
+          level: "255,90,0",
+          rail: "40,50,60",
+          mute: "255,80,0",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

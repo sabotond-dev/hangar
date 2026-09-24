@@ -88,6 +88,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -152,7 +153,8 @@ export const CONSOLE: CatalogEntry = {
       kind: "colour",
       token: "@LEVELC",
       // The lit part of a strip, on layers 1 and 2. Bright: the one thing carrying information.
-      values: ["0,200,255", "255,90,0", "0,255,120", "255,0,180"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,200,255", "255,90,0", "0,255,120", "255,0,180"]),
       default: 0,
     },
     {
@@ -161,7 +163,8 @@ export const CONSOLE: CatalogEntry = {
       kind: "colour",
       token: "@RAILC",
       // The cap at the top of each column, on layers 1 and 2. Pale: a target, not data.
-      values: ["60,60,60", "40,50,60", "60,50,20", "40,40,60"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["60,60,60", "40,50,60", "60,50,20", "40,40,60"]),
       default: 0,
     },
     {
@@ -171,7 +174,8 @@ export const CONSOLE: CatalogEntry = {
       token: "@MUTEC",
       // Warm, so a muted strip reads as a warning. APPEARS ONCE since change 17B: the cap on both
       // layers and the dim body on layer 2 while muted come from one call inside P's layer loop.
-      values: ["255,40,0", "255,80,0", "200,0,40", "255,0,0"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,40,0", "255,80,0", "200,0,40", "255,0,0"]),
       default: 0,
     },
     {
