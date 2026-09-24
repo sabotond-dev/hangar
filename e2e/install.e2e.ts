@@ -174,6 +174,19 @@
 // eighteen. Every count below reads TEN CONFIG/EXECUTE per Store where it
 // read five per apply, and the bar's busy clause is keepingLabel.
 //
+// THE MIRROR (change 20, docs/MIRROR.md) is the last block: two titles on the
+// desktop project, untagged (both drive Web Serial). Mirror ZONA on the
+// workspace and in the Sandbox's Play, against the same responder, which
+// answers the mirror's two frames as synthetic.ts reads firmware: an editor
+// heartbeat (TYPE 255) with the LEDs that moved, a LEDPREVIEW FETCH with all
+// 81. The module's own traffic - an event pass carrying a LED EXECUTE and the
+// MIDI it sent - is pushed through beat(), as the module volunteers it. Each
+// title reads the plate's pixels off the canvas the host paints, the monitor's
+// rows, and the WHOLE write log from the click on, decoded in Node: TYPE 255
+// heartbeats and one full-report request, nothing else, and nothing at all
+// once the mirror is off. No touch frame is pushed, because the protocol has
+// none that carries a ZONA finger (docs/MIRROR.md section 2).
+//
 // NEVER WRITES TO A DEVICE. Every byte a page writes lands in the shim; the
 // only ZONA here is a function in Node.
 //
@@ -237,9 +250,19 @@ import {
   decodeFrame,
 } from "../src/lib/protocol";
 import {
+  type LedRecordSpec,
   type ZonaState,
   heartbeatFrame,
 } from "../src/lib/transport/fixtures/synthetic";
+// Change 20: the mirror's words and its serpentine - both import nothing at runtime.
+import {
+  MIRROR_CANNOT,
+  MIRROR_MONITOR_SOURCE,
+  MIRROR_MONITOR_STATUS,
+  MIRROR_PLAY_MONITOR,
+  mirrorStatus,
+} from "../src/lib/mirror/copy";
+import { screenCellOfLed } from "../src/lib/mirror/frame";
 import { FAKE_SERIAL } from "./fake-serial";
 import { type ExposedZona, type ZonaScript, installZona } from "./fake-zona";
 
@@ -2737,6 +2760,295 @@ test.describe("the install controls on the engine that can never install", () =>
       ).toBeLessThanOrEqual(1);
     }
 
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The live mirror (change 20, docs/MIRROR.md). Two titles; see the header.
+
+/** Four LEDs a ZONA is lighting, by HARDWARE index: the serpentine's two row directions and both corners' ends. */
+const MIRROR_LEDS: readonly LedRecordSpec[] = [
+  { num: 0, r: 255, g: 0, b: 0 },
+  { num: 9, r: 200, g: 100, b: 50 },
+  { num: 40, r: 0, g: 255, b: 0 },
+  { num: 80, r: 0, g: 0, b: 255 },
+];
+
+/**
+ * Five of the mirror's heartbeat periods (MIRROR_HEARTBEAT_MS, 100 ms, in
+ * src/lib/mirror/mirror.svelte.ts - a runes module the runner cannot load).
+ * The window in which a mirror left running would have written again.
+ */
+const FIVE_BEATS_MS = 500;
+
+/** The plate's 81 cells as [r, g, b, a], read off the canvas the host paints; empty before it has a backing store. */
+async function plateCells(page: Page, id: string): Promise<number[][]> {
+  return page.evaluate((sel) => {
+    const c = document.querySelector(sel) as HTMLCanvasElement | null;
+    if (!c || c.width !== 9) return [];
+    const ctx = c.getContext("2d");
+    if (!ctx) return [];
+    const d = ctx.getImageData(0, 0, 9, 9).data;
+    const out: number[][] = [];
+    for (let i = 0; i < 81; i++) {
+      out.push([d[i * 4], d[i * 4 + 1], d[i * 4 + 2], d[i * 4 + 3]]);
+    }
+    return out;
+  }, canvasOf(id));
+}
+
+/** True when the plate shows exactly these LEDs, each at its screen cell, and every other cell unlit. */
+function showsExactly(
+  cells: number[][],
+  leds: readonly LedRecordSpec[],
+): boolean {
+  if (cells.length !== 81) return false;
+  const want = new Map<number, number[]>();
+  for (const { num, r, g, b } of leds) {
+    want.set(screenCellOfLed(num), [r, g, b, 255]);
+  }
+  return cells.every((cell, n) => {
+    const expected = want.get(n);
+    if (expected === undefined) return cell[3] === 0;
+    return cell.every((v, i) => v === expected[i]);
+  });
+}
+
+/**
+ * Every chunk the page wrote from `from` on, decoded in Node: `CLASS/INSTR`, a heartbeat with
+ * its TYPE - the complete write log, not a count of the classes a test thought to look for.
+ */
+async function writtenSince(page: Page, from: number): Promise<string[]> {
+  return (await writesOf(page)).slice(from).map((hex) => {
+    const frame = [...Buffer.from(hex, "hex")];
+    if (frame[frame.length - 1] === TERMINATOR) frame.pop();
+    const decoded = decodeFrame(frame);
+    if (!decoded.ok) return "undecodable";
+    return decoded.classes
+      .map((c) =>
+        c.class_name === "HEARTBEAT"
+          ? `HEARTBEAT/${c.class_instr} TYPE ${Number(c.class_parameters.TYPE)}`
+          : `${c.class_name}/${c.class_instr}`,
+      )
+      .join(" + ");
+  });
+}
+
+/** The mirror's whole vocabulary on the wire. */
+const MIRROR_WRITES = ["HEARTBEAT/EXECUTE TYPE 255", "LEDPREVIEW/FETCH"];
+
+/** Push one frame the module volunteers (an event pass) into port 0. */
+async function volunteer(page: Page, hex: string): Promise<void> {
+  await page.evaluate(([i, h]) => window.__hangarSerial.beat(i, h), [
+    0,
+    hex,
+  ] as const);
+}
+
+test.describe("the live mirror on a ZONA that answers from Node (change 20)", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(FAKE_SERIAL);
+  });
+
+  test("Mirror ZONA puts the module's own lights on the plate and its sent MIDI in the monitor, writes only heartbeats and one request, and hands the plate back", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(page, moduleState(60));
+    // PRECONDITION: no connection, no toggle - the capability, never the browser.
+    await expect(page.getByTestId("mirror-toggle")).toHaveCount(0);
+    zona.setLeds(MIRROR_LEDS);
+    await connectOnPage(page, zona);
+    const toggle = page.getByTestId("mirror-toggle");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByTestId("workspace")).toHaveAttribute(
+      "data-mirror",
+      "off",
+    );
+    const mark = (await writesOf(page)).length;
+
+    // ON: one click.
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("workspace")).toHaveAttribute(
+      "data-mirror",
+      "on",
+    );
+    // THE PLATE: the full report, through the simulator's own painter, each LED at its screen cell.
+    await expect
+      .poll(
+        async () => showsExactly(await plateCells(page, ENTRY), MIRROR_LEDS),
+        {
+          message: "the plate shows the ZONA's four LEDs and nothing else",
+          timeout: 10_000,
+        },
+      )
+      .toBe(true);
+    await expect(page.getByTestId("mirror-status")).toHaveText(
+      mirrorStatus(ACTIVE_PAGE, true, false),
+    );
+    await expect(page.getByTestId("mirror-note")).toHaveText(MIRROR_CANNOT);
+    await expect(page.getByTestId("workspace-coordinates")).toHaveCount(0);
+    expect(
+      zona.state.editorConnected,
+      "the module saw an editor heartbeat",
+    ).toBe(true);
+
+    // THE MONITOR, on this preset card too while mirroring: opened first, it shows from then on.
+    await page.getByTestId("monitor-toggle").click();
+    await expect(page.getByTestId("midi-monitor")).toContainText(
+      MIRROR_MONITOR_STATUS,
+    );
+
+    // AN EVENT PASS the module volunteers: one LED moved, one message sent, one received.
+    const moved: LedRecordSpec = { num: 40, r: 10, g: 20, b: 30 };
+    await volunteer(
+      page,
+      zona.eventPassHex({
+        leds: [moved],
+        midi: [
+          { ch: 0, cmd: 176, p1: 16, p2: 64 },
+          { ch: 2, cmd: 144, p1: 60, p2: 100, received: true },
+        ],
+      }),
+    );
+    await expect
+      .poll(
+        async () =>
+          showsExactly(await plateCells(page, ENTRY), [
+            ...MIRROR_LEDS.filter((l) => l.num !== moved.num),
+            moved,
+          ]),
+        { message: "the moved LED repainted", timeout: 10_000 },
+      )
+      .toBe(true);
+    const rows = page.getByTestId("monitor-log").locator("tbody tr");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText("CC 16");
+    await expect(rows.first()).toContainText(MIRROR_MONITOR_SOURCE);
+    await expect(
+      page.getByTestId("monitor-log"),
+      "a message the module RECEIVED is not one it sent",
+    ).not.toContainText("Note on");
+
+    // THE WRITE LOG while mirroring: TYPE 255 heartbeats and ONE full-report request.
+    const during = await writtenSince(page, mark);
+    expect(during.filter((k) => k === "LEDPREVIEW/FETCH")).toHaveLength(1);
+    expect(during.filter((k) => k === MIRROR_WRITES[0]).length).toBeGreaterThan(
+      1,
+    );
+    expect(during.filter((k) => !MIRROR_WRITES.includes(k))).toEqual([]);
+
+    // OFF: one click; the simulator is back and nothing more is written.
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByTestId("workspace")).toHaveAttribute(
+      "data-mirror",
+      "off",
+    );
+    await expect(page.getByTestId("mirror-status")).toHaveCount(0);
+    await expect(page.getByTestId("workspace-coordinates")).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          (await plateCells(page, ENTRY)).filter((c) => c[3] !== 0).length,
+        { message: "the simulator's picture is back on the plate" },
+      )
+      .toBeGreaterThan(MIRROR_LEDS.length);
+    const off = (await writesOf(page)).length;
+    await page.waitForTimeout(FIVE_BEATS_MS);
+    expect(
+      await writtenSince(page, off),
+      "a mirror switched off writes nothing: the restore is silence",
+    ).toEqual([]);
+
+    // THE WHOLE VISIT, by class: not one configuration write, store, page switch or discard.
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGEACTIVE", "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGEDISCARD", "EXECUTE")).toBe(0);
+    expect(zona.seen("LEDPREVIEW", "FETCH")).toBe(1);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("in the Sandbox Mirror ZONA is Play's: the plate and the Play monitor read the module, and leaving Play hands both back", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const zona = await installZona(page, moduleState(61));
+    await page.addInitScript(() => {
+      window.__hangarSerial.grant();
+    });
+    await page.goto("/sandbox/?new");
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    zona.setLeds(MIRROR_LEDS);
+    await expect(page.getByTestId("device-slot")).toHaveAttribute(
+      "data-slot",
+      "S2",
+    );
+    await page.getByTestId("device-slot").click();
+    await beatUntilShows(
+      page,
+      zona,
+      0,
+      {
+        selector: '[data-testid="device-slot"]',
+        attribute: "data-slot",
+        equals: "S4",
+      },
+      80,
+    );
+    // Edit's plate is the editor: no toggle there.
+    await expect(page.getByTestId("mirror-toggle")).toHaveCount(0);
+    await page.getByTestId("segment-play").click();
+    await expect(page.getByTestId("mode-play")).toBeChecked();
+    const toggle = page.getByTestId("mirror-toggle");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    const mark = (await writesOf(page)).length;
+
+    await toggle.click();
+    await expect(page.getByTestId("sandbox")).toHaveAttribute(
+      "data-mirror",
+      "on",
+    );
+    await expect
+      .poll(
+        async () =>
+          showsExactly(await plateCells(page, "sandbox-preview"), MIRROR_LEDS),
+        { message: "the Play plate shows the ZONA's LEDs", timeout: 10_000 },
+      )
+      .toBe(true);
+    await expect(page.getByTestId("mirror-status")).toHaveText(
+      mirrorStatus(ACTIVE_PAGE, true, false),
+    );
+    await expect(page.getByTestId("play-monitor")).toContainText(
+      MIRROR_PLAY_MONITOR,
+    );
+    await volunteer(
+      page,
+      zona.eventPassHex({ midi: [{ ch: 0, cmd: 176, p1: 20, p2: 99 }] }),
+    );
+    await expect(page.getByTestId("play-monitor-line").first()).toHaveText(
+      "CC 20 ch 1 → 99",
+    );
+
+    // LEAVING PLAY ends it: the toggle goes with Play, the plate is the editor again.
+    await page.getByTestId("segment-edit").click();
+    await expect(page.getByTestId("sandbox")).toHaveAttribute(
+      "data-mirror",
+      "off",
+    );
+    await expect(page.getByTestId("mirror-toggle")).toHaveCount(0);
+    await expect(page.getByTestId("mirror-status")).toHaveCount(0);
+    const off = (await writesOf(page)).length;
+    await page.waitForTimeout(FIVE_BEATS_MS);
+    expect(await writtenSince(page, off)).toEqual([]);
+    const during = await writtenSince(page, mark);
+    expect(during.filter((k) => !MIRROR_WRITES.includes(k))).toEqual([]);
+    expect(during.filter((k) => k === "LEDPREVIEW/FETCH")).toHaveLength(1);
+    expect(zona.seen("CONFIG", "EXECUTE")).toBe(0);
+    expect(zona.seen("PAGESTORE", "EXECUTE")).toBe(0);
     expect(consoleErrors).toEqual([]);
   });
 });

@@ -63,17 +63,24 @@ import {
   type DecodedClass,
   ELEMENT_TOUCH,
   EVENT_SETUP,
+  EVENT_TIMER,
   TERMINATOR,
   ZONA_HWCFG,
   decodeFrame,
 } from "../src/lib/protocol";
 import {
   type Firmware,
+  type LedRecordSpec,
   type ZonaState,
   configNackFrame,
   configReportFrame,
+  eventViewBlock,
   heartbeatFrame,
+  ledPreviewBlock,
+  midiBlock,
+  moduleFrame,
   rigResponder,
+  setLeds,
   zonaResponder,
 } from "../src/lib/transport/fixtures/synthetic";
 
@@ -146,6 +153,29 @@ export interface ExposedZona {
   state: ZonaState;
   /** One heartbeat frame (hex, terminated) from the module's address and current page, for beat(). */
   heartbeatHex(): string;
+  /**
+   * THE MIRROR'S FRAMES (change 20, docs/MIRROR.md). Set LEDs in the module's frame buffer by
+   * hardware index, raising their change flags: what the responder reports to the next editor
+   * heartbeat, and to a LEDPREVIEW FETCH whole. The responder itself is synthetic.ts's.
+   */
+  setLeds(changes: readonly LedRecordSpec[]): void;
+  /**
+   * One event pass's message (hex, terminated) as grid_ui.c:711-760 builds it while an editor is
+   * connected: the touch element's EVENTVIEW for its timer event, then each MIDI message the
+   * configuration sent (EXECUTE) or the module received from the computer (REPORT), then a
+   * LEDPREVIEW EXECUTE of the LEDs the pass moved - pushed unsolicited through beat(), as the
+   * module volunteers it. The LEDs are also set in the state, so a later FETCH agrees.
+   */
+  eventPassHex(pass: {
+    leds?: readonly LedRecordSpec[];
+    midi?: readonly {
+      ch: number;
+      cmd: number;
+      p1: number;
+      p2: number;
+      received?: boolean;
+    }[];
+  }): string;
   /**
    * Replace the script mid-test. page.exposeFunction cannot be re-registered,
    * and the exposed function reads a Node-side closure on EVERY call rather
@@ -308,6 +338,27 @@ export async function installZona(
       ),
     script: (next) => {
       current = next;
+    },
+    setLeds: (changes) => setLeds(state, changes),
+    eventPassHex: (pass) => {
+      const leds = pass.leds ?? [];
+      setLeds(state, leds);
+      // The pass reported them itself: the flags it raised are the ones it just cleared.
+      for (const { num } of leds) {
+        if (state.ledChanged) state.ledChanged[num] = false;
+      }
+      const blocks = [
+        eventViewBlock({
+          page: state.activePage,
+          element: ELEMENT_TOUCH,
+          event: EVENT_TIMER,
+        }),
+        ...(pass.midi ?? []).map((m) =>
+          midiBlock(m, m.received ? "REPORT" : "EXECUTE"),
+        ),
+      ];
+      if (leds.length > 0) blocks.push(ledPreviewBlock("EXECUTE", leds));
+      return hexOf(moduleFrame(state, blocks));
     },
   };
 }
