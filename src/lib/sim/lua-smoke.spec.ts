@@ -15093,6 +15093,11 @@ describe("every colour knob a full RGB picker (change 19, BENCH-2026-09-16.txt s
       wire: "5723361203bffae8b48771139c96611edc867156a9b89222dd2ac1b387fca3b1",
       corner: [903, 526],
     },
+    {
+      id: "trackpad-comet",
+      wire: "f3dcd609ec3b3406d132e89a7001f811cac87c57bb47253c8f5f5a3ef43d0fcf",
+      corner: [903, 443],
+    },
   ];
 
   const sha = (text: string): string =>

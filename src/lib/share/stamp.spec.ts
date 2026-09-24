@@ -408,6 +408,14 @@ describe("the stamp: format x", () => {
           colour: "255,255,255",
         },
       },
+      {
+        id: "trackpad-comet",
+        payload: "w9ffffff00",
+        moved: {
+          colour: "255,255,255",
+          head: "255,255,255",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);
