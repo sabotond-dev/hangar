@@ -31,6 +31,7 @@ import {
   sitesFor,
 } from "../catalog/brightness";
 import { isWrapped, presetWire } from "../catalog/entries/ported-midi";
+import { cellOf } from "../catalog/lattice";
 import { compileState, costOf, fitState, measureLua, padReady } from "../pad";
 import { compilerKnobs, encodeFor, stampKnobs } from "../share/stamp";
 import { createEngine, dimmed, type SimEngine } from "../sim/engine";
@@ -283,18 +284,39 @@ function valueView(
 }
 
 /**
- * The 4,096 resolved colour views, built ONCE and shared: every colour-bearing preset offers the same
- * 4,096 literals in the same order (`knobs.preset.ts`), and resolving them per emit would run
- * `swatchName`'s HSL arithmetic 4,096 times on every knob turn. The two-swatch window,
+ * The 4,096 resolved colour views, built ONCE PER LIST and shared: every colour-bearing preset offers
+ * the same 4,096 literals in the same order (`knobs.preset.ts`), a Lua card's lattice knob its own
+ * list (its colours first, change 19; ORBIT's four rings share one), and resolving them per emit would
+ * run `swatchName`'s HSL arithmetic 4,096 times on every knob turn. The two-swatch window,
  * `KnobView.positions` and `SWATCH_ROW_MAX` went with ColourPicker.svelte's forty-eight detents (10-10).
  */
-let latticeViews: readonly KnobValueView[] | undefined;
+const latticeViews = new WeakMap<readonly string[], readonly KnobValueView[]>();
 
 function colourViews(options: readonly string[]): readonly KnobValueView[] {
-  latticeViews ??= Object.freeze(
-    options.map((_, at) => valueView("colour", "colour", options, at)),
-  );
-  return latticeViews;
+  let views = latticeViews.get(options);
+  if (views === undefined) {
+    views = Object.freeze(
+      options.map((_, at) => valueView("colour", "colour", options, at)),
+    );
+    latticeViews.set(options, views);
+  }
+  return views;
+}
+
+/** Each index's RGB444 cell, or null where the index IS the cell (the presets' lattice). Cached per list. */
+const latticeCells = new WeakMap<readonly string[], readonly number[] | null>();
+
+/** `cells` for a lattice knob whose order is not the lattice's own (change 19), nothing for the presets'. */
+function latticeFields(options: readonly string[]): {
+  cells?: readonly number[];
+} {
+  let cells = latticeCells.get(options);
+  if (cells === undefined) {
+    const each = options.map((literal) => cellOf(literal) ?? -1);
+    cells = each.every((cell, at) => cell === at) ? null : Object.freeze(each);
+    latticeCells.set(options, cells);
+  }
+  return cells === null ? {} : { cells };
 }
 
 function knobViews(
@@ -376,6 +398,12 @@ function knobViews(
             ),
       index,
       default: knob.default,
+      // A Lua card's lattice colour knob (change 19): its own colours lead as the picker's quick
+      // picks, and its index reaches the rails through each rung's cell.
+      ...(knob.palette === undefined ? {} : { palette: knob.palette.length }),
+      ...(widget === "colour" && isColourLattice(knob.options)
+        ? latticeFields(knob.options)
+        : {}),
     };
   });
 }

@@ -55,6 +55,13 @@ export type LuaKnob = {
    * the inspector says so whenever the two differ. Absent: the preview renders the chosen index.
    */
   previewIndex?: number;
+  /**
+   * A LATTICE colour knob's own colours (change 19, BENCH-2026-09-16.txt section 19): the four or
+   * five its card shipped before the picker, which are ALSO `values`' first rungs in this order
+   * (`lattice.ts` `paletteLattice` builds `values` from them). The picker's quick-pick row.
+   * Absent on every other knob.
+   */
+  palette?: readonly string[];
 };
 
 /**

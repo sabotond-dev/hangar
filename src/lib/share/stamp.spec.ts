@@ -34,6 +34,7 @@ import {
   type CatalogEntry,
   type LuaKnob,
 } from "../catalog";
+import { LATTICE_SIZE, cellOf, latticeSample } from "../catalog/lattice";
 import { baseStateFor } from "../tune/state";
 import WILD_STAMPS from "./fixtures/wild-stamps.json" with { type: "json" };
 import {
@@ -163,8 +164,14 @@ describe("the stamp: format x", () => {
           ),
         },
       ];
+      // A lattice colour knob (change 19) at its own colours and the 27 sampled cells here; the
+      // sweep's Pass D walks all 4,096.
       for (const knob of knobs) {
-        for (let at = 0; at < knob.options.length; at += 1) {
+        const rungs =
+          knob.kind === "colour" && knob.options.length === LATTICE_SIZE
+            ? latticeSample({ values: knob.options, palette: knob.palette })
+            : [...knob.options.keys()];
+        for (const at of rungs) {
           vectors.push({
             label: `${knob.id} at ${at}`,
             indices: { ...defaults, [knob.id]: at },
@@ -261,6 +268,54 @@ describe("the stamp: format x", () => {
       decodeFor(removed, payload),
       "a removed knob moves the payload length",
     ).toEqual({ kind: "unreadable" });
+  });
+
+  it("lands a link minted before change 19 older on every card whose colour knobs became the lattice", () => {
+    // CAPTURED 2026-09-24 at 0f8c474 with the encoder as it stood, each card's colour knobs one
+    // rung past their defaults (ring 1 on 255,90,0, ...). The payload is the same length - format w
+    // already gave a colour three characters - and every colour it carries still names a rung (its
+    // cell), but the rack's shape moved (4,096 rungs where five were), so the link lands `older`:
+    // the known pattern of a resized knob, the card at its defaults, never a silently wrong restore.
+    const MINTED: readonly {
+      id: string;
+      payload: string;
+      moved: Record<string, string>;
+    }[] = [
+      {
+        id: "orbit",
+        payload: "w930f50fff0cf70f10114161a1e001001001001",
+        moved: {
+          ring1Colour: "255,90,0",
+          ring2Colour: "255,255,255",
+          ring3Colour: "0,200,255",
+          ring4Colour: "120,0,255",
+        },
+      },
+    ];
+    for (const minted of MINTED) {
+      const each = entry(minted.id);
+      const knobs = stampKnobs(each);
+      const read = readLuaColourPayload(knobs, minted.payload);
+      expect(
+        read,
+        `${minted.id}: the minted payload still parses`,
+      ).toBeDefined();
+      for (const [id, literal] of Object.entries(minted.moved)) {
+        const knob = knobs.find((k) => k.id === id);
+        expect(knob?.options.length, `${minted.id}.${id} is the lattice`).toBe(
+          LATTICE_SIZE,
+        );
+        const c = read?.colours[id];
+        expect(
+          c && cellOf(`${c.r},${c.g},${c.b}`),
+          `${minted.id}.${id}: the minted colour's cell is ${literal}'s`,
+        ).toBe(cellOf(literal));
+      }
+      expect(
+        decodeFor(each, minted.payload),
+        `${minted.id}: a link minted before change 19 lands older`,
+      ).toEqual({ kind: "older" });
+    }
   });
 
   it("refuses every malformed payload as unreadable", () => {

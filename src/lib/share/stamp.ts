@@ -164,10 +164,40 @@ export function emitsLuaColourFormat(
   const colours = knobs.filter(isColour);
   return (
     colours.length > 0 &&
-    colours.every((knob) =>
-      knob.options.every((option) => rgbOfLiteral(option) !== undefined),
-    )
+    colours.every((knob) => colourIndexByQuantised(knob.options) !== undefined)
   );
+}
+
+const byQuantised = new WeakMap<
+  readonly string[],
+  ReadonlyMap<string, number> | null
+>();
+
+/**
+ * A colour list's quantised literal -> the FIRST option carrying it, or undefined when an option is
+ * not a colour. Cached per list: a lattice knob is 4,096 options (change 19), and a decode or an
+ * encode that re-parsed them every time would make the round-trip sweeps quadratic.
+ */
+function colourIndexByQuantised(
+  options: readonly string[],
+): ReadonlyMap<string, number> | undefined {
+  let map = byQuantised.get(options);
+  if (map === undefined) {
+    const out = new Map<string, number>();
+    let all = true;
+    options.forEach((option, at) => {
+      const rgb = rgbOfLiteral(option);
+      if (rgb === undefined) {
+        all = false;
+        return;
+      }
+      const key = literalOfRgb(quantiseColour(rgb));
+      if (!out.has(key)) out.set(key, at);
+    });
+    map = all ? out : null;
+    byQuantised.set(options, map);
+  }
+  return map ?? undefined;
 }
 
 /** What format `w` carries, before any of it is turned into knob positions. */
@@ -428,11 +458,8 @@ function decodeLuaColour(
   for (const knob of knobs) {
     if (!isColour(knob)) continue;
     const wanted = literalOfRgb(read.colours[knob.id]);
-    const at = knob.options.findIndex((option) => {
-      const rgb = rgbOfLiteral(option);
-      return rgb ? literalOfRgb(quantiseColour(rgb)) === wanted : false;
-    });
-    if (at < 0) return UNREADABLE;
+    const at = colourIndexByQuantised(knob.options)?.get(wanted);
+    if (at === undefined) return UNREADABLE;
     indices[knob.id] = at;
   }
   // Last, and only once the payload is known to be well formed.

@@ -167,6 +167,20 @@ function* passC(
   }
 }
 
+/**
+ * Pass D (change 19): every rung of every LATTICE colour knob on a Lua card - its own colours first,
+ * then the rest of the 4,096 - every other knob at its default, through the real encoder and decoder.
+ */
+function* passD(knobs: readonly KnobDescriptor[]): Generator<Indices> {
+  const defaults = defaultsOf(knobs);
+  for (const knob of colourKnobs(knobs)) {
+    if (knob.options.length !== COLOUR_LATTICE_SIZE) continue;
+    for (let at = 0; at < knob.options.length; at += 1) {
+      yield { ...defaults, [knob.id]: at };
+    }
+  }
+}
+
 /** Pass B: the colour dimension, every other knob at its default index. */
 function* passB(knobs: readonly KnobDescriptor[]): Generator<Indices> {
   const defaults = defaultsOf(knobs);
@@ -614,5 +628,25 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
       examined,
       "the two Lua passes cost more than the single cross-product they replace",
     ).toBeLessThan(276160);
+
+    // PASS D (change 19), counted apart from the ceiling above: the lattice knobs' every rung, so
+    // Pass B's capacity is proved on the knobs themselves - each rung's cell names exactly one rung.
+    const expectedD = entries.reduce(
+      (n, entry) =>
+        n +
+        colourKnobs(stampKnobs(entry)).filter(
+          (knob) => knob.options.length === COLOUR_LATTICE_SIZE,
+        ).length *
+          COLOUR_LATTICE_SIZE,
+      0,
+    );
+    const examinedD = roundTrip(entries, passD, () => undefined);
+    say(
+      `  Pass D ${examinedD} lattice rungs on the hand-authored cards (change 19)`,
+    );
+    expect(examinedD, "Pass D's enumeration silently shrank").toBe(expectedD);
+    expect(expectedD, "no hand-authored lattice colour knob").toBeGreaterThan(
+      0,
+    );
   }, 300000);
 });

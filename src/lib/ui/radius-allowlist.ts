@@ -5,7 +5,7 @@
 // (layer C, computed styles in two engines) import it; nothing in the site
 // does. D-10's two halves live in two layers: layer A permits the literal 50%
 // only at D-15's file:line pairs (CIRCLES, asserted at exactly three since change
-// 16 - ColourPicker.svelte :785 the 2px tick, :812 the 12px thumb, :827 the 2px
+// 16 - ColourPicker.svelte :833 the 2px tick, :860 the 12px thumb, :875 the 2px
 // home mark; Knob.svelte's three went with its rail); layer C fails any
 // percentage radius on a box whose width and height differ. The allowlist can only shrink and is empty.
 // Decided at 13-01 (D-01, D-10, D-15); see .planning/phases/13-gui-overhaul/13-01-SUMMARY.md
@@ -43,22 +43,23 @@ export const CIRCLES: readonly Circle[] = [
   // change 16 took the head's lock out of the picker (the swatch row carries
   // it); Knob.svelte's three (:730 / :785 / :807) LEFT with its dot rail and
   // its track the same day - a stepper has no circle - so D-15's six are
-  // three, and radius.spec.ts asserts three.
+  // three, and radius.spec.ts asserts three. The same three moved to :833 /
+  // :860 / :875 on 2026-09-24 (change 19: the cells and the quick-pick row).
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 785,
+    line: 833,
     what: "the tick, a 2px round mark on the cheap steps",
     box: "2x2",
   },
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 812,
+    line: 860,
     what: "the rail thumb",
     box: "12x12",
   },
   {
     file: "src/lib/ui/ColourPicker.svelte",
-    line: 827,
+    line: 875,
     what: "the home mark",
     box: "2x2",
   },

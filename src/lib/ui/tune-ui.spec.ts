@@ -55,6 +55,7 @@ import Swatch from "./Swatch.svelte";
 // Change 16's rows: the knob row and the stepper, rendered for their shape;
 // the sections rule the region draws them in.
 import Knob from "./Knob.svelte";
+import ColourPicker from "./ColourPicker.svelte";
 import {
   SECTION_FEEL,
   SECTION_LOOK,
@@ -2724,5 +2725,88 @@ describe("the tuning UI's structural rules", () => {
     expect(outputsOf("steps")).toBeGreaterThan(4);
     expect(outputsOf("orbit")).toBe(4);
     expect(outputsOf("faders")).toBe(4);
+  }, 60000);
+
+  it("a hand-authored card's colour knob is the full picker (change 19): on a real tuner ORBIT's ring colours are the 4,096-rung lattice with their palette and cells, and the opened picker draws the three RGB rails at the colour's cell and the quick-pick row of the card's old palette under them", async () => {
+    await padReady();
+    const views: TuneView[] = [];
+    const tuner = await buildTuner({
+      entryId: "orbit",
+      onview: (view) => void views.push(view),
+      onpreview: () => undefined,
+      onladder: () => undefined,
+      onover: () => undefined,
+    });
+    try {
+      for (let i = 0; i < 64; i++) await Promise.resolve();
+      const view = views.at(-1) as TuneView;
+      const rings = view.knobs.filter((k) => k.widget === "colour");
+      expect(rings.map((k) => k.id)).toEqual([
+        "ring1Colour",
+        "ring2Colour",
+        "ring3Colour",
+        "ring4Colour",
+      ]);
+      const palette = ORBIT.knobs.find((k) => k.id === "ring1Colour")?.palette;
+      expect(palette).toEqual([
+        "0,200,255",
+        "255,90,0",
+        "0,255,120",
+        "255,255,255",
+        "120,0,255",
+      ]);
+      for (const ring of rings) {
+        expect(ring.values.length, `${ring.id} is the lattice`).toBe(4096);
+        expect(ring.palette, `${ring.id}'s quick picks`).toBe(5);
+        expect(ring.cells?.length, `${ring.id} reaches the rails by cell`).toBe(
+          4096,
+        );
+      }
+      const ring1 = rings[0];
+      // The default is the old first colour, index 0, standing in 0,204,255's cell (0, 12, 15).
+      expect(ring1.index).toBe(0);
+      expect(ring1.cells?.[0]).toBe((0 << 8) | (12 << 4) | 15);
+      expect(ring1.values[0].swatch).toBe("rgb(0 200 255)");
+
+      const body = render(ColourPicker, {
+        props: {
+          entry: { id: "orbit", name: "Orbit" },
+          knobs: rings,
+          held: new Set<string>(),
+          onchange: () => undefined,
+          onreset: () => undefined,
+          selectedId: "ring1Colour",
+        },
+      }).body;
+      // The three RGB rails, each a range over sixteen detents, at the cell's levels.
+      for (const [channel, level] of [
+        ["r", 0],
+        ["g", 12],
+        ["b", 15],
+      ] as const) {
+        expect(body, `the ${channel} rail`).toContain(
+          `data-testid="colour-rail-${channel}"`,
+        );
+        expect(body).toMatch(
+          new RegExp(
+            `id="colour-rail-${channel}-control"[^>]*value="${level}"|value="${level}"[^>]*id="colour-rail-${channel}-control"`,
+          ),
+        );
+      }
+      // The composed value announces the literal the pad receives, not the cell's 204.
+      expect(body).toContain('aria-valuetext="0, 200, 255"');
+      // The quick-pick row: the old palette, five swatches, the default checked.
+      expect(occurrences(body, 'data-testid="colour-quick"')).toBe(1);
+      const quick = body.slice(body.indexOf('data-testid="colour-quick"'));
+      for (const literal of palette ?? []) {
+        expect(quick, literal).toContain(
+          `background-color: rgb(${literal.split(",").join(" ")})`,
+        );
+      }
+      expect(occurrences(quick, 'type="radio"')).toBe(5);
+      expect(occurrences(quick, "checked")).toBe(1);
+    } finally {
+      tuner.destroy();
+    }
   }, 60000);
 });

@@ -512,7 +512,12 @@ describe("the colour picker (10-UI-SPEC §11.2, TUNE-01, TUNE-05)", () => {
 
     let checked = 0;
     let unaffordable = 0;
+    // THE PRESETS ONLY. Since change 19 every hand-authored card's colour knob is a lattice too, and
+    // lua-entries.sweep.spec.ts measures each at the picker corner (255,255,255) under the pinned
+    // minifier: every one of the 4,096 fits by construction, so the guard has nothing to exclude
+    // there, and a preset's budget is not a Lua card's.
     for (const entry of CATALOG) {
+      if (entry.source.kind === "lua") continue;
       for (const knob of colourKnobsOf(entry.id)) {
         if (!isColourLattice(knob.options)) continue;
         const budget = { free: DEAREST_FREE, copies: WORST_COPIES };

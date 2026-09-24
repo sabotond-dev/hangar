@@ -456,7 +456,11 @@ describe("the tuning view seam (src/lib/tune/view.ts)", () => {
       ["255,255,255", "White"],
       ["120,0,255", "Violet"],
     ];
-    expect(ring?.values).toEqual(shipped.map(([literal]) => literal));
+    // Change 19: the five are the knob's palette and its first five rungs; the lattice follows.
+    expect(ring?.palette).toEqual(shipped.map(([literal]) => literal));
+    expect(ring?.values.slice(0, 5)).toEqual(
+      shipped.map(([literal]) => literal),
+    );
     for (const [literal, word] of shipped) {
       expect(hueName(rgb(literal)), literal).toBe(word);
     }

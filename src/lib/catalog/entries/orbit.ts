@@ -85,6 +85,7 @@ import {
   type LuaKnob,
   type MidiOutput,
 } from "../types";
+import { paletteLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   RECEIVE_ON_INDEX,
@@ -108,6 +109,9 @@ const RING_PALETTE: readonly string[] = [
   "255,255,255",
   "120,0,255",
 ];
+
+/** The four ring colours' rungs (change 19): the palette first, then the rest of the RGB444 lattice. */
+const RING_COLOURS = paletteLattice(RING_PALETTE);
 
 /** Every MIDI note, 0..127: the typed field takes `C#3` or `49` and the stamp carries the index. */
 const NOTES: readonly string[] = Array.from({ length: 128 }, (_, n) =>
@@ -212,7 +216,8 @@ export const ORBIT: CatalogEntry = {
       label: "Ring 1 colour",
       kind: "colour",
       token: "@R1C",
-      values: RING_PALETTE,
+      values: RING_COLOURS,
+      palette: RING_PALETTE,
       default: 0,
     },
     {
@@ -220,7 +225,8 @@ export const ORBIT: CatalogEntry = {
       label: "Ring 2 colour",
       kind: "colour",
       token: "@R2C",
-      values: RING_PALETTE,
+      values: RING_COLOURS,
+      palette: RING_PALETTE,
       default: 2,
     },
     {
@@ -228,7 +234,8 @@ export const ORBIT: CatalogEntry = {
       label: "Ring 3 colour",
       kind: "colour",
       token: "@R3C",
-      values: RING_PALETTE,
+      values: RING_COLOURS,
+      palette: RING_PALETTE,
       default: 4,
     },
     {
@@ -236,7 +243,8 @@ export const ORBIT: CatalogEntry = {
       label: "Ring 4 colour",
       kind: "colour",
       token: "@R4C",
-      values: RING_PALETTE,
+      values: RING_COLOURS,
+      palette: RING_PALETTE,
       default: 3,
     },
     {

@@ -17,6 +17,7 @@ import { EVENT_BUDGET } from "../../vendor/botor/_pad";
 import { measureLua, padReady } from "../pad";
 import { renderLua } from "../sim/lua-pad-sim";
 import { CATALOG, type CatalogEntry, type LuaKnob } from "./index";
+import { isLatticeKnob, latticeSample } from "./lattice";
 
 const EVENTS = ["setup", "timer"] as const;
 type EventName = (typeof EVENTS)[number];
@@ -74,6 +75,11 @@ const COLOUR_SAMPLE: readonly string[] = COLOUR_SAMPLE_CHANNELS.flatMap((r) =>
     COLOUR_SAMPLE_CHANNELS.map((b) => `${r},${g},${b}`),
   ),
 );
+/** A colour knob's sample: the 27, then its own colours not among them (change 19). */
+const colourSampleOf = (knob: LuaKnob): readonly string[] => [
+  ...new Set([...COLOUR_SAMPLE, ...(knob.palette ?? [])]),
+];
+
 /** The corners the budget claim rests on. */
 const COLOUR_LONGEST = "255,255,255";
 const COLOUR_SHORTEST = "0,0,0";
@@ -381,9 +387,14 @@ describe("hand-authored Lua entries (CONT-02)", () => {
       // the substitution is pure literal arithmetic with no interaction between
       // knobs, so the maximum over the whole cross-product is the all-longest
       // corner.
+      // A LATTICE colour knob (change 19) is walked at its own colours and the 27 sampled cells, not
+      // its 4,096 rungs: every rung is a literal of three channels, so the sample's lengths are all of them.
       for (const knob of entry.knobs) {
         const from = knob.values[indices[knob.id]];
-        for (let i = 0; i < knob.values.length; i += 1) {
+        const rungs = isLatticeKnob(knob)
+          ? latticeSample(knob)
+          : [...knob.values.keys()];
+        for (const i of rungs) {
           const to = knob.values[i];
           const moved = renderLua(entry, { ...indices, [knob.id]: i });
           for (const event of EVENTS) {
@@ -499,7 +510,9 @@ describe("hand-authored Lua entries (CONT-02)", () => {
 
       for (const knob of entry.knobs) {
         if (knob.kind === "colour") {
-          for (const literal of COLOUR_SAMPLE) {
+          // The 27 lattice literals, and since change 19 a lattice knob's own colours - rungs that
+          // stand in their cells off the multiples of 17 (`0,200,255`).
+          for (const literal of colourSampleOf(knob)) {
             combinations.push({
               label: `${knob.id}="${literal}"`,
               knobs: indices,
@@ -547,7 +560,7 @@ describe("hand-authored Lua entries (CONT-02)", () => {
           (n, knob) =>
             n +
             (knob.kind === "colour"
-              ? COLOUR_SAMPLE.length
+              ? colourSampleOf(knob).length
               : knob.values.length),
           0,
         ) + 2;

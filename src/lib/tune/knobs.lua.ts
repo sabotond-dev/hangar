@@ -44,5 +44,7 @@ export function luaKnobs(entry: CatalogEntry): readonly KnobDescriptor[] {
     // reading the table first is what makes `defaults` the single place an
     // entry states where it ships.
     default: entry.defaults[knob.id] ?? knob.default,
+    // A lattice colour knob's own colours ride along (change 19): the picker's quick-pick row.
+    ...(knob.palette === undefined ? {} : { palette: knob.palette }),
   }));
 }

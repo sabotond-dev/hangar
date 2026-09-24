@@ -36,6 +36,7 @@ import {
   type ColourSites,
 } from "./brightness";
 import { CATALOG, byId, type CatalogEntry } from "./index";
+import { isLatticeKnob, latticeSample } from "./lattice";
 import { presetWire } from "./entries/ported-midi";
 import { stripComments } from "../../test-support/source";
 
@@ -65,9 +66,11 @@ function sampledLuaStates(entry: CatalogEntry): Rendered[] {
           );
   }
   at(corner, "corner");
+  // A lattice colour knob (change 19) is visited at its own colours and the 27 sampled cells, as
+  // hash-wire.mjs samples it - the other 4,000 differ only in their digits.
   for (const k of entry.knobs) {
-    for (let i = 0; i < k.values.length; i += 1)
-      at({ [k.id]: i }, `${k.id}=${i}`);
+    const rungs = isLatticeKnob(k) ? latticeSample(k) : [...k.values.keys()];
+    for (const i of rungs) at({ [k.id]: i }, `${k.id}=${i}`);
   }
   return out;
 }

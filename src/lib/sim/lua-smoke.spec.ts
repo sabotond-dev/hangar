@@ -10,6 +10,7 @@
 // pitfall-1 guard reads the raw layer records. SMOKE_REPORT=1 prints the per-entry MIDI and HID summary.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { CELLS, PRESETS, compile } from "../../vendor/botor/_pad";
 import { glcStops, PadSim, screenToHw } from "../../vendor/botor/pad-sim";
@@ -28,6 +29,8 @@ import {
   TOUCH_LIBRARY_TIMER,
 } from "../catalog/library";
 import { presetById } from "../catalog/presets";
+import { scaleChannel, scaleLua, sitesFor } from "../catalog/brightness";
+import { measureLua, padReady } from "../pad";
 import { presetWire } from "../catalog/entries/ported-midi";
 import { baseStateFor, resetAll } from "../tune/state";
 import { compilerKnobs } from "../share/stamp";
@@ -14988,4 +14991,184 @@ describe("the ported presets' MIDI outputs, MIDI RX and latch (change 17C, BENCH
       }
     }
   }, 120000);
+});
+
+describe("every colour knob a full RGB picker (change 19, BENCH-2026-09-16.txt section 19)", () => {
+  /** A lattice colour no card ships (cell 13, 5, 9), and the brightness it lands at. */
+  const PROBE = "221,85,153";
+  const PROBE_BRIGHTNESS = 170;
+
+  /**
+   * One card: `wire` is sha256(setup + NUL + timer) of `renderLua` at the defaults, captured at
+   * 0f8c474 BEFORE the conversion; `corner` Setup / Timer at the picker corner (every colour knob
+   * 255,255,255, every other knob its longest literal), measured; `drive` a knob whose colour only
+   * shows in a state the common drive does not reach (POMODORO's rest, at the end of an interval).
+   */
+  type Row = {
+    id: string;
+    wire: string;
+    corner: readonly [number, number];
+    drive?: Record<string, { knobs: Record<string, number>; ticks: number }>;
+  };
+  const ROWS: readonly Row[] = [
+    {
+      id: "orbit",
+      wire: "204d5fc789ad2968c3d36b2ece708ce110bfe4891917322abb90d2f9100b0686",
+      corner: [869, 777],
+    },
+  ];
+
+  const sha = (text: string): string =>
+    createHash("sha256").update(text, "utf8").digest("hex");
+
+  /**
+   * Where a layer's max (glc's r, g, b) first equals `want`, over a drive every card's colours show
+   * under - the Setup, a tap on each of the 81 LED centres, a hold and a drag, 3,000 ticks of the
+   * Timer, a note on every number on two channels - or undefined when none ever does.
+   */
+  async function reach(
+    entry: CatalogEntry,
+    indices: Record<string, number>,
+    want: readonly number[],
+    extra?: { knobs: Record<string, number>; ticks: number },
+  ): Promise<string | undefined> {
+    const rendered = renderLua(entry, { ...indices, ...(extra?.knobs ?? {}) });
+    const sites = sitesFor(entry.id);
+    const setup = scaleLua(rendered.setup, PROBE_BRIGHTNESS, sites);
+    const timer = scaleLua(rendered.timer, PROBE_BRIGHTNESS, sites);
+    const sim = new PadSim(blankPadState());
+    const host = await createLuaHost({
+      sim,
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup,
+      timer: timer.trim() === "" ? undefined : timer,
+    });
+    try {
+      let found: string | undefined;
+      let stage = "the Setup";
+      let t = 0;
+      const scan = (): void => {
+        for (let hw = 0; hw < 81 && found === undefined; hw += 1) {
+          for (const layer of [0, 1, 2] as const) {
+            const max = sim.layer(hw, layer).max;
+            if (max.every((v, at) => v === want[at])) {
+              found = `${stage}, tick ${t}, LED ${hw} layer ${layer}`;
+              break;
+            }
+          }
+        }
+      };
+      const run = (n: number, every = 1): void => {
+        for (let i = 0; i < n && found === undefined; i += 1) {
+          host.tick();
+          t += 1;
+          if (t % every === 0) scan();
+        }
+      };
+      scan();
+      run(30);
+      stage = "a tap on every LED";
+      for (let r = 0; r < 9 && found === undefined; r += 1) {
+        for (let c = 0; c < 9 && found === undefined; c += 1) {
+          host.touchDown(0, KX[c], KY[r]);
+          run(3);
+          host.touchUp(0, KX[c], KY[r]);
+          run(3);
+        }
+      }
+      stage = "a hold and a drag";
+      if (found === undefined) {
+        host.touchDown(0, KX[4], KY[4]);
+        run(200);
+        for (let c = 0; c < 9; c += 1) {
+          host.touchMove(0, KX[c], KY[4]);
+          run(3);
+        }
+        host.touchUp(0, KX[8], KY[4]);
+        run(5);
+      }
+      stage = "the Timer";
+      run(extra?.ticks ?? 3000, 10);
+      stage = "a note on every number";
+      for (let n = 0; n < 128 && found === undefined; n += 1) {
+        host.midiIn(13, 0, 144, n, 100);
+        run(2);
+        host.midiIn(13, 9, 144, n, 100);
+        run(2);
+      }
+      expect(host.errors, `${entry.id}: the host raised`).toEqual([]);
+      return found;
+    } finally {
+      host.close();
+    }
+  }
+
+  for (const row of ROWS) {
+    const entry = entryById(row.id);
+    const colours = entry.knobs.filter((knob) => knob.kind === "colour");
+    it(`${entry.name}: ${colours.length} colour knob(s) on the RGB444 lattice, the old colours first - at the defaults the wire is byte-identical to before, ${PROBE} reaches the LEDs at brightness ${PROBE_BRIGHTNESS} on every one, and the picker corner fits (Setup ${row.corner[0]} / Timer ${row.corner[1]})`, async () => {
+      await padReady();
+      // 1. THE DEFAULTS: every colour knob's default is one of its old colours, so the wire at the
+      //    defaults is the captured one byte for byte.
+      for (const knob of colours) {
+        expect(knob.values.length, `${knob.id} is the lattice`).toBe(4096);
+        expect(knob.palette, `${knob.id} keeps its palette`).toBeDefined();
+        expect(
+          knob.values.slice(0, knob.palette?.length),
+          `${knob.id}: its old colours first, in their order`,
+        ).toEqual(knob.palette);
+        expect(knob.default).toBeLessThan(knob.palette?.length ?? 0);
+      }
+      const rendered = renderLua(entry);
+      expect(
+        sha(`${rendered.setup}\u0000${rendered.timer}`),
+        `${entry.id}: the wire at the defaults moved`,
+      ).toBe(row.wire);
+
+      // 2. THE PICKER CORNER, under the pinned minifier.
+      const corner: Record<string, number> = {};
+      for (const knob of entry.knobs) {
+        corner[knob.id] =
+          knob.kind === "colour"
+            ? knob.values.indexOf("255,255,255")
+            : knob.values.reduce(
+                (best, v, at) =>
+                  v.length > knob.values[best].length ? at : best,
+                0,
+              );
+      }
+      const atCorner = renderLua(entry, corner);
+      const used = [
+        Math.max(atCorner.setup.length, await measureLua(atCorner.setup)),
+        Math.max(atCorner.timer.length, await measureLua(atCorner.timer)),
+      ];
+      expect(used, `${entry.id}: Setup / Timer at the picker corner`).toEqual([
+        ...row.corner,
+      ]);
+      expect(Math.max(...used)).toBeLessThanOrEqual(908);
+
+      // 3. A LATTICE COLOUR REACHES THE LEDS: each knob in turn at the probe, the others at their
+      //    defaults, through the brightness scaler the landing uses.
+      const want = PROBE.split(",").map((v) =>
+        scaleChannel(Number(v), PROBE_BRIGHTNESS),
+      );
+      for (const knob of colours) {
+        const at = knob.values.indexOf(PROBE);
+        expect(at, `${knob.id} offers ${PROBE}`).toBeGreaterThanOrEqual(
+          knob.palette?.length ?? 0,
+        );
+        const where = await reach(
+          entry,
+          { [knob.id]: at },
+          want,
+          row.drive?.[knob.id],
+        );
+        expect(
+          where,
+          `${entry.id}.${knob.id}: ${PROBE} at ${PROBE_BRIGHTNESS} (${want.join(",")}) never reached a layer`,
+        ).toBeDefined();
+      }
+    }, 240000);
+  }
 });

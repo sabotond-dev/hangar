@@ -46,6 +46,8 @@ export type KnobDescriptor = {
   options: readonly string[];
   /** An INDEX into `options`, never a value. */
   default: number;
+  /** A Lua card's lattice colour knob: its old colours, `options`' first rungs (change 19). */
+  palette?: readonly string[];
 };
 
 /** A compiler-driven knob also knows how to move and read a `PadState`. */

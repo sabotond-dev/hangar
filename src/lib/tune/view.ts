@@ -49,7 +49,7 @@ export const KNOB_KIND_NAMES: readonly KnobKindName[] = [
  * `select` a native select, `stepper` a typed field with a step box either side, `swatch` the
  * picker's own palette row; `colour` is the whole colour block, rendered once per section.
  * `widgetFor` chooses between `words`, `select` and `stepper` and never returns `swatch`: the picker
- * synthesises it for a hand-authored Lua palette.
+ * synthesises it for a knob of a few literals and for a lattice knob's quick picks (change 19).
  */
 export type KnobWidget = "colour" | "swatch" | "words" | "select" | "stepper";
 
@@ -96,6 +96,16 @@ export type KnobView = {
   /** The knob's part in a MIDI output's block (change 17), and the output's id; absent on every other knob. */
   role?: KnobRole;
   output?: string;
+  /**
+   * A Lua card's lattice colour knob (change 19): how many of the first `values` are the card's own
+   * colours - the picker's quick-pick row. Absent on every other knob.
+   */
+  palette?: number;
+  /**
+   * A lattice colour knob whose order is not the lattice's (change 19: a Lua card's own colours
+   * first): each index's RGB444 cell. Absent where the index IS the cell (the presets).
+   */
+  cells?: readonly number[];
 };
 
 /** One MIDI output as the MIDI section draws it (change 17): its sub-head and its rows' knob ids by role. */
@@ -781,12 +791,53 @@ export function colourRailMax(rail: readonly ColourDetent[]): number {
 
 /**
  * True when this colour knob carries the whole lattice rather than a hand-authored palette. Not widget
- * selection (that is by kind alone): the picker asking what it holds. A Lua entry's colour knob is the
- * four or five literals its author wrote, so the picker shows it the shipped swatch row instead;
- * widening the Lua route onto the lattice is deferred-items.md item 3.
+ * selection (that is by kind alone): the picker asking what it holds. Since change 19 every colour
+ * knob on the playground does - the presets' in cell order, a Lua card's with its own colours first
+ * (`cells`); a knob of a few literals would still get the swatch row.
  */
 export function isColourLattice(values: readonly unknown[]): boolean {
   return values.length === COLOUR_LATTICE_SIZE;
+}
+
+/** A lattice knob's index -> its cell on the rails: through `cells`, or the index itself. */
+export function latticePositionOf(
+  view: Pick<KnobView, "cells">,
+  index: number,
+): number {
+  return view.cells?.[index] ?? index;
+}
+
+const inverses = new WeakMap<readonly number[], Int16Array>();
+
+/** A cell on the rails -> the knob index standing in it: the inverse of `latticePositionOf`. */
+export function knobIndexAt(
+  view: Pick<KnobView, "cells">,
+  position: number,
+): number {
+  const cells = view.cells;
+  if (cells === undefined) return position;
+  let inverse = inverses.get(cells);
+  if (inverse === undefined) {
+    inverse = new Int16Array(COLOUR_LATTICE_SIZE).fill(-1);
+    cells.forEach((cell, at) => {
+      if (inverse![cell] < 0) inverse![cell] = at;
+    });
+    inverses.set(cells, inverse);
+  }
+  const at = inverse[clampPosition(position)];
+  return at < 0 ? position : at;
+}
+
+/**
+ * "0, 200, 255" - a swatch's three stored integers as `colourValueText` words them, or undefined.
+ * A Lua card's own colour stands in its cell off the multiples of 17 (change 19), so the picker
+ * announces the literal the pad receives rather than the cell's.
+ */
+export function swatchValueText(
+  swatch: string | undefined,
+): string | undefined {
+  const match = /^rgb\((\d{1,3}) (\d{1,3}) (\d{1,3})\)$/.exec(swatch ?? "");
+  return match === null ? undefined : match.slice(1).join(", ");
 }
 
 /** The percentage, floored inside the budget and ceiled outside it: 907 reads 99, 908 100, 909 101. */

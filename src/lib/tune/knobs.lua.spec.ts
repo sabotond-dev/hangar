@@ -32,6 +32,9 @@ const LUA_ENTRIES: readonly CatalogEntry[] = CATALOG.filter(
   (entry) => entry.source.kind === "lua",
 );
 
+/** The hand-authored cards' colour knobs on the lattice (change 19, card by card): ORBIT's four. */
+const LUA_COLOUR_KNOBS = 4;
+
 describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
   it("carries every declared knob across without transforming it", () => {
     expect(LUA_ENTRIES.length).toBeGreaterThan(0);
@@ -171,8 +174,19 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
         }
       }
     }
+    // Change 19: a hand-authored card's colour knob is a lattice too (its own colours first), exempt
+    // by the same format - format w's three characters carry its cell - and held to the lattice.
+    let luaColourKnobs = 0;
     for (const entry of LUA_ENTRIES) {
       for (const knob of luaKnobs(entry)) {
+        if (exempt(knob.kind) && knob.options.length > STAMP_OPTION_CEILING) {
+          luaColourKnobs += 1;
+          expect(
+            knob.options.length,
+            `${entry.id}.${knob.id} is exempt by format and must be the whole lattice`,
+          ).toBe(COLOUR_LATTICE_SIZE);
+          continue;
+        }
         widest = Math.max(widest, knob.options.length);
         examined++;
         if (knob.options.length > STAMP_OPTION_CEILING) {
@@ -197,6 +211,10 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
     // The exemption is real work rather than a blanket: six preset colour
     // knobs, and every one of them the full lattice.
     expect(colourKnobs, "the exempted colour knobs").toBe(6);
+    expect(
+      luaColourKnobs,
+      "the hand-authored cards' colour knobs, change 19",
+    ).toBe(LUA_COLOUR_KNOBS);
     expect(
       over,
       "a knob has more options than one stamp character and is not a named wide knob",

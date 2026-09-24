@@ -4,7 +4,7 @@ import {
   EventTypeToNumber,
   ModuleType,
 } from "@intechstudio/grid-protocol";
-import { PRESETS, presetById } from "../../vendor/botor/_pad";
+import { PRESETS, presetById, quantiseColour } from "../../vendor/botor/_pad";
 import {
   byFeatured,
   byId,
@@ -19,6 +19,13 @@ import {
   ZONA_MODULE_TYPE,
 } from "./index";
 import { declaredDivergence } from "./divergence";
+import {
+  LATTICE_SIZE,
+  cellLiteral,
+  cellOf,
+  latticeSample,
+  paletteLattice,
+} from "./lattice";
 import { outputProblems, roleOfKnob } from "../tune/midi";
 import { isMidiDestination } from "../tune/surprise";
 import { presetKnobs } from "../tune/knobs.preset";
@@ -33,6 +40,9 @@ import { presetKnobs } from "../tune/knobs.preset";
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 
 const NEWLINE = String.fromCharCode(10);
+
+/** The hand-authored colour knobs on the lattice (change 19, card by card): ORBIT's four. */
+const LUA_LATTICE_KNOBS = 4;
 const SLUG = /^[a-z][a-z0-9-]*$/;
 const ISO_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 const TOKEN = /^@[A-Z][A-Z0-9_]*$/;
@@ -354,6 +364,69 @@ describe("catalog metadata and shape (CONT-02, CONT-03)", () => {
         ).toBe(true);
       }
     }
+  });
+
+  it("puts every hand-authored colour knob on the RGB444 lattice, its own colours first (change 19)", () => {
+    // THE CELL RULE is the vendored quantiseColour's, restated in lattice.ts because the catalog may
+    // not import the compiler: held here on every channel value.
+    for (let v = 0; v <= 255; v += 1) {
+      expect(cellOf(`${v},0,0`), `red ${v}`).toBe(
+        (quantiseColour({ r: v, g: 0, b: 0 }).r / 17) << 8,
+      );
+      expect(cellOf(`0,0,${v}`), `blue ${v}`).toBe(
+        quantiseColour({ r: 0, g: 0, b: v }).b / 17,
+      );
+    }
+    expect(cellOf("0,200,255"), "0,200,255 stands in 0,204,255's cell").toBe(
+      cellOf("0,204,255"),
+    );
+    expect(cellLiteral(4095)).toBe("255,255,255");
+    expect(cellOf("256,0,0"), "not a colour").toBeUndefined();
+    expect(() => paletteLattice(["0,200,255", "0,204,255"])).toThrow();
+
+    let lattices = 0;
+    for (const entry of CATALOG) {
+      if (entry.source.kind !== "lua") continue;
+      for (const knob of entry.knobs) {
+        if (knob.kind !== "colour" || knob.palette === undefined) continue;
+        lattices += 1;
+        const where = `${entry.id}/${knob.id}`;
+        // The palette first, in its old order, so every index a saved copy names still names it.
+        expect(knob.values.slice(0, knob.palette.length), where).toEqual([
+          ...knob.palette,
+        ]);
+        expect(knob.values, `${where}: built by paletteLattice`).toBe(
+          paletteLattice(knob.palette),
+        );
+        // One rung per RGB444 cell, all 4,096 of them.
+        expect(knob.values.length, where).toBe(LATTICE_SIZE);
+        const cells = new Set(knob.values.map((literal) => cellOf(literal)));
+        expect(cells.size, `${where}: one rung per cell`).toBe(LATTICE_SIZE);
+        // The default is one of the card's own colours, so its literal - and the wire - is as before.
+        expect(
+          knob.default,
+          `${where}: the default is an old rung`,
+        ).toBeLessThan(knob.palette.length);
+        // Off the palette every rung is the cell's own literal.
+        for (let at = knob.palette.length; at < knob.values.length; at += 1) {
+          if (knob.values[at] !== cellLiteral(cellOf(knob.values[at]) ?? -1)) {
+            throw new Error(`${where}: rung ${at} is not its cell's literal`);
+          }
+        }
+        // The sweeps' sample: the palette, the corner and the 27 cells.
+        const sample = latticeSample(knob);
+        expect(sample.slice(0, knob.palette.length), where).toEqual(
+          knob.palette.map((_, at) => at),
+        );
+        expect(
+          sample.map((at) => knob.values[at]),
+          where,
+        ).toContain("255,255,255");
+      }
+    }
+    expect(lattices, "the hand-authored lattice colour knobs").toBe(
+      LUA_LATTICE_KNOBS,
+    );
   });
 
   it("keeps defaults in step with knobs", () => {

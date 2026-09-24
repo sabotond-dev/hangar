@@ -11,7 +11,9 @@
 //   F   protocol/constants.ts: the five firmware defaults the store substitutes and CLEAR writes
 //   E   every hand-authored catalog entry (source.kind === "lua"): renderLua at the defaults, at the
 //       picker corner (colour knobs 255,255,255 - every other knob its longest literal), and every
-//       single-knob position from the defaults; with --full the whole cross-product
+//       single-knob position from the defaults; with --full the whole cross-product. A LATTICE
+//       colour knob (change 19: its old colours first, then the rest of the 4,096) is walked at its
+//       old colours and the 27 sampled cells alone, and enters --full at its old colours alone
 //   P   every ported preset entry: the vendored compiler's setupLua/timerLua at the defaults, at every
 //       single-knob position (a colour knob sampled at the sweep's 27 lattice colours), and at the
 //       "corner" (every knob at its last index); with --full the cross-product over the same samples
@@ -60,6 +62,7 @@ const luaSim = await imp("src/lib/sim/lua-pad-sim.ts");
 const knobsPreset = await imp("src/lib/tune/knobs.preset.ts");
 const tuneState = await imp("src/lib/tune/state.ts");
 const stamp = await imp("src/lib/share/stamp.ts");
+const lattice = await imp("src/lib/catalog/lattice.ts");
 const constants = await imp("src/lib/protocol/constants.ts");
 const land = await imp("src/lib/sandbox/land.ts");
 const emit = await imp("src/lib/sandbox/emit.ts");
@@ -110,6 +113,16 @@ const product = (lists, visit) => {
   }
 };
 const luaEntries = catalog.CATALOG.filter((e) => e.source.kind === "lua");
+// A lattice colour knob's single-knob walk (its old colours, then the 27 sampled cells) and the
+// positions it enters the cross-product at (its old colours: the product it had before change 19).
+const walkOf = (k) =>
+  lattice.isLatticeKnob(k)
+    ? lattice.latticeSample(k)
+    : k.values.map((_, i) => i);
+const rungsOf = (k) =>
+  lattice.isLatticeKnob(k) && k.palette
+    ? k.palette.map((_, i) => i)
+    : k.values.map((_, i) => i);
 const presetEntries = catalog.CATALOG.filter((e) => e.source.kind !== "lua");
 let luaStates = 0;
 for (const entry of luaEntries) {
@@ -135,8 +148,7 @@ for (const entry of luaEntries) {
     put(`E/${entry.id}/corner/timer`, timer);
   }
   for (const k of entry.knobs)
-    for (let i = 0; i < k.values.length; i++)
-      at({ [k.id]: i }, `knob ${k.id}=${i}`);
+    for (const i of walkOf(k)) at({ [k.id]: i }, `knob ${k.id}=${i}`);
   if (FULL) {
     const h = createHash("sha256");
     // THE PRODUCT IS SAMPLED PAST ONE MILLION STATES (change 8, 2026-09-18). ORBIT carries
@@ -154,13 +166,13 @@ for (const entry of luaEntries) {
     // is the licence, as for the sample. An entry whose sample stays under the ceiling (ARC's 576)
     // is hashed exactly as the rule above says; ORBIT's ring notes are its outputs' Numbers now and
     // are held with them (629,856 states -> 3,888).
-    const full = entry.knobs.reduce((n, k) => n * k.values.length, 1);
-    const three = (k) => [...new Set([0, k.default, k.values.length - 1])];
+    const full = entry.knobs.reduce((n, k) => n * rungsOf(k).length, 1);
+    const three = (k) => [...new Set([0, k.default, rungsOf(k).length - 1])];
     const sampledFull = entry.knobs.reduce((n, k) => n * three(k).length, 1);
     const outputs = midi.roleOfKnob(entry);
     const sampled = entry.knobs.map((k) =>
       full <= 1000000
-        ? k.values.map((_, i) => i)
+        ? rungsOf(k)
         : sampledFull > 1000000 && outputs.has(k.id)
           ? [k.default]
           : three(k),

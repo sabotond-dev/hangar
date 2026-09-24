@@ -36,16 +36,14 @@
   new focus behaviour: arrow keys step one, Home and End jump to the ends,
   double-click resets, and every control keeps the ring Phase 4 drew.
 
-  THE ONE THING THE RAILS ARE NOT USED FOR. A hand-authored Lua entry's colour
-  knob still offers the four or five literals its author wrote rather than the
-  lattice, and three sixteen-detent rails cannot travel between `0,204,255` and
-  `255,85,0` without passing through 4,094 colours that knob cannot name. So for
-  those the picker shows the SHIPPED Knob.svelte swatch row, inside this same
-  block, under this same caption and this same selector - reused as a component
-  rather than redrawn. `isColourLattice` is what asks, and it is not X-05's `n`:
-  widget selection was already made by kind alone in view.ts, and this is the
-  picker asking what it is holding. Widening the Lua route onto the lattice
-  regenerates every colour-bearing entry's frames and is deferred-items.md item 3.
+  EVERY PLAYGROUND COLOUR KNOB IS ON THE LATTICE SINCE CHANGE 19. A hand-authored
+  Lua card's knob carries its own four or five colours FIRST and the rest of the
+  4,096 after them (catalog/lattice.ts), so its index is not its cell: the view's
+  `cells` takes an index to the rails and `knobIndexAt` brings a cell back, and
+  its own colours are drawn under the rails as the quick-pick row - the SHIPPED
+  Knob.svelte swatch row, reused as a component rather than redrawn. A knob of a
+  few literals (none today) would still get that row instead of the rails.
+  `isColourLattice` is what asks: the picker asking what it is holding.
 
   D-15 / D-16 / D-17, THE INSTRUMENT REGISTER. The selector's options are pill
   outlines - fully rounded, 1px, transparent fill - with a filled pill for the
@@ -91,6 +89,9 @@
     colourRailMax,
     colourValueText,
     isColourLattice,
+    knobIndexAt,
+    latticePositionOf,
+    swatchValueText,
     type ColourBudget,
     type ColourDetent,
     type KnobView,
@@ -168,15 +169,20 @@
   /** The lattice, or a hand-authored palette. See the header. */
   const lattice = $derived(isColourLattice(selected.values));
 
+  /** The knob's cell on the rails: its index on a preset, through `cells` on a Lua card (change 19). */
+  const position = $derived(latticePositionOf(selected, selected.index));
+
   /** 0..15 per channel, red first. A LEVEL, never a knob position. */
-  const levels = $derived(colourLevels(selected.index));
-  const homeLevels = $derived(colourLevels(selected.default));
+  const levels = $derived(colourLevels(position));
+  const homeLevels = $derived(
+    colourLevels(latticePositionOf(selected, selected.default)),
+  );
 
   const rails = $derived(
     COLOUR_CHANNELS.map((channel, axis) => ({
       channel,
       axis: axis as 0 | 1 | 2,
-      detents: colourRail(axis as 0 | 1 | 2, selected.index, budget),
+      detents: colourRail(axis as 0 | 1 | 2, position, budget),
     })),
   );
 
@@ -185,10 +191,30 @@
     rails.some((rail) => colourRailMax(rail.detents) < COLOUR_RAIL_STEPS - 1),
   );
 
-  /** "102, 102, 102" - the three STORED INTEGERS, and never a hex. */
-  const valueText = $derived(colourValueText(selected.index));
+  /** "102, 102, 102" - the three STORED INTEGERS, and never a hex: a card's own colour as written. */
+  const valueText = $derived(
+    swatchValueText(selected.values[selected.index]?.swatch) ??
+      colourValueText(position),
+  );
   /** The same three integers as +-separated columns, for the eye. */
-  const valueColumns = $derived(colourValueText(selected.index).split(", "));
+  const valueColumns = $derived(valueText.split(", "));
+
+  /**
+   * The quick-pick row (change 19): a Lua card's own colours, the first `palette` rungs, as the
+   * swatch row - selected only while the knob stands on one of them.
+   */
+  const quick = $derived<KnobView | undefined>(
+    selected.palette === undefined
+      ? undefined
+      : {
+          ...selected,
+          widget: "swatch",
+          values: selected.values.slice(0, selected.palette),
+          index: selected.index < selected.palette ? selected.index : -1,
+          cells: undefined,
+          palette: undefined,
+        },
+  );
 
   const captionId = "colour-caption";
   const cheapId = "colour-cheap-steps";
@@ -212,12 +238,19 @@
   function moveRail(axis: 0 | 1 | 2, level: number) {
     const next: [number, number, number] = [levels[0], levels[1], levels[2]];
     next[axis] = level;
-    const position = colourPosition(next);
-    if (position !== selected.index) onchange(selected.id, position);
+    const at = colourPosition(next);
+    if (at !== position) onchange(selected.id, knobIndexAt(selected, at));
   }
 
   /** rgb(102 102 102) - a flat fill of a stored value, and A-09's one carve-out. */
   const detentFill = (d: ColourDetent) => `rgb(${d.rgb.join(" ")})`;
+
+  /** A detent's fill: the rung standing in its cell as the knob writes it (a card's own colour), else the cell. */
+  const fillOf = (d: ColourDetent) =>
+    (selected.cells === undefined
+      ? undefined
+      : selected.values[knobIndexAt(selected, d.position)]?.swatch) ??
+    detentFill(d);
 
   /** Percent along a rail. 15 steps between sixteen detents. */
   const percentOf = (level: number) => (level / (COLOUR_RAIL_STEPS - 1)) * 100;
@@ -351,7 +384,7 @@
                   class="detent"
                   class:selected={d.level === levels[rail.axis]}
                   class:unaffordable={!d.affordable}
-                  style:background={d.affordable ? detentFill(d) : undefined}
+                  style:background={d.affordable ? fillOf(d) : undefined}
                 ></span>
               {/each}
             </span>
@@ -406,7 +439,7 @@
       </div>
     {:else}
       <!--
-        A hand-authored palette, shown as the shipped swatch row rather than as
+        A knob of a few literals, shown as the shipped swatch row rather than as
         a fourth thing. `lock={false}`, `reset={false}`, `caption={false}`: the swatch row above carries all three.
       -->
       <div class="palette">
@@ -422,6 +455,21 @@
       </div>
     {/if}
   </div>
+
+  {#if lattice && quick !== undefined}
+    <!-- The card's own colours under the rails, one click each (change 19); the row above carries the reset and the lock. -->
+    <div data-testid="colour-quick">
+      <Knob
+        view={quick}
+        lock={false}
+        reset={false}
+        caption={false}
+        held={isHeld}
+        onchange={(index) => onchange(selected.id, index)}
+        onreset={() => onreset(selected.id)}
+      />
+    </div>
+  {/if}
 
   <!--
     The two hidden expansions. The ticks' sentence is always present because
