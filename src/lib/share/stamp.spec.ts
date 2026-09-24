@@ -354,6 +354,13 @@ describe("the stamp: format x", () => {
           rail: "25,0,50",
         },
       },
+      {
+        id: "lumen",
+        payload: "wn000fec201000h1",
+        moved: {
+          cursor: "255,240,200",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

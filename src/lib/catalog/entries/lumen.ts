@@ -105,6 +105,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -165,8 +166,9 @@ export const LUMEN: CatalogEntry = {
       kind: "colour",
       token: "@CURSORC",
       // The one cell under the finger, at FULL brightness on both layers regardless of its row,
-      // so the cursor is the brightest thing on the pad; three whites.
-      values: ["255,255,255", "255,240,200", "200,240,255"],
+      // so the cursor is the brightest thing on the pad; its own three are whites.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,255,255", "255,240,200", "200,240,255"]),
       default: 0,
     },
     {
