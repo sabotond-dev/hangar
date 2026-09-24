@@ -4543,3 +4543,64 @@ ribbon)? (4) a Touch CC at 127 / 0, or the element's Min / Max? (5) page 3 with 
 Touch note - should Receive default off near the budget, or say so on the meter? (6) the plate's number under a Note -
 the note name, the scale, or nothing? (7) should extras' controllers join the shared-controller pass? (8) remember a
 Note (and its Mode, Scale, Velocity) for the next element of the kind, as every other Type is?
+
+**Done - 21 fix-up, 2026-09-24 (the consolidation after 19, 20 and 21A: the whole e2e suite by chunks, the inspector's
+grid with extra messages, the plate's numeral under a Note, ORBIT's picture on one frame; nothing asked, every decision
+recorded).** Four commits before the docs, no push, no device, no deploy: `eb062fd` fix(sandbox) an extra message's
+block on the inspector's strict grid; `9aaa413` fix(sandbox) the plate's numeral under a Note output; `4581e12` test(e2e)
+ORBIT's brightness picture compared on one frame; `81b31b0` chore(gate) `QUICK_TESTS` 1121; then this paragraph with
+`docs/TESTING.md`'s "2026-09-24 fix-up after 19 / 20 / 21A" (every run listed) and the gate records `gate/fixup-21.*`
+(before, at `cf54963`, clean) and `gate/fixup-21-after.*` (at `81b31b0`, clean).
+
+**The machine was quiet of executors, not of memory**: 3 to 252 MB available all pass (37.6 GB committed of 43.3, the
+processes' own 11.4) - two chunk runs lost their server and are discarded. **The chunks** at `cf54963`'s build: c3 26 / 2
+red (rack-grid's two Sandbox titles, expected), c4 25 / 1 red (library's page crashed - `session closed`; the Latch
+walk, first-experience and library's ORBIT import all green there or alone), c5 11; reruns c1 **35 / 35**, c2 21 / 1
+(`browse.e2e.ts:343`, green alone). On the fixed tree: c3 **28 / 28**, c4 **26 / 26**, c5 11, c2 21 / 1 (`:343` again,
+green alone), c1 30 / 5 and 33 / 2 - every c1 red an exact count off by one retry (the fake's acknowledgement later than
+`executeMs` 250 on a starved machine) or a 30 s timeout, each title green alone (598, 735, 1430 three of three; 705 and
+1016 three of four) but the `webkit-phone` half of `install:2000` (Clear; the fake holds each acknowledgement 200 ms
+on purpose, 50 ms under the timeout): 2 green, 3 red alone - owed a run on a machine with memory.
+
+**The reds, cause and fix.** (1) **rack-grid's Sandbox titles**: 21A's "+ Add message" was a `.row` with no `.control`.
+Now a full-width action row (`.add-row`); the extra's head states the row's four columns (label | control | reset |
+lock at the row's 4px start) - the fold button across the first three, the name in the label column, the chevron in
+the reset column, the summary on its own line inside the head, the remove box in the lock column; under 380px the rows'
+narrow columns. The spec learns an extra's block as a group of its own (as 17C's `.output`), and its Sandbox title adds
+a Value CC to its fader and measures the block: the add row across the row, the extra's rows on the control column at
+the section pitch, the remove box on the lock column, the chevron on the reset column - real rows' invariant unchanged.
+(2) **The Latch walk**: no change broke it. Its 2026-09-23 reds were change 18 drafting the walk itself (a different
+title, before `aae17e4`); the committed walk was green that day, and red once since, at 0.1 GB free in change 20's c4.
+Three green runs alone here; nothing changed. (3) **ORBIT's brightness ratio**: change 19 did not move the picture (all
+1,273 of ORBIT's wire records before 19 byte-identical now; `brightness.ts` and the vendor tree untouched) and the test
+reads no single colour. Both reds read 63 - one layer at half: the samples after the recompile caught no head over a
+marker, the phase the title's own comment warns of. Fixed in the test, the 0.42..0.58 band kept: the page asks for less
+motion, so both sides are the preview's tick-64 frame; 189 -> 95 (0.503) three times. (4) library and first-experience:
+green.
+
+**The plate's numeral under a Note** (CC numbers on): a Gate reads the note it plays by name (`D#4`, not 63); a Pitch
+reads its range, Min to Max as notes (`C3–C5`; `C-1–G9` unset) - the range over the Min note because a ribbon is its
+range, and the longest, `C#-1–G#9`, fits a fader cell; Pitch bend and Channel pressure keep change 17's `PB` / `CP`, no
+number; CC as before; the XY pad axis by axis (`C-1–G9 E2`). `sandbox-ui.spec.ts` 33. **Screenshots** (`fx/shots/` in
+the scratchpad, 4174, stopped by port, 5173 untouched): the pad with a Touch note and a Value extra open and folded, and
+the plate with a Gate and a Pitch fader, at 1440 and 393 - seen, nothing fixed.
+
+**Counts, carried + delta** (carried = `cf54963`): quick 100 / 1120 + 1 todo -> **100 / 1121 + 1 todo** (+1), green
+twice at `--maxWorkers=2`; `QUICK_TESTS` **1121**; check **691 -> 691**; lint clean; the sweep **4 / 19** (128 s); e2e
+titles / runs **122 -> 122**; utilities **44 -> 44**; testids **357 -> 357**; `sandbox/copy.ts` exports 231 -> **232**
+(`plateNoteRange`); SCOPED CSS `d9255ffa…` -> `c673a834…` by name (`.extra-head`, `.extra-head > .fold`, `.extra-head
+> .remove`, `.fold`'s inset, the 380px rule, `.add-row`, `.add`); no radius. **The gate: the wire byte-identical** (set
+`529219e8…`, full `f673bf93…`, Sandbox set `61085205…`) - no Lua moved; it exits 1 at the literal census by design
+(`"field"` 17 -> 16, `"row"` 26 -> 25, `"gate"` 4 -> 5, `"add-row"` +1); by hand the rest: copy exports by
+`plateNoteRange` alone, testids equal, fixtures and OG equal, titles +1, `src/` 4 modified, the refuse list empty.
+
+**Departures from the brief:** (1) two server-lost runs discarded and the webkit half of `install:2000` short of three
+green alone, both the machine's memory; (2) Pitch bend / Channel pressure keep `PB` / `CP` on the plate rather than
+nothing - no number is drawn, which is what the brief's "(no number)" asks, and the word is change 17's label; one line
+in `numberOf` takes it off; (3) the Latch walk unchanged - nothing broke it; (4) ORBIT fixed in the test, since the
+picture did not move; (5) an extra's summary stays on the head's second line (inside the head) and its chevron in the
+reset column, the lock column being the remove box's. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) Pitch on the plate - the range (`C3–C5`), or the Min note alone? (2) `PB` / `CP` on the
+plate - keep the word, or draw nothing? (3) the webkit Clear title's 200 ms hold sits 50 ms under `executeMs` - widen
+that margin in the test (a 100 ms hold still shows CLEARING...), or leave it strict?

@@ -8300,3 +8300,153 @@ added to the host to coalesce reports into the shared frame, and it paints under
 (a mirror is the module's state, not the site's motion); (8) the fix commit `88f4041`; (9) two
 e2e titles went into `install.e2e.ts` (the fake ZONA lives there) rather than a new file, so the
 chunk lists are unchanged. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.
+
+## 2026-09-24 fix-up after 19 / 20 / 21A - the whole e2e suite by chunks, the inspector's strict grid with extra messages, the plate's numeral under a Note, ORBIT's brightness picture on one frame
+
+`BENCH-2026-09-16.txt` section 21, the Done paragraph "21 fix-up". A consolidation pass after changes 19, 20 and 21A
+ran concurrently and all landed (HEAD `cf54963`, the tree clean, no other executor running). Commits, no push, no
+device, no deploy: `eb062fd` fix(sandbox) an extra message's block on the inspector's strict grid; `9aaa413`
+fix(sandbox) the plate's numeral under a Note output; `4581e12` test(e2e) ORBIT's brightness picture compared on one
+frame; `81b31b0` chore(gate) `QUICK_TESTS` 1121; then this section, the Done paragraph and the gate records
+`gate/fixup-21.*` (before, at `cf54963`, the tree clean) and `gate/fixup-21-after.*` (at `81b31b0`).
+
+**The machine.** Nobody else was running, but it was not quiet: `\Memory\Available MBytes` read 3 to 252 MB for the
+whole pass, the commit charge 37.6 GB of a 43.3 GB limit with the processes' own commit summing 11.4 GB (the rest is not
+any process's: nonpaged pool 2.7 GB, paged pool 1.7 GB, and several GB that no working set shows - a driver's, as far as
+a non-elevated shell can see; nothing of mine, and nothing I could release). The chunk runner's free-memory figure is
+printed beside every run below; 0.01 to 1.02 GB. Two chunk runs lost their `wrangler dev` mid-run (wrangler's
+ProxyWorker "Network connection lost", `ERR_CONNECTION_REFUSED` from then on); they are listed and discarded. No run
+was made with fewer workers than the script's 3.
+
+**Chunk runs, as they ran** (`scripts/gate/e2e-chunks.sh <name> <files...>`, `E2E_LOG_DIR` in the scratchpad, one at
+a time, each server stopped through PowerShell - HTTP 000 after every stop):
+
+| #     | Build                               | Chunk / title                                            | Free GB            | Result                                                                                                                                                                                                                                                                                                                                     |
+| ----- | ----------------------------------- | -------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1     | `cf54963` (the before-gate's)       | c1 install + session                                     | 0.01               | 5 passed / 30 failed, the server lost at the third title - discarded                                                                                                                                                                                                                                                                       |
+| 2     | `cf54963`                           | c2 browse + browse-webkit                                | 0.37               | 3 / 19 failed, the server lost - discarded                                                                                                                                                                                                                                                                                                 |
+| 3     | `cf54963`                           | c3 tuning + tuning-webkit + rack-grid                    | 0.14               | **26 passed, 2 failed**: rack-grid's two Sandbox-inspector titles, `a row without a control`                                                                                                                                                                                                                                               |
+| 4     | `cf54963`                           | c4 catalog, fidelity, first-experience, library, sandbox | 0.94               | **25 passed, 1 failed**: `library.e2e.ts:59` at line 196, `Protocol error (Runtime.callFunctionOn): Internal server error, session closed` - the browser's page died, not an assertion; the Latch walk, the extra-messages walk and first-experience's hero title green                                                                    |
+| 5     | `cf54963`                           | c5 artifacts, radius, skeleton, smoke                    | 0.57               | **11 passed**                                                                                                                                                                                                                                                                                                                              |
+| 6     | `cf54963`                           | c1 again                                                 | 0.23               | **35 passed** (1.7 m); ORBIT's picture 248 -> 124 (0.500)                                                                                                                                                                                                                                                                                  |
+| 7     | `cf54963`                           | c2 again                                                 | 0.34               | **21 passed, 1 failed**: `browse.e2e.ts:343` (27 cards for 6 - the known hydration flake)                                                                                                                                                                                                                                                  |
+| 8     | `cf54963`                           | `browse.e2e.ts:343` alone                                | 0.01               | 1 passed                                                                                                                                                                                                                                                                                                                                   |
+| 9     | `cf54963`                           | `library.e2e.ts` alone                                   | 0.19               | 1 passed (the ORBIT copy imports and opens)                                                                                                                                                                                                                                                                                                |
+| 10-12 | `cf54963`                           | the Latch walk alone, three times                        | 0.04 / 0.06 / 0.43 | 1 passed each (12.2 / 15.0 / 16.0 s)                                                                                                                                                                                                                                                                                                       |
+| 13    | `cf54963` + `4581e12`'s spec        | ORBIT's brightness title alone                           | 0.13               | 1 passed, 189 -> 95 (0.503)                                                                                                                                                                                                                                                                                                                |
+| 14    | the fixed tree (source = `4581e12`) | c1                                                       | 0.15               | **30 passed, 5 failed**: `install:705` (`write-system-timer ok 2`, `write-system-utility ok 2` - two attempt-2 retries), `session:735` and `session:1016` (30 s timeouts in `identifyWith`'s `page.evaluate`), `session:1430` (the session region's sentence still empty), `[webkit-phone] install:2000` (a 30 s timeout); ORBIT 189 -> 95 |
+| 15    | the fixed tree                      | c2                                                       | 0.10               | **21 passed, 1 failed**: `browse.e2e.ts:343` again; alone, 1 passed                                                                                                                                                                                                                                                                        |
+| 16    | the fixed tree                      | c3                                                       | 0.95               | **28 passed** - rack-grid's two Sandbox titles green, with the extra block measured                                                                                                                                                                                                                                                        |
+| 17    | the fixed tree                      | c4                                                       | 0.50               | **26 passed**                                                                                                                                                                                                                                                                                                                              |
+| 18    | the fixed tree                      | c5                                                       | 0.10               | **11 passed**                                                                                                                                                                                                                                                                                                                              |
+| 19    | the fixed tree                      | c1 again                                                 | 0.10               | **33 passed, 2 failed**: `install:598` (a 30 s timeout) and `[webkit-phone] install:2000`; ORBIT 189 -> 95                                                                                                                                                                                                                                 |
+
+**Every c1 red of runs 14 and 19, alone on the fixed tree's build** (0.07 to 1.02 GB free): `install:598` 3 of 3
+green; `session:735` 3 of 3; `session:1430` 3 of 3; `install:705` 3 green and 1 red (`CONFIG/FETCH` 21 for 20 - one
+read-back retried); `session:1016` 3 green and 1 red (the same 30 s timeout); `install:2000` - its chromium half green
+in every run whose server stayed up (4 of 4), its `webkit-phone` half **2 green, 3 red**: 11 CONFIG EXECUTEs for the
+store's 10 at the counter's poll, then twice 6 for the Clear's 5 - and one run lost its server (discarded). **The
+diagnosis, not a fix:** every one of these is an exact count off by one retry or a 30 s timeout. The fake answers from
+Node over the CDP hop; the store's EXECUTE timeout is 250 ms (`TIMEOUTS.executeMs`) and the Clear title holds each
+acknowledgement 200 ms on purpose (to make CLEARING... catchable), so a starved machine that adds 50 ms anywhere gets a
+correct retry and a count one long - the write log's rule is exact by design, and the product's retry is right. None of
+these titles reads anything changes 19, 20, 21A or this pass touched (the mirror is off unless clicked). The webkit half
+of `install:2000` did not reach three green alone on this machine; it is owed a run on a machine with memory (it passed
+in run 6 at `cf54963`, the whole chunk green).
+
+**The expected reds, cause and fix.**
+
+- **rack-grid's two Sandbox-inspector titles** (runs 3 / 16). The cause: 21A put "+ Add message" inside a
+  `<div class="field"><div class="row">` with no `.control`, so `rowsOf` threw `a row without a control` before any
+  measurement (the fader in the title carries no extra, so the button was the only offender). The fix (`eb062fd`):
+  "+ Add message" is a full-width action row (`.add-row`, the outlined button across all four columns, 44 tall, never
+  a `.row`); the extra's head `.extra-head` states the row's own four columns - `var(--tune-label-w, 96px) minmax(0, 1fr)
+44px 44px` at the row's 4px start, `grid-template-areas: "fold fold fold lock"` - the fold button across label,
+  control and reset (the name in the label column, the chevron in the reset column, the summary on a line of its own
+  inside the head, as `021b8b1` put it), the remove box in the lock column; under 380px of the block the rows' own
+  narrow columns (`minmax(0, 1fr) 44px 44px`, "fold fold lock"). 17C's output heads have their chevron in the lock
+  column; an extra's head gives that column to the remove box, so its chevron sits in the reset column. **The spec**
+  (`e2e/rack-grid.e2e.ts`): `sectionsOf` knows an extra's block (`.extra`) as a group of its own, as it knows 17C's
+  `.output` - the only place the rule needs to know a fold head; the invariant for every real row is unchanged. The
+  Sandbox title then clicks "+ Add message" on its fader (a Value CC) and measures: "+ Add message" from the row's left
+  edge to its right edge, 44 tall, before and after the block; every row, the extra's included, on the one control
+  column at 44; the reset boxes still Color and Brightness alone, the lock still the name row's alone; the head's remove
+  box on the lock column's x, 44 x 44, ending at the row's edge; the head's button from the label column's inset to the
+  reset column's end; the chevron centred on the reset column; the summary under the name and inside the head; the
+  extra's rows a group of their own, every pitch (10 + the extra's rows - 1) the section pitch; nothing sideways. Green
+  at 1440 x 900 and 1280 x 720 (run 16).
+- **The Sandbox Latch walk's monitor line** (`CC 2 ch 1 → 127`). Read through every log in the shared scratchpad that ran
+  it: red four times on 2026-09-23 between 15:13 and 15:17 (local times; the same `not.toHaveCount(0)` on the monitor
+  line) - all while change 18 was drafting the walk itself (its title
+  then read "a finger in Play reaching the preview"; the slide across the empty cell was added after), before its commit
+  `aae17e4` at 15:20; green on the committed walk at 15:24, 16:35 and 16:53 that day; on 2026-09-24 red once, at 11:51
+  in change 20's c4 at 0.1 GB free (13.2 s, the 10 s expect), green at 11:24 and in runs 4, 10, 11, 12 and 17 here.
+  **No change broke it** - neither 20 nor 21A (both in the builds of the greens here) - and the "2026-09-23 log before
+  change 20" was the walk's own drafting. Proved flaky by three green runs alone (runs 10-12). Nothing changed.
+- **ORBIT's brightness picture ratio** (0.344 and 0.267, both 63 at 128: 183 -> 63 at 10:18 and 236 -> 63 at 11:49, both
+  during changes 19 and 20 on the starved machine). Did change 19 move the picture? No: all 1,273 of ORBIT's wire records
+  in `gate/change-19.wire.json` (before 19) are byte-identical in `gate/fixup-21.wire.json` (the defaults, the corner,
+  every single-knob and cross-product record), `brightness.ts` and `src/vendor/` are untouched since `d7748ab`
+  (`sim/host.ts` gained change 20's `invalidate()` and nothing else), and the at-128 Setup is `scaleLua` of an
+  identical string. Does the test read a colour that is now another lattice cell? No: it reads the brightest channel of the whole canvas. The two reds' 63 is exactly one layer at half
+  (126 / 2): the six samples after the recompile caught no head over a marker - the phase-dependence the title's own
+  comment describes (the brightest channel is the sum of two layers), made worse when the simulator's ticks run late.
+  The greens read 227 to 248 -> 118 to 124 before and after 19. **The fix** (`4581e12`, test-only, the 0.42..0.58 band
+  unchanged): the page asks for less motion, so the preview holds its representative frame (tick 64) at 255 and again
+  at 128 - the same frame on both sides, every colour scaled - and the dim sample waits for 128's engine to repaint that
+  frame. Measured 189 -> 95 (0.503) in runs 13, 14 and 19.
+- **`library.e2e.ts`'s ORBIT import** - green (run 9, alone; run 17 in c4). Run 4's red was the page crashing
+  (`session closed`), not the fixture.
+- **`first-experience`'s hero-motion title** - green in runs 4 and 17.
+- **`browse.e2e.ts:343`** - the known hydration flake, red in c2 twice (runs 7, 15), green alone both times (runs 8 and
+  15's rerun).
+
+**The plate's numeral under a Note output** (21A's note (10); `9aaa413`). With CC numbers on, `SurfaceEditor.svelte`'s
+`numberOf(region, axis)` draws: a Gate the note it plays by name (the stored Number worded by its Type, 17C's rule);
+a Pitch the range it plays, Min to Max as notes, `C3–C5` (`plateNoteRange` in `sandbox/copy.ts`) - chosen over the Min
+note alone because the range is what a ribbon is, and the longest form, `C#-1–G#9`, is eight mono characters at the
+label's 11 px, about 53 of a fader cell's 63.4 user units; a pitch bend and a channel pressure keep change 17's `PB` /
+`CP` (no number - the stored controller is never drawn); a controller its number as before. The fader's own numeral,
+the knob's and the pad's `surface-cc` all read through it, the pad axis by axis (`C-1–G9 E2`). `sandbox-ui.spec.ts` 33:
+the fader on Pitch unset (`C-1–G9`), after Min 48 / Max 72 and Major (`C3–C5`), on Gate D#4 (`D#4`, never `63`), PB,
+CP and back to `63`; the knob's `surface-cc` on Gate its note's name and on Pitch the range; the pad's pair `C-1–G9 E2`
+then `C-1–G9 CP`; and the inspector's markup for the grid fix (the add row, one head per block, the head's four columns
+and the remove box's `grid-area: lock` in the source).
+
+**Screenshots** (the scratchpad's `fx/shots/`, `wrangler dev` on 4174 serving the fixed tree's build, stopped by port
+through PowerShell, HTTP 000 after; 5173 untouched): the XY pad with a Touch note From Y and a Value CC from Y, open
+and folded, at 1440 x 900 and 393 x 852; two faders with CC numbers on - Fader 1 on Gate D#4, Fader 2 on Pitch 48..72 -
+at both widths. Seen: at 1440 the head's name on the label column's inset, the chevron over the reset column, the
+remove cross in the lock column level with the name row's lock, the summary on its own line (`Touch · Note · Ch 1 · C4
+· Vel from Y`, `Value · CC · Ch 1 · 60 · from Y`), "+ Add message" the row's full width; at 393 the same on the narrow
+columns, the extra's rows stacked like every other row; the plate reads `D#4` and `C3–C5` under the thumbs at both
+widths, the pad `1 2`. Nothing fixed on seeing them.
+
+**Counts, carried + delta** (carried = the tree at `cf54963`): quick 100 / 1120 + 1 todo -> **100 / 1121 + 1 todo**
+(sandbox-ui 33), green twice at `--maxWorkers=2` (once alone, once in the gate); `QUICK_TESTS` 1120 -> **1121**
+(`81b31b0`), `QUICK_FILES` 100; check **691 -> 691**, 0 errors, 0 warnings; lint clean; the sweep **4 / 19** green in
+128 s; e2e titles and runs **122 -> 122** (no title added; rack-grid's Sandbox title and ORBIT's brightness title
+changed in their bodies); utilities **44 -> 44** (0 disappeared, 0 appeared; markup-named intact); data-testids
+**357 -> 357**; copy exports: `sandbox/copy.ts` 231 -> **232** (`plateNoteRange`), nine modules; the literal census:
+`"field"` 17 -> 16, `"row"` 26 -> 25, `"gate"` 4 -> 5, `"add-row"` + 1; SCOPED CSS `d9255ffa…` -> `c673a834…`, by name
+(all `RegionInspector.svelte`): `.extra-head` (the four columns, the areas, the 4px start), `.extra-head > .fold` and
+`.extra-head > .remove` (new), `.fold` (its 4px inset moved to the head), the `@container (width < 380px)` rule for
+`.extra-head` and `.fold` (new), `.add-row` (new), `.add` (`inline-size: 100%` for the grid-column); no radius
+anywhere. **The gate** (`--before fixup-21` at `cf54963`, clean; `--after fixup-21 --against fixup-21 --check 691` at
+`81b31b0`, clean): **the wire byte-identical** - set `529219e8…`, full `f673bf93…`, Sandbox set `61085205…`, every term
+equal; no Lua moved. The script exits 1 at the literal census by design (the four literals above); the later terms by
+hand: copy exports moved by `plateNoteRange` alone; testids equal; check 691, lint, quick, build green; the fixtures'
+four hashes and the OG images (27, 159,169 B) **equal**; utilities 44 -> 44; titles +1 vitest (1121 -> 1122 incl. the
+todo), 122 playwright runs; `src/` 4 modified, 0 added, 0 deleted; the refuse-list paths (`src/vendor`, the manifest,
+`Knob.svelte`, `ColourPicker.svelte`) empty.
+
+**Departures from the brief:** (1) the machine was quiet of executors but not of memory - two chunk runs lost their
+server and are discarded, and the webkit half of `install:2000` did not reach three green alone (2 of 5, diagnosed
+above, owed on a machine with memory); (2) a Pitch bend or Channel pressure output keeps change 17's `PB` / `CP` on the
+plate rather than drawing nothing: the brief's "nothing (no number)" is met in substance - no number is drawn - and the
+word is 17's deliberate label for a type with no number; dropping it is one line in `numberOf` if the user wants the
+cell bare; (3) the Latch walk needed no fix - no change broke it; (4) ORBIT's fix is in the test (one frame on both
+sides) because the picture did not move; (5) an extra's head keeps its summary on the second line of the head (inside
+the button, as `021b8b1` put it) rather than in the control column, where 21A saw it cut at 1440; its chevron is in the
+reset column because the remove box holds the lock column. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays
+`[ ]`.
