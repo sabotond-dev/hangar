@@ -994,28 +994,48 @@ test.describe("turning a knob", () => {
     await recomputed(page);
     await expect(note).toHaveAttribute("data-index", "1");
 
-    // THE SWATCH CHIP: SNAKE's body colour is a hand-authored palette; the
-    // chip reads its hue word, opens the block on a click, and the palette
-    // row inside it moves the knob - the chip's readout follows.
+    // THE SWATCH CHIP: SNAKE's body colour is the RGB444 lattice with its old
+    // four first (change 19); the chip reads the three channels, opens the
+    // full picker on a click - the three RGB rails and, under them, the old
+    // four as the quick-pick row - and both move the knob; the chip's readout
+    // follows.
     const body = page.getByTestId("swatch-body");
     const chip = body.getByTestId("edit-color");
-    await expect(chip).toContainText("Spring green");
+    await expect(chip).toContainText("0 255 120");
     await expect(chip).toHaveAttribute("aria-expanded", "false");
     await chip.click();
     await expect(chip).toHaveAttribute("aria-expanded", "true");
     const editor = page.getByTestId("colour-editor");
     await expect(editor).toBeVisible();
     await expect(editor).toHaveAttribute("data-knob", "body");
-    const palette = editor
+    for (const channel of ["r", "g", "b"]) {
+      await expect(editor.getByTestId(`colour-rail-${channel}`)).toBeVisible();
+    }
+    const quick = editor.getByTestId("colour-quick");
+    const palette = quick
       .getByTestId("knob-body")
       .locator("input[type='radio']");
     expect(await palette.count()).toBe(4);
-    await editor.getByTestId("knob-body").locator("label").nth(1).click();
+    await expect(palette.nth(0)).toBeChecked();
+    await quick.getByTestId("knob-body").locator("label").nth(1).click();
     await expect(palette.nth(1)).toBeChecked();
     await recomputed(page);
     await expect(body).toHaveAttribute("data-index", "1");
-    await expect(chip).toContainText("Cyan");
+    await expect(chip).toContainText("0 200 255");
     await expect(body).toHaveAttribute("data-changed", "true");
+    await body.getByTestId("swatch-body-reset").click();
+    await recomputed(page);
+    await expect(body).toHaveAttribute("data-index", "0");
+    // One step on the red rail leaves the old four: 0,255,120 stands in the
+    // cell (0, 15, 7), so red's first step is the cell's own 17,255,119.
+    await editor
+      .locator("[data-testid='colour-rail-r'] input[type='range']")
+      .focus();
+    await page.keyboard.press("ArrowRight");
+    await recomputed(page);
+    await expect(chip).toContainText("17 255 119");
+    expect(Number(await body.getAttribute("data-index"))).toBeGreaterThan(3);
+    await expect(palette.nth(0)).not.toBeChecked();
     await body.getByTestId("swatch-body-reset").click();
     await recomputed(page);
     await expect(body).toHaveAttribute("data-index", "0");
