@@ -143,8 +143,13 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 46 -> 47 the same day (change 17C's docs): the five wrapped presets' outputs and
  * receive - four clauses (a)-(d).
+ *
+ * 47 -> 51 on 2026-09-24 (change 20, docs/MIRROR.md): Mirror ZONA's four hardware
+ * answers - the lights arrive and are the pad's, no finger on the wire, the MIDI it
+ * sent, off is silence. Their Config cells name Aurora and "any card", never the
+ * blocked name, so test 2's one-optional-row rule is untouched.
  */
-const ROW_COUNT = 47;
+const ROW_COUNT = 51;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
