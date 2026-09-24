@@ -734,9 +734,11 @@ describe("the stamp: the envelope", () => {
       // spread read as a wrong voicing. The fixture is not regenerated.
       // POMODORO's captured stamp landed `older` (a resized knob) until change 17B, which grew its
       // rack by four knobs and made its note wide: a longer payload, so it lands `unreadable` by
-      // the length check with the grown cards below. No captured stamp is `older` today; the
-      // branch stays for the next resize.
-      const resized: boolean = false;
+      // the length check with the grown cards below.
+      // STAGE's is `older` since change 19 (2026-09-24): its two colour knobs became the RGB444
+      // lattice (4,096 rungs where four were) - a resize at the same payload length, so the shape
+      // character says older and the card opens at its defaults. The fixture is not regenerated.
+      const resized = record.entry === "stage";
       // ORBIT joins the grown: EUCLID's six-knob `x` payload is the wrong
       // length for fourteen knobs and two wide fields (change 8), by design.
       // AND STEPS AND GHOST, at change 12 (2026-09-18, BENCH-2026-09-16.txt
@@ -761,7 +763,7 @@ describe("the stamp: the envelope", () => {
         decodeFor(each, record.payload),
         resized
           ? `${record.entry}: the format x stamp ${record.payload} must land ` +
-              "older - its knob was resized in plan 11-09 - and never " +
+              "older - its colour knobs were resized at change 19 - and never " +
               "unreadable and never restored"
           : grew
             ? `${record.entry}: the format x stamp ${record.payload} must land ` +
