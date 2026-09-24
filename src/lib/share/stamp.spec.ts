@@ -369,6 +369,14 @@ describe("the stamp: format x", () => {
           zone: "50,40,30",
         },
       },
+      {
+        id: "snake",
+        payload: "wf10cff0700000014",
+        moved: {
+          body: "0,200,255",
+          food: "255,0,120",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

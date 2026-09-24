@@ -97,6 +97,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   TRIGGER_STATUSES,
@@ -143,10 +144,11 @@ export const SNAKE: CatalogEntry = {
       label: "Snake colour",
       kind: "colour",
       token: "@SNAKEC",
-      // Painted on BOTH layers (one layer caps at 49.6 per cent). Every channel inside 0..255;
-      // all four values nine characters. ONE site in the Setup (the restart) and one in the
-      // Timer (the head).
-      values: ["0,255,120", "0,200,255", "255,0,255", "255,255,0"],
+      // Painted on BOTH layers (one layer caps at 49.6 per cent). Every channel inside 0..255; its
+      // own four nine characters each (the lattice runs 5 to 11, costed at 255,255,255). ONE site
+      // in the Setup (the restart) and one in the Timer (the head).
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,255,120", "0,200,255", "255,0,255", "255,255,0"]),
       default: 0,
     },
     {
@@ -154,10 +156,11 @@ export const SNAKE: CatalogEntry = {
       label: "Food colour",
       kind: "colour",
       token: "@FOODC",
-      // Warm against a cool default body: hue is what tells one cell from six. Nine characters
-      // each. TWO sites in the Setup (the restart, the placer) and one in the Timer (the death
+      // Warm against a cool default body: hue is what tells one cell from six. Its own four nine
+      // characters each. TWO sites in the Setup (the restart, the placer) and one in the Timer (the death
       // flash paints the whole body in it).
-      values: ["255,140,0", "255,0,120", "255,255,0", "120,0,255"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,140,0", "255,0,120", "255,255,0", "120,0,255"]),
       default: 0,
     },
     {
