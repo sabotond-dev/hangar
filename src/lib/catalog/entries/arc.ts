@@ -104,6 +104,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -142,13 +143,14 @@ export const ARC: CatalogEntry = {
       kind: "colour",
       token: "@SWIRLC",
       // Layer 2's colour. Every channel inside 0..255: the firmware truncates rather than clamps.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "0,110,255",
         "255,40,120",
         "0,255,140",
         "180,0,255",
         "255,255,255",
-      ],
+      ]),
       default: 0,
     },
     {
@@ -168,13 +170,14 @@ export const ARC: CatalogEntry = {
       token: "@HEARTC",
       // Layer 1's colour: the 3x3 heart and the fader's lit cell; a contrast with the swirl
       // makes the depth readable.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "255,255,120",
         "255,255,255",
         "255,90,0",
         "0,255,255",
         "255,0,120",
-      ],
+      ]),
       default: 0,
     },
     {

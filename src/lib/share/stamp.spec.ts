@@ -298,6 +298,14 @@ describe("the stamp: format x", () => {
           bloomColour: "255,60,0",
         },
       },
+      {
+        id: "arc",
+        payload: "w0f270fff010301",
+        moved: {
+          swirlColour: "255,40,120",
+          heartColour: "255,255,255",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);
