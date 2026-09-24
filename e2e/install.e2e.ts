@@ -2365,6 +2365,17 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // store observes -> the fake ZONA's RAM. The picture is sampled off the
     // canvas before and after: the brightest channel at 128 is about half of
     // 255's. What is read is the module's RAM, as the LUMEN title above.
+    //
+    // ONE FRAME, BOTH SIDES (fix-up 21, 2026-09-24): the page asks for less
+    // motion, so the preview holds its representative frame (tick 64) at 255
+    // and again at 128 - the same frame, every colour scaled. Animated, the
+    // two maxima came from different phases of ORBIT's head: on a starved
+    // machine (0.1 GB free, change 19's and 20's runs) the six samples after
+    // the recompile caught no head over a marker and read one layer at half
+    // (63, from 183 and from 236: ratios 0.344 and 0.267) while ORBIT's
+    // Lua, and so the picture, was byte-identical to the one that read
+    // 227 -> 118 (all 1,273 of ORBIT's wire records equal across change 19).
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const consoleErrors = collectErrors(page);
     const zona = await openReal(page, moduleState(19), undefined, ORBIT.id);
     await connectOnPage(page, zona);
@@ -2381,8 +2392,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(dimmed.length).toBeLessThanOrEqual(shipped.length);
 
     const brightest = async (): Promise<number> => {
-      // The brightest channel over a few frames: the ring animates, so one
-      // sample could catch a trough on either side.
+      // The brightest channel over a few samples (one still frame under reduced
+      // motion; the loop kept so a late paint cannot be missed).
       let max = 0;
       for (let i = 0; i < 6; i += 1) {
         const at = await page.evaluate((sel) => {
@@ -2427,6 +2438,22 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     await expect(field).toHaveAttribute("data-changed", "true");
     await expect(reset).toBeEnabled();
     await expect(input).not.toHaveAttribute("aria-invalid", "true");
+    // The new engine's frame on the canvas: the still picture moves once, when 128's engine lands.
+    await page.waitForFunction(
+      ([sel, full]) => {
+        const c = document.querySelector(sel) as HTMLCanvasElement | null;
+        const ctx = c?.getContext("2d");
+        if (!c || !ctx) return false;
+        const data = ctx.getImageData(0, 0, c.width, c.height).data;
+        let m = 0;
+        for (let k = 0; k < data.length; k += 4) {
+          m = Math.max(m, data[k], data[k + 1], data[k + 2]);
+        }
+        return m > 0 && m < full;
+      },
+      [canvasOf(ORBIT.id), fullMax] as const,
+      { timeout: 15_000 },
+    );
     const dimMax = await brightest();
     // A RATIO BAND, NOT +-6 (change 8, 2026-09-18). EUCLID's brightest channel
     // was one layer's alone (a marker's red, a cyan head's blue: each capped at
@@ -2437,6 +2464,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     // each state, and the two maxima differ by up to 63 |dp| beyond the
     // arithmetic - measured 221 -> 118 on the first run, 8 off half. The bytes
     // on the wire are asserted exactly below; the picture is "about half".
+    // Since fix-up 21 both maxima are the same frame (reduced motion, above),
+    // so the band is the layer mix's rounding and nothing of the phase.
     const ratio = dimMax / fullMax;
     expect(
       ratio,
