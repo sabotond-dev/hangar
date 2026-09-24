@@ -71,7 +71,7 @@ function overflowOf(page: Page, testId: string) {
   }, testId);
 }
 
-/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only - a MIDI output's block (change 17C: its head and its rows, once a sub-head) is a group of its own; by test id, or by label. */
+/** The rows in the order they sit inside each section's rows block, so a pitch is measured between neighbours only - a MIDI output's block (change 17C: its head and its rows, once a sub-head) and an extra message's block (change 21A, the same folding head) are each a group of their own; by test id, or by label. */
 function sectionsOf(page: Page, byLabel = false): Promise<string[][]> {
   return page.evaluate((labels) => {
     const name = (row: Element) =>
@@ -91,7 +91,10 @@ function sectionsOf(page: Page, byLabel = false): Promise<string[][]> {
           group = [];
           continue;
         }
-        if (child.classList.contains("output")) {
+        if (
+          child.classList.contains("output") ||
+          child.classList.contains("extra")
+        ) {
           groups.push(group);
           groups.push(Array.from(child.querySelectorAll(".row")).map(name));
           group = [];
@@ -478,6 +481,126 @@ test.describe("the Sandbox inspector's grid", () => {
         expect(
           (box as { scrollWidth: number }).scrollWidth,
           `${id} has something to scroll to sideways: ${JSON.stringify(box)}`,
+        ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
+      }
+
+      // AN EXTRA MESSAGE (change 21A; fix-up 21): + Add message is a full-width action row, not a
+      // label | control row; the fader's first extra (a Value CC) is a block on 17C's folding head -
+      // the name in the label column, the chevron in the reset column, the summary on a line of its
+      // own inside the head, the remove box in the lock column - and its rows on the same grid, one
+      // pitch apart, a group of their own.
+      const add = page.getByTestId("extra-add");
+      const addBox = await add.boundingBox();
+      if (addBox === null) throw new Error("no + Add message");
+      expect(
+        near(addBox.x, first.row.x) &&
+          near(addBox.x + addBox.width, first.row.r),
+        `+ Add message spans ${addBox.x}..${addBox.x + addBox.width}, the row ${first.row.x}..${first.row.r}`,
+      ).toBe(true);
+      expect(near(addBox.height, 44), "+ Add message is 44 tall").toBe(true);
+      await add.click();
+      await expect(page.getByTestId("extra-block")).toHaveCount(1);
+      const withExtra = await rowsOf(page);
+      const extraLabels = await page
+        .getByTestId("extra-block")
+        .evaluate((block) =>
+          Array.from(block.querySelectorAll(".row")).map((row) =>
+            (row.querySelector(".label")?.textContent ?? "").trim(),
+          ),
+        );
+      expect(extraLabels.length, "the extra's rows").toBeGreaterThanOrEqual(3);
+      expect(withExtra.length).toBe(rows.length + extraLabels.length);
+      for (const row of withExtra) {
+        expect(
+          near(row.control.x, first.control.x) &&
+            near(row.control.r, first.control.r) &&
+            near(row.control.h, 44),
+          `${row.label}'s control is ${row.control.x}..${row.control.r} x ${row.control.h}`,
+        ).toBe(true);
+      }
+      expect(
+        withExtra.filter((row) => row.reset).map((row) => row.label),
+      ).toEqual(["Color", "Brightness"]);
+      expect(
+        withExtra.filter((row) => row.lock).map((row) => row.label),
+      ).toEqual(["Element name"]);
+      const head = await page.getByTestId("extra-block").evaluate((block) => {
+        const box = (selector: string) => {
+          const el = block.querySelector(selector);
+          if (el === null) throw new Error(`no ${selector} in the head`);
+          const b = el.getBoundingClientRect();
+          return { x: b.x, y: b.y, w: b.width, h: b.height, r: b.x + b.width };
+        };
+        return {
+          fold: box("[data-testid='extra-fold']"),
+          name: box(".fold-name"),
+          chevron: box(".chevron"),
+          summary: box("[data-testid='extra-summary']"),
+          remove: box("[data-testid='extra-remove']"),
+        };
+      });
+      const resetX = first.control.r + 8;
+      expect(
+        near(head.remove.x, lock.x) && near(head.remove.r, first.row.r),
+        `the remove box is at ${head.remove.x}, the lock column at ${lock.x}`,
+      ).toBe(true);
+      expect(
+        near(head.remove.w, 44) && near(head.remove.h, 44),
+        "the remove box is 44 x 44",
+      ).toBe(true);
+      expect(
+        near(head.fold.x, first.row.x + 4) && near(head.fold.r, resetX + 44),
+        `the head's button spans ${head.fold.x}..${head.fold.r}, the label column to the reset column's end ${resetX + 44}`,
+      ).toBe(true);
+      expect(
+        head.fold.h,
+        "the head is 44 tall at least",
+      ).toBeGreaterThanOrEqual(44);
+      expect(
+        near(head.chevron.x + head.chevron.w / 2, resetX + 22),
+        `the chevron's centre is ${head.chevron.x + head.chevron.w / 2}, the reset column's ${resetX + 22}`,
+      ).toBe(true);
+      expect(
+        near(head.summary.x, head.name.x) && head.summary.y > head.name.y,
+        "the summary on a line of its own inside the head, under the name",
+      ).toBe(true);
+      expect(
+        head.summary.r <= head.fold.r + 1,
+        "the summary inside the head",
+      ).toBe(true);
+      const extraSections = await sectionsOf(page, true);
+      expect(
+        extraSections,
+        "the extra's rows a group of their own",
+      ).toContainEqual(extraLabels);
+      const extraPitches: number[] = [];
+      let at = 0;
+      for (const section of extraSections) {
+        const own = withExtra.slice(at, at + section.length);
+        expect(own.map((row) => row.label)).toEqual(section);
+        at += section.length;
+        for (let k = 1; k < own.length; k++) {
+          extraPitches.push(own[k].control.y - own[k - 1].control.y);
+        }
+      }
+      expect(extraPitches.length).toBe(10 + extraLabels.length - 1);
+      for (const pitch of extraPitches) {
+        expect(
+          near(pitch, pitches[0]),
+          `the pitches with an extra are ${extraPitches.join(", ")}`,
+        ).toBe(true);
+      }
+      const after = await page.getByTestId("extra-add").boundingBox();
+      if (after === null) throw new Error("no + Add message after the block");
+      expect(
+        near(after.x, first.row.x) && near(after.x + after.width, first.row.r),
+        "+ Add message still spans the row under the block",
+      ).toBe(true);
+      for (const id of ["sandbox", "shell-inspector", "shell-inspector-body"]) {
+        const box = await overflowOf(page, id);
+        expect(
+          (box as { scrollWidth: number }).scrollWidth,
+          `${id} scrolls sideways with an extra: ${JSON.stringify(box)}`,
         ).toBeLessThanOrEqual((box as { clientWidth: number }).clientWidth);
       }
     });

@@ -1525,22 +1525,20 @@
       </div>
     </div>
   {/each}
-  <!-- "+ Add message": a Touch note on a pad and a button, a Value CC on a fader and a knob; disabled at three. -->
-  <div class="field">
-    <div class="row">
-      <button
-        class="outlined add"
-        type="button"
-        data-testid="extra-add"
-        disabled={play || full}
-        title={full ? ADD_MESSAGE_FULL : ADD_MESSAGE_HELPER}
-        aria-describedby={describedBy(`${extraUid}-helper`, lock)}
-        onclick={() => onmessage?.({ kind: "add" })}>{ADD_MESSAGE}</button
-      >
-      <span class="sr-only" id="{extraUid}-helper"
-        >{full ? ADD_MESSAGE_FULL : ADD_MESSAGE_HELPER}</span
-      >
-    </div>
+  <!-- "+ Add message": a Touch note on a pad and a button, a Value CC on a fader and a knob; disabled at three. A full-width action row, not a label | control row (fix-up 21). -->
+  <div class="add-row">
+    <button
+      class="outlined add"
+      type="button"
+      data-testid="extra-add"
+      disabled={play || full}
+      title={full ? ADD_MESSAGE_FULL : ADD_MESSAGE_HELPER}
+      aria-describedby={describedBy(`${extraUid}-helper`, lock)}
+      onclick={() => onmessage?.({ kind: "add" })}>{ADD_MESSAGE}</button
+    >
+    <span class="sr-only" id="{extraUid}-helper"
+      >{full ? ADD_MESSAGE_FULL : ADD_MESSAGE_HELPER}</span
+    >
   </div>
 {/snippet}
 
@@ -2181,20 +2179,30 @@
     min-inline-size: 0;
   }
 
-  /* The head on the rack's grid: the fold button across label, control and reset, the remove box in the lock column. */
+  /* The head on the row's own grid (fix-up 21): label | control | reset | lock at the row's 4px start - the fold button across the first three, the remove box in the lock column. */
   .extra-head {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 44px;
+    grid-template-columns: var(--tune-label-w, 96px) minmax(0, 1fr) 44px 44px;
+    grid-template-areas: "fold fold fold lock";
     column-gap: 8px;
     align-items: center;
+    padding-inline-start: 4px;
+  }
+
+  .extra-head > .fold {
+    grid-area: fold;
+  }
+
+  .extra-head > .remove {
+    grid-area: lock;
   }
 
   /*
-    17C's folding head (TuningRegion.svelte's rules): a full-width button - the block's name in the
-    label column (the eyebrow face, ink) and a chevron of straight lines in the reset column, then the
-    one-line summary (the house mono, quiet) on a line of its own across all three - at 1440 the
-    control column alone cut it to `Touch · Note · Ch 1 · C…` (seen on the screenshots); 44px at
-    least, square, no fill.
+    17C's folding head (TuningRegion.svelte's rules): a button over the label, control and reset
+    columns - the block's name in the label column (the eyebrow face, ink) and a chevron of straight
+    lines in the reset column, then the one-line summary (the house mono, quiet) on a line of its own
+    across all three - at 1440 the control column alone cut it to `Touch · Note · Ch 1 · C…` (seen
+    on the screenshots); 44px at least, square, no fill.
   */
   .fold {
     appearance: none;
@@ -2211,7 +2219,7 @@
     min-inline-size: 0;
     min-block-size: 44px;
     margin: 0;
-    padding: 6px 0 8px 4px;
+    padding: 6px 0 8px;
     border: 0;
     background: transparent;
     font: inherit;
@@ -2269,9 +2277,29 @@
     border-block-start: 1px solid var(--color-divider);
   }
 
-  /* "+ Add message" across the label and control columns, 44 tall, the row's own inset. */
+  /* Under 380px of the block the rows drop the label column (the label takes a line of its own); the head keeps the same columns - the fold over control and reset, the remove box in the lock column - the name above the summary inside it. */
+  @container (width < 380px) {
+    .extra-head {
+      grid-template-columns: minmax(0, 1fr) 44px 44px;
+      grid-template-areas: "fold fold lock";
+    }
+
+    .fold {
+      grid-template-columns: minmax(0, 1fr) 44px;
+      grid-template-areas:
+        "name chevron"
+        "summary summary";
+    }
+  }
+
+  /* "+ Add message" (fix-up 21): a full-width action row - the outlined button across all four columns, 44 tall - not a label | control row. */
+  .add-row {
+    display: flex;
+    min-inline-size: 0;
+  }
+
   .add {
-    grid-column: label-start / control-end;
+    inline-size: 100%;
   }
 
   /* The Arrange row (13B): eight square icon boxes, four to a line (the alignments, then the centres and the spacings) - a body of 385 held 7 + 1 (change 16c). */
