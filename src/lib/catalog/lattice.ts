@@ -73,6 +73,14 @@ export function paletteLattice(palette: readonly string[]): readonly string[] {
   return rungs;
 }
 
+/** A lattice colour knob's two fields from its old colours: `...onLattice([...])` in an entry. */
+export function onLattice(palette: readonly string[]): {
+  values: readonly string[];
+  palette: readonly string[];
+} {
+  return { values: paletteLattice(palette), palette };
+}
+
 /** True for a colour knob that carries a whole lattice (the presets' own, or a card's palette-first one). */
 export function isLatticeKnob(knob: {
   kind: string;

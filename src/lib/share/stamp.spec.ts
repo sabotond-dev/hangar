@@ -291,6 +291,13 @@ describe("the stamp: format x", () => {
           ring4Colour: "120,0,255",
         },
       },
+      {
+        id: "chorus",
+        payload: "w0000f40200",
+        moved: {
+          bloomColour: "255,60,0",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

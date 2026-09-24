@@ -98,6 +98,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import { CHANNEL_VALUES, TRIGGER_STATUSES } from "../../tune/midi";
 
 const SETUP =
@@ -183,13 +184,14 @@ export const CHORUS: CatalogEntry = {
       kind: "colour",
       token: "@BLOOMC",
       // Layer 2's colour. Every channel inside 0..255: the firmware truncates rather than clamps.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "255,200,80",
         "255,60,0",
         "0,255,200",
         "120,0,255",
         "255,255,255",
-      ],
+      ]),
       default: 0,
     },
     {
