@@ -5,7 +5,7 @@
 // and `I[4]` (change 11), the HAND-OVER variant of `O` and `Y` for a Latch Off element (change
 // 18), and `packRuntime`, which spreads the parts over the slots a surface lands on, largest
 // first. Every string was run in a real Lua VM before it was measured (runtime.spec.ts).
-// Names `S F I R O` and the trim's `Q D K Y Z V`; calls the library's `E N U X`. docs/MIDI.md, docs/entries/sandbox-runtime.md.
+// Names `S F I R O` and the trim's `Q D K Y Z V W`; calls the library's `E N U X`. docs/MIDI.md, docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { EVENT_BUDGET } from "../../vendor/botor/_pad";
@@ -33,7 +33,7 @@ export const DEFAULT_SWEEP_CALLS = 20;
 
 /**
  * The names this file's parts define. emit.spec.ts / runtime.spec.ts hold them apart from the
- * library's; `E`, `A`, `Y` and `Z` are change 17's, four more the trim freed, and `V` change 18b's, a fifth. The contact tables `S`
+ * library's; `E`, `A`, `Y` and `Z` are change 17's, four more the trim freed, `V` change 18b's, a fifth, and `W` change 21A's, a sixth (the Touch gate, defined only when a surface needs it). The contact tables `S`
  * and `F` are made by the trimmed 255/0's head under five slots and the Setup under fewer
  * (`SETUP_STATE`) since change 17, so they are not a part's.
  */
@@ -49,6 +49,7 @@ export const RUNTIME_NAMES: readonly string[] = [
   "Y",
   "Z",
   "V",
+  "W",
 ];
 
 /** The receive callback's name: the Setup assigns `self.midirx_cb` to it (change 17). */
@@ -536,6 +537,135 @@ export type ReceiveOptions = {
   readonly colour?: ColourInputWire;
 };
 
+// ---------------------------------------------------------------------------
+// Change 21A (BENCH-2026-09-16.txt section 21): extra messages beside an element's own outputs,
+// and a Note on a continuous output. Every text below is emitted ONLY when a region on the surface
+// needs it (`ExtrasOptions`), so a surface without either carries exactly the strings it did.
+
+/**
+ * What a surface's extras and Notes ask of the runtime (emit.ts reads it off the regions). Each
+ * flag swaps in one piece; all false is no variant at all (the emitter passes undefined).
+ */
+export type ExtrasOptions = {
+  /** A Touch extra or a continuous Note: `W`, and its call in the entry (the landing) and in `R` (every release). */
+  readonly touch: boolean;
+  /** A Touch extra on a pad with more than one touch: `W` counts the region's holders - on at the first finger down, off at the last one up. */
+  readonly gate: boolean;
+  /** A Touch note's velocity from the landing's X or Y: `W` reads `A`, which is then packed. */
+  readonly axis: boolean;
+  /** A Touch extra: `W`'s loop over the row's `m`. */
+  readonly extras: boolean;
+  /** A continuous Note: `W`'s own-note loop, and `D`'s note-aware variant (a Pitch re-notes, a Gate sends nothing on a move). */
+  readonly notes: boolean;
+  /** A Value extra: `D` sends it beside the element's own output. */
+  readonly value: boolean;
+};
+
+/**
+ * `W(s,r,x,y)`: the Touch gate. Called by the entry after the branch on a landing (`x`, `y` the
+ * finger - an onset, a hand-over's arrival, a 9) and by `R` on every release (no finger - a lift, a
+ * sweep's expiry, the same id pressed again, another finger landing on the region, a hand-over's
+ * departure), so every on has its off on every path `R` covers. Under `gate` it acts only for the
+ * first holder in (`c==1` after the pin) and the last out (`c==0` after `R` forgot the contact):
+ * a multitouch pad's Touch note is a gate for the pad, not a note per finger. It sends:
+ * - each TOUCH extra in the row's `m` (`{w,n,v}` - the word as the channel word spells it, the
+ *   number, and `v` 1..127 the velocity or 128 / 129 the landing's X / Y; a Value extra's `v` is
+ *   negative and passed over): on `s:gms(w%16,176+w//16*16,n,v)` - a note 144, a CC 176 at 127 -
+ *   and off `176+w//16*24` - a note-off 128 at 0, a CC 176 at 0;
+ * - each continuous NOTE output (`notes`; the X word, and an XY pad's Y word): on, the note and the
+ *   velocity - Pitch (`h%128//16` 5) the value's note at the number column's velocity, Gate (6) the
+ *   number at the value's velocity, never 0 - kept in column 22 (23 for Y); off, that note, once.
+ */
+const W_HEAD = "function W(s,r,x,y)";
+const W_GATE_OPEN =
+  "local c=0 for _,g in pairs(S)do if J[g]==r then c=c+1 end end if c==(x and 1 or 0)then ";
+const W_EXTRAS_OPEN =
+  "for _,g in pairs(r.m or{})do local w,v=g[1],g[3]if v>0 then ";
+const W_AXIS =
+  "if x and v>127 then local a,b=A(r,x,y)v=(v>128 and b or a)*126//127+1 end ";
+const W_EXTRAS_SEND =
+  "s:gms(w%16,176+w//16*(x and 16 or 24),g[2],x and v or 0)end end ";
+const W_NOTES =
+  "for j=1,r[5]==4 and 2 or 1 do local h=j>1 and r[15]or r[8]local t=h%128//16 if t>4 then " +
+  "if x then local u=r[18+j]or r[12]local k=t>5 and r[5+j]or u " +
+  "s:gms(h%16,144,k,t>5 and glim(u,1,127)or r[5+j])r[21+j]=k " +
+  "elseif r[21+j]then s:gms(h%16,128,r[21+j],0)r[21+j]=nil end end end ";
+
+/** `W`'s text for the options: the gate's count, the extras' loop (with the landing's axis), the own notes' loop. */
+export function touchPart(options: ExtrasOptions): string {
+  return (
+    W_HEAD +
+    (options.gate ? W_GATE_OPEN : "") +
+    (options.extras
+      ? W_EXTRAS_OPEN + (options.axis ? W_AXIS : "") + W_EXTRAS_SEND
+      : "") +
+    (options.notes ? W_NOTES : "") +
+    (options.gate ? "end " : "") +
+    "end"
+  );
+}
+
+/**
+ * `D` for change 21A, built from `SEND`'s own pieces. Under `notes` the word is read `h%128//16`
+ * (the three continuous codes 0, 2, 3 as `h//16%4` reads them, and the two Notes 5 and 6): a Pitch
+ * value is quantised DOWN onto its scale, rooted on the Min, before the change test (the row's
+ * column 24, 25 for Y: the degrees; absent is Chromatic, the value itself - model.ts `pitchOf` is the
+ * twin); a Pitch whose note sounds (column 22, 23) re-notes on a change - the old note's off, then the
+ * new one's on at the number column's velocity - and a Gate sends nothing on a move. Under `value`
+ * every Value extra whose column is this call's (`v == -n`: 19 a fader's, a knob's or a pad's X,
+ * 20 a pad's Y; a multitouch pad's first slot 20 and 21) sends the same scaled value on its own word
+ * and number, as the element's own output does - and, like it, not when `s` is nil (the receive's
+ * store): an extra is never echoed and never receives.
+ */
+const SEND_HEAD = "function D(s,r,n,c,v,h)v=r[12]+(r[13]-r[12])*v//127 ";
+const SEND_NOTE_HEAD =
+  "h=h or r[8]local t=h%128//16 " +
+  "if t==5 and r[n+5]then local d,u=(v-r[12])%12,0 " +
+  "for _,g in pairs(r[n+5])do if g<=d and g>u then u=g end end v=v-d+u end ";
+const SEND_CHANGE = "if v~=r[n]then r[n]=v ";
+const SEND_WORD = "h=h or r[8]local t=h//16%4 ";
+const SEND_OWN = "s:gms(h%16,176+t*16,t==2 and v or c,t==2 and 0 or v)";
+const SEND_RENOTE =
+  "elseif t<6 and r[n+3]then s:gms(h%16,128,r[n+3],0)s:gms(h%16,144,v,c)r[n+3]=v end ";
+const SEND_VALUE =
+  "for _,g in pairs(r.m or{})do if g[3]==-n then t=g[1]//16%4 " +
+  "s:gms(g[1]%16,176+t*16,t==2 and v or g[2],t==2 and 0 or v)end end ";
+
+/** `D`'s text for the options: `SEND` itself when neither Notes nor Value extras are on the surface. */
+export function sendPart(options: ExtrasOptions | undefined): string {
+  if (options === undefined || (!options.notes && !options.value)) return SEND;
+  const own = options.notes
+    ? `if t<5 then ${SEND_OWN}${SEND_RENOTE}`
+    : SEND_OWN;
+  return (
+    SEND_HEAD +
+    (options.notes ? SEND_NOTE_HEAD : "") +
+    SEND_CHANGE +
+    (options.notes ? "" : SEND_WORD) +
+    "if s then " +
+    own +
+    (options.value ? SEND_VALUE : "") +
+    "end end end"
+  );
+}
+
+/** The entry's branch call, and the same with `W`'s landing after it (change 21A): the element's own messages first, then the Touch messages. */
+const BRANCH_CALL = "I[r[5]](s,i,r,x,y,o)";
+const BRANCH_CALL_TOUCH = `${BRANCH_CALL}if o then W(s,r,x,y)end `;
+
+/** The entry with `W`'s landing (change 21A): any of the four entries, the branch call followed by the landing's call. */
+export const withTouchEntry = (entry: string): string =>
+  entry.replace(BRANCH_CALL, BRANCH_CALL_TOUCH);
+
+/** `R` with `W`'s release (change 21A): the Touch messages' offs first, then the kind's own release. */
+export const withTouchRelease = (release: string): string =>
+  release === RELEASE
+    ? release.replace(
+        "if not r then return end ",
+        "if not r then return end W(s,r)",
+      )
+    : release.replace("if r then local t", "if r then W(s,r)local t");
+
 /** The branch texts, keyed as model.ts names them; both fader orientations are one text. */
 export const BRANCH_TEXT: Readonly<Record<Branch, string>> = {
   "fader-v": FADER,
@@ -592,19 +722,26 @@ export function runtimeParts(
   multitouch = false,
   receive: ReceiveOptions | undefined = undefined,
   handOver = false,
+  extras: ExtrasOptions | undefined = undefined,
 ): RuntimePart[] {
   const wanted: readonly Branch[] = multitouch ? [...branches, "xy"] : branches;
   const ordered = BRANCHES.filter((b) => wanted.includes(b));
   const text = (b: Branch): string =>
     multitouch && b === "xy" ? MULTITOUCH_TEXT.xy : BRANCH_TEXT[b];
+  // Change 21A: `W` and its two calls only when a Touch extra or a continuous Note is on the surface.
+  const touch = extras?.touch === true;
+  const release = multitouch ? MULTITOUCH_TEXT.release : RELEASE;
+  const entry = entryText(multitouch, handOver);
   const texts = [
-    multitouch ? MULTITOUCH_TEXT.release : RELEASE,
-    entryText(multitouch, handOver),
-    ...(ordered.length > 0 ? [PAINT, SEND] : []),
-    ...(ordered.some((b) => b === "fader-v" || b === "fader-h" || b === "xy")
+    touch ? withTouchRelease(release) : release,
+    touch ? withTouchEntry(entry) : entry,
+    ...(ordered.length > 0 ? [PAINT, sendPart(extras)] : []),
+    ...(ordered.some((b) => b === "fader-v" || b === "fader-h" || b === "xy") ||
+    extras?.axis === true
       ? [POSITION, AXIS]
       : []),
     ...(ordered.includes("button") ? [BUTTON_OFF] : []),
+    ...(touch && extras !== undefined ? [touchPart(extras)] : []),
     ...new Set(ordered.map(text)),
     ...(receive === undefined ? [] : [receivePart(receive, handOver)]),
     ...(receive?.colour === undefined
@@ -657,6 +794,8 @@ export type PackOptions = {
   readonly receive?: ReceiveOptions;
   /** The hand-over entry (change 18): the emitter sets it when a region is Latch Off. */
   readonly handOver?: boolean;
+  /** The extras and continuous Notes (change 21A): the emitter sets it when a region carries either. */
+  readonly extras?: ExtrasOptions;
   /**
    * The touch Setup's data half (change 17, under five slots): its head (the marker, `J`, `M`, the
    * contact tables, the paint) and its tail (the pull-ins, the receive assignment, the callback).
@@ -699,6 +838,7 @@ export function packRuntime(
     options.multitouch ?? false,
     options.receive,
     options.handOver ?? false,
+    options.extras,
   );
 
   const bins: Bin[] = [];

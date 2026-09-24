@@ -22,10 +22,21 @@ import {
   channelWord,
   colourByte,
   colourInputOf,
+  extraSourceOf,
+  extraVelocityOf,
   flagsOf,
   hasHandOver,
   hasMultitouch,
+  hasNoteOutput,
+  isContinuousNote,
   isPaintOnly,
+  noteModeOf,
+  noteVelocityOf,
+  scaleOf,
+  sentExtrasOf,
+  touchesOf,
+  SCALE_DEGREES,
+  TYPE_CODES,
   maxOf,
   minOf,
   receivesOf,
@@ -37,6 +48,7 @@ import {
   typeYOf,
   wireChannel,
   type Branch,
+  type Extra,
   type Region,
   type Surface,
 } from "./model";
@@ -49,6 +61,7 @@ import {
   SETUP_STATE,
   packRuntime,
   sweepCall,
+  type ExtrasOptions,
   type PackedRuntime,
   type ReceiveOptions,
   type SlotCount,
@@ -116,6 +129,8 @@ export type Emitted = {
   readonly handOver: boolean;
   /** The receive half the runtime carries (change 17), or undefined when nothing receives and the colour input is off. */
   readonly receive: ReceiveOptions | undefined;
+  /** What the extras and the continuous Notes asked of the runtime (change 21A), or undefined for a surface with neither. */
+  readonly extras: ExtrasOptions | undefined;
   readonly map: CellMap;
 };
 
@@ -162,8 +177,11 @@ export function regionTail(region: Region): number[] {
   // Change 17: an XY pad's Y axis on a channel word of its own - written only when it differs
   // from the X axis's (the receive bit aside), so an older draft's pad has no fifteenth column.
   if (region.kind === "xy") {
+    // Lua's modulo (a Note's Y word is negative, change 21A); every word before it is not, so the same.
+    const lmod = (n: number, m: number): number => ((n % m) + m) % m;
     const y = channelWord(region, "y");
-    if (y !== channelWord(region) % RECEIVE_OFF_BIT) return [...columns, y];
+    if (lmod(y, RECEIVE_OFF_BIT) !== lmod(channelWord(region), RECEIVE_OFF_BIT))
+      return [...columns, y];
   }
   let end = columns.length;
   while (end > 0 && columns[end - 1] === TAIL_DEFAULTS[end - 1]) end -= 1;
@@ -183,19 +201,128 @@ export function regionRow(region: Region, brightness: number = 255): number[] {
   if (isPaintOnly(region)) {
     throw new Error("a blank has no numeric row: renderRegionTable paints it");
   }
+  // Change 21A: under a Pitch Note the number column carries the note's fixed velocity (the value
+  // picks the note), the Y axis's in the seventh (a Note is never on a pad with more than one touch).
+  const pitchY =
+    isContinuousNote(region, "y") && noteModeOf(region, "y") === "pitch";
   const seventh =
     region.kind === "xy" && typeYOf(region) === "pitchbend"
       ? seventhOf(region) - (region.cc2 ?? 0)
-      : seventhOf(region);
+      : pitchY
+        ? seventhOf(region) - (region.cc2 ?? 0) + noteVelocityOf(region, "y")
+        : seventhOf(region);
+  const pitchX =
+    isContinuousNote(region, "x") && noteModeOf(region, "x") === "pitch";
   return [
     ...geometryOf(region),
     typeCodeOf(region),
-    typeOf(region) === "pitchbend" ? 0 : region.cc,
+    typeOf(region) === "pitchbend"
+      ? 0
+      : pitchX
+        ? noteVelocityOf(region, "x")
+        : region.cc,
     seventh,
     channelWord(region),
     ...colourColumns(region, brightness),
     ...regionTail(region),
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Change 21A: the extra messages and the continuous Notes on the row (BENCH-2026-09-16.txt 21).
+
+/** The row's key for the extras (`r.m` in the runtime's `W` and `D`). */
+export const EXTRAS_KEY = "m";
+
+/** A Touch note's velocity from the landing's axis, as the triple's third number: X 128, Y 129 (runtime.ts `W`). */
+export const AXIS_VELOCITY: Readonly<Record<"x" | "y", number>> = {
+  x: 128,
+  y: 129,
+};
+
+/** The last-sent column a Value extra follows (runtime.ts `D`'s `n`): X 19 and Y 20, a multitouch pad's first slot 20 and 21. */
+export function valueColumn(region: Region, axis: "x" | "y"): number {
+  const base = touchesOf(region) > 1 ? 20 : 19;
+  return base + (axis === "y" ? 1 : 0);
+}
+
+/**
+ * One extra as its row triple `{w,n,v}`: the word the way the channel word spells a type (the wire
+ * channel plus 16 times the type's code - a note -2, a controller 0, a channel pressure 2, a pitch
+ * bend 3; never a receive bit: an extra never receives); the number (0 under a pitch bend or a
+ * channel pressure, the send's first byte or nothing); and the third - a Touch note's velocity
+ * 1..127 or the landing's axis 128 / 129, a Touch CC's on value 127, a Value extra its column
+ * negated (a Touch third is always positive, a Value's always negative: one number tells them apart).
+ */
+export function extraTriple(
+  region: Region,
+  extra: Extra,
+): [number, number, number] {
+  const word = wireChannel(extra.channel) + 16 * TYPE_CODES[extra.type];
+  const number =
+    extra.type === "pitchbend" || extra.type === "pressure" ? 0 : extra.number;
+  if (extra.trigger === "value")
+    return [word, number, -valueColumn(region, extraSourceOf(region, extra))];
+  if (extra.type !== "note") return [word, number, 127];
+  const velocity = extraVelocityOf(extra);
+  return [
+    word,
+    number,
+    typeof velocity === "number" ? velocity : AXIS_VELOCITY[velocity],
+  ];
+}
+
+/** The row's keyed tail (change 21A): a Pitch output's scale degrees (`[24]`, the Y axis's `[25]`; none for Chromatic) and the extras (`m`); "" for a row with neither. */
+export function rowKeys(region: Region): string {
+  let out = "";
+  for (const [axis, column] of [
+    ["x", 24],
+    ["y", 25],
+  ] as const) {
+    if (!isContinuousNote(region, axis) || noteModeOf(region, axis) !== "pitch")
+      continue;
+    const scale = scaleOf(region, axis);
+    if (scale === "chromatic") continue;
+    out += `,[${column}]={${SCALE_DEGREES[scale].join(",")}}`;
+  }
+  const extras = sentExtrasOf(region);
+  if (extras.length > 0)
+    out += `,${EXTRAS_KEY}={${extras.map((x) => `{${extraTriple(region, x).join(",")}}`).join(",")}}`;
+  return out;
+}
+
+/** What the surface's extras and Notes ask of the runtime (runtime.ts `ExtrasOptions`), or undefined for a surface with neither - so it emits exactly the strings it did before change 21A. */
+export function extrasOptionsOf(
+  regions: readonly Region[],
+): ExtrasOptions | undefined {
+  let touchExtras = false;
+  let gate = false;
+  let axis = false;
+  let value = false;
+  let notes = false;
+  for (const region of regions) {
+    if (isPaintOnly(region)) continue;
+    if (hasNoteOutput(region)) notes = true;
+    for (const extra of sentExtrasOf(region)) {
+      if (extra.trigger === "value") {
+        value = true;
+        continue;
+      }
+      touchExtras = true;
+      if (touchesOf(region) > 1) gate = true;
+      if (extra.type === "note" && typeof extraVelocityOf(extra) !== "number")
+        axis = true;
+    }
+  }
+  if (!touchExtras && !notes && !value) return undefined;
+  return {
+    touch: touchExtras || notes,
+    gate,
+    axis,
+    extras: touchExtras,
+    notes,
+    value,
+  };
 }
 
 /** A blank's row: the colour at columns nine to eleven and nothing else - `{[9]=r,[10]=g,[11]=b}`, the paint's three reads. */
@@ -215,7 +342,7 @@ export function renderRegionTable(
   const rows = regions.map((r) =>
     isPaintOnly(r)
       ? blankRow(r, brightness)
-      : `{${regionRow(r, brightness).join(",")}}`,
+      : `{${regionRow(r, brightness).join(",")}${rowKeys(r)}}`,
   );
   return `J={${rows.join(",")}}`;
 }
@@ -289,6 +416,8 @@ export function emitSurface(
   const branches = options.branches ?? branchesUsed(surface.regions);
   const multitouch = options.multitouch ?? hasMultitouch(surface.regions);
   const handOver = options.handOver ?? hasHandOver(surface.regions);
+  // Change 21A: the extras and the continuous Notes, read off the regions; undefined when neither.
+  const extras = extrasOptionsOf(surface.regions);
   // The channel words carry the hand-over bit (model.ts `channelWord`); the entry and, with rows
   // that receive, the receive callback are the variants that read it (runtime.ts).
   const restPhase = options.restPhase ?? DEFAULT_REST_PHASE;
@@ -336,6 +465,7 @@ export function emitSurface(
     multitouch,
     handOver,
     receive: receiveOptions,
+    extras,
     setup: slots === 5 ? { head, tail } : undefined,
   });
   const setup = packed.setup ?? head + " " + tail;
@@ -352,6 +482,7 @@ export function emitSurface(
     multitouch,
     handOver,
     receive: receiveOptions,
+    extras,
     map: built.map,
   };
 }
