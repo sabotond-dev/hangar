@@ -1195,18 +1195,25 @@ describe("the tuning UI's structural rules", () => {
 
     // ---- ABSENT ON PRESET ENTRIES, NOT PRESENT AND EMPTY. The route mounts
     // the bar behind the one guard, and the header names the divergence it
-    // declined (D-14 Q4b: no log added to src/vendor/).
+    // declined (D-14 Q4b: no log added to src/vendor/). Since change 20 the
+    // guard has a first branch: while Mirror ZONA is on, EVERY card mounts the
+    // bar over the module's own MIDI (docs/MIRROR.md section 6); a preset
+    // card's simulator still records none, and without the mirror it still
+    // shows no bar.
     const route = code("src/routes/playground/[id]/+page.svelte");
     expect(
       route,
       'the workspace does not mount the monitor behind preview === "lua"',
     ).toMatch(
-      /[{]#if listed[.]preview === "lua"[}][ \n]*<MidiMonitor source=[{][(][)] => midiLogOf[(]engine[)][}] [/]>[ \n]*[{][/]if[}]/,
+      /[{]:else if listed[.]preview === "lua"[}][ \n]*<MidiMonitor source=[{][(][)] => midiLogOf[(]engine[)][}] [/]>[ \n]*[{][/]if[}]/,
+    );
+    expect(route, "the mirror's branch reads the mirror's log").toMatch(
+      /[{]#if mirroring[}][ \n]*<MidiMonitor[ \n]+source=[{][(][)] => mirror[.]midi[}]/,
     );
     expect(
       occurrences(route, "<MidiMonitor"),
-      "the monitor is mounted more than once, or somewhere outside the guard",
-    ).toBe(1);
+      "the monitor is mounted more than twice, or somewhere outside the guard",
+    ).toBe(2);
     expect(rawMonitor).toContain("D-14 Q4b");
     expect(rawMonitor).toContain("src/vendor/");
     expect(rawMonitor, "the header does not name the host's log").toContain(

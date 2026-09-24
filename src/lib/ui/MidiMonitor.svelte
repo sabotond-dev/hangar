@@ -40,11 +40,20 @@
   let {
     source,
     now = () => performance.now(),
+    sourceLabel = MONITOR_SOURCE,
+    status = MONITOR_STATUS,
+    empty = MONITOR_EMPTY,
   }: {
     /** The engine's MIDI log, read fresh on every sample: the workspace swaps engines under the same id on every knob turn. */
     source: () => readonly HostMidi[] | undefined;
     /** The clock. A prop so a harness can script it. */
     now?: () => number;
+    /** The Source column's word: the preview's, or the ZONA's while the plate mirrors it (change 20). */
+    sourceLabel?: string;
+    /** The bar's status, the same two readers. */
+    status?: string;
+    /** The empty log's line, the same two readers. */
+    empty?: string;
   } = $props();
 
   /** The sampling cadence IS the coalescing window: nothing finer would show. */
@@ -117,7 +126,7 @@
   >
     <span class="chevron" aria-hidden="true">{open ? "˄" : "˅"}</span>
     <span class="title" id={titleId}>{MIDI_MONITOR}</span>
-    <span class="status">{MONITOR_STATUS}</span>
+    <span class="status">{status}</span>
     <span class="chevron" aria-hidden="true">{open ? "˄" : "˅"}</span>
   </button>
 
@@ -151,7 +160,7 @@
 
       {#if rows.length === 0}
         <p class="note type-helper" data-testid="monitor-empty">
-          {MONITOR_EMPTY}
+          {empty}
         </p>
       {:else}
         <div class="scroll">
@@ -168,7 +177,7 @@
                 <tr>
                   <td class="numerals">{describeTime(row.at)}</td>
                   <td>{MONITOR_DIRECTION}</td>
-                  <td>{MONITOR_SOURCE}</td>
+                  <td>{sourceLabel}</td>
                   <td class="numerals">{describeChannel(row.ch)}</td>
                   <td>{describeMessage(row.cmd, row.p1)}</td>
                   <td class="numerals">

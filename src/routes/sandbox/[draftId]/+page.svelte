@@ -9,6 +9,9 @@
   (the hotkeys, V / Escape, Delete, Ctrl/Cmd + C X V D A L, ? - never in a text field), the plate's
   menu, the recent colours, the Play monitor and the Grid Editor profile file (13C). The landing is
   land.ts's under the pinned minifier with SLOTS 5 to install.observeConfig; Play runs the surface's own strings.
+  Mirror ZONA (change 20, docs/MIRROR.md) sits beside the switch in Play while a ZONA is connected: the plate
+  then holds the mirror's engine under the preview's id, the Play monitor reads the module's own MIDI, the
+  plate takes no finger, and leaving Play (or the page) ends it.
   Decided at 13-16 / 13-17 / 13.1-06 (13-CONTEXT D-18, D-19; 13.1-CONTEXT D-06); see .planning/phases/13.1-bench-corrections-four/13.1-06-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -21,6 +24,14 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
+  import {
+    MIRROR_CANNOT,
+    MIRROR_MONITOR_EMPTY,
+    MIRROR_PLAY_MONITOR,
+    MIRROR_PLAY_MONITOR_HELPER,
+    mirrorStatus,
+  } from "$lib/mirror/copy";
+  import { mirror } from "$lib/mirror/mirror.svelte";
   import {
     DEFAULTS_RESET_LINE,
     DEFAULT_SURFACE_NAME,
@@ -131,6 +142,7 @@
   import ElementList from "$lib/ui/sandbox/ElementList.svelte";
   import Palette from "$lib/ui/sandbox/Palette.svelte";
   import PlayMonitor from "$lib/ui/sandbox/PlayMonitor.svelte";
+  import MirrorToggle from "$lib/ui/MirrorToggle.svelte";
   import RegionInspector from "$lib/ui/sandbox/RegionInspector.svelte";
   import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import ShortcutSheet from "$lib/ui/sandbox/ShortcutSheet.svelte";
@@ -313,7 +325,7 @@
   function adopt(): void {
     if (host === undefined || engine === undefined || canvas === undefined)
       return;
-    host.register(PREVIEW_ID, canvas, engine);
+    host.register(PREVIEW_ID, canvas, mirroring ? mirror.engine : engine);
     host.setHero(PREVIEW_ID);
   }
 
@@ -333,6 +345,8 @@
   }
 
   function closePreview(): void {
+    // The mirror lives in Play: leaving it, or the surface, ends it.
+    mirror.stop();
     previewGeneration += 1;
     host?.setHero(undefined);
     host?.unregister(PREVIEW_ID);
@@ -347,7 +361,8 @@
     y: number,
     extent: number,
   ): void {
-    if (host === undefined || engine === undefined) return;
+    // Mirroring, the fingers are on the module: the plate takes none.
+    if (host === undefined || engine === undefined || mirroring) return;
     if (phase === "up") {
       host.touchEnd(pointerId);
       return;
@@ -357,6 +372,36 @@
     if (phase === "down") host.touchDown(pointerId, lx, ly);
     else host.touchMove(pointerId, lx, ly);
   }
+
+  // ---------------------------------------------------------------------------
+  // Mirror ZONA in Play (change 20, docs/MIRROR.md section 6).
+
+  /** The mirror is on: the plate is the module's, not the surface's preview. */
+  const mirroring = $derived(mirror.state !== "off");
+  /** The mirror's frame listener while it is on: the host repaints on its own frame, never per report. */
+  let unmirror: (() => void) | undefined;
+
+  /** Hand the plate to the mirror's engine, or back to the preview's, under the preview's id. */
+  function swapPlate(on: boolean): void {
+    if (on) {
+      unmirror ??= mirror.onFrame(() => host?.invalidate(PREVIEW_ID));
+      host?.replaceEngine(PREVIEW_ID, mirror.engine);
+      return;
+    }
+    unmirror?.();
+    unmirror = undefined;
+    if (engine !== undefined) host?.replaceEngine(PREVIEW_ID, engine);
+  }
+
+  $effect(() => {
+    const on = mirroring;
+    untrack(() => swapPlate(on));
+  });
+
+  /* Edit's plate is the editor, not a preview: a mirror left on outside Play ends. */
+  $effect(() => {
+    if (!play && mirroring) untrack(() => mirror.stop());
+  });
 
   function setMode(next: Mode): void {
     if (editor === undefined || editor.mode === next) return;
@@ -867,6 +912,9 @@
     if (recentTimer !== undefined) clearTimeout(recentTimer);
     // The landing is this page's: the store forgets it with the page.
     install.observeConfig(undefined);
+    mirror.stop();
+    unmirror?.();
+    unmirror = undefined;
     host?.destroy();
     host = undefined;
     engine = undefined;
@@ -1009,6 +1057,7 @@
     data-surface={view.surface.id}
     data-depth={view.depth}
     data-unavailable={unavailable || undefined}
+    data-mirror={mirror.state}
   >
     <header class="top">
       <p class="eyebrow type-micro">{EYEBROW_SANDBOX} / {name.toUpperCase()}</p>
@@ -1080,6 +1129,9 @@
             {MODE_PLAY}
           </label>
         </div>
+        {#if play}
+          <MirrorToggle />
+        {/if}
       </div>
       <div class="lines">
         <p class="sentence">{SUB_LINE}</p>
@@ -1091,6 +1143,18 @@
         >
           {play ? MODE_LINE_PLAY : MODE_LINE_EDIT}
         </p>
+        {#if mirroring}
+          <p class="mode-line type-helper" data-testid="mirror-status">
+            {mirrorStatus(
+              session.identity?.activePage,
+              mirror.lit,
+              mirror.silent,
+            )}
+          </p>
+          <p class="mode-line type-helper" data-testid="mirror-note">
+            {MIRROR_CANNOT}
+          </p>
+        {/if}
       </div>
     </header>
 
@@ -1124,7 +1188,16 @@
 
       <!-- The MIDI monitor in Play (13C): the newest twelve messages the preview engine sent. -->
       {#if play}
-        <PlayMonitor source={() => midiLogOf(engine)} />
+        {#if mirroring}
+          <PlayMonitor
+            source={() => mirror.midi}
+            title={MIRROR_PLAY_MONITOR}
+            helper={MIRROR_PLAY_MONITOR_HELPER}
+            empty={MIRROR_MONITOR_EMPTY}
+          />
+        {:else}
+          <PlayMonitor source={() => midiLogOf(engine)} />
+        {/if}
       {/if}
 
       <!-- The empty state (section 8): the real plate above, the instruction, one starter, one template. -->

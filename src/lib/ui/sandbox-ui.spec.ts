@@ -3965,8 +3965,10 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "get midi(): readonly HostMidi[]",
     );
     const route = code(ROUTE);
+    // Change 20: inside Play, Mirror ZONA's branch reads the module's own MIDI and the
+    // preview's branch is unchanged (docs/MIRROR.md section 6).
     expect(route).toMatch(
-      /\{#if play\}\s*<PlayMonitor source=\{\(\) => midiLogOf\(engine\)\} \/>\s*\{\/if\}/,
+      /\{#if play\}\s*\{#if mirroring\}\s*<PlayMonitor\s+source=\{\(\) => mirror\.midi\}[\s\S]*?\{:else\}\s*<PlayMonitor source=\{\(\) => midiLogOf\(engine\)\} \/>\s*\{\/if\}\s*\{\/if\}/,
     );
     // THE SHAPE: the list, its empty line, its helper, Clear disabled.
     const html = render(PlayMonitor, { props: { source: () => [] } }).body;

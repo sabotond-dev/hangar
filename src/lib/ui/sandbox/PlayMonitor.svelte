@@ -27,10 +27,19 @@
   let {
     source,
     now = () => performance.now(),
+    title = PLAY_MONITOR,
+    helper = PLAY_MONITOR_HELPER,
+    empty = PLAY_MONITOR_EMPTY,
   }: {
     /** The engine's MIDI log, or undefined until the engine arrives. */
     source: () => readonly HostMidi[] | undefined;
     now?: () => number;
+    /** The heading: the preview's monitor, or the ZONA's while the plate mirrors it (change 20). */
+    title?: string;
+    /** The line under it, the same two readers. */
+    helper?: string;
+    /** The empty log's line, the same two readers. */
+    empty?: string;
   } = $props();
 
   const uid = $props.id();
@@ -70,7 +79,7 @@
 
 <section class="monitor" data-testid="play-monitor" aria-labelledby={titleId}>
   <div class="head">
-    <h3 class="title type-micro" id={titleId}>{PLAY_MONITOR}</h3>
+    <h3 class="title type-micro" id={titleId}>{title}</h3>
     <button
       class="outlined"
       type="button"
@@ -79,10 +88,10 @@
       onclick={clear}>{PLAY_MONITOR_CLEAR}</button
     >
   </div>
-  <p class="helper type-helper">{PLAY_MONITOR_HELPER}</p>
+  <p class="helper type-helper">{helper}</p>
   {#if rows.length === 0}
     <p class="helper empty type-helper" data-testid="play-monitor-empty">
-      {PLAY_MONITOR_EMPTY}
+      {empty}
     </p>
   {:else}
     <ol class="lines" data-testid="play-monitor-lines">

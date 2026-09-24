@@ -5,7 +5,9 @@
   (DestinationZone.svelte, the one component both routes mount, 13.1-06) - and `device: install.phase`.
   Nearby is the browse-return set if there is one, else the front-door membership; this entry is always in it.
   Play routes the pointer to the preview through the host's tick-locked delivery (PREV-04's second half);
-  MidiMonitor mounts inside `{#if listed.preview === "lua"}` only (13-10, D-14 Q4b).
+  MidiMonitor mounts inside `{#if listed.preview === "lua"}` only (13-10, D-14 Q4b) - and on every card while
+  Mirror ZONA is on (change 20, docs/MIRROR.md): the plate then holds the mirror's engine under the entry's id,
+  the monitor reads the module's own MIDI, the pointer is ignored and the status line replaces the readout.
   The stamp lands after the engine is built and before the inspector mounts (`arrived`); never a partial restore.
   The compiler and the simulator arrive through `await import()` and never statically: config-shape.spec.ts
   test 13 walks this file for a `from` specifier naming them and test 14 the built page (the one rule).
@@ -34,6 +36,14 @@
   import { LISTING, listingById } from "$lib/catalog/listing";
   import { install } from "$lib/device/install.svelte";
   import { session } from "$lib/device/session.svelte";
+  import {
+    MIRROR_CANNOT,
+    MIRROR_MONITOR_EMPTY,
+    MIRROR_MONITOR_SOURCE,
+    MIRROR_MONITOR_STATUS,
+    mirrorStatus,
+  } from "$lib/mirror/copy";
+  import { mirror } from "$lib/mirror/mirror.svelte";
   // Every specifier here is safe under config-shape.spec.ts test 13: none names
   // the vendored tree, the protocol package nor the compile surface. The image
   // renderer is deliberately NOT imported - it is node-only - so 1200 and 630
@@ -77,6 +87,7 @@
   import DestinationZone from "$lib/ui/DestinationZone.svelte";
   import FidelityLine from "$lib/ui/FidelityLine.svelte";
   import MidiMonitor from "$lib/ui/MidiMonitor.svelte";
+  import MirrorToggle from "$lib/ui/MirrorToggle.svelte";
   import PadCanvas from "$lib/ui/PadCanvas.svelte";
   import PadFrame from "$lib/ui/PadFrame.svelte";
   import TuningRegion from "$lib/ui/TuningRegion.svelte";
@@ -269,7 +280,7 @@
     ) {
       return;
     }
-    host.register(listed.id, canvas, engine);
+    host.register(listed.id, canvas, mirroring ? mirror.engine : engine);
     host.setHero(listed.id);
     ready = true;
   }
@@ -278,8 +289,38 @@
   function applyPreview(id: string, next: SimEngine): void {
     if (listed?.id !== id) return;
     engine = next;
-    host?.replaceEngine(id, next);
+    // While the plate mirrors the ZONA the tuner's engine waits; Mirror off puts it back.
+    if (!mirroring) host?.replaceEngine(id, next);
   }
+
+  // ---------------------------------------------------------------------------
+  // Mirror ZONA (change 20, docs/MIRROR.md section 6).
+
+  /** The mirror is on: the plate is the module's, not the simulator's. */
+  const mirroring = $derived(mirror.state !== "off");
+  /** The mirror's frame listener while it is on: the host repaints on its own frame, never per report. */
+  let unmirror: (() => void) | undefined;
+
+  /** Hand the plate to the mirror's engine, or back to the simulator's, under the same id. */
+  function swapPlate(on: boolean): void {
+    if (on) {
+      unmirror ??= mirror.onFrame(() => {
+        if (listed !== undefined) host?.invalidate(listed.id);
+      });
+      if (listed !== undefined) host?.replaceEngine(listed.id, mirror.engine);
+      return;
+    }
+    unmirror?.();
+    unmirror = undefined;
+    if (listed !== undefined && engine !== undefined) {
+      host?.replaceEngine(listed.id, engine);
+    }
+  }
+
+  $effect(() => {
+    const on = mirroring;
+    untrack(() => swapPlate(on));
+  });
 
   /**
    * Open one entry: the engine through the simulator's dynamic import, then
@@ -364,6 +405,10 @@
     generation += 1;
     if (saveTimer !== undefined) clearTimeout(saveTimer);
     if (exportTimer !== undefined) clearTimeout(exportTimer);
+    // Leaving the page ends the mirror: the heartbeats stop and the module drops out of editor mode.
+    mirror.stop();
+    unmirror?.();
+    unmirror = undefined;
     host?.destroy();
     host = undefined;
     engine = undefined;
@@ -389,7 +434,8 @@
   }
 
   function onDown(event: PointerEvent): void {
-    if (mode !== "play" || host === undefined) return;
+    // Mirroring, the fingers are on the module: the plate takes none.
+    if (mode !== "play" || host === undefined || mirroring) return;
     const target = event.currentTarget;
     try {
       if (target instanceof Element) target.setPointerCapture(event.pointerId);
@@ -404,7 +450,7 @@
   }
 
   function onMove(event: PointerEvent): void {
-    if (mode !== "play" || host === undefined) return;
+    if (mode !== "play" || host === undefined || mirroring) return;
     const at = ledPoint(event);
     if (at === undefined) return;
     point = at;
@@ -659,6 +705,7 @@
   data-testid="workspace"
   data-ready={ready}
   data-mode={mode}
+  data-mirror={mirror.state}
   style:--surface-max="{SURFACE_MAX}px"
 >
   {#if listed}
@@ -674,32 +721,35 @@
             one tab stop, arrows that move and select - the word row's
             mechanics. Configure is the PDF's active segment.
           -->
-          <div class="mode" role="radiogroup" aria-label="Mode">
-            <label class="segment" class:selected={mode === "configure"}>
-              <input
-                class="sr-only"
-                type="radio"
-                name="workspace-mode"
-                value="configure"
-                data-testid="mode-configure"
-                checked={mode === "configure"}
-                onchange={() => (mode = "configure")}
-              />
-              {MODE_CONFIGURE}
-            </label>
-            <label class="segment" class:selected={mode === "play"}>
-              <input
-                class="sr-only"
-                type="radio"
-                name="workspace-mode"
-                value="play"
-                data-testid="mode-play"
-                checked={mode === "play"}
-                onchange={() => (mode = "play")}
-              />
-              <span aria-hidden="true">{MODE_PLAY_GLYPH}</span>
-              {MODE_PLAY}
-            </label>
+          <div class="switches">
+            <div class="mode" role="radiogroup" aria-label="Mode">
+              <label class="segment" class:selected={mode === "configure"}>
+                <input
+                  class="sr-only"
+                  type="radio"
+                  name="workspace-mode"
+                  value="configure"
+                  data-testid="mode-configure"
+                  checked={mode === "configure"}
+                  onchange={() => (mode = "configure")}
+                />
+                {MODE_CONFIGURE}
+              </label>
+              <label class="segment" class:selected={mode === "play"}>
+                <input
+                  class="sr-only"
+                  type="radio"
+                  name="workspace-mode"
+                  value="play"
+                  data-testid="mode-play"
+                  checked={mode === "play"}
+                  onchange={() => (mode = "play")}
+                />
+                <span aria-hidden="true">{MODE_PLAY_GLYPH}</span>
+                {MODE_PLAY}
+              </label>
+            </div>
+            <MirrorToggle />
           </div>
         </div>
         <p class="sentence">{typographic(listed.description)}</p>
@@ -712,7 +762,7 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="surface"
-        class:play={mode === "play"}
+        class:play={mode === "play" && !mirroring}
         data-testid="workspace-surface"
         data-unavailable={unavailable || undefined}
         onpointerdown={onDown}
@@ -728,10 +778,26 @@
 
       <div class="under">
         <span class="matrix type-micro">{MATRIX_LINE}</span>
-        <span class="coords numerals" data-testid="workspace-coordinates"
-          >{coordinateLine(point.x, point.y)}</span
-        >
+        {#if mirroring}
+          <span class="coords numerals" data-testid="mirror-status"
+            >{mirrorStatus(
+              session.identity?.activePage,
+              mirror.lit,
+              mirror.silent,
+            )}</span
+          >
+        {:else}
+          <span class="coords numerals" data-testid="workspace-coordinates"
+            >{coordinateLine(point.x, point.y)}</span
+          >
+        {/if}
       </div>
+
+      {#if mirroring}
+        <p class="quiet type-helper" data-testid="mirror-note">
+          {MIRROR_CANNOT}
+        </p>
+      {/if}
 
       {#if listed.quiet}
         <p class="quiet type-helper" data-testid="workspace-quiet">
@@ -744,7 +810,14 @@
         live engine: the tuner swaps engines under the same id on every knob turn.
       -->
       <div class="monitor-slot" data-testid="monitor-slot">
-        {#if listed.preview === "lua"}
+        {#if mirroring}
+          <MidiMonitor
+            source={() => mirror.midi}
+            sourceLabel={MIRROR_MONITOR_SOURCE}
+            status={MIRROR_MONITOR_STATUS}
+            empty={MIRROR_MONITOR_EMPTY}
+          />
+        {:else if listed.preview === "lua"}
           <MidiMonitor source={() => midiLogOf(engine)} />
         {/if}
       </div>
@@ -799,6 +872,14 @@
     font-size: 17px;
     line-height: 1.45;
     color: var(--color-ink-quiet);
+  }
+
+  /* The mode switch and, while a ZONA is connected, Mirror ZONA beside it (change 20). */
+  .switches {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
   }
 
   /* PDF page 5's two-segment switch: two outlined boxes, the active one in the action colour, 44px on both axes. Square (D-01). */
