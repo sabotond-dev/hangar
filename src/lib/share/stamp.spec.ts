@@ -377,6 +377,14 @@ describe("the stamp: format x", () => {
           food: "255,0,120",
         },
       },
+      {
+        id: "pomodoro",
+        payload: "wh2f210fb0000001g",
+        moved: {
+          ring: "255,30,10",
+          break: "0,255,180",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

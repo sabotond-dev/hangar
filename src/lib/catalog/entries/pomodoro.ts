@@ -67,14 +67,15 @@
 //   - AN ALERT LIGHTS THE SAME 32 CELLS: the module's alert system touches the border LEDs,
 //     additively - a fact about the module, not a fault in the configuration.
 //   - EACH OUTPUT'S CHANNEL IS AT BOTH OF ITS gms SITES (@TCH twice, @CH twice), so no off goes
-//     out on a channel its on did not. @RINGC and @BREAKC are EXACTLY NINE CHARACTERS EACH (six and
-//     three sites).
+//     out on a channel its on did not. @RINGC and @BREAKC reach six and three sites; their own
+//     colours are nine characters each, the lattice's 5 to 11 (change 19, costed at 255,255,255).
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP; both palettes are inside 0..255 and the phase
 //     spread (x+y)*16 can never wrap.
 //   - THE LUA CARRIES NO COMMENTS beyond the nine-character marker: compressScript keeps them.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   TRIGGER_STATUSES,
@@ -123,9 +124,10 @@ export const POMODORO: CatalogEntry = {
       label: "Working colour",
       kind: "colour",
       token: "@RINGC",
-      // The draining ring and the breathing interior while the interval runs. Four warm
-      // triples, EXACTLY NINE CHARACTERS EACH: the token reaches six sites.
-      values: ["255,120,0", "255,30,10", "255,200,0", "255,60,90"],
+      // The draining ring and the breathing interior while the interval runs. Its own four are
+      // warm triples, nine characters each: the token reaches six sites.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,120,0", "255,30,10", "255,200,0", "255,60,90"]),
       default: 0,
     },
     {
@@ -133,9 +135,10 @@ export const POMODORO: CatalogEntry = {
       label: "Resting colour",
       kind: "colour",
       token: "@BREAKC",
-      // What the whole pad turns when the interval ends. Four cool triples, nine characters
-      // each; three sites, all in the Timer.
-      values: ["0,140,255", "0,255,180", "60,90,255", "0,200,220"],
+      // What the whole pad turns when the interval ends. Its own four are cool triples, nine
+      // characters each; three sites, all in the Timer.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,140,255", "0,255,180", "60,90,255", "0,200,220"]),
       default: 0,
     },
     {

@@ -15071,6 +15071,13 @@ describe("every colour knob a full RGB picker (change 19, BENCH-2026-09-16.txt s
       wire: "ec3322d714c018a71f041d628d2bf5255975d4222507009bbf867b2b74f2b202",
       corner: [896, 768],
     },
+    {
+      id: "pomodoro",
+      wire: "68c1d58b8bf8760ac16468fcc6cdf19a86a70c3df9e033b49c97dd5b4647c936",
+      corner: [766, 669],
+      // The rest colour shows when an interval ends: a one-minute interval, run past its end.
+      drive: { break: { knobs: { mins: 4 }, ticks: 7000 } },
+    },
   ];
 
   const sha = (text: string): string =>
