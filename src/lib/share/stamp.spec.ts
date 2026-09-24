@@ -345,6 +345,15 @@ describe("the stamp: format x", () => {
           mute: "255,80,0",
         },
       },
+      {
+        id: "strip",
+        payload: "w3000f50fff1030100021",
+        moved: {
+          bar: "255,90,0",
+          vernier: "255,255,255",
+          rail: "25,0,50",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

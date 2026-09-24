@@ -73,6 +73,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -134,7 +135,8 @@ export const STRIP: CatalogEntry = {
       kind: "colour",
       token: "@BARC",
       // The lit part of the big fader, on layers 1 and 2. Bright: it is the number.
-      values: ["0,200,255", "255,90,0", "0,255,120", "255,0,180"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,200,255", "255,90,0", "0,255,120", "255,0,180"]),
       default: 0,
     },
     {
@@ -143,8 +145,9 @@ export const STRIP: CatalogEntry = {
       kind: "colour",
       token: "@XFC",
       // The bottom row, on layers 1 and 2: the marker cell at phase 255, the track at 51. The
-      // id is stale on purpose (TRAPS). The four values sit apart from the bar's at every index.
-      values: ["255,180,60", "255,255,255", "255,0,180", "0,255,120"],
+      // id is stale on purpose (TRAPS). The four old values sit apart from the bar's at every index.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,180,60", "255,255,255", "255,0,180", "0,255,120"]),
       default: 0,
     },
     {
@@ -154,7 +157,8 @@ export const STRIP: CatalogEntry = {
       token: "@RAILC",
       // The unlit body of the big fader, on layers 1 and 2. Dim: a body, not the number.
       // APPEARS TWICE - once per layer.
-      values: ["0,25,50", "25,0,50", "40,20,0", "20,20,20"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,25,50", "25,0,50", "40,20,0", "20,20,20"]),
       default: 0,
     },
     {

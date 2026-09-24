@@ -15051,6 +15051,11 @@ describe("every colour knob a full RGB picker (change 19, BENCH-2026-09-16.txt s
       wire: "601976397e21e160fe65925ec4df82e307512d4f0fe45be2d2d3251a26853dee",
       corner: [890, 240],
     },
+    {
+      id: "strip",
+      wire: "8df24c9ce6ab8dcc0fa3f614fb849c55504bbed92c9077d33c05597d9fc997e5",
+      corner: [849, 476],
+    },
   ];
 
   const sha = (text: string): string =>
