@@ -89,8 +89,9 @@
 //   - THE NOTE RANGE: a bite tops at 72 + 11 = 83, a death bottoms at 36 - 12 = 24.
 //   - NO KEEPER AND NO DECAY ANYWHERE; glp is never called with a negative phase.
 //   - COLOUR CHANNELS TRUNCATE, NEVER CLAMP; every channel of @SNAKEC and @FOODC is 0..255, and
-//     all values are nine characters (the Setup's three token sites and the Timer's three are
-//     what put the corner at +6 and +7 over the defaults, with @CH's 15 the Timer's seventh).
+//     their own colours are nine characters, the lattice's 5 to 11 (change 19): the Setup's three
+//     token sites and the Timer's three put the corner (255,255,255) at +6 and +11 over the
+//     defaults, with @CH's 15 in the Timer.
 //   - THE LUA CARRIES NO COMMENTS beyond the nine-character marker: compressScript keeps them.
 //   - THE RESIDUE PROBE (lua-smoke.spec.ts) CANNOT SEE THIS CARD: every cell is at phase 255
 //     from the Setup's clear, black or coloured, so its untouched run never holds a phase 0.
