@@ -328,6 +328,14 @@ describe("the stamp: format x", () => {
           sweepColour: "255,60,120",
         },
       },
+      {
+        id: "steps",
+        payload: "w02204f50201009010915109161091710918109191091a1091b1",
+        moved: {
+          armed: "40,0,60",
+          sweep: "255,90,0",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

@@ -104,6 +104,7 @@ import {
   type LuaKnob,
   type MidiOutput,
 } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   RECEIVE_ON_INDEX,
@@ -215,8 +216,9 @@ export const STEPS: CatalogEntry = {
       label: "Armed colour",
       kind: "colour",
       token: "@ARMC",
-      // The armed cells, on layer 2, static. Dim, so the column stays readable against it.
-      values: ["0,40,60", "40,0,60", "60,30,0", "30,30,30"],
+      // The armed cells, on layer 2, static. Its four are dim, so the column stays readable against it.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,40,60", "40,0,60", "60,30,0", "30,30,30"]),
       default: 0,
     },
     {
@@ -225,7 +227,8 @@ export const STEPS: CatalogEntry = {
       kind: "colour",
       token: "@SWEEPC",
       // The sweeping column, on layer 1, bright: one layer never exceeds 254/512 of the value.
-      values: ["0,200,255", "255,90,0", "0,255,120", "255,255,255"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,200,255", "255,90,0", "0,255,120", "255,255,255"]),
       default: 0,
     },
     {
