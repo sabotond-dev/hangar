@@ -41,8 +41,8 @@ import { presetKnobs } from "../tune/knobs.preset";
 
 const NEWLINE = String.fromCharCode(10);
 
-/** The hand-authored colour knobs on the lattice (change 19, card by card): ORBIT's four. */
-const LUA_LATTICE_KNOBS = 34;
+/** The hand-authored colour knobs on the lattice (change 19): 35 on nineteen cards, every one. */
+const LUA_LATTICE_KNOBS = 35;
 const SLUG = /^[a-z][a-z0-9-]*$/;
 const ISO_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 const TOKEN = /^@[A-Z][A-Z0-9_]*$/;

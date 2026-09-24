@@ -423,6 +423,13 @@ describe("the stamp: format x", () => {
           colour: "0,110,255",
         },
       },
+      {
+        id: "ninepads",
+        payload: "wgf400100101",
+        moved: {
+          colour: "255,68,0",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

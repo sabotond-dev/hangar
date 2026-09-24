@@ -64,6 +64,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   RECEIVE_ON_INDEX,
@@ -99,7 +100,14 @@ const KNOBS: CatalogEntry["knobs"] = [
     kind: "colour",
     token: "@COL",
     // Layer 1, the grid. The preset's 0,68,204 first; the held pad's 255,136,34 is fixed.
-    values: ["0,68,204", "255,68,0", "0,204,102", "204,0,204", "255,255,255"],
+    // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+    ...onLattice([
+      "0,68,204",
+      "255,68,0",
+      "0,204,102",
+      "204,0,204",
+      "255,255,255",
+    ]),
     default: 0,
   },
   {

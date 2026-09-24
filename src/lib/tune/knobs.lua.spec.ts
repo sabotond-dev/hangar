@@ -32,8 +32,8 @@ const LUA_ENTRIES: readonly CatalogEntry[] = CATALOG.filter(
   (entry) => entry.source.kind === "lua",
 );
 
-/** The hand-authored cards' colour knobs on the lattice (change 19, card by card): ORBIT's four. */
-const LUA_COLOUR_KNOBS = 34;
+/** The hand-authored cards' colour knobs on the lattice (change 19): 35 on nineteen cards, every one. */
+const LUA_COLOUR_KNOBS = 35;
 
 describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
   it("carries every declared knob across without transforming it", () => {
