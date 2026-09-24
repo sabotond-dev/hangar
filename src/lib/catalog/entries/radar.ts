@@ -89,6 +89,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -131,13 +132,14 @@ export const RADAR: CatalogEntry = {
       kind: "colour",
       token: "@COL",
       // Layer 2, the ring. The preset's 255,68,0 first; the comet's 255,170,34 is fixed.
-      values: [
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice([
         "255,68,0",
         "0,110,255",
         "0,255,140",
         "255,255,255",
         "180,0,255",
-      ],
+      ]),
       default: 0,
     },
     {

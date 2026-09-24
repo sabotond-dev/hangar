@@ -416,6 +416,13 @@ describe("the stamp: format x", () => {
           head: "255,255,255",
         },
       },
+      {
+        id: "radar",
+        payload: "wg06f10001001000h1",
+        moved: {
+          colour: "0,110,255",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);
