@@ -1,4 +1,4 @@
-// The emitter's tests (13-14 task 02; change 10B added the eighth and moved the figures, change 11 the ninth, change 18 the tenth, change 18b the eleventh): the
+// The emitter's tests (13-14 task 02; change 10B added the eighth and moved the figures, change 11 the ninth, change 18 the tenth, change 18b the eleventh, change 21A the twelfth): the
 // costs at the picker corner under two, three and five slots, the dead-branch pair, the map and
 // the rows, both class gates, the library's names, the brightness, the blank, and the change 10B
 // tail with the five-slot pack and the cap floor, Latch's channel-word bit, and every surface's faders and pads run in the VM. Each loops over its surfaces and names the
@@ -47,6 +47,11 @@ import {
   representativeRegion,
 } from "./cost";
 import {
+  AXIS_VELOCITY,
+  extrasOptionsOf,
+  extraTriple,
+  rowKeys,
+  valueColumn,
   MARKER,
   OWN_NAMES,
   PULL_IN_MAPMODE,
@@ -78,6 +83,12 @@ import {
   TAIL_DEFAULTS_LUA,
   packRuntime,
   receivePart,
+  SEND,
+  sendPart,
+  touchPart,
+  withTouchEntry,
+  withTouchRelease,
+  type ExtrasOptions,
   type SlotCount,
 } from "./runtime";
 import {
@@ -101,6 +112,9 @@ import {
   seventhOf,
   touchesOf,
   withBrightness,
+  hasNoteOutput,
+  sentExtrasOf,
+  type Extra,
   type Region,
   type Surface,
 } from "./model";
@@ -1364,6 +1378,422 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
     );
     expect(lines).toEqual(PINNED.ran);
   }, 120000);
+
+  it("12. extra messages and a Note on a continuous output (change 21A): the row's keyed tail - a Touch or Value triple in `m`, a Pitch's scale degrees at [24] / [25] - measured against a table of its own; W, its two calls and the note-aware D swapped in only when a region needs them, canonical; every gate fixture with the fields inert byte-identical; page 3 with a Touch note on its pad five slots before and after, receiving and not; the cap floor with every option on; the kinds that no longer fit", async () => {
+    const lines: string[] = [];
+    const five = (m: Awaited<ReturnType<typeof measureSurface>>): string =>
+      `${[m.systemTimer, m.system, m.mapmode, m.timer, m.setup]
+        .map((b) => b?.used ?? "-")
+        .join("/")} ${m.fits ? "fits" : "over"}`;
+    const sumOf = (m: Awaited<ReturnType<typeof measureSurface>>): number =>
+      [m.systemTimer, m.system, m.mapmode, m.timer, m.setup].reduce(
+        (n, b) => n + (b?.used ?? 0),
+        0,
+      );
+    const touchNote: Extra = {
+      trigger: "touch",
+      type: "note",
+      channel: 16,
+      number: 102,
+    };
+    // THE TRIPLE: the word as the channel word spells a type (no receive bit, ever), the number
+    // (0 under a pitch bend or a channel pressure), the third - a Touch note's velocity or the
+    // landing's axis (128 X, 129 Y), a Touch CC's 127, a Value's column negated.
+    const pad = PAGE3.regions[1];
+    const fader = PAGE3.regions[0];
+    expect(extraTriple(pad, touchNote)).toEqual([15 - 32, 102, 100]);
+    expect(extraTriple(pad, { ...touchNote, velocity: "x" })[2]).toBe(
+      AXIS_VELOCITY.x,
+    );
+    expect(extraTriple(pad, { ...touchNote, velocity: "y" })[2]).toBe(129);
+    expect(extraTriple(pad, { ...touchNote, velocity: 1 })[2]).toBe(1);
+    expect(extraTriple(pad, { ...touchNote, type: "cc" })).toEqual([
+      15, 102, 127,
+    ]);
+    const value: Extra = {
+      trigger: "value",
+      type: "cc",
+      channel: 2,
+      number: 74,
+    };
+    expect(extraTriple(fader, value)).toEqual([1, 74, -19]);
+    expect(extraTriple(pad, { ...value, source: "y" })).toEqual([1, 74, -20]);
+    expect(
+      extraTriple({ ...pad, touches: 2 }, { ...value, source: "y" }),
+      "a multitouch pad's Value follows the first slot",
+    ).toEqual([1, 74, -21]);
+    expect(extraTriple(fader, { ...value, type: "pitchbend" })).toEqual([
+      1 + 48,
+      0,
+      -19,
+    ]);
+    expect(extraTriple(fader, { ...value, type: "pressure" })).toEqual([
+      1 + 32,
+      0,
+      -19,
+    ]);
+    expect(valueColumn(fader, "x")).toBe(19);
+    // A Value stored on a kind that honours none (a button, a relative knob) is kept, not sent.
+    const knobRelative: Region = {
+      ...PAGE3.regions[2],
+      mode: "relative-twos",
+      extras: [value],
+    };
+    expect(rowKeys(knobRelative)).toBe("");
+    expect(rowKeys({ ...PAGE3.regions[3], extras: [value, touchNote] })).toBe(
+      ",m={{-17,102,100}}",
+    );
+    expect(rowKeys({ ...pad, extras: [touchNote] })).toBe(",m={{-17,102,100}}");
+
+    // EVERY GATE FIXTURE, with the new fields present but inert - no extras, a scale, a mode and a
+    // velocity on an output that is not a Note - emits byte-identical strings under two, three and
+    // five slots, and asks nothing of the runtime.
+    let fixtures = 0;
+    // The gate's list, imported by a path typed as a string: the script is plain JavaScript the
+    // type-checker is not asked to read (scripts/gate/sandbox-fixtures.mjs).
+    const fixturesModule: string = "../../../scripts/gate/sandbox-fixtures.mjs";
+    const { SANDBOX_FIXTURES } = (await import(
+      /* @vite-ignore */ fixturesModule
+    )) as { SANDBOX_FIXTURES: Record<string, Surface> };
+    for (const [name, s] of Object.entries(SANDBOX_FIXTURES) as [
+      string,
+      Surface,
+    ][]) {
+      // The fixtures before change 21A: the ones that carry an extra or a Note are its own (test 12
+      // below and runtime.spec.ts test 24 run them).
+      if (extrasOptionsOf(s.regions) !== undefined) continue;
+      const inert: Surface = {
+        ...s,
+        regions: s.regions.map((r) =>
+          hasNoteOutput(r)
+            ? r
+            : {
+                ...r,
+                extras: [],
+                scale: "major",
+                scaleY: "dorian",
+                noteMode: "gate",
+                noteModeY: "gate",
+                velocity: 90,
+                velocityY: 91,
+              },
+        ),
+      };
+      expect(extrasOptionsOf(inert.regions), name).toBeUndefined();
+      for (const slots of [2, 3, 5] as const) {
+        const a = emitSurface(s, { slots });
+        const b = emitSurface(inert, { slots });
+        expect(
+          [b.setup, b.timer, b.mapmode, b.system, b.systemTimer],
+          `${name} (${slots})`,
+        ).toEqual([a.setup, a.timer, a.mapmode, a.system, a.systemTimer]);
+      }
+      fixtures += 1;
+    }
+
+    // THE VARIANT TEXTS, canonical, and what each piece costs.
+    const all: ExtrasOptions = {
+      touch: true,
+      gate: true,
+      axis: true,
+      extras: true,
+      notes: true,
+      value: true,
+    };
+    const only = (o: Partial<ExtrasOptions>): ExtrasOptions => ({
+      touch: false,
+      gate: false,
+      axis: false,
+      extras: false,
+      notes: false,
+      value: false,
+      ...o,
+    });
+    const texts: Record<string, string> = {
+      "W, a Touch extra": touchPart(only({ touch: true, extras: true })),
+      "W, From X or Y": touchPart(
+        only({ touch: true, extras: true, axis: true }),
+      ),
+      "W, the gate": touchPart(only({ touch: true, extras: true, gate: true })),
+      "W, a Note": touchPart(only({ touch: true, notes: true })),
+      "W, every piece": touchPart(all),
+      "D, a Value extra": sendPart(only({ value: true })),
+      "D, a Note": sendPart(only({ notes: true })),
+      "D, both": sendPart(all),
+      "O and its call": withTouchEntry(ENTRY),
+      "R and its call": withTouchRelease(RELEASE),
+      "R multitouch and its call": withTouchRelease(MULTITOUCH_TEXT.release),
+    };
+    const measured: Record<string, number> = {};
+    for (const [name, text] of Object.entries(texts)) {
+      const c = await canonical(text);
+      expect(c.rounds, `${name} is canonical`).toBe(0);
+      expect(GridScript.checkSyntax(text), name).toBe(true);
+      measured[name] = c.cost;
+    }
+    lines.push(
+      `texts: ${Object.entries(measured)
+        .map(([n, c]) => `${n} ${c}`)
+        .join(
+          ", ",
+        )}; D was ${SEND.length}, O ${ENTRY.length}, R ${RELEASE.length}`,
+    );
+    expect(sendPart(undefined)).toBe(SEND);
+    expect(sendPart(only({ touch: true, extras: true }))).toBe(SEND);
+
+    // THE ENCODING, measured: the triples as a keyed field in the row (`,m={...}`, shipped) against a
+    // table of their own keyed by region index (`P={[2]={...}}` after `J`) - the data, and what the
+    // readers pay: `W` and `D` have the row, not its index, so the table needs the index handed to
+    // `W` by both callers (`R` keeping it before it forgets the contact) and looked up in `D`.
+    const withNote = (
+      s: Surface,
+      i: number,
+      extras: readonly Extra[],
+    ): Surface => ({
+      ...s,
+      regions: s.regions.map((r, k) => (k === i ? { ...r, extras } : r)),
+    });
+    const tableOf = (s: Surface): string => {
+      const parts = s.regions
+        .map((r, k) => [k + 1, sentExtrasOf(r)] as const)
+        .filter(([, x]) => x.length > 0)
+        .map(
+          ([k, x]) =>
+            `[${k}]={${x.map((e) => `{${extraTriple(s.regions[k - 1], e).join(",")}}`).join(",")}}`,
+        );
+      return `P={${parts.join(",")}}`;
+    };
+    const readersTable =
+      (
+        await canonical(
+          touchPart(only({ touch: true, extras: true }))
+            .replace("function W(s,r,x,y)", "function W(s,r,x,y,k)")
+            .replace("pairs(r.m or{})", "pairs(P[k]or{})"),
+        )
+      ).cost -
+      measured["W, a Touch extra"] +
+      (
+        await canonical(
+          withTouchEntry(ENTRY).replace("W(s,r,x,y)", "W(s,r,x,y,S[i])"),
+        )
+      ).cost -
+      measured["O and its call"] +
+      (
+        await canonical(
+          withTouchRelease(RELEASE)
+            .replace("local r=J[S[i]]", "local k=S[i]local r=J[k]")
+            .replace("W(s,r)", "W(s,r,nil,nil,k)"),
+        )
+      ).cost -
+      measured["R and its call"];
+    const readersTableValue =
+      (
+        await canonical(
+          sendPart(only({ value: true })).replace(
+            "for _,g in pairs(r.m or{})do",
+            "local k for j,g in pairs(J)do if g==r then k=j end end for _,g in pairs(P[k]or{})do",
+          ),
+        )
+      ).cost - measured["D, a Value extra"];
+    const encodings: string[] = [];
+    for (const [name, s] of [
+      ["page 3, a Touch note on the pad", withNote(PAGE3, 1, [touchNote])],
+      [
+        "page 3, three extras on every element",
+        {
+          ...PAGE3,
+          regions: PAGE3.regions.map((r) => ({
+            ...r,
+            extras:
+              r.kind === "button"
+                ? [touchNote, { ...touchNote, type: "cc" as const }, touchNote]
+                : [touchNote, { ...touchNote, type: "cc" as const }, value],
+          })),
+        },
+      ],
+      [
+        "sixteen, a Touch note on every button",
+        {
+          ...SIXTEEN,
+          regions: SIXTEEN.regions.map((r) =>
+            r.kind === "button" ? { ...r, extras: [touchNote] } : r,
+          ),
+        },
+      ],
+    ] as const) {
+      const bare = renderRegionTable(
+        s.regions.map((r) => ({ ...r, extras: undefined })),
+      );
+      const row =
+        (await canonical(renderRegionTable(s.regions))).cost -
+        (await canonical(bare)).cost;
+      const table =
+        (await canonical(`${bare}${tableOf(s)}`)).cost -
+        (await canonical(bare)).cost;
+      const hasValue = s.regions.some((r) =>
+        sentExtrasOf(r).some((x) => x.trigger === "value"),
+      );
+      const readers = readersTable + (hasValue ? readersTableValue : 0);
+      encodings.push(
+        `${name}: row ${row}, table ${table} + readers ${readers} = ${table + readers}`,
+      );
+      expect(row, name).toBeLessThan(table + readers);
+    }
+    lines.push(`encodings: ${encodings.join("; ")}`);
+
+    // PAGE 3, FIVE SLOTS AT THE CORNER: as it was, and with a Touch note on its pad - every
+    // element receiving, and every Receive off.
+    const page3Before = await measureSurface(atPickerCorner(PAGE3), {
+      slots: 5,
+    });
+    const touched = withNote(PAGE3, 1, [touchNote]);
+    const page3After = await measureSurface(atPickerCorner(touched), {
+      slots: 5,
+    });
+    const quiet = (s: Surface): Surface => ({
+      ...s,
+      regions: s.regions.map((r) => ({ ...r, receive: false })),
+    });
+    const quietBefore = await measureSurface(atPickerCorner(quiet(PAGE3)), {
+      slots: 5,
+    });
+    const quietAfter = await measureSurface(atPickerCorner(quiet(touched)), {
+      slots: 5,
+    });
+    // And a Note on the fader (Pitch, Major) beside the pad's Touch note, Receive off.
+    const ribbon = {
+      ...quiet(touched),
+      regions: quiet(touched).regions.map((r) =>
+        r.kind === "fader"
+          ? { ...r, output: "note" as const, scale: "major" as const }
+          : r,
+      ),
+    };
+    const ribbonAfter = await measureSurface(atPickerCorner(ribbon), {
+      slots: 5,
+    });
+    lines.push(
+      `page 3 receiving ${five(page3Before)} -> a Touch note on the pad ${five(page3After)} (+${sumOf(page3After) - sumOf(page3Before)}); ` +
+        `every Receive off ${five(quietBefore)} -> ${five(quietAfter)} (+${sumOf(quietAfter) - sumOf(quietBefore)}); ` +
+        `and the fader a C major ribbon ${five(ribbonAfter)}`,
+    );
+
+    // THE CAP FLOOR WITH EVERY OPTION ON: cost.ts's representative (every change 10B, 17 and 18
+    // option at its dearest - unmoved, test 1's 11 and 14) with change 21A's too - its own output a
+    // Pitch note on Major at velocity 127 and three extras at their dearest: a Touch note on 16 at
+    // 127 From Y, a Touch CC 127 on 16, a Value CC 127 on 16.
+    const dearest = (index: number, col: number, row: number): Region => ({
+      ...representativeRegion(index, col, row, { w: 1, h: 2 }),
+      output: "note",
+      scale: "major",
+      velocity: 127,
+      extras: [
+        {
+          trigger: "touch",
+          type: "note",
+          channel: 16,
+          number: 127,
+          velocity: "y",
+        },
+        { trigger: "touch", type: "cc", channel: 16, number: 127 },
+        { trigger: "value", type: "cc", channel: 16, number: 127 },
+      ],
+    });
+    const floorFrom = async (start: Surface): Promise<number> => {
+      let grown = atPickerCorner(start);
+      let n = 0;
+      for (;;) {
+        if (grown.regions.length >= 16) return n;
+        const built = buildCellMap(grown.regions);
+        if (!built.ok) throw new Error("the floor stopped building");
+        let at: { col: number; row: number } | undefined;
+        for (let c = 0; c < 9 && at === undefined; c += 1)
+          for (let r = 0; r < 8 && at === undefined; r += 1)
+            if (
+              built.map[cellIndex(c, r)] === 0 &&
+              built.map[cellIndex(c, r + 1)] === 0
+            )
+              at = { col: c, row: r };
+        if (at === undefined) return n;
+        const next = {
+          ...grown,
+          regions: [...grown.regions, dearest(n + 1, at.col, at.row)],
+        };
+        if (!(await measureSurface(next, { slots: 5 })).fits) return n;
+        grown = next;
+        n += 1;
+      }
+    };
+    const floorEmpty = await floorFrom(emptySurface("floor", "Floor"));
+    lines.push(
+      `the cap floor with every option on (change 21A's too), from empty: ${floorEmpty}; cost.ts's representative unmoved (test 1: 11, and 14 from twelve)`,
+    );
+
+    // THE KINDS THAT NO LONGER FIT: every combination of the five kinds, every element receiving,
+    // (a) with a Touch note on every element, (b) every continuous element a Pitch note on Major
+    // (the knob absolute) and the button's own note.
+    const by: Record<string, Region> = {
+      v: PAGE3.regions[0],
+      h: region("Wide", "fader", 0, 7, 4, 2, { orientation: "horizontal" }),
+      b: PAGE3.regions[3],
+      x: PAGE3.regions[1],
+      k: PAGE3.regions[2],
+    };
+    const overTouch: string[] = [];
+    const overNote: string[] = [];
+    const overPlain: string[] = [];
+    const keys = ["v", "h", "b", "x", "k"];
+    for (let mask = 1; mask < 32; mask += 1) {
+      const combo = keys.filter((_, i) => mask & (1 << i)).join("");
+      const regions = [...combo].map((k) => by[k]);
+      const plain = await measureSurface(
+        atPickerCorner(surface(combo, regions)),
+        {
+          slots: 5,
+        },
+      );
+      if (!plain.fits) overPlain.push(combo);
+      const touch = await measureSurface(
+        atPickerCorner(
+          surface(
+            combo,
+            regions.map((r) => ({ ...r, extras: [touchNote] })),
+          ),
+        ),
+        { slots: 5 },
+      );
+      if (!touch.fits) overTouch.push(combo);
+      const note = await measureSurface(
+        atPickerCorner(
+          surface(
+            combo,
+            regions.map((r) =>
+              r.kind === "button"
+                ? { ...r, output: "note" as const }
+                : { ...r, output: "note" as const, scale: "major" as const },
+            ),
+          ),
+        ),
+        { slots: 5 },
+      );
+      if (!note.fits) overNote.push(combo);
+    }
+    lines.push(
+      `over at five slots, receiving: plain [${overPlain.join(" ")}], a Touch note on every element [${overTouch.join(" ")}], every continuous element a Pitch note [${overNote.join(" ")}]`,
+    );
+
+    console.log(
+      ["Change 21A, measured at the picker corner:", ...lines].join("\n"),
+    );
+    expect(measured).toEqual(PINNED_EXTRAS.texts);
+    expect(fixtures).toBe(PINNED_EXTRAS.fixtures);
+    expect([five(page3Before), five(page3After)]).toEqual(PINNED_EXTRAS.page3);
+    expect([five(quietBefore), five(quietAfter), five(ribbonAfter)]).toEqual(
+      PINNED_EXTRAS.page3Quiet,
+    );
+    expect(floorEmpty).toBe(PINNED_EXTRAS.floorFromEmpty);
+    expect({ overPlain, overTouch, overNote }).toEqual(PINNED_EXTRAS.over);
+  }, 600000);
 });
 
 /** The figures pinned above, this tree, 2026-09-18 (change 10B). */
@@ -1435,4 +1865,40 @@ const PINNED = {
     "Sixteen off 8",
     "Floor 4",
   ],
+};
+
+/** The figures test 12 pins, this tree, 2026-09-24 (change 21A). */
+const PINNED_EXTRAS = {
+  /** The gate's sandbox fixtures from before change 21A, each byte-identical with the new fields inert. */
+  fixtures: 46,
+  /** The variant texts, canonical: `W` by its pieces, `D` by its (was 174), the entry and `R` with their calls (were 273, 232 and the multitouch `R` 243). */
+  texts: {
+    "W, a Touch extra": 146,
+    "W, From X or Y": 220,
+    "W, the gate": 237,
+    "W, a Note": 296,
+    "W, every piece": 585,
+    "D, a Value extra": 299,
+    "D, a Note": 399,
+    "D, both": 524,
+    "O and its call": 297,
+    "R and its call": 238,
+    "R multitouch and its call": 249,
+  } as Record<string, number>,
+  /** 255/6, 255/0, 255/4, the Timer, the Setup: page 3 receiving (69 free across the five), then with a Touch note on the pad - over, the Timer carrying what fits nowhere. */
+  page3: ["893/908/905/897/877 fits", "858/908/854/1147/908 over"],
+  /** Every Receive off: page 3, then with the pad's Touch note - it fits - then with the fader a C major ribbon beside it - over. */
+  page3Quiet: [
+    "893/908/907/728/502 fits",
+    "858/908/882/904/590 fits",
+    "858/908/858/1131/907 over",
+  ],
+  /** From an empty surface, how many 1 x 2 faders with every option on - change 21A's Pitch note on Major and three dearest extras among them - fit five slots. */
+  floorFromEmpty: 4,
+  /** Every element receiving, at five slots: nothing over plain; with a Touch note on every element the three change 11 put over beside a multitouch pad; with every continuous element a Pitch note (and the button its own note) seven. */
+  over: {
+    overPlain: [],
+    overTouch: ["vbxk", "hbxk", "vhbxk"],
+    overNote: ["vbk", "hbk", "vhbk", "bxk", "vbxk", "hbxk", "vhbxk"],
+  } as Record<string, string[]>,
 };

@@ -180,6 +180,38 @@ const representative = (index, col) => ({
   latchTouch: false,
 });
 
+// runtime.spec.ts test 24 (change 21A): extra messages and a Note on a continuous output - page 3's
+// pad with a Touch note (C3 at 100), the same From Y, the pad Latch Off beside an Off button, a
+// Touches-2 pad with the note, a fader with a Value CC, a button with a Touch CC, a pad with three
+// extras; a C major ribbon beside a Gate fader, the ribbon with a spring and relative, a pad's X a
+// minor pentatonic ribbon, a chromatic knob ribbon, the two faders Latch Off.
+const TOUCH_NOTE = { trigger: "touch", type: "note", channel: 1, number: 48 };
+const GATE_PAD = rtRegion("Gate pad", "xy", 3, 0, 3, 3, 21, {
+  cc2: 22,
+  extras: [TOUCH_NOTE],
+});
+const RIBBON = rtRegion("Ribbon", "fader", 0, 0, 2, 6, 100, {
+  output: "note",
+  min: 60,
+  max: 72,
+  scale: "major",
+});
+const GATE = rtRegion("Gate", "fader", 2, 0, 2, 6, 60, {
+  output: "note",
+  noteMode: "gate",
+});
+// emit.spec.ts test 12 (change 21A): page 3 with a Touch note on its pad (channel 16, 102), every
+// Receive off, and then the fader a C major ribbon beside it.
+const EMIT_TOUCH_NOTE = {
+  trigger: "touch",
+  type: "note",
+  channel: 16,
+  number: 102,
+};
+const EMIT_PAGE3_TOUCH = EMIT_PAGE3.regions.map((r) =>
+  r.kind === "xy" ? { ...r, extras: [EMIT_TOUCH_NOTE] } : r,
+);
+
 /** Fixture name -> surface. The runtime.spec surfaces first, then emit.spec's. */
 export const SANDBOX_FIXTURES = {
   // runtime.spec.ts
@@ -300,6 +332,55 @@ export const SANDBOX_FIXTURES = {
     { ...THIN, ...OFF },
     rtRegion("Thin 2", "fader", 1, 0, 1, 6, 74, OFF),
   ]),
+  // runtime.spec.ts (change 21A): extra messages and continuous Notes - test 24.
+  "runtime/touched": surface("Touched", [FILTER, GATE_PAD, TURN, GO]),
+  "runtime/from-y": surface("From Y", [
+    { ...GATE_PAD, extras: [{ ...TOUCH_NOTE, velocity: "y" }] },
+  ]),
+  "runtime/off-pad": surface("Off pad", [
+    { ...GATE_PAD, ...OFF },
+    rtRegion("Beside", "button", 7, 0, 1, 1, 95, OFF),
+  ]),
+  "runtime/duo-gate": surface("Duo gate", [{ ...DUO, extras: [TOUCH_NOTE] }]),
+  "runtime/value-fader": surface("Value fader", [
+    {
+      ...FILTER,
+      extras: [{ trigger: "value", type: "cc", channel: 2, number: 74 }],
+    },
+  ]),
+  "runtime/cc-touch": surface("CC touch", [
+    {
+      ...GO,
+      extras: [{ trigger: "touch", type: "cc", channel: 1, number: 64 }],
+    },
+  ]),
+  "runtime/three-extras": surface("Three extras", [
+    {
+      ...SPACE,
+      extras: [
+        TOUCH_NOTE,
+        { trigger: "touch", type: "cc", channel: 3, number: 64 },
+        { trigger: "value", type: "cc", channel: 2, number: 74, source: "y" },
+      ],
+    },
+  ]),
+  "runtime/ribbon-gate": surface("Ribbon and gate", [RIBBON, GATE]),
+  "runtime/ribbon-spring": surface("Ribbon spring", [
+    { ...RIBBON, spring: true, springValue: 66 },
+  ]),
+  "runtime/ribbon-relative": surface("Ribbon relative", [
+    { ...RIBBON, mode: "relative", speed: "full" },
+  ]),
+  "runtime/pad-notes": surface("Pad notes", [
+    { ...SPACE, output: "note", min: 48, max: 72, scale: "minor-pentatonic" },
+  ]),
+  "runtime/knob-note": surface("Knob note", [
+    { ...TURN, output: "note", min: 60, max: 84 },
+  ]),
+  "runtime/ribbons-off": surface("Ribbons off", [
+    { ...RIBBON, ...OFF },
+    { ...GATE, ...OFF },
+  ]),
   // emit.spec.ts
   "emit/page3": EMIT_PAGE3,
   "emit/one": surface("One", [EMIT_PAGE3.regions[0]]),
@@ -350,5 +431,20 @@ export const SANDBOX_FIXTURES = {
   "emit/floor": surface(
     "Floor",
     [0, 1, 2, 3].map((col) => representative(col + 1, col)),
+  ),
+  // emit.spec.ts test 12 (change 21A): page 3 with a Touch note on its pad; every Receive off; and
+  // the fader a C major ribbon beside it.
+  "emit/page3-touch": surface("Page 3", EMIT_PAGE3_TOUCH),
+  "emit/page3-touch-quiet": surface(
+    "Page 3",
+    EMIT_PAGE3_TOUCH.map((r) => ({ ...r, receive: false })),
+  ),
+  "emit/page3-touch-ribbon": surface(
+    "Page 3",
+    EMIT_PAGE3_TOUCH.map((r) =>
+      r.kind === "fader"
+        ? { ...r, receive: false, output: "note", scale: "major" }
+        : { ...r, receive: false },
+    ),
   ),
 };

@@ -1,4 +1,4 @@
-// The runtime's tests (13-15; change 10B added seven, change 11 two, change 18 two, change 18b one), most in a REAL Lua VM: every string in
+// The runtime's tests (13-15; change 10B added seven, change 11 two, change 18 two, change 18b one, change 21A one), most in a REAL Lua VM: every string in
 // runtime.ts was run through `createLuaHost` before it was measured and before a figure was
 // pinned. The host is opened as the module runs a landing: under five slots the TRIMMED system
 // halves with the runtime parts they carry (`system`, `systemTimer` off the emit), under fewer
@@ -86,6 +86,7 @@ import {
   hasMultitouch,
   latchTouchOf,
   knobRingRaw,
+  pitchOf,
   receivesOf,
   scaleValue,
   seventhOf,
@@ -117,6 +118,8 @@ import {
   packRuntime,
   entryText,
   runtimeParts,
+  withTouchEntry,
+  type ExtrasOptions,
   slotColumn,
   sweepCall,
 } from "./runtime";
@@ -326,6 +329,103 @@ const THIN_OFF = surface("Thin off", [
 const ONE_CELL_FIXTURES: readonly Surface[] = [ONE_CELL, THIN_SPRING, THIN_OFF];
 
 /**
+ * The change 21A fixtures (test 24; tests 6 and 14 run them beside the rest): page 3's pad with a
+ * Touch note (C3 at 100, channel 1) - Andrew Huang's case - and the same at velocity From Y; the
+ * pad Latch Off beside an Off button, for the hand-over both ways; a Touches-2 pad with the note
+ * (the gate); a fader with a Value CC 74 on channel 2; a button with a Touch CC 64; a pad with
+ * three extras. Then the continuous Notes: a C major ribbon 60..72 beside a Gate fader on note
+ * 60; the ribbon with a spring and relative; a pad whose X is a minor pentatonic ribbon 48..72
+ * and whose Y is a controller; a chromatic knob 60..84; the two faders Latch Off. Notes 48..84
+ * and controllers 64 and 74 meet no other region's messages but where a test says so.
+ */
+const TOUCH_NOTE = {
+  trigger: "touch",
+  type: "note",
+  channel: 1,
+  number: 48,
+} as const;
+const GATE_PAD = region("Gate pad", "xy", 3, 0, 3, 3, 21, {
+  cc2: 22,
+  extras: [TOUCH_NOTE],
+});
+const TOUCHED = surface("Touched", [FILTER, GATE_PAD, TURN, GO]);
+const FROM_Y = surface("From Y", [
+  { ...GATE_PAD, extras: [{ ...TOUCH_NOTE, velocity: "y" }] },
+]);
+const OFF_PAD = surface("Off pad", [
+  { ...GATE_PAD, ...OFF },
+  region("Beside", "button", 7, 0, 1, 1, 95, OFF),
+]);
+const DUO_GATE = surface("Duo gate", [{ ...DUO, extras: [TOUCH_NOTE] }]);
+const VALUE_FADER = surface("Value fader", [
+  {
+    ...FILTER,
+    extras: [{ trigger: "value", type: "cc", channel: 2, number: 74 }],
+  },
+]);
+const CC_TOUCH = surface("CC touch", [
+  { ...GO, extras: [{ trigger: "touch", type: "cc", channel: 1, number: 64 }] },
+]);
+const THREE_EXTRAS = surface("Three extras", [
+  {
+    ...SPACE,
+    extras: [
+      TOUCH_NOTE,
+      { trigger: "touch", type: "cc", channel: 3, number: 64 },
+      { trigger: "value", type: "cc", channel: 2, number: 74, source: "y" },
+    ],
+  },
+]);
+const RIBBON = region("Ribbon", "fader", 0, 0, 2, 6, 100, {
+  output: "note",
+  min: 60,
+  max: 72,
+  scale: "major",
+});
+const GATE = region("Gate", "fader", 2, 0, 2, 6, 60, {
+  output: "note",
+  noteMode: "gate",
+});
+const RIBBON_GATE = surface("Ribbon and gate", [RIBBON, GATE]);
+const RIBBON_SPRING = surface("Ribbon spring", [
+  { ...RIBBON, spring: true, springValue: 66 },
+]);
+const RIBBON_RELATIVE = surface("Ribbon relative", [
+  { ...RIBBON, mode: "relative", speed: "full" },
+]);
+const PAD_NOTES = surface("Pad notes", [
+  {
+    ...SPACE,
+    output: "note",
+    min: 48,
+    max: 72,
+    scale: "minor-pentatonic",
+  },
+]);
+const KNOB_NOTE = surface("Knob note", [
+  { ...TURN, output: "note", min: 60, max: 84 },
+]);
+const RIBBONS_OFF = surface("Ribbons off", [
+  { ...RIBBON, ...OFF },
+  { ...GATE, ...OFF },
+]);
+const EXTRA_FIXTURES: readonly Surface[] = [
+  TOUCHED,
+  FROM_Y,
+  OFF_PAD,
+  DUO_GATE,
+  VALUE_FADER,
+  CC_TOUCH,
+  THREE_EXTRAS,
+  RIBBON_GATE,
+  RIBBON_SPRING,
+  RIBBON_RELATIVE,
+  PAD_NOTES,
+  KNOB_NOTE,
+  RIBBONS_OFF,
+];
+
+/**
  * A surface with one element per kind named (change 17): the ceiling in kinds under five slots is
  * measured through the emitter, because every element receives by default - the receive half is
  * packed beside the branches - and the Setup is the packer's last slot. A multitouch pad stands
@@ -350,10 +450,14 @@ const RECEIVE_SETTLE = 12;
 
 /** True for a text carrying either entry - the single-touch `O` or the multitouch variant's. */
 const hasEntry = (text: string): boolean =>
-  text.includes(ENTRY) ||
-  text.includes(MULTITOUCH_TEXT.entry) ||
-  text.includes(HAND_OVER_TEXT.entry) ||
-  text.includes(HAND_OVER_TEXT.entryMultitouch);
+  [
+    ENTRY,
+    MULTITOUCH_TEXT.entry,
+    HAND_OVER_TEXT.entry,
+    HAND_OVER_TEXT.entryMultitouch,
+  ].some(
+    (entry) => text.includes(entry) || text.includes(withTouchEntry(entry)),
+  );
 
 /** The LED centre of a cell, in raw units, from the measured knots. */
 const at = (col: number, row: number): [number, number] => [KX[col], KY[row]];
@@ -829,6 +933,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       ...MULTITOUCH_FIXTURES,
       ...LATCH_FIXTURES,
       ...ONE_CELL_FIXTURES,
+      ...EXTRA_FIXTURES,
     ]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
@@ -921,12 +1026,25 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     // Setup's under fewer slots). It calls N U X, every one a trimmed global;
     // `G` no more (the pictures are its own).
     // Every runtime - the single-touch and the multitouch variant (change 11), each with and
-    // without the hand-over entry (change 18) - holds to it.
-    for (const [multitouch, handOver] of [
-      [false, false],
-      [true, false],
-      [false, true],
-      [true, true],
+    // without the hand-over entry (change 18), each with and without change 21A's extras and
+    // Notes (every piece on) - holds to it; `W` is defined only with them.
+    const everyExtra: ExtrasOptions = {
+      touch: true,
+      gate: true,
+      axis: true,
+      extras: true,
+      notes: true,
+      value: true,
+    };
+    for (const [multitouch, handOver, extras] of [
+      [false, false, undefined],
+      [true, false, undefined],
+      [false, true, undefined],
+      [true, true, undefined],
+      [false, false, everyExtra],
+      [true, false, everyExtra],
+      [false, true, everyExtra],
+      [true, true, everyExtra],
     ] as const) {
       const whole = joinLua([
         STATE,
@@ -938,11 +1056,16 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
             colour: { channel: 15, first: 100, brightness: 128 },
           },
           handOver,
+          extras,
         ).map((p) => p.lua),
         sweepCall(20),
       ]);
       const defined = capitalDefinitions(whole);
-      expect(defined).toEqual([...RUNTIME_NAMES].sort());
+      expect(defined).toEqual(
+        [...RUNTIME_NAMES]
+          .filter((n) => extras !== undefined || n !== "W")
+          .sort(),
+      );
       for (const d of defined) {
         expect(
           TRIMMED_GLOBALS.includes(d),
@@ -975,8 +1098,10 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       }
       expect(whole).not.toContain(F("G", "("));
       // The library's W and Q are not on the hot path: a contact keeps the
-      // region it landed in; the runtime's own Q is the painter.
-      expect(whole).not.toContain(F("W", "("));
+      // region it landed in; the runtime's own Q is the painter, and since
+      // change 21A its own W the Touch gate - called only where it is defined.
+      expect(whole.includes(F("W", "("))).toBe(extras !== undefined);
+      expect(TRIM_FREED_NAMES).toContain("W");
     }
   });
 
@@ -988,6 +1113,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       ...MULTITOUCH_FIXTURES,
       ...LATCH_FIXTURES,
       ...ONE_CELL_FIXTURES,
+      ...EXTRA_FIXTURES,
     ]) {
       for (const slots of [2, 3, 5] as const) {
         const e = emitSurface(s, { slots });
@@ -1632,6 +1758,7 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
       ...MULTITOUCH_FIXTURES,
       ...LATCH_FIXTURES,
       ...ONE_CELL_FIXTURES,
+      ...EXTRA_FIXTURES,
     ]) {
       const e = emitSurface(s, { slots: 5 });
       expect(e.system?.startsWith(TRIMMED_LIBRARY), s.name).toBe(true);
@@ -3026,6 +3153,519 @@ describe("the Sandbox runtime, run in a VM, then measured, then pinned (BUILD-01
     expect(pinned).toBe(PINNED_ONE_CELL.entryPinned);
     console.log(
       `The one-cell fader (change 18b, 2026-09-23): A ${forms.before} -> A ${POSITION.length} + V ${AXIS.length} (+${forms.shipped}); the clamp inline in A +${forms.inline}, A handed the kind +${forms.kind}, len>1 per axis +${forms.perAxis}; ${POSITION_PROBE_COUNT} positions compared before/after in the VM, 0 differ`,
+    );
+  }, 120000);
+
+  it("24. extra messages and a Note on a continuous output (change 21A): a pad's Touch note goes on at the landing after its X and Y, off at the lift, its velocity fixed or From Y; every release path sends the off exactly once - a lift, the sweep, a 9, the same id pressed again, another finger, a hand-over's departure and its arrival; a multitouch pad's note is a gate for the pad; a Value CC follows a fader on its own channel; a Touch CC is 127 then 0; three extras on one element; an element without extras sends as before; a Pitch ribbon plays its scale, the old note's off before the new one's on, never two held, and a Gate plays its note at the landing's value", async () => {
+    /** One note's messages, in order, as `status:velocity`. */
+    const note = (midi: readonly HostMidi[], n: number): string[] =>
+      midi
+        .filter((m) => (m.cmd === 144 || m.cmd === 128) && m.p1 === n)
+        .map((m) => `${m.cmd}:${m.p2}`);
+    /** Every note message in order, as `status:note:velocity`. */
+    const notes = (midi: readonly HostMidi[]): string[] =>
+      midi
+        .filter((m) => m.cmd === 144 || m.cmd === 128)
+        .map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+    /** No hang, no echo: per note, on and off alternate from an on and end on an off; and never more than `most` notes sound at once. */
+    const balanced = (midi: readonly HostMidi[], most = 1): void => {
+      const sounding = new Set<string>();
+      for (const m of midi) {
+        if (m.cmd !== 144 && m.cmd !== 128) continue;
+        const key = `${m.ch}:${m.p1}`;
+        if (m.cmd === 144) {
+          expect(sounding.has(key), `a second on for ${key}`).toBe(false);
+          sounding.add(key);
+          expect(sounding.size, "notes held at once").toBeLessThanOrEqual(most);
+        } else {
+          expect(sounding.has(key), `an off with no on for ${key}`).toBe(true);
+          sounding.delete(key);
+        }
+      }
+      expect([...sounding], "a note left hanging").toEqual([]);
+    };
+    const report: string[] = [];
+
+    // THE MODEL AND THE ROW. The Touch note rides the pad's row as `m`; the Pitch's code is -3,
+    // a Note never receives; nothing in the row's numeric columns moves for an extra.
+    expect(regionRow(GATE_PAD)).toEqual(regionRow(SPACE));
+    expect(renderRegionTable([GATE_PAD])).toBe(
+      `J={{${regionRow(SPACE).join(",")},m={{-32,48,100}}}}`,
+    );
+    expect(channelWord(RIBBON)).toBe(0 - 48 + 128);
+    expect(channelWord(GATE)).toBe(0 - 32 + 128);
+    expect(receivesOf(RIBBON) || receivesOf(GATE)).toBe(false);
+    expect(
+      regionRow(RIBBON)[5],
+      "a Pitch's number column is its velocity",
+    ).toBe(100);
+    expect(renderRegionTable([RIBBON])).toContain(",[24]={0,2,4,5,7,9,11}}");
+    expect(
+      [60, 61, 62, 63, 64, 65, 66, 71, 72].map((v) => pitchOf(RIBBON, "x", v)),
+    ).toEqual([60, 60, 62, 62, 64, 65, 65, 71, 72]);
+
+    // (1) THE PAD'S TOUCH NOTE, FIXED: the landing sends X and Y and then the note at 100; a move
+    //     sends X and Y alone; the lift the note-off. Andrew Huang's case.
+    {
+      const { host } = await open(TOUCHED);
+      try {
+        step(host, "down", 0, at(4, 1));
+        step(host, "move", 0, at(5, 0));
+        step(host, "up", 0, at(5, 0));
+        const order = host.midi
+          .filter((m) => m.p1 === 21 || m.p1 === 22 || m.p1 === 48)
+          .map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+        report.push(`  pad, fixed:         ${order.join(" ")}`);
+        expect(order).toEqual([
+          "176:21:63",
+          "176:22:63",
+          "144:48:100",
+          "176:21:127",
+          "176:22:127",
+          "128:48:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (2) FROM Y: the landing's Y position 0..127 mapped 1..127 - the top row 127, the middle 63,
+    //     the bottom 1 (never 0, a note-off).
+    {
+      const { host } = await open(FROM_Y);
+      try {
+        for (const row of [0, 1, 2]) {
+          step(host, "down", 0, at(4, row));
+          step(host, "up", 0, at(4, row));
+        }
+        report.push(`  pad, from Y:        ${note(host.midi, 48).join(" ")}`);
+        expect(note(host.midi, 48)).toEqual([
+          "144:127",
+          "128:0",
+          "144:63",
+          "128:0",
+          "144:1",
+          "128:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (3) EVERY RELEASE PATH, the off exactly once: a lift; the sweep (a lost lift, twenty Timer
+    //     calls); a 9 (a tap: on and off in one sample); the same id pressed again with no lift
+    //     (off, then on again, then the lift's off); another finger landing on the pad (the first's
+    //     off, the second's on, the second's lift off).
+    type Point = readonly [number, number];
+    const paths: [
+      string,
+      (host: LuaHost, a: Point, b: Point) => void,
+      string[],
+    ][] = [
+      [
+        "lift",
+        (host, a) => {
+          step(host, "down", 0, a);
+          step(host, "up", 0, a);
+        },
+        ["144:100", "128:0"],
+      ],
+      [
+        "sweep",
+        (host, a) => {
+          step(host, "down", 0, a);
+          host.run(230);
+        },
+        ["144:100", "128:0"],
+      ],
+      [
+        "code 9",
+        (host, a) => {
+          host.touchTap(0, ...a);
+          host.tick();
+        },
+        ["144:100", "128:0"],
+      ],
+      [
+        "same id",
+        (host, a, b) => {
+          step(host, "down", 0, a);
+          step(host, "down", 0, b);
+          step(host, "up", 0, b);
+        },
+        ["144:100", "128:0", "144:100", "128:0"],
+      ],
+      [
+        "another finger",
+        (host, a, b) => {
+          step(host, "down", 0, a);
+          step(host, "down", 1, b);
+          step(host, "up", 1, b);
+          step(host, "up", 0, b);
+        },
+        ["144:100", "128:0", "144:100", "128:0"],
+      ],
+    ];
+    for (const [name, gesture, expected] of paths) {
+      const { host } = await open(TOUCHED);
+      try {
+        gesture(host, at(4, 1), at(5, 2));
+        report.push(
+          `  ${`${name}:`.padEnd(20)}${note(host.midi, 48).join(" ")}`,
+        );
+        expect(note(host.midi, 48), name).toEqual(expected);
+        balanced(host.midi);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (4) THE HAND-OVER, both ways (Latch Off): a finger slid off the pad onto the Off button
+    //     beside it - the pad's note-off, the button's on; lifted there, the button's off. A finger
+    //     that lands on the button and slides onto the pad - the button's off, the pad's X, Y and
+    //     note on; lifted there, the note-off.
+    {
+      const { host } = await open(OFF_PAD);
+      try {
+        step(host, "down", 0, at(5, 0));
+        step(host, "move", 0, at(7, 0));
+        step(host, "up", 0, at(7, 0));
+        const away = host.midi
+          .filter((m) => m.p1 === 48 || m.p1 === 95)
+          .map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+        report.push(`  hand-over away:     ${away.join(" ")}`);
+        expect(away).toEqual([
+          "144:48:100",
+          "128:48:0",
+          "176:95:127",
+          "176:95:0",
+        ]);
+        const before = host.midi.length;
+        step(host, "down", 1, at(7, 0));
+        step(host, "move", 1, at(4, 1));
+        step(host, "up", 1, at(4, 1));
+        const onto = host.midi
+          .slice(before)
+          .map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+        report.push(`  hand-over onto:     ${onto.join(" ")}`);
+        expect(onto).toEqual([
+          "176:95:127",
+          "176:95:0",
+          "176:21:63",
+          "176:22:63",
+          "144:48:100",
+          "128:48:0",
+        ]);
+        balanced(host.midi);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (5) A MULTITOUCH PAD'S NOTE IS A GATE FOR THE PAD (decided): on at the first finger down,
+    //     off at the last finger up - a second finger, and the first one's lift under it, send no
+    //     note; each finger's pair as change 11's.
+    {
+      const { host } = await open(DUO_GATE);
+      try {
+        step(host, "down", 0, at(6, 5));
+        step(host, "down", 1, at(8, 3));
+        expect(note(host.midi, 48)).toEqual(["144:100"]);
+        step(host, "up", 0, at(6, 5));
+        expect(note(host.midi, 48), "the first finger's lift").toEqual([
+          "144:100",
+        ]);
+        step(host, "up", 1, at(8, 3));
+        expect(note(host.midi, 48), "the last finger's lift").toEqual([
+          "144:100",
+          "128:0",
+        ]);
+        expect(sent(host.midi, 50)).toEqual([0]);
+        expect(sent(host.midi, 52)).toEqual([127]);
+        // A lost last finger: the sweep's expiry is the gate's off.
+        step(host, "down", 2, at(7, 4));
+        host.run(230);
+        report.push(`  multitouch gate:    ${note(host.midi, 48).join(" ")}`);
+        expect(note(host.midi, 48)).toEqual([
+          "144:100",
+          "128:0",
+          "144:100",
+          "128:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (6) A VALUE CC FOLLOWS THE FADER on its own channel and number: every value the fader sends,
+    //     74 on channel 2 sends too, in the same order, and nothing the fader does not.
+    {
+      const { host } = await open(VALUE_FADER);
+      try {
+        step(host, "down", 0, at(1, 5));
+        for (const row of [4, 3, 2, 1, 0]) step(host, "move", 0, at(1, row));
+        step(host, "up", 0, at(1, 0));
+        const own = host.midi.filter((m) => m.p1 === 20 && m.ch === 0);
+        const extra = host.midi.filter((m) => m.p1 === 74 && m.ch === 1);
+        report.push(
+          `  value CC:           ${own.map((m) => m.p2).join(",")} / ${extra.map((m) => m.p2).join(",")}`,
+        );
+        expect(extra.map((m) => m.p2)).toEqual(own.map((m) => m.p2));
+        expect(own.map((m) => m.p2)).toEqual([0, 25, 50, 76, 101, 127]);
+        expect(extra.every((m) => m.cmd === 176)).toBe(true);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (7) A TOUCH CC is a gate on its controller: 127 on the landing, 0 on the lift - under the
+    //     button's own press and its off.
+    {
+      const { host } = await open(CC_TOUCH);
+      try {
+        step(host, "down", 0, at(7, 0));
+        step(host, "up", 0, at(7, 0));
+        const order = host.midi.map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+        report.push(`  touch CC:           ${order.join(" ")}`);
+        expect(order).toEqual([
+          "176:30:127",
+          "176:64:127",
+          "176:64:0",
+          "176:30:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (8) THREE EXTRAS ON ONE PAD: the Touch note and the Touch CC 64 on channel 3 at the landing,
+    //     the Value CC 74 on channel 2 following Y; both offs at the lift.
+    {
+      const { host } = await open(THREE_EXTRAS);
+      try {
+        step(host, "down", 0, at(4, 1));
+        step(host, "move", 0, at(4, 0));
+        step(host, "up", 0, at(4, 0));
+        const order = host.midi.map((m) => `${m.ch}:${m.cmd}:${m.p1}:${m.p2}`);
+        report.push(`  three extras:       ${order.join(" ")}`);
+        expect(order).toEqual([
+          "0:176:21:63",
+          "0:176:22:63",
+          "1:176:74:63",
+          "0:144:48:100",
+          "2:176:64:127",
+          "0:176:22:127",
+          "1:176:74:127",
+          "0:128:48:0",
+          "2:176:64:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (9) AN ELEMENT WITHOUT EXTRAS SENDS AS BEFORE: the same gestures on page 3 and on page 3 with
+    //     the pad's Touch note - every message but the note's the same, in the same order.
+    {
+      const script = (host: LuaHost) => {
+        step(host, "down", 0, at(1, 4));
+        step(host, "move", 0, at(1, 1));
+        step(host, "up", 0, at(1, 1));
+        step(host, "down", 1, at(7, 0));
+        step(host, "up", 1, at(7, 0));
+        step(host, "down", 2, at(4, 1));
+        step(host, "move", 2, at(3, 2));
+        step(host, "up", 2, at(3, 2));
+      };
+      const run = async (s: Surface) => {
+        const { host } = await open(s);
+        try {
+          script(host);
+          step(host, "down", 0, ringPoint(TURN, 90));
+          turn(host, TURN, 90, 170);
+          step(host, "up", 0, ringPoint(TURN, 170));
+          expect(host.errors, host.errors.join(" | ")).toEqual([]);
+          return host.midi
+            .filter((m) => m.p1 !== 48)
+            .map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+        } finally {
+          host.close();
+        }
+      };
+      const plain = await run(PAGE3);
+      expect(plain.length).toBeGreaterThan(8);
+      expect(await run(TOUCHED)).toEqual(plain);
+    }
+    // (10) A PITCH RIBBON: C major from 60 to 72 - a slide from the bottom LED to the top plays 60,
+    //      62, 64, 67, 69, 72, each the old note's off before the new note's on, never two held,
+    //      at the fixed 100; the lift the last off. A GATE FADER: note 60 at the landing's value as
+    //      its velocity (row 2: 76), a move sends nothing, the lift its off; landed at the bottom
+    //      (value 0) the velocity is 1, never a note-off.
+    {
+      const { host } = await open(RIBBON_GATE);
+      try {
+        step(host, "down", 0, at(1, 5));
+        for (const row of [4, 3, 2, 1, 0]) step(host, "move", 0, at(1, row));
+        step(host, "up", 0, at(1, 0));
+        report.push(`  ribbon, C major:    ${notes(host.midi).join(" ")}`);
+        expect(notes(host.midi)).toEqual([
+          "144:60:100",
+          "128:60:0",
+          "144:62:100",
+          "128:62:0",
+          "144:64:100",
+          "128:64:0",
+          "144:67:100",
+          "128:67:0",
+          "144:69:100",
+          "128:69:0",
+          "144:72:100",
+          "128:72:0",
+        ]);
+        balanced(host.midi);
+        const before = host.midi.length;
+        step(host, "down", 1, at(3, 2));
+        step(host, "move", 1, at(3, 0));
+        step(host, "up", 1, at(3, 0));
+        step(host, "down", 1, at(3, 5));
+        step(host, "up", 1, at(3, 5));
+        const gate = notes(host.midi.slice(before));
+        report.push(`  gate:               ${gate.join(" ")}`);
+        expect(gate).toEqual(["144:60:76", "128:60:0", "144:60:1", "128:60:0"]);
+        expect(
+          host.midi.filter((m) => m.cmd === 176),
+          "a Note sends no controller",
+        ).toEqual([]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (11) EVERY RELEASE PATH ON BOTH MODES: a lift, the sweep, a 9, the same id again, another
+    //      finger - exactly one off per on, never two notes from one ribbon.
+    for (const [name, gesture] of paths) {
+      for (const [col, what] of [
+        [1, "ribbon"],
+        [3, "gate"],
+      ] as const) {
+        const { host } = await open(RIBBON_GATE);
+        try {
+          // The same gestures on this fader's column: rows 1 and 2.
+          gesture(host, at(col, 1), at(col, 2));
+          const played = notes(host.midi);
+          report.push(`  ${`${what}, ${name}:`.padEnd(20)}${played.join(" ")}`);
+          expect(played.length, `${what}, ${name}`).toBeGreaterThan(0);
+          balanced(host.midi);
+          expect(host.errors, host.errors.join(" | ")).toEqual([]);
+        } finally {
+          host.close();
+        }
+      }
+    }
+    // (12) THE HAND-OVER ON NOTES: the ribbon Off slid onto the Gate fader Off - the ribbon's off,
+    //      the gate's on at the value there; and back - the gate's off, the ribbon's note there.
+    {
+      const { host } = await open(RIBBONS_OFF);
+      try {
+        step(host, "down", 0, at(1, 3));
+        step(host, "move", 0, at(2, 3));
+        step(host, "move", 0, at(1, 2));
+        step(host, "up", 0, at(1, 2));
+        report.push(`  notes hand-over:    ${notes(host.midi).join(" ")}`);
+        expect(notes(host.midi)).toEqual([
+          "144:64:100",
+          "128:64:0",
+          "144:60:50",
+          "128:60:0",
+          "144:67:100",
+          "128:67:0",
+        ]);
+        balanced(host.midi);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    // (13) THE SPRING, RELATIVE, A PAD AND A KNOB. A spring ribbon's lift sends the off and its
+    //      return plays nothing. A relative ribbon plays its held note at the landing (the Min, 60,
+    //      first) and re-notes as the finger moves. A pad's X ribbon (minor pentatonic from 48)
+    //      plays 58 for the chromatic 59 between two of its notes, and its Y controller sends as a
+    //      controller. A knob's ribbon plays its note at the landing and re-notes as it turns.
+    {
+      const { host } = await open(RIBBON_SPRING);
+      try {
+        step(host, "down", 0, at(1, 1));
+        step(host, "up", 0, at(1, 1));
+        host.run(3);
+        expect(notes(host.midi)).toEqual(["144:69:100", "128:69:0"]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      const { host } = await open(RIBBON_RELATIVE);
+      try {
+        step(host, "down", 0, at(1, 4));
+        step(host, "move", 0, at(1, 3));
+        step(host, "up", 0, at(1, 3));
+        report.push(`  relative ribbon:    ${notes(host.midi).join(" ")}`);
+        expect(notes(host.midi)).toEqual([
+          "144:60:100",
+          "128:60:0",
+          "144:62:100",
+          "128:62:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      const { host } = await open(PAD_NOTES);
+      try {
+        step(host, "down", 0, at(4, 1));
+        step(host, "move", 0, at(5, 1));
+        step(host, "up", 0, at(5, 1));
+        const order = host.midi.map((m) => `${m.cmd}:${m.p1}:${m.p2}`);
+        report.push(`  pad X ribbon:       ${order.join(" ")}`);
+        expect(order).toEqual([
+          "176:22:59",
+          "144:58:100",
+          "128:58:0",
+          "144:72:100",
+          "128:72:0",
+        ]);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    {
+      const { host } = await open(KNOB_NOTE);
+      try {
+        step(host, "down", 0, ringPoint(TURN, 90));
+        turn(host, TURN, 90, 250);
+        step(host, "up", 0, ringPoint(TURN, 250));
+        const played = notes(host.midi);
+        report.push(`  knob ribbon:        ${played.join(" ")}`);
+        expect(played[0]).toBe("144:60:100");
+        expect(played.length).toBeGreaterThan(4);
+        // A step that lands on the note already sounding re-notes nothing: no note plays twice running.
+        for (let k = 2; k < played.length; k += 2)
+          expect(played[k], "a re-note onto the same note").not.toBe(
+            played[k - 2],
+          );
+        balanced(host.midi);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+    process.stdout.write(
+      "\nTHE SANDBOX RUNTIME, change 21A - extras and continuous Notes, every release path:\n" +
+        report.join("\n") +
+        "\n",
     );
   }, 120000);
 });

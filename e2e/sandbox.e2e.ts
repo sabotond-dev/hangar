@@ -38,8 +38,9 @@
 // shared-controller mark, the names toggle, a recent colour's chip, the Play
 // monitor; the twelfth, change 15, the tool rail - its column at 1280 x 720 in
 // two stacks, one at 900 tall, a strip above the inspector on a phone, Save
-// copy on the plate's status line; and change 18's Latch walk - two buttons set Off together,
-// a finger slid from one onto the other in Play handed over.) THE PUT-BACK HALF LEFT AT
+// copy on the plate's status line; change 18's Latch walk - two buttons set Off together,
+// a finger slid from one onto the other in Play handed over; and change 21A's extra-messages walk -
+// an XY pad's Touch note From Y and a C major ribbon fader, heard in the Play monitor.) THE PUT-BACK HALF LEFT AT
 // 13.1-06 (13.1-CONTEXT D-07, the user's "remove"): the title clicked
 // `put-back` and read RESTORED in the bar; the control is on no screen now,
 // so the title ends at the store's refusal, and the bar's zone it reads is
@@ -1698,6 +1699,138 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     );
 
     expect(consoleErrors, "no console error on the Latch walk").toEqual([]);
+  });
+
+  test("the extra-messages walk (change 21A): an XY pad takes a Touch note from + Add message and its velocity From Y, a fader set to Note, Pitch, C major from C3 to C4 - every field one Undo - and in Play a tap on the pad shows its note-on then its note-off in the monitor, and a slide up the fader plays E3, G3 and A3, each with its off; the draft recovered on a reload", async ({
+    page,
+  }) => {
+    const consoleErrors = collectErrors(page);
+    const plate = await openFresh(page);
+    const sandbox = page.getByTestId("sandbox");
+
+    // THE FADER: Type Note, Pitch by default, the Scale C major rooted on Min, Min C3 and Max C4 -
+    // the number row and Receive gone under a Note.
+    await plate.focus();
+    await page.keyboard.press("f");
+    await clickCell(plate, 0, 0);
+    await page.keyboard.press("v");
+    await expect(sandbox).toHaveAttribute("data-depth", "1");
+    await page.getByTestId("field-output").selectOption("note");
+    await expect(sandbox).toHaveAttribute("data-depth", "2");
+    await expect(page.getByTestId("field-note-mode")).toHaveAttribute(
+      "data-value",
+      "pitch",
+    );
+    expect(await page.getByTestId("field-cc").count()).toBe(0);
+    expect(await page.getByTestId("field-receive").count()).toBe(0);
+    await page.getByTestId("field-scale").selectOption("major");
+    await expect(sandbox).toHaveAttribute("data-depth", "3");
+    await page.getByTestId("field-min").fill("48");
+    await page.getByTestId("field-min").press("Enter");
+    await page.getByTestId("field-max").fill("60");
+    await page.getByTestId("field-max").press("Enter");
+    await expect(sandbox).toHaveAttribute("data-depth", "5");
+
+    // THE PAD: + Add message appends a Touch note on its channel at C4; From Y is one entry.
+    await plate.focus();
+    await page.keyboard.press("x");
+    await clickCell(plate, 4, 0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("inspector-name")).toHaveText("XY pad 1");
+    expect(await page.getByTestId("extra-block").count()).toBe(0);
+    await page.getByTestId("extra-add").click();
+    await expect(sandbox).toHaveAttribute("data-depth", "7");
+    await expect(page.getByTestId("extra-summary")).toHaveText(
+      "Touch · Note · Ch 1 · C4 · Vel 100",
+    );
+    await page.getByTestId("extra-velocity").getByText("From Y").click();
+    await expect(sandbox).toHaveAttribute("data-depth", "8");
+    await expect(page.getByTestId("extra-summary")).toHaveText(
+      "Touch · Note · Ch 1 · C4 · Vel from Y",
+    );
+    // One Undo takes From Y back, Redo brings it again.
+    await page.getByTestId("undo").click();
+    await expect(page.getByTestId("extra-summary")).toHaveText(
+      "Touch · Note · Ch 1 · C4 · Vel 100",
+    );
+    await page.getByTestId("redo").click();
+    await expect(page.getByTestId("extra-summary")).toContainText("from Y");
+
+    // PLAY: a tap on the pad's top row - its note-on (From Y: the top, 127) then its note-off;
+    // a slide up the fader from its bottom LED - C3, D3, E3, each with its off.
+    await page.getByTestId("segment-play").click();
+    await page.waitForFunction(
+      () => {
+        const c = document.querySelector(
+          '[data-testid="pad-canvas-sandbox-preview"]',
+        ) as HTMLCanvasElement | null;
+        return c !== null && c.width === 9;
+      },
+      undefined,
+      { timeout: 30_000 },
+    );
+    const live = await plate.boundingBox();
+    if (live === null) throw new Error("no plate in Play");
+    const pitch = live.width / 9;
+    const lines = page.getByTestId("play-monitor-line");
+    await page.mouse.move(live.x + 5.5 * pitch, live.y + 0.5 * pitch);
+    await page.mouse.down();
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    await expect(
+      lines.filter({ hasText: "Note on C4 ch 1 → 127" }),
+    ).toHaveCount(1, { timeout: 10_000 });
+    await expect(lines.filter({ hasText: "Note off C4 ch 1" })).toHaveCount(1, {
+      timeout: 10_000,
+    });
+    // The plate measured again: the monitor's lines under it can move it.
+    const after = await plate.boundingBox();
+    if (after === null) throw new Error("no plate after the tap");
+    const step = after.width / 9;
+    // Rows 3, 2 and 1 - the plate's lower rows sit under the shell's footer at 720 tall in Play -
+    // one sample a row: 52, 55 and 57 on C major from C3, E3, G3 and A3.
+    await page.mouse.move(after.x + 0.5 * step, after.y + 3.5 * step);
+    await page.mouse.down();
+    await page.waitForTimeout(150);
+    await page.mouse.move(after.x + 0.5 * step, after.y + 2.5 * step);
+    await page.waitForTimeout(150);
+    await page.mouse.move(after.x + 0.5 * step, after.y + 1.5 * step);
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    for (const note of ["E3", "G3", "A3"]) {
+      await expect(
+        lines.filter({ hasText: `Note on ${note} ch 1 → 100` }),
+        `${note} on`,
+      ).toHaveCount(1, { timeout: 10_000 });
+      await expect(
+        lines.filter({ hasText: `Note off ${note} ch 1` }),
+        `${note} off`,
+      ).toHaveCount(1, { timeout: 10_000 });
+    }
+    expect(
+      await lines.filter({ hasText: "Note on F3" }).count(),
+      "F3 is between two samples: never played",
+    ).toBe(0);
+    await page.getByTestId("segment-edit").click();
+    await expect(sandbox).toHaveAttribute("data-mode", "edit");
+
+    // THE DRAFT: reloaded, the fader a C major ribbon and the pad's note From Y.
+    await page.waitForTimeout(400);
+    await page.reload();
+    await expect(page.getByTestId("sandbox")).toBeVisible();
+    const again = page.getByTestId("surface-plate");
+    await clickCell(again, 0, 0);
+    await expect(page.getByTestId("field-output")).toHaveValue("note");
+    await expect(page.getByTestId("field-scale")).toHaveValue("major");
+    await clickCell(again, 4, 0);
+    await expect(page.getByTestId("extra-summary")).toHaveText(
+      "Touch · Note · Ch 1 · C4 · Vel from Y",
+    );
+
+    expect(
+      consoleErrors,
+      "no console error on the extra-messages walk",
+    ).toEqual([]);
   });
 
   test("the selection walk (change 13A): Shift+click selects two under one group outline, a marquee selects the three it touches, Ctrl+C then Ctrl+V pastes them by the placement rule with auto-numbered names, Ctrl+X cuts them as one Undo, a channel typed over two writes both and reads Mixed when they differ, and a locked element refuses a drag and a delete with its line", async ({

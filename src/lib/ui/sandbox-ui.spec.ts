@@ -3,7 +3,8 @@
 // by change 11 - an XY pad's Touches; 14 to 16 by 13A; 17 to 20 by 13B; 21 to 27 by 13C - the menu,
 // the sheet, the Play monitor, the shared-controller pass, the view toggles, the recent colours, the
 // profile controls; 28 by change 15 - the tool rail; 29 by change 17 - the MIDI output; 30 by
-// change 18 - Latch; 31 by change 18b - the knob without it), two halves each:
+// change 18 - Latch; 31 by change 18b - the knob without it; 32 by change 21A - the extra messages and
+// a Note on a continuous output), two halves each:
 // the behaviour half drives src/lib/sandbox/editor.ts in node with NO POINTER
 // EVENT - the model's own surface is the thing asserted; the shape half renders
 // the components with svelte/server against the model's state and scans the
@@ -19,6 +20,13 @@ import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import {
+  ADD_MESSAGE,
+  ADD_MESSAGE_FULL,
+  PITCH_MIN_MAX_HELPER,
+  REMOVE_MESSAGE,
+  VELOCITY_RANGE,
+  extraSummary,
+  messageName,
   ARRANGE_HELPER,
   BUTTON_MIN_MAX_HELPER,
   CC_RANGE,
@@ -127,7 +135,7 @@ import {
 } from "../store/sandbox-colours";
 import { readSandboxView, writeSandboxView } from "../store/sandbox-view";
 import { EXPORT_ACCEPT } from "../store/transfer";
-import { noteName } from "../tune/view";
+import { SCALE_WORDS, noteName } from "../tune/view";
 import {
   DEFAULT_COLOUR,
   DEFAULT_SIZES,
@@ -206,6 +214,12 @@ import {
   BRIGHTNESS_SURFACE_HELPER,
 } from "../tune/inspector-copy";
 import {
+  EXTRAS_MAX,
+  SCALE_DEGREES,
+  SCALE_IDS,
+  extrasOf,
+  receivesOf,
+  typeYOf,
   SURFACE_ELEMENT_CAP,
   emptySurface,
   type ElementKind,
@@ -781,7 +795,8 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     // AN OUT-OF-RANGE CONTROLLER: refused; the model holds 1; the field
     // shows the typed text with the field's own message. (The geometry
     // fields went at change 10A; the three MIDI fields are the typed route.)
-    // Change 17: an XY pad's Y axis channel.
+    // Change 17: an XY pad's Y axis channel; change 21A a continuous Note's Y number under Gate
+    // and its velocity under Pitch, per axis.
     expect(NUMERIC_FIELDS).toEqual([
       "cc",
       "cc2",
@@ -791,6 +806,9 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
       "max",
       "springValue",
       "note",
+      "noteY",
+      "velocity",
+      "velocityY",
     ]);
     expect(editor.editNumber("cc", "200")).toBe(false);
     expect(byId(editor, id).cc, "the previous valid value survives").toBe(1);
@@ -2713,7 +2731,8 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     editor.setSpring(false);
     editor.setSpeed("half");
     editor.setLatch(true);
-    editor.setOutput("note");
+    // Change 21A: a Note is every member's type now (the faders' own Note); a pitch bend the button's not.
+    editor.setOutput("pitchbend");
     editor.setGroup(2);
     expect(editor.setTouches(2)).toBe(false);
     expect(editor.history.depth).toBe(mixedDepth);
@@ -4576,17 +4595,18 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     const placed = editor.state().depth;
     expect(editor.setOutput("pitchbend")).toBe(true);
     expect(byId(editor, fader.id).output).toBe("pitchbend");
-    expect(editor.setOutput("note"), "a fader offers no note").toBe(false);
+    // Change 21A: a fader offers a Note (its own output's fourth type).
+    expect(editor.setOutput("note"), "a fader offers a note").toBe(true);
     expect(editor.setOutput("pressure")).toBe(true);
-    expect(editor.state().depth).toBe(placed + 2);
+    expect(editor.state().depth).toBe(placed + 3);
     expect(editor.setOutputY("pitchbend"), "a fader has no Y axis").toBe(false);
     expect(editor.editNumber("channelY", "9")).toBe(false);
     // Receive: off, one entry; the same value no entry.
     expect(editor.setReceive(false)).toBe(true);
     expect(byId(editor, fader.id).receive).toBe(false);
     expect(editor.setReceive(false)).toBe(true);
-    expect(editor.state().depth).toBe(placed + 3);
-    for (let i = 0; i < 3; i += 1) expect(editor.undo()).toBe(true);
+    expect(editor.state().depth).toBe(placed + 4);
+    for (let i = 0; i < 4; i += 1) expect(editor.undo()).toBe(true);
     expect(byId(editor, fader.id)).not.toHaveProperty("output");
     expect(byId(editor, fader.id)).not.toHaveProperty("receive");
     // An XY PAD: the Y axis on its own type and channel; the channel typed, refused out of range.
@@ -5006,5 +5026,311 @@ describe("the Sandbox's interface (src/lib/ui/sandbox-ui.spec.ts)", () => {
     loaded.toggleSelect(fader.id);
     expect(loaded.setLatchTouch(false)).toBe(false);
     expect(byId(loaded, fader.id)).not.toHaveProperty("latchTouch");
+  });
+
+  it("32. extra messages and a Note on a continuous output (change 21A): + Add message appends a Touch note on a pad and a button and a Value CC on a fader and an absolute knob, one entry, refused at three, on a blank, over a set and in Play; an extra is reshaped to what its trigger offers, its typed fields refused out of range with their lines and coalesced; a continuous output's Type takes a Note, its Mode and Scale one entry each; neither is remembered; the schema refuses a bad extra whole; the panel draws a folding block per extra with its summary and its remove box in the lock column, then + Add message, a Note's rows in place of the number, no Receive under a Note, nothing over a set; the route's wiring", () => {
+    const { editor } = fresh();
+    const placed: Region[] = [];
+    for (const [kind, col, row] of [
+      ["fader", 0, 0],
+      ["button", 3, 0],
+      ["knob", 5, 0],
+      ["xy", 3, 4],
+      ["blank", 8, 8],
+    ] as const) {
+      editor.choose(kind);
+      editor.clickCell(col, row);
+      editor.cancel();
+      placed.push(editor.surface.regions[editor.surface.regions.length - 1]);
+    }
+    const [fader, button, knob, pad, blank] = placed;
+
+    // + ADD MESSAGE: the kind's first extra, one entry; the pad and the button a Touch note on the
+    // element's channel at C4, the fader and the absolute knob a Value CC one above the controller.
+    for (const r of [pad, button, fader, knob]) {
+      editor.select(r.id);
+      const depth = editor.state().depth;
+      expect(editor.addExtra(), r.kind).toBe(true);
+      expect(editor.state().depth).toBe(depth + 1);
+      expect(byId(editor, r.id).extras, r.kind).toEqual([
+        r.kind === "xy" || r.kind === "button"
+          ? { trigger: "touch", type: "note", channel: r.channel, number: 60 }
+          : {
+              trigger: "value",
+              type: "cc",
+              channel: r.channel,
+              number: r.cc + 1,
+            },
+      ]);
+    }
+    // At three: refused, nothing recorded; a blank, a set and Play refuse too.
+    editor.select(pad.id);
+    expect(editor.addExtra()).toBe(true);
+    expect(editor.addExtra()).toBe(true);
+    let depth = editor.state().depth;
+    expect(editor.addExtra(), "three at most").toBe(false);
+    expect(extrasOf(byId(editor, pad.id)).length).toBe(EXTRAS_MAX);
+    editor.select(blank.id);
+    expect(editor.addExtra(), "a blank").toBe(false);
+    editor.select(fader.id);
+    editor.toggleSelect(knob.id);
+    expect(editor.addExtra(), "over a set").toBe(false);
+    editor.select(fader.id);
+    editor.setMode("play");
+    expect(editor.addExtra(), "in Play").toBe(false);
+    expect(editor.removeExtra(0)).toBe(false);
+    editor.setMode("edit");
+    expect(editor.state().depth).toBe(depth);
+    // REMOVE: one entry; the last one gone takes the field with it; Undo brings it back.
+    depth = editor.state().depth;
+    expect(editor.removeExtra(0)).toBe(true);
+    expect(byId(editor, fader.id)).not.toHaveProperty("extras");
+    expect(editor.state().depth).toBe(depth + 1);
+    expect(editor.undo()).toBe(true);
+    expect(extrasOf(byId(editor, fader.id)).length).toBe(1);
+
+    // RESHAPED to what the trigger offers: a Value on a button is refused (it honours Touch alone);
+    // a Touch note turned Value becomes a CC; the default velocity and the X source are not stored;
+    // From Y is.
+    editor.select(button.id);
+    const touch = extrasOf(byId(editor, button.id))[0];
+    expect(editor.setExtra(0, { ...touch, trigger: "value" })).toBe(false);
+    editor.select(pad.id);
+    const first = extrasOf(byId(editor, pad.id))[0];
+    expect(editor.setExtra(0, { ...first, velocity: "y" })).toBe(true);
+    expect(extrasOf(byId(editor, pad.id))[0].velocity).toBe("y");
+    expect(editor.setExtra(0, { ...first, velocity: 100 })).toBe(true);
+    expect(extrasOf(byId(editor, pad.id))[0]).not.toHaveProperty("velocity");
+    expect(editor.setExtra(1, { ...first, trigger: "value" })).toBe(true);
+    expect(extrasOf(byId(editor, pad.id))[1]).toEqual({
+      trigger: "value",
+      type: "cc",
+      channel: first.channel,
+      number: 60,
+    });
+    expect(
+      editor.setExtra(1, { ...extrasOf(byId(editor, pad.id))[1], source: "x" }),
+    ).toBe(true);
+    expect(extrasOf(byId(editor, pad.id))[1]).not.toHaveProperty("source");
+    expect(
+      editor.setExtra(1, { ...extrasOf(byId(editor, pad.id))[1], source: "y" }),
+    ).toBe(true);
+    expect(extrasOf(byId(editor, pad.id))[1].source).toBe("y");
+    expect(editor.setExtra(1, { ...first, channel: 17 })).toBe(false);
+    // TYPED FIELDS: refused out of range with their lines, a note by name or number, coalesced.
+    expect(editor.editExtraField(0, "channel", "17")).toBe(CHANNEL_RANGE);
+    expect(editor.editExtraField(0, "channel", "x")).toBe(WHOLE_NUMBER);
+    expect(editor.editExtraField(0, "number", "H3")).toBe(NOTE_RANGE);
+    expect(editor.editExtraField(0, "velocity", "0")).toBe(VELOCITY_RANGE);
+    depth = editor.state().depth;
+    expect(editor.editExtraField(0, "number", "C")).toBe(NOTE_RANGE);
+    expect(editor.editExtraField(0, "number", "C#3")).toBeUndefined();
+    expect(editor.editExtraField(0, "velocity", "9")).toBeUndefined();
+    expect(editor.editExtraField(0, "velocity", "90")).toBeUndefined();
+    editor.commitField();
+    expect(extrasOf(byId(editor, pad.id))[0]).toMatchObject({
+      number: 49,
+      velocity: 90,
+    });
+    expect(editor.editExtraField(1, "number", "200")).toBe(CC_RANGE);
+    expect(editor.editExtraField(1, "number", "74")).toBeUndefined();
+    editor.commitField();
+    expect(editor.state().depth, "a typed value is one entry").toBe(depth + 3);
+    // THE ONE DOOR the route hands through: `message`.
+    expect(
+      editor.message({ kind: "field", index: 0, field: "channel", text: "0" }),
+    ).toBe(CHANNEL_RANGE);
+    expect(editor.message({ kind: "remove", index: 2 })).toBeUndefined();
+    expect(extrasOf(byId(editor, pad.id)).length).toBe(2);
+
+    // A NOTE ON A CONTINUOUS OUTPUT: the fader's Type, then its Mode and Scale, one entry each;
+    // refused while the output is not a Note; the Y axis of a one-touch pad; not a multitouch pad.
+    editor.select(fader.id);
+    expect(editor.setNoteMode("x", "gate"), "not a Note yet").toBe(false);
+    expect(editor.setScale("x", "major")).toBe(false);
+    expect(editor.setOutput("note")).toBe(true);
+    depth = editor.state().depth;
+    expect(editor.setNoteMode("x", "gate")).toBe(true);
+    expect(editor.setNoteMode("x", "gate")).toBe(true);
+    expect(editor.state().depth).toBe(depth + 1);
+    expect(editor.setNoteMode("x", "pitch")).toBe(true);
+    expect(editor.setScale("x", "major")).toBe(true);
+    expect(byId(editor, fader.id)).toMatchObject({
+      output: "note",
+      noteMode: "pitch",
+      scale: "major",
+    });
+    expect(editor.setScale("x", "chromatic")).toBe(true);
+    expect(byId(editor, fader.id)).not.toHaveProperty("scale");
+    expect(editor.editNumber("velocity", "0")).toBe(false);
+    expect(editor.fields.velocity?.message).toBe(VELOCITY_RANGE);
+    expect(editor.editNumber("velocity", "64")).toBe(true);
+    expect(byId(editor, fader.id).velocity).toBe(64);
+    expect(receivesOf(byId(editor, fader.id)), "a Note does not receive").toBe(
+      false,
+    );
+    editor.select(pad.id);
+    expect(editor.setOutputY("note")).toBe(true);
+    expect(editor.setNoteMode("y", "gate")).toBe(true);
+    expect(editor.editNumber("noteY", "D3")).toBe(true);
+    expect(byId(editor, pad.id)).toMatchObject({
+      outputY: "note",
+      noteModeY: "gate",
+      cc2: 50,
+    });
+    expect(editor.setTouches(2)).toBe(true);
+    expect(typeYOf(byId(editor, pad.id)), "a multitouch pad: no Note").toBe(
+      "cc",
+    );
+    expect(editor.setOutputY("note")).toBe(false);
+    expect(editor.setTouches(1)).toBe(true);
+    // NOT REMEMBERED (13B): a continuous Note, its Mode, Scale and Velocity, and the extras.
+    expect(rememberKind(byId(editor, fader.id))).not.toHaveProperty("output");
+    for (const field of ["extras", "noteMode", "scale", "velocity"])
+      expect(rememberKind(byId(editor, fader.id)), field).not.toHaveProperty(
+        field,
+      );
+    expect(rememberKind(byId(editor, pad.id))).not.toHaveProperty("outputY");
+    expect(withKindDefaults(fader, { output: "note" })).not.toHaveProperty(
+      "output",
+    );
+    expect(rememberKind({ ...button, output: "note" }).output).toBe("note");
+
+    // THE SCHEMA: a region with extras and the Note fields reads; a bad one is refused whole.
+    const record = (extra: Partial<Region>) => ({
+      schema: 1,
+      id: "sandbox:s-21",
+      name: "Andrew",
+      kind: "sandbox",
+      source: "s-21",
+      createdAt: "2026-09-24T00:00:00.000Z",
+      editedAt: "2026-09-24T00:00:00.000Z",
+      surface: {
+        id: "s-21",
+        name: "Andrew",
+        regions: [{ ...pad, touches: undefined, ...extra }],
+      },
+    });
+    const note = { trigger: "touch", type: "note", channel: 1, number: 48 };
+    expect(isStoredRecord(record({}))).toBe(true);
+    expect(
+      isStoredRecord(
+        record({
+          extras: [note, { ...note, velocity: "y" }, { ...note, type: "cc" }],
+          output: "note",
+          noteMode: "gate",
+          scale: "dorian",
+          velocity: 1,
+          outputY: "note",
+          noteModeY: "pitch",
+          scaleY: "minor-pentatonic",
+          velocityY: 127,
+        } as Partial<Region>),
+      ),
+    ).toBe(true);
+    for (const bad of [
+      { extras: [note, note, note, note] },
+      { extras: [{ ...note, type: "pitchbend" }] },
+      { extras: [{ ...note, trigger: "value", type: "note" }] },
+      { extras: [{ ...note, velocity: 0 }] },
+      { extras: [{ ...note, channel: 0 }] },
+      { extras: [{ ...note, number: 128 }] },
+      { extras: [{ ...note, source: "z" }] },
+      { extras: note },
+      { noteMode: "bend" },
+      { scale: "blues" },
+      { velocity: 0 },
+      { velocityY: 128 },
+    ])
+      expect(
+        isStoredRecord(record(bad as unknown as Partial<Region>)),
+        JSON.stringify(bad),
+      ).toBe(false);
+
+    // THE PANEL. The pad: two blocks on 17C's folding head, each summary one line, the remove box
+    // the lock column's, then + Add message; the Trigger on a kind that takes both, Velocity's
+    // three words under a Touch note, Source under a pad's Value.
+    editor.select(pad.id);
+    let html = inspector(editor);
+    expect(html.split('data-testid="extra-block"').length - 1).toBe(2);
+    expect(html).toContain(
+      `>${extraSummary(["Touch", "Note", "Ch 1", "C#3", "Vel 90"])}<`,
+    );
+    expect(html).toContain(
+      `>${extraSummary(["Value", "CC", "Ch 1", "74", "from Y"])}<`,
+    );
+    expect(html).toContain(messageName(1));
+    expect(html).toContain(`aria-label="${REMOVE_MESSAGE} 1"`);
+    expect(html).toMatch(/data-testid="extra-fold"[^>]*aria-expanded="true"/);
+    for (const id of [
+      "extra-trigger",
+      "extra-type",
+      "extra-channel",
+      "extra-number",
+      "extra-velocity",
+      "extra-source",
+      "extra-add",
+    ])
+      expect(html, id).toContain(`data-testid="${id}"`);
+    expect(html).toContain(`>${ADD_MESSAGE}</button>`);
+    expect(html).not.toMatch(/data-testid="extra-add"[^>]*disabled/);
+    const midi = html.indexOf(">MIDI output<");
+    const appearance = html.indexOf(">Appearance<");
+    const block = html.indexOf('data-testid="extra-block"');
+    expect(block, "the blocks under MIDI output").toBeGreaterThan(midi);
+    expect(block).toBeLessThan(appearance);
+    expect(html.indexOf('data-testid="extra-add"')).toBeGreaterThan(
+      html.lastIndexOf('data-testid="extra-block"'),
+    );
+    // Three blocks: + Add message disabled, its title the reason.
+    expect(editor.addExtra()).toBe(true);
+    html = inspector(editor);
+    expect(html).toMatch(/data-testid="extra-add"[^>]*disabled/);
+    expect(html).toContain(ADD_MESSAGE_FULL);
+    // The button: Touch only - no Trigger row; CC, a number, no Velocity.
+    editor.select(button.id);
+    expect(editor.setExtra(0, { ...touch, type: "cc", number: 64 })).toBe(true);
+    html = inspector(editor);
+    expect(html).not.toContain('data-testid="extra-trigger"');
+    expect(html).not.toContain('data-testid="extra-velocity"');
+    expect(html).toContain(`>${extraSummary(["Touch", "CC", "Ch 1", "64"])}<`);
+    // Over a set: no blocks, no + Add message; a blank has no MIDI output at all.
+    editor.select(pad.id);
+    editor.toggleSelect(button.id);
+    html = inspector(editor);
+    expect(html).not.toContain('data-testid="extra-block"');
+    expect(html).not.toContain('data-testid="extra-add"');
+    editor.select(blank.id);
+    expect(inspector(editor)).not.toContain('data-testid="extra-add"');
+    // A NOTE'S ROWS: the fader's Type offers Note; under Pitch its Mode, Scale (the catalog's words)
+    // and Velocity in place of the number, and no Receive; under Gate the Note.
+    editor.select(fader.id);
+    html = inspector(editor);
+    expect(html).toContain(">Note</option>");
+    for (const id of ["field-note-mode", "field-scale", "field-velocity"])
+      expect(html, id).toContain(`data-testid="${id}"`);
+    expect(html).not.toContain('data-testid="field-cc"');
+    expect(html).not.toContain('data-testid="field-receive"');
+    expect(html).toContain(PITCH_MIN_MAX_HELPER);
+    for (const id of SCALE_IDS)
+      expect(html, id).toContain(
+        `>${(SCALE_WORDS as Readonly<Record<string, string>>)[SCALE_DEGREES[id].join(",")]}</option>`,
+      );
+    expect(editor.setNoteMode("x", "gate")).toBe(true);
+    html = inspector(editor);
+    expect(html).toContain('data-testid="field-note"');
+    expect(html).not.toContain('data-testid="field-scale"');
+    // The pad's Y axis on Gate: its own Note field; a multitouch pad offers no Note.
+    editor.select(pad.id);
+    html = inspector(editor);
+    expect(html).toContain('data-testid="field-note-mode-y"');
+    expect(html).toContain('data-testid="field-note-y"');
+    expect(editor.setOutputY("cc")).toBe(true);
+    expect(editor.setTouches(2)).toBe(true);
+    expect(inspector(editor)).not.toContain(">Note</option>");
+    // THE ROUTE.
+    expect(code(ROUTE)).toContain(
+      "onmessage={(action) => editor?.message(action)}",
+    );
   });
 });
