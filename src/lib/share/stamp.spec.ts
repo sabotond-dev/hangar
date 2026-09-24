@@ -385,6 +385,15 @@ describe("the stamp: format x", () => {
           break: "0,255,180",
         },
       },
+      {
+        id: "wheels",
+        payload: "we000fff0f7750101100g1",
+        moved: {
+          pitch: "255,255,255",
+          mod: "0,255,120",
+          divider: "120,90,0",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);

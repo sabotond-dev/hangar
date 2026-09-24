@@ -93,6 +93,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 import {
   CHANNEL_VALUES,
   CONTINUOUS_STATUSES,
@@ -156,7 +157,8 @@ export const WHEELS: CatalogEntry = {
       token: "@PWC",
       // Columns 0..3, on layers 1 and 2: the marker row at phase 255, the rail at 30. APPEARS
       // TWICE - once per layer.
-      values: ["0,180,255", "255,255,255", "180,0,255", "0,255,120"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["0,180,255", "255,255,255", "180,0,255", "0,255,120"]),
       default: 0,
     },
     {
@@ -164,9 +166,10 @@ export const WHEELS: CatalogEntry = {
       label: "Mod wheel colour",
       kind: "colour",
       token: "@MWC",
-      // Columns 5..8, on layers 1 and 2. The four values sit apart from @PWC's at every index
-      // (D-11-12-b); the shapes differ too, so no knob makes the two wheels read as one.
-      values: ["255,150,0", "0,255,120", "255,0,180", "0,220,220"],
+      // Columns 5..8, on layers 1 and 2. Its own four sit apart from @PWC's at every index
+      // (D-11-12-b); the shapes differ too, so the two wheels never read as one, one colour or two.
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["255,150,0", "0,255,120", "255,0,180", "0,220,220"]),
       default: 0,
     },
     {
@@ -176,7 +179,8 @@ export const WHEELS: CatalogEntry = {
       token: "@DVC",
       // Column 4, ON LAYER 1 ONLY - half brightness by the render sum, which is what a divider
       // wants. A boundary, not a control.
-      values: ["90,90,110", "120,90,0", "0,90,90", "255,255,255"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["90,90,110", "120,90,0", "0,90,90", "255,255,255"]),
       default: 0,
     },
     {

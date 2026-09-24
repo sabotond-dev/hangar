@@ -15078,6 +15078,11 @@ describe("every colour knob a full RGB picker (change 19, BENCH-2026-09-16.txt s
       // The rest colour shows when an interval ends: a one-minute interval, run past its end.
       drive: { break: { knobs: { mins: 4 }, ticks: 7000 } },
     },
+    {
+      id: "wheels",
+      wire: "41ecbbc23e0794e3d48c8633e6bf3262b106779ef0a60459fb3929d9d189caa9",
+      corner: [900, 895],
+    },
   ];
 
   const sha = (text: string): string =>
