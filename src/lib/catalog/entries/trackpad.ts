@@ -60,6 +60,7 @@
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { previewFor, type CatalogEntry, type CatalogSource } from "../types";
+import { onLattice } from "../lattice";
 
 const SETUP =
   "--[[@cb]]self:txma(1023)self:tyma(1023)gmbs(3,0)self.r=0 local function z(s)s.p={}s.n=0 s.k=0 s.m=0 s.w=0 s.j=0 s.q=0 end z(self)self.touch_cb=function(s,i,e,x,y)if s.q>25 then z(s)end s.q=0 local o,g,f,h=true,0,0,0 while o and g<24 do g=g+1 local c,t=s.p[i],e==3 or e>=5 if e==4 or e>7 or not c and not t then if not c then s.n=s.n+1 s.k=glim(s.k,s.n,9)end c={x,y}s.p[i]=c s.j=4 end if t then if c then s.p[i]=nil s.n=s.n-1 s.j=4 if s.n<1 then if s.r<1 and e>4 and s.m<s.k*120 then gmbs(glim(s.k,1,2),1)s.r=4 end gtt(0,20)z(s)end end else local u,v=x-c[1],y-c[2]c[1]=x c[2]=y s.m=s.m+math.abs(u)+math.abs(v)if s.n>1 then s.w=s.w+v else f=f+u h=h+v end end o=s:touch_pop()i=s:tid()e=s:tev()x=s:txv()y=s:tyv()end if s.j>0 then s.j=s.j-1 elseif s.n>1 then local d=(s.w+64)//128 if d~=0 then s.w=s.w-d*128 s.m=999 gmms(3,-d)end else gmms(1,glim(f,-63,63))gmms(2,glim(h,-63,63))s.u,s.v=f,h end end gtt(0,20)";
@@ -102,7 +103,8 @@ export const TRACKPAD: CatalogEntry = {
       token: "@C",
       // Written once over layer 1 by the Timer's first call. The picker can
       // reach any RGB444 literal; the sweep gates 255,255,255.
-      values: ["214,255,78", "255,255,255", "0,200,255", "255,170,0"],
+      // Change 19: these first - the picker's quick picks - then the rest of the RGB444 lattice.
+      ...onLattice(["214,255,78", "255,255,255", "0,200,255", "255,170,0"]),
       default: 0,
     },
     {

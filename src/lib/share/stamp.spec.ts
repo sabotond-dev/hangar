@@ -401,6 +401,13 @@ describe("the stamp: format x", () => {
           sweepColour: "255,60,120",
         },
       },
+      {
+        id: "trackpad",
+        payload: "w80fff10",
+        moved: {
+          colour: "255,255,255",
+        },
+      },
     ];
     for (const minted of MINTED) {
       const each = entry(minted.id);
