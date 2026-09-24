@@ -4273,3 +4273,22 @@ and the Sandbox - when a ZONA is connected, the plate can show the module's own 
 with the MIDI the module actually sent in the monitor beside it; read-only, switched on by a
 click, the simulator one click back. Built against the protocol and the fake ZONA; the hardware
 answer is the user's bench.
+
+21. One element, several MIDI messages - a touch note on the XY pad (2026-09-24)
+--------------------------------------------------------------------------------
+
+> andrew huang is testing HANGAR and ZONA right now and he asked about the following:
+>  if touch on an XY pad could correspond with a note on/off in addition to sending the XY values
+> - let me know if that's possible!
+>
+> can we implement that one element could send multiple MIDI messages?
+
+Recorded 2026-09-24: an element's MIDI output becomes a list. Beside its own outputs (a fader's
+value, an XY pad's X and Y, a button's press) an element may carry extra messages, up to three,
+each with a trigger: **Touch** (on when a finger lands on the element, off when it lifts - a gate:
+Note on / off, or CC max / min), **Value** (follows the element's value like its own output - CC,
+Pitch bend, Channel pressure, on its own channel and number). A Touch note's velocity is fixed
+(default 100) or taken from the X or Y position at the landing; its number is typed like every
+note. Receive stays on the element's own outputs only. Sandbox first (21A, now); the playground's
+XY cards (AURORA, PINWHEEL, STARFIELD, JOYSTICK, RADAR) take a Touch note output after change 19
+lands (21B).
