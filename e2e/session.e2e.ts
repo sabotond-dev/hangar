@@ -287,9 +287,10 @@ const answering = (page: Page): Promise<ExposedZona> =>
  * The wait is therefore CAUSAL rather than timing-based: install.svelte.ts
  * publishes `snapshotting` on entering #snapshot and `ready` after the pair has
  * been fetched, guarded and held - so `install-phase` leaving `snapshotting` IS
- * "the snapshot is done". `snapshot-failed` is accepted as an exit too, because
- * the point of the wait is that nothing is still in flight; the counter
- * assertions below then say whether what happened was reads.
+ * "the snapshot is done" - a page it could not copy lands `ready` too since
+ * change 23 (`snapshot-failed` left the union); the point of the wait is that
+ * nothing is still in flight; the counter assertions below then say whether
+ * what happened was reads.
  *
  * TWO WAITS, BECAUSE THREE OF THE SEVEN CALL SITES ARE NOT ON THE PROBE.
  * `install-phase` is published by /dev/install/ and - since plan 11-08.1 - by

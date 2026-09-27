@@ -12,9 +12,10 @@
 // a transient, and it is why every one of 07-UI-SPEC's fourteen states is
 // visited there before a panel exists to hide a transition in. Between them
 // the six tests own: idle, snapshotting, ready, writing, settled, restored,
-// kept, partial, lost, snapshot-failed, kept-mismatch, restored-unconfirmed
-// and nothing-landed (unconfirmed left the union on 2026-09-16, change 3:
-// the store's acknowledgement decides nothing, the read-back does). Tests are
+// kept, partial, lost, kept-mismatch, restored-unconfirmed and
+// nothing-landed (unconfirmed left the union on 2026-09-16, change 3: the
+// store's acknowledgement decides nothing, the read-back does; snapshot-failed
+// left on 2026-09-27, change 23: a page that cannot be copied is `ready`). Tests are
 // isolated, so no file-level union is asserted; each test asserts the states
 // it owns and 07-08-SUMMARY.md tabulates the fourteen against the six.
 //
@@ -174,6 +175,14 @@
 // eighteen. Every count below reads TEN CONFIG/EXECUTE per Store where it
 // read five per apply, and the bar's busy clause is keepingLabel.
 //
+// A PAGE THE GRID EDITOR STORED (change 23, BENCH-2026-09-16.txt section 23)
+// is the real-page block's last title, desktop only and untagged: the fake
+// holds a Grid Editor configuration (line breaks, a tab, a 906-character
+// Setup) on "Page 2" while "Page 1" is active - synthetic.ts files each page's
+// flash and loads the page a switch reaches since change 23 - and the Target
+// moves to it, Store on ZONA replaces it and Clear resets it, every frame the
+// page wrote decoded in Node and every line naming Page 2.
+//
 // THE MIRROR (change 20, docs/MIRROR.md) is the last block: two titles on the
 // desktop project, untagged (both drive Web Serial). Mirror ZONA on the
 // workspace and in the Sandbox's Play, against the same responder, which
@@ -243,10 +252,16 @@ import { scaleLua, sitesFor } from "../src/lib/catalog/brightness";
 import { BRIGHTNESS_RANGE } from "../src/lib/tune/inspector-copy";
 import {
   ELEMENT_SYSTEM,
+  ELEMENT_TOUCH,
   EVENT_SETUP,
   EVENT_TIMER,
   EVENT_UTILITY,
+  SYSTEM_DEFAULT_SETUP,
+  SYSTEM_DEFAULT_TIMER,
+  SYSTEM_DEFAULT_UTILITY,
   TERMINATOR,
+  TOUCH_DEFAULT_SETUP,
+  TOUCH_DEFAULT_TIMER,
   decodeFrame,
 } from "../src/lib/protocol";
 import {
@@ -558,34 +573,35 @@ test.describe("the install store on a scripted ZONA that answers from Node", () 
     // since 12-03): the serial, the five fetches, the page count.
     expect((await writesOf(page)).length).toBe(7);
 
-    // A module whose fetch answers empty: the snapshot is refused before the
-    // record is consulted (D-03), PUT BACK stays absent, and RETRY after the
-    // module is fixed reaches ready through a second snapshotting.
+    // A module whose fetch answers empty: the copy is tried three rounds and
+    // then not taken - `ready` with no copy in hand, nothing refused for it
+    // (change 23, BENCH-2026-09-16.txt section 23: until then this was
+    // `snapshot-failed` and every write waited on a copy) - PUT BACK stays
+    // absent, and the probe's read-again after the module is fixed takes the
+    // copy through a second snapshotting.
     const second = await context.newPage();
     const secondErrors = collectErrors(second);
     const empty = await openProbe(second, moduleState(2, { configs: {} }));
     await click(second, "install-connect");
     await beatUntil(second, empty, 0, "session-phase", "connected");
-    await expect(phase(second)).toHaveText("snapshot-failed");
-    await expect(trace(second)).toHaveText(
-      /^idle > snapshotting > snapshot-failed$/,
-    );
+    await expect(phase(second)).toHaveText("ready");
+    await expect(trace(second)).toHaveText(/^idle > snapshotting > ready$/);
     await expect(putBack(second)).toHaveText("absent");
     await expect(readout(second, "install-snapshot")).toHaveText("none");
-    await expect(cause(second)).toHaveText("timeout");
+    await expect(cause(second)).toHaveText("none");
 
     empty.state.configs[EVENT_SETUP] = MODULE_SETUP;
     empty.state.configs[EVENT_TIMER] = MODULE_TIMER;
     await click(second, "install-retry");
-    await expect(phase(second)).toHaveText("ready");
     await expect(trace(second)).toHaveText(
-      /^idle > snapshotting > snapshot-failed > snapshotting > ready$/,
+      /^idle > snapshotting > ready > snapshotting > ready$/,
     );
+    await expect(phase(second)).toHaveText("ready");
     await expect(putBack(second)).toHaveText("enabled");
-    // Two snapshot attempts, five fetches each; the count fetched ONCE - the
-    // first attempt enumerated before its guard refused, and the retry did
-    // not ask again. Still not one write of any class.
-    expect(empty.seen("CONFIG", "FETCH")).toBe(10);
+    // Three copy rounds of five and the read-again's five; the count fetched
+    // ONCE - the first read enumerated after its rounds, and the read-again
+    // did not ask again. Still not one write of any class.
+    expect(empty.seen("CONFIG", "FETCH")).toBe(20);
     expect(empty.seen("PAGECOUNT", "FETCH")).toBe(1);
     expect(empty.seen("CONFIG", "EXECUTE")).toBe(0);
     expect(empty.seen("PAGESTORE", "EXECUTE")).toBe(0);
@@ -2669,6 +2685,248 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE")).toBe(0);
     expect(zona.seen("PAGECOUNT", "FETCH"), "enumerated once").toBe(1);
     await expect(review).toHaveCount(0);
+    expect(consoleErrors).toEqual([]);
+  });
+  test("a page the Grid Editor stored is replaced by Store on ZONA and reset by Clear: the Target moves to it, every frame the page writes is decoded - the switch, the defaults leg, the configuration, the store, the proof - and every line names the Target (change 23)", async ({
+    page,
+  }) => {
+    // Andrew Huang's report (BENCH-2026-09-16.txt section 23): page 2 held a
+    // configuration made in the Grid Editor, and "Store on ZONA" to it always
+    // failed - "HANGAR couldn't read what Page 3 holds ... Nothing was
+    // written." The Editor writes compressScript's output verbatim, and the
+    // pinned minifier keeps a `--` comment with its line break, which the
+    // copy's old guard (canWriteBack's printable rule) refused on every read;
+    // the block named the page last copied, not the page chosen. The fake
+    // holds that page on wire 1 ("Page 2") while wire 0 ("Page 1") is active:
+    // synthetic.ts files each page's flash and loads the page a switch
+    // reaches (change 23), and a fetch the module refuses is a NACK and then
+    // the empty REPORT, as grid_decode.c:1318-1360 sends both.
+    test.slow();
+    const FROM = 0;
+    const TO = 1;
+    const PAGE_SWITCH = ["PAGE", "ACTIVE"].join("");
+    const EDITOR = {
+      configs: {
+        [EVENT_SETUP]: `--[[@cb]]\n-- the pads\n${"a=1 ".repeat(220)}b=22`,
+        [EVENT_TIMER]: "--[[@cb]]\n-- every 100 ms\nprint(2)",
+      },
+      system: {
+        [EVENT_SETUP]: '--[[@cb]]print("page\tinit")',
+        [EVENT_TIMER]: "--[[@cb]]\n-- the page timer\nlocal t=1",
+        [EVENT_UTILITY]: "--[[@cb]]\n-- the utility button\ngpl(gpn())",
+      },
+    };
+    expect(EDITOR.configs[EVENT_SETUP].length).toBeGreaterThan(900);
+    const consoleErrors = collectErrors(page);
+    const zona = await openReal(
+      page,
+      moduleState(23, { activePage: FROM, pages: { [TO]: EDITOR } }),
+    );
+
+    // THE CONNECT, AND BROWSING: the header's control connects with no
+    // picker, the bar reads the module; the Target menu is opened and closed.
+    // Not one write of any class - the invariant this change leaves alone.
+    await page.getByTestId("device-slot").click();
+    await beatUntilShows(
+      page,
+      zona,
+      0,
+      {
+        selector: '[data-testid="device-slot"]',
+        attribute: "data-slot",
+        equals: "S4",
+      },
+      80,
+    );
+    await expect(statusDevice(page)).toHaveText(IDENTIFIED_CAPTION, {
+      timeout: 10_000,
+    });
+    await expect(honesty(page)).toHaveText(keepLineEnabled(FROM));
+    const select = page.getByTestId("destination-page");
+    await select.focus();
+    await select.click();
+    const wrote = () => ({
+      config: zona.seen("CONFIG", "EXECUTE"),
+      store: zona.seen("PAGESTORE", "EXECUTE"),
+      switches: zona.seen(PAGE_SWITCH, "EXECUTE"),
+      discards: zona.seen(["PAGE", "DISCARD"].join(""), "EXECUTE"),
+      heartbeats: zona.seen("HEARTBEAT", "EXECUTE"),
+    });
+    expect(wrote(), "connect and browse write nothing").toEqual({
+      config: 0,
+      store: 0,
+      switches: 0,
+      discards: 0,
+      heartbeats: 0,
+    });
+
+    // Every frame the page writes from here, decoded in Node.
+    const decoded = async (from: number) =>
+      (await writesOf(page)).slice(from).map((hex) => {
+        const bytes = [...Buffer.from(hex, "hex")];
+        if (bytes[bytes.length - 1] === TERMINATOR) bytes.pop();
+        const frame = decodeFrame(bytes);
+        if (!frame.ok)
+          throw new Error(`a frame did not decode: ${frame.reason}`);
+        const [c] = frame.classes;
+        return {
+          cls: `${c.class_name}/${c.class_instr}`,
+          page: c.class_parameters.PAGENUMBER as number | undefined,
+          element: c.class_parameters.ELEMENTNUMBER as number | undefined,
+          event: c.class_parameters.EVENTTYPE as number | undefined,
+          action: c.class_parameters.ACTIONSTRING as string | undefined,
+          type: c.class_parameters.TYPE as number | undefined,
+        };
+      });
+    /** The five slots in write order, 255/6, 255/0, 255/4, 0/6, 0/0 (sequence.ts SLOTS). */
+    const SLOT_ORDER: [number, number][] = [
+      [ELEMENT_SYSTEM, EVENT_TIMER],
+      [ELEMENT_SYSTEM, EVENT_SETUP],
+      [ELEMENT_SYSTEM, EVENT_UTILITY],
+      [ELEMENT_TOUCH, EVENT_TIMER],
+      [ELEMENT_TOUCH, EVENT_SETUP],
+    ];
+    const DEFAULTS_IN_ORDER = [
+      SYSTEM_DEFAULT_TIMER,
+      SYSTEM_DEFAULT_SETUP,
+      SYSTEM_DEFAULT_UTILITY,
+      TOUCH_DEFAULT_TIMER,
+      TOUCH_DEFAULT_SETUP,
+    ];
+
+    // THE TARGET MOVES TO PAGE 2: the restore heartbeat, then exactly one
+    // switch; the module's own report settles it, and the page is read - its
+    // Grid Editor strings copied (five fetches, no refusal) - and Store's
+    // description names Page 2. No failure block anywhere.
+    const beforeSwitch = (await writesOf(page)).length;
+    await select.selectOption(String(TO));
+    await beatUntilShows(page, zona, 0, {
+      selector: '[data-testid="destination"]',
+      attribute: "data-status",
+      equals: "reported",
+    });
+    await expect(honesty(page)).toHaveText(keepLineEnabled(TO), {
+      timeout: 10_000,
+    });
+    await expect(keepControl(page)).toBeEnabled();
+    await expect(clearControl(page)).toBeEnabled();
+    await expect(clearDescription(page)).toHaveText(clearLine(TO));
+    expect(await failureBlock(page).count(), "no failure block").toBe(0);
+    await expect
+      .poll(() => zona.seen("CONFIG", "FETCH"), { timeout: 10_000 })
+      .toBe(10);
+    // The change's two frames, then the copy of Page 2 - reads only: the
+    // module's key and the five slots at Page 2 in SLOTS order, one round,
+    // every one answered (the Editor's line breaks and tab copied as they
+    // came; the old guard refused exactly this read on every attempt).
+    const switched = await decoded(beforeSwitch);
+    expect(switched.map((f) => f.cls)).toEqual([
+      "HEARTBEAT/EXECUTE",
+      `${PAGE_SWITCH}/EXECUTE`,
+      "SERIALNUMBER/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+      "CONFIG/FETCH",
+    ]);
+    expect(switched[0].type, "the restore heartbeat first").toBe(255);
+    switched.slice(3).forEach((f, i) => {
+      expect(f.page, "the copy reads the Target").toBe(TO);
+      expect([f.element, f.event]).toEqual(SLOT_ORDER[i]);
+    });
+    expect(zona.state.activePage).toBe(TO);
+
+    // STORE ON ZONA OVER THE EDITOR'S PAGE: one click, eighteen frames - the
+    // five defaults and the restore, the configuration's five and the
+    // restore, the store, the proof's five - every CONFIG frame at Page 2,
+    // and `kept` said with Page 2's name.
+    const beforeStore = (await writesOf(page)).length;
+    await keepControl(page).click();
+    const storeBeats = await beatUntilShows(
+      page,
+      zona,
+      0,
+      barShows(keptCaption(TO)),
+      24,
+    );
+    await expect(statusDevice(page)).toHaveText(keptCaption(TO));
+    const stored = await decoded(beforeStore);
+    console.log(
+      `the Grid Editor page: stored after ${storeBeats} heartbeat(s); ${stored.length} frames: ${stored.map((f) => f.cls).join(", ")}`,
+    );
+    expect(stored).toHaveLength(18);
+    const writeLeg = (
+      frames: typeof stored,
+      expected: string[] | undefined,
+    ) => {
+      frames.forEach((f, i) => {
+        expect(f.cls).toBe("CONFIG/EXECUTE");
+        expect(f.page, "the Target page").toBe(TO);
+        expect([f.element, f.event], "SLOTS order").toEqual(SLOT_ORDER[i]);
+        if (expected) expect(f.action).toBe(expected[i]);
+      });
+    };
+    writeLeg(stored.slice(0, 5), DEFAULTS_IN_ORDER);
+    expect(stored[5]).toMatchObject({ cls: "HEARTBEAT/EXECUTE", type: 255 });
+    const flashed = [
+      zona.state.systemFlash?.[EVENT_TIMER],
+      zona.state.systemFlash?.[EVENT_SETUP],
+      zona.state.systemFlash?.[EVENT_UTILITY],
+      zona.state.flash?.[EVENT_TIMER],
+      zona.state.flash?.[EVENT_SETUP],
+    ] as string[];
+    writeLeg(stored.slice(6, 11), flashed);
+    expect(stored[11]).toMatchObject({ cls: "HEARTBEAT/EXECUTE", type: 255 });
+    expect(stored[12].cls).toBe("PAGESTORE/EXECUTE");
+    stored.slice(13).forEach((f, i) => {
+      expect(f.cls).toBe("CONFIG/FETCH");
+      expect(f.page).toBe(TO);
+      expect([f.element, f.event]).toEqual(SLOT_ORDER[i]);
+    });
+    expect(flashed[4], "the Editor's Setup is replaced in flash").not.toBe(
+      EDITOR.configs[EVENT_SETUP],
+    );
+    expect(flashed[2], "the utility button still turns the page").toBe(
+      SYSTEM_DEFAULT_UTILITY,
+    );
+    expect(
+      zona.state.pages?.[FROM],
+      "Page 1 was filed as it was, untouched",
+    ).toBeDefined();
+    await expect(honesty(page)).toHaveText(keepLineEnabled(TO));
+    expect(await failureBlock(page).count()).toBe(0);
+
+    // CLEAR OVER IT: the five defaults and the restore, the store, the
+    // proof's five - twelve frames at Page 2, and the reset said with Page
+    // 2's name.
+    const beforeClear = (await writesOf(page)).length;
+    await clearControl(page).click();
+    await beatUntilShows(page, zona, 0, barShows(clearedCaption(TO)), 24);
+    await expect(statusDevice(page)).toHaveText(clearedCaption(TO));
+    const cleared = await decoded(beforeClear);
+    expect(cleared).toHaveLength(12);
+    writeLeg(cleared.slice(0, 5), DEFAULTS_IN_ORDER);
+    expect(cleared[5]).toMatchObject({ cls: "HEARTBEAT/EXECUTE", type: 255 });
+    expect(cleared[6].cls).toBe("PAGESTORE/EXECUTE");
+    cleared.slice(7).forEach((f, i) => {
+      expect(f.cls).toBe("CONFIG/FETCH");
+      expect(f.page).toBe(TO);
+      expect([f.element, f.event]).toEqual(SLOT_ORDER[i]);
+    });
+    expect(zona.state.flash?.[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
+    expect(zona.state.systemFlash?.[EVENT_UTILITY]).toBe(
+      SYSTEM_DEFAULT_UTILITY,
+    );
+
+    // The wire, whole, by class: two clicks and one change, nothing else.
+    expect(wrote()).toEqual({
+      config: 15,
+      store: 2,
+      switches: 1,
+      discards: 0,
+      heartbeats: 4,
+    });
     expect(consoleErrors).toEqual([]);
   });
 });
