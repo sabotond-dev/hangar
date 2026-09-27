@@ -3892,9 +3892,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       expect(two.refusal?.word).toBe("Timer");
       expect(two.refusal?.used).toBeGreaterThan(908);
       expect(two.refusal?.over).toBe((two.refusal?.used ?? 0) - 908);
-      expect(two.config.systemUtility, "two slots: no 255/4 of its own").toBe(
-        "",
-      );
+      // Change 22: no 255/4 of its own is the firmware's page-next, verbatim -
+      // never the empty string (utility-button.spec.ts).
+      expect(
+        two.config.systemUtility,
+        "two slots: no 255/4 of its own, the page-next",
+      ).toBe(SYSTEM_DEFAULT_UTILITY);
       const sentence = TOO_FULL_TO_STORE;
       expect(sentence).toBe(
         "This surface is too full for a ZONA page. Remove the last element to fit.",

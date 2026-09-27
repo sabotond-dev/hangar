@@ -824,7 +824,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       sim,
       system: painted.system as string,
       systemTimer: painted.systemTimer as string,
-      setup: `self.tim=__hangar_timer ele={{map=function(s)${painted.mapmode} end}}${painted.setup}`,
+      setup: `self.tim=__hangar_timer ele={{map=function(self)${painted.mapmode} end}}${painted.setup}`,
       timer: painted.timer,
     });
     try {
@@ -955,23 +955,40 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
       slots: 5,
     });
     const plain = await measureSurface(atPickerCorner(PAGE3), { slots: 5 });
-    expect(options.fits).toBe(true);
+    // Change 22: page 3 with every option on no longer fits five slots - the utility guard's 32
+    // characters in 255/4 against the 22 its five strings had free; no placement exists (the
+    // exact search, unbounded, finds none). Page 3 itself fits, and its placement is pinned.
+    expect(options.fits, "page 3 with every option on is over").toBe(false);
+    expect(plain.fits).toBe(true);
     expect(options.emitted.runtime.parts).toEqual(plain.emitted.runtime.parts);
     expect(
-      options.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`),
+      plain.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`),
     ).toEqual(PINNED.page3Placement);
+    expect(
+      [
+        options.systemTimer?.used,
+        options.system?.used,
+        options.mapmode?.used,
+        options.timer.used,
+        options.setup.used,
+      ],
+      "page 3 with every option on, over",
+    ).toEqual(PINNED.page3OptionsOver);
     expect(
       options.emitted.parts.regionTable.length -
         plain.emitted.parts.regionTable.length,
     ).toBe(PINNED.page3OptionsPrice);
     console.log(
-      `page 3 with every option on: J ${plain.emitted.parts.regionTable.length} -> ${options.emitted.parts.regionTable.length} (+${options.emitted.parts.regionTable.length - plain.emitted.parts.regionTable.length}); the Setup ${plain.setup.used} -> ${options.setup.used}; the placement ${options.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`).join(" ")}`,
+      `page 3 with every option on: J ${plain.emitted.parts.regionTable.length} -> ${options.emitted.parts.regionTable.length} (+${options.emitted.parts.regionTable.length - plain.emitted.parts.regionTable.length}); the Setup ${plain.setup.used} -> ${options.setup.used}; over (${[options.systemTimer?.used, options.system?.used, options.mapmode?.used, options.timer.used, options.setup.used].join("/")}); page 3's placement ${plain.emitted.runtime.placement.map((p) => `${p.name}:${p.slot}`).join(" ")}`,
     );
     // THE LANDING: five strings in SLOTS' shape, the system halves the
     // trimmed library with the runtime parts (never the full library),
-    // every one canonical and inside 908.
+    // every one canonical and inside 908 - page 3's since change 22; page 3
+    // with every option on is refused on the Timer.
     expect(LANDING_SLOTS).toBe(5);
-    const landed = await landSurface(PAGE3_OPTIONS);
+    const refused = await landSurface(PAGE3_OPTIONS);
+    expect(refused.refusal).toEqual(PINNED.page3OptionsRefusal);
+    const landed = await landSurface(PAGE3);
     expect(Object.keys(landed.config)).toEqual([
       "systemTimer",
       "system",
@@ -1314,7 +1331,7 @@ describe("the Sandbox emitter (BUILD-01, BUILD-02, BUILD-03, CONT-02)", () => {
         sim,
         system: e.system as string,
         systemTimer: e.systemTimer as string,
-        setup: `self.tim=__hangar_timer ele={{map=function(s)${e.mapmode} end}}${e.setup}`,
+        setup: `self.tim=__hangar_timer ele={{map=function(self)${e.mapmode} end}}${e.setup}`,
         timer: e.timer,
       });
       let ran = 0;
@@ -1810,23 +1827,26 @@ const PINNED = {
   floorFromEmpty: [11, "budget"] as [number, string],
   /** M 169 (the research's 165), J at four rows 151 (13-15's 155 with the frame), the paint 128 (13-14's 101 plus layer 2's colour). */
   parts: [169, 151, 128],
-  /** Change 17: the receive half beside every branch, and the Setup's share of it; change 18b: 12 more on both sides (`V`, 11 and a separator), the saving the same. */
-  deadBranches: [2414, 3982, 1568],
-  /** Change 17: the Setup the fifth slot, the exact search placing what first fit could not; change 18b: `V` among the parts (the Timer's), and the entry kept out of the Timer. */
+  /** Change 17: the receive half beside every branch, and the Setup's share of it; change 18b: 12 more on both sides (`V`, 11 and a separator), the saving the same; change 22: 16 more on both sides (255/4's utility guard, 32, less the branch table's head in the two slots that define no branch), the saving the same. */
+  deadBranches: [2430, 3998, 1568],
+  /** Change 17: the Setup the fifth slot, the exact search placing what first fit could not; change 18b: `V` among the parts (the Timer's), and the entry kept out of the Timer; change 22: page 3's own (every option on no longer fits), 255/4 behind the utility guard taking `R A I[4]`. */
   page3Placement: [
     "R:mapmode",
-    "O:setup",
-    "Q:systemTimer",
-    "D:systemTimer",
-    "A:setup",
+    "O:systemTimer",
+    "Q:setup",
+    "D:setup",
+    "A:mapmode",
     "V:timer",
-    "K:mapmode",
+    "K:setup",
     "I[1]:timer",
     "I[3]:timer",
-    "I[4]:system",
+    "I[4]:mapmode",
     "I[5]:systemTimer",
-    "Y:mapmode",
+    "Y:system",
   ],
+  /** Change 22: page 3 with every option on at the corner - 255/6, 255/0, 255/4, the Timer, the Setup - over on the Timer, no placement; and the landing's refusal. */
+  page3OptionsOver: [893, 902, 882, 950, 907],
+  page3OptionsRefusal: { word: "Timer", used: 950, over: 42 },
   /** J's price for every option on: 36 at change 10B; 38 since change 17 (the note button's channel word -17, where its flag bit was). */
   page3OptionsPrice: 38,
   /** Change 17: the pad's seventh column 103 -> 359 keeps its three digits; its channel word 15 -> 143 (a multitouch pad does not receive) is one more. */
@@ -1842,12 +1862,12 @@ const PINNED = {
     Eight: [38, 76, 25],
     Sixteen: [70, 140, 33],
   } as Record<string, [number, number, number]>,
-  /** Change 18: 255/6, 255/0, 255/4, the Timer, the Setup at the corner, On -> every element Off (the hand-over entry, 126 more, and `Y`'s rows, 6); change 18b: `V` beside `A` (12), the packer re-placing - every one still fits, the sixteen's Setup still 908. */
+  /** Change 18: 255/6, 255/0, 255/4, the Timer, the Setup at the corner, On -> every element Off (the hand-over entry, 126 more, and `Y`'s rows, 6); change 18b: `V` beside `A` (12), the packer re-placing - every one still fits, the sixteen's Setup still 908; change 22: 255/4 behind the utility guard and the branch table's head only where a slot defines a branch - the Setups unmoved, every one still fits. */
   latchFive: [
-    "Four faders 892/903/508/111/482 fits -> 907/875/653/111/486 fits",
-    "Eight 852/907/894/181/614 fits -> 858/907/908/293/622 fits",
-    "Twelve 852/907/894/181/758 fits -> 858/907/908/293/770 fits",
-    "Sixteen 852/907/894/181/892 fits -> 858/907/908/293/908 fits",
+    "Four faders 906/903/510/111/482 fits -> 899/875/677/111/486 fits",
+    "Eight 852/907/896/195/614 fits -> 858/907/848/369/622 fits",
+    "Twelve 852/907/896/195/758 fits -> 858/907/848/369/770 fits",
+    "Sixteen 852/907/896/195/892 fits -> 858/907/848/369/908 fits",
   ],
   /** Change 18b (test 11): the faders and pads run per surface - every one of them sent. */
   ran: [
@@ -1885,20 +1905,20 @@ const PINNED_EXTRAS = {
     "R and its call": 238,
     "R multitouch and its call": 249,
   } as Record<string, number>,
-  /** 255/6, 255/0, 255/4, the Timer, the Setup: page 3 receiving (69 free across the five), then with a Touch note on the pad - over, the Timer carrying what fits nowhere. */
-  page3: ["893/908/905/897/877 fits", "858/908/854/1147/908 over"],
-  /** Every Receive off: page 3, then with the pad's Touch note - it fits - then with the fader a C major ribbon beside it - over. */
+  /** 255/6, 255/0, 255/4, the Timer, the Setup: page 3 receiving (69 free across the five; 44 since change 22's utility guard), then with a Touch note on the pad - over, the Timer carrying what fits nowhere. */
+  page3: ["893/902/903/897/901 fits", "858/902/884/1147/900 over"],
+  /** Every Receive off: page 3, then with the pad's Touch note - it fits - then with the fader a C major ribbon beside it - over (change 22 moved the figures, not the verdicts). */
   page3Quiet: [
-    "893/908/907/728/502 fits",
-    "858/908/882/904/590 fits",
-    "858/908/858/1131/907 over",
+    "893/908/880/779/502 fits",
+    "858/908/882/851/666 fits",
+    "858/908/889/1123/907 over",
   ],
   /** From an empty surface, how many 1 x 2 faders with every option on - change 21A's Pitch note on Major and three dearest extras among them - fit five slots. */
   floorFromEmpty: 4,
-  /** Every element receiving, at five slots: nothing over plain; with a Touch note on every element the three change 11 put over beside a multitouch pad; with every continuous element a Pitch note (and the button its own note) seven. */
+  /** Every element receiving, at five slots: nothing over plain; with a Touch note on every element the three change 11 put over beside a multitouch pad; with every continuous element a Pitch note (and the button its own note) seven. Change 22: plain, one of every kind at these literals is over (the utility guard's 32); with the Pitch notes `vbk` and `hbk` fit again (the branch table's head only where a slot defines a branch) and `vhbx` is over. */
   over: {
-    overPlain: [],
+    overPlain: ["vhbxk"],
     overTouch: ["vbxk", "hbxk", "vhbxk"],
-    overNote: ["vbk", "hbk", "vhbk", "bxk", "vbxk", "hbxk", "vhbxk"],
+    overNote: ["vhbx", "vhbk", "bxk", "vbxk", "hbxk", "vhbxk"],
   } as Record<string, string[]>,
 };

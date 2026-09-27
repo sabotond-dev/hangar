@@ -5,8 +5,9 @@
 // `name`, never a kind. Write order: 255/6 systemTimer and 255/0 system (under
 // five slots, change 10B, the TRIMMED library halves carrying runtime parts -
 // library-trim.ts; the full halves under two or three), 255/4 systemUtility
-// (a runtime slot; the empty string under two slots, which the store fills
-// with the firmware's page-next), 0/6 timer, 0/0 setup. Measured at the picker
+// (the runtime's parts behind the utility guard, or the firmware's page-next
+// verbatim when it carries none and under two slots - change 22: a press of
+// the utility button always changes page), 0/6 timer, 0/0 setup. Measured at the picker
 // corner (cost.ts), canonicalised, refused before the wire when any string is over 908 (TUNE-05).
 // Decided at 13-17 (D-18 / D-19, three slots); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
@@ -21,6 +22,7 @@ import {
   type MeasuredSurface,
 } from "./cost";
 import { emitSurface, type EmitOptions } from "./emit";
+import { UTILITY_DEFAULT } from "./runtime";
 import type { Surface } from "./model";
 
 /** The slots a surface lands on since change 10B: the touch Timer, 255/4 and the two trimmed system halves (answer 12). */
@@ -106,7 +108,8 @@ export async function landSurface(
       // parts the packer gave them; under fewer, the full library verbatim.
       systemTimer: systemTimer ?? TOUCH_LIBRARY_TIMER,
       system: system ?? TOUCH_LIBRARY,
-      systemUtility: utility ?? "",
+      // Change 22: never empty - the page switch, verbatim, where no part lives in 255/4.
+      systemUtility: utility ?? UTILITY_DEFAULT,
       setup: setup as string,
       timer: timer as string,
     },

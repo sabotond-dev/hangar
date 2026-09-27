@@ -27,10 +27,13 @@ export const PREVIEW_SLOTS = 5 as const;
 
 /**
  * The system element's `map` under three slots: the emitted 255/4 body as a
- * method of `ele[#ele]`, the spelling the second probe lit (D-18).
+ * method of `ele[#ele]`, the spelling the second probe lit (D-18). The
+ * parameter is `self`, as the firmware registers every body
+ * (grid-fw `grid_ui.c:374`, `function (self) ... end`): 255/4's utility guard
+ * reads it (change 22), and the Setup's pull-in calls it with none.
  */
 export const mapStandIn = (mapmode: string): string =>
-  `ele={{map=function(s)${mapmode} end}}`;
+  `ele={{map=function(self)${mapmode} end}}`;
 
 /** Both stand-ins in front of the Setup, or the one the slot count needs. */
 export function standIns(mapmode: string | undefined): string {

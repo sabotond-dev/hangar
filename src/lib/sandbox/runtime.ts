@@ -4,7 +4,8 @@
 // receive callback `Y` and the colour input `Z` (change 17), the MULTITOUCH variant of `R`, `O`
 // and `I[4]` (change 11), the HAND-OVER variant of `O` and `Y` for a Latch Off element (change
 // 18), and `packRuntime`, which spreads the parts over the slots a surface lands on, largest
-// first. Every string was run in a real Lua VM before it was measured (runtime.spec.ts).
+// first - 255/4's behind the utility guard, so the utility button always changes page (change 22).
+// Every string was run in a real Lua VM before it was measured (runtime.spec.ts).
 // Names `S F I R O` and the trim's `Q D K Y Z V W`; calls the library's `E N U X`. docs/MIDI.md, docs/entries/sandbox-runtime.md.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -21,6 +22,33 @@ import {
 
 /** The event marker every stored body opens with (9 characters, a block comment). */
 export const MARKER = "--[[@cb]]";
+
+/**
+ * The firmware's page switch: the utility event's own default body less the marker
+ * (grid-fw `grid_ui_system.h:38`, GRID_ACTIONSTRING_SYSTEM_MAPMODE). A press of the module's
+ * utility button runs 255/4, and this is what makes the press go to the next page.
+ * utility-button.spec.ts holds `MARKER + PAGE_NEXT` equal to the pinned package's default.
+ */
+export const PAGE_NEXT = "gpl(gpn())";
+
+/** 255/4 when the packer put no part there: the firmware's default, verbatim (change 22). */
+export const UTILITY_DEFAULT = MARKER + PAGE_NEXT;
+
+/**
+ * THE UTILITY GUARD (change 22, BENCH-2026-09-16.txt section 22). 255/4 is the utility button's
+ * own event, so a press runs whatever it holds. The firmware registers the body as
+ * `ele[n].map = function (self) ... end` (grid-fw `grid_ui.c:374`) and fires a press as
+ * `eve(element)` (`events.lua:13-16`): on a press `self` is the system element, never nil. The
+ * touch Setup's pull-in calls the body WITHOUT one (emit.ts `PULL_IN_MAPMODE`, `ele[#ele].map()`,
+ * the same fifteen characters as the method call it replaced), so 255/4 reads
+ * `if self then gpl(gpn())else <parts> end`: a real press runs the page switch and nothing else -
+ * no part defined again (a second `O` would fail `Y`'s `s.touch_cb~=O`, change 18b's class of
+ * bug), no MIDI, no global; the pull-in defines the parts. 32 characters in 255/4 and none in the
+ * Setup, where the cap is measured - against 30 and 12 for a global flag the pull-in sets and
+ * clears (`UB=1 ele[#ele]:map()UB=nil`, `if UB then ... else gpl(gpn())end`), which also put
+ * sixteen elements every one Off over the cap, and 36 and none for `if not self then ... else`.
+ */
+export const UTILITY_GUARD = "if self then";
 
 /** The runtime's entry, installed by the Setup as the touch callback. Spelled once. */
 export const RUNTIME_ENTRY = "O";
@@ -113,8 +141,8 @@ export const SLOT_MAX = TOUCHES_MAX;
 export const ARM = `gtt(0,${TIMER_PERIOD_MS})`;
 
 /**
- * The guarded head at the top of every slot that carries a part: the branch table the parts
- * define into (the Timer re-runs, so `I={}` would be wasted work, never harm). The contact tables
+ * The guarded head at the top of every slot that carries a branch (`headOf`, change 22): the
+ * branch table the branches define into (the Timer re-runs, so `I={}` would be wasted work, never harm). The contact tables
  * `S` and `F` are made once per landing instead (`SETUP_STATE`): under five slots by the trimmed
  * 255/0's own head (library-trim.ts), which runs before the touch Setup; under two or three by the
  * Setup - change 17 moved them out of this head (16 characters a slot) and kept them out of the
@@ -764,8 +792,10 @@ export type RuntimeSlot =
 export type PackedRuntime = {
   /** The touch Timer (0/6): the arm, the tail defaults and a head if it carries parts (change 17), the parts, the receive assignment (change 17), the sweep. */
   readonly timer: string;
-  /** The system element's fourth event (255/4) under three or five slots; undefined under two. */
+  /** The system element's fourth event (255/4) under three or five slots - the parts behind the guard, or the firmware's default when it carries none (change 22); undefined under two. */
   readonly mapmode: string | undefined;
+  /** True when 255/4 carries parts, so the Setup must pull it in; false leaves the Setup no `map()` call (change 22). */
+  readonly utility: boolean;
   /** 255/6 under five slots: the trimmed half and the parts it took; undefined otherwise. */
   readonly systemTimer: string | undefined;
   /** 255/0 under five slots: the trimmed half and the parts it took; undefined otherwise. */
@@ -801,9 +831,15 @@ export type PackOptions = {
   /**
    * The touch Setup's data half (change 17, under five slots): its head (the marker, `J`, `M`, the
    * contact tables, the paint) and its tail (the pull-ins, the receive assignment, the callback).
-   * Handed, the Setup is the last slot a part may land in, between the two.
+   * Handed, the Setup is the last slot a part may land in, between the two. `bare` is the tail
+   * without 255/4's pull-in, rendered when 255/4 carries no part (change 22); the room is measured
+   * with the whole tail.
    */
-  readonly setup?: { readonly head: string; readonly tail: string };
+  readonly setup?: {
+    readonly head: string;
+    readonly tail: string;
+    readonly bare?: string;
+  };
 };
 
 type Bin = {
@@ -812,6 +848,18 @@ type Bin = {
   readonly tail: readonly string[];
   readonly taken: string[];
 };
+
+/**
+ * A slot's head before its parts: the branch table `STATE`, only when one of its parts is a
+ * branch (`I[n]=`) - change 22. Every other read of `I` is inside a function body (the entry's
+ * `I[r[5]]`, the release's, `Y`'s rows), called only for a kind whose branch some slot defined
+ * behind this head. 255/4 pays the utility guard, 32 characters; this takes nine back from every
+ * slot that defines no branch, which keeps one element of every kind, every one receiving, on
+ * five slots (runtime.spec.ts test 7) - measured on 255/4 alone, that surface no longer fit.
+ */
+function headOf(bin: Bin, taken: readonly string[]): string[] {
+  return !taken.some((lua) => lua.startsWith("I[")) ? [] : [STATE];
+}
 
 /** How many placements the exact search may try before the first-fit answer stands (a surface over by little is where it runs longest). */
 export const PACK_SEARCH_LIMIT = 20000;
@@ -827,6 +875,9 @@ export const PACK_SEARCH_LIMIT = 20000;
  * the receive callback made the five-kind surface a packing problem first fit loses (change 17).
  * Within a slot the parts stand in their canonical order. Nothing here measures under the
  * minifier: the parts are fixed points and `joinLua` keeps them so, which cost.ts re-checks.
+ * 255/4's parts stand behind the utility guard, the page switch before them, and a 255/4 given
+ * none is the firmware's default verbatim (change 22, `UTILITY_GUARD`) - the guard is part of
+ * the slot's head, so no placement ever drops it.
  */
 export function packRuntime(
   branches: readonly Branch[],
@@ -859,7 +910,13 @@ export function packRuntime(
     });
   }
   if (slots >= 3) {
-    bins.push({ slot: "mapmode", prefix: [MARKER], tail: [], taken: [] });
+    // Change 22: the parts behind the guard, the page switch in its else.
+    bins.push({
+      slot: "mapmode",
+      prefix: [MARKER, UTILITY_GUARD, PAGE_NEXT, "else"],
+      tail: ["end"],
+      taken: [],
+    });
   }
   const timer: Bin = {
     slot: "timer",
@@ -888,8 +945,13 @@ export function packRuntime(
   const entryPinned = options.receive !== undefined && slots > 2;
   const fitsIn = (bin: Bin, lua: string): boolean =>
     !(entryPinned && bin.slot === "timer" && lua === entry) &&
-    joinLua([...bin.prefix, STATE, ...bin.taken, lua, ...bin.tail]).length <=
-      budget;
+    joinLua([
+      ...bin.prefix,
+      ...headOf(bin, [...bin.taken, lua]),
+      ...bin.taken,
+      lua,
+      ...bin.tail,
+    ]).length <= budget;
 
   const bySize = [...parts].sort((a, b) => b.lua.length - a.lua.length);
   // First fit, decreasing: every part into the first slot with room.
@@ -923,7 +985,9 @@ export function packRuntime(
   const render = (bin: Bin): string =>
     joinLua([
       ...bin.prefix,
-      ...(bin.taken.length > 0 ? [STATE, ...inOrder(bin.taken)] : []),
+      ...(bin.taken.length > 0
+        ? [...headOf(bin, bin.taken), ...inOrder(bin.taken)]
+        : []),
       ...bin.tail,
     ]);
   const byName = (slot: RuntimeSlot): Bin | undefined =>
@@ -931,16 +995,29 @@ export function packRuntime(
   const mapmode = byName("mapmode");
   const systemTimer = byName("systemTimer");
   const system = byName("system");
+  // Change 22: 255/4 with no part is the firmware's default verbatim, and the Setup then has no
+  // `map()` to call - a pull-in of the default would switch the page.
+  const utility = mapmode !== undefined && mapmode.taken.length > 0;
+  const bare = options.setup?.bare;
   return {
     timer: render(timer),
-    // 255/4 always opens with the head under three or five slots, as 13-17 wrote it.
     mapmode:
       mapmode === undefined
         ? undefined
-        : joinLua([MARKER, STATE, ...inOrder(mapmode.taken)]),
+        : utility
+          ? render(mapmode)
+          : UTILITY_DEFAULT,
+    utility,
     systemTimer: systemTimer === undefined ? undefined : render(systemTimer),
     system: system === undefined ? undefined : render(system),
-    setup: setupBin === undefined ? undefined : render(setupBin),
+    setup:
+      setupBin === undefined
+        ? undefined
+        : render(
+            utility || bare === undefined
+              ? setupBin
+              : { ...setupBin, tail: [bare] },
+          ),
     placement: parts.map((p) => ({
       name: p.name,
       slot: slotOf.get(p.lua) as RuntimeSlot,
@@ -968,8 +1045,16 @@ function searchPlacement(
     sum += bySize[i].lua.length;
     rest[i] = sum;
   }
+  // An upper bound on the room: 255/4 with no branch yet is measured without the head a branch
+  // would bring (`headOf`), so the cut never loses a placement.
   const roomOf = (bin: Bin): number =>
-    budget - joinLua([...bin.prefix, STATE, ...bin.taken, ...bin.tail]).length;
+    budget -
+    joinLua([
+      ...bin.prefix,
+      ...headOf(bin, bin.taken),
+      ...bin.taken,
+      ...bin.tail,
+    ]).length;
   let tries = 0;
   const place = (i: number): boolean => {
     if (i === bySize.length) return true;

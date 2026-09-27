@@ -479,7 +479,7 @@ function standIns(mapmode: string | undefined): string {
   const tim = "self.tim=__hangar_timer ";
   return mapmode === undefined
     ? tim
-    : `${tim}ele={{map=function(s)${mapmode} end}}`;
+    : `${tim}ele={{map=function(self)${mapmode} end}}`;
 }
 
 async function open(
@@ -3690,14 +3690,14 @@ const PINNED_LATCH = {
   /** The hand-over entry: 126 over `O` (273) and over the multitouch `O` (392) alike. */
   texts: { entry: 399, entryMultitouch: 518 },
   /** Page 3 receiving with every element Off: over - 81 characters were free across the five slots at On (69 since change 18b's `V`), and the entry wants 126, `Y`'s rows 6 and the words (three since change 18b: the knob reads On). The Timer carries what fits nowhere (first fit's fallback). */
-  page3Off: [852, 908, 858, 1088, 903] as (number | undefined)[],
+  page3Off: [852, 908, 882, 1088, 895] as (number | undefined)[],
   page3OffFits: false,
   /** One element Off is the same entry, the same `Y` and one word: over whichever it is - but the knob, which since change 18b reads On whatever it carries, so page 3 with it "Off" is page 3 (`PINNED.page3Five`). */
   page3Single: [
-    "Filter 852/908/858/1088/899 over",
-    "Space 852/908/858/1088/899 over",
-    "Turn 893/908/905/897/868 fits",
-    "Go 852/908/858/1088/899 over",
+    "Filter 852/908/882/1088/891 over",
+    "Space 852/908/882/1088/891 over",
+    "Turn 893/902/903/897/892 fits",
+    "Go 852/908/882/1088/891 over",
   ],
   /** Every element Off and receiving: the three combinations carrying a fader, the button, the pad and the knob - the three change 11 put over beside a multitouch pad. */
   over: ["vbxk", "hbxk", "vhbxk"],
@@ -3726,8 +3726,8 @@ const PINNED_MULTITOUCH = {
     "bxk",
   ],
   over: ["vbxk", "hbxk", "vhbxk"],
-  /** 255/6, 255/0, 255/4, the Timer (over by 180 since change 18b's `V`; 170 before), the Setup (change 17: the receive half, the Setup the fifth slot). */
-  page3Five: [863, 880, 852, 1088, 893] as (number | undefined)[],
+  /** 255/6, 255/0, 255/4, the Timer (over by 180 since change 18b's `V`; 170 before), the Setup (change 17: the receive half, the Setup the fifth slot; change 22: 255/4 behind the utility guard, the branch table's head only where a slot defines a branch). */
+  page3Five: [863, 902, 854, 1088, 885] as (number | undefined)[],
   /** Change 17: the tail defaults and the receive assignment are the Timer's, so the price is one digit on the pad's seventh column and two on its channel word (a multitouch pad does not receive: 128). */
   setupPriceOnePad: 3,
 };
@@ -3742,9 +3742,10 @@ const PINNED = {
   /** Two slots: the receive half packed with the runtime (the fader receives). */
   oneFaderTwoSlots: 2019,
   page3Two: 3572,
-  page3Three: [2695, 893] as [number, number | undefined],
-  /** 255/6, 255/0, 255/4, the Timer, the Setup (change 17: the Setup carried `Q`, `A` and `K`; change 18b: `Q`, `D` and `A`, `V` the Timer's, 69 free across the five where there were 81). */
-  page3Five: [893, 908, 905, 897, 868] as (number | undefined)[],
+  /** Change 22: the Timer 2695 -> 2736 and 255/4 893 -> 884 - 255/4 behind the utility guard (32) with no branch table's head (9) holds less; still over. */
+  page3Three: [2736, 884] as [number, number | undefined],
+  /** 255/6, 255/0, 255/4, the Timer, the Setup (change 17: the Setup carried `Q`, `A` and `K`; change 18b: `Q`, `D` and `A`, `V` the Timer's, 69 free across the five where there were 81; change 22: `Q`, `D` and `K`, 255/4 `R`, `A` and `I[4]` behind the utility guard, `Y` in 255/0, 33 free). */
+  page3Five: [893, 902, 903, 897, 892] as (number | undefined)[],
   /** Two slots carry no kind at all since change 10B; three (the runtime alone, no receive half) one kind alone since change 17. */
   fitsTwo: [] as string[],
   fitsThree: ["v", "h", "vh", "b", "x", "k"],

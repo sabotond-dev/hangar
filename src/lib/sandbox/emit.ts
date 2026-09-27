@@ -59,6 +59,7 @@ import {
   RECEIVE_ON,
   RUNTIME_ENTRY,
   SETUP_STATE,
+  joinLua,
   packRuntime,
   sweepCall,
   type ExtrasOptions,
@@ -79,9 +80,15 @@ export {
 /** The names this emitter defines. Test 5 holds them apart from the library's. */
 export const OWN_NAMES: readonly string[] = ["J", "M"];
 
-/** The pull-in calls, by slot: the touch Timer (probe 1) and the system element's fourth event (probe 2, `map` the firmware's short name for the mapmode event). */
+/**
+ * The pull-in calls, by slot: the touch Timer (probe 1) and the system element's fourth event
+ * (probe 2, `map` the firmware's short name for the mapmode event). Since change 22 the second
+ * calls the body with no `self` - a dot, not the colon a press's `eve(element)` amounts to - so
+ * 255/4 defines its parts here and a press of the utility button changes page (runtime.ts
+ * `UTILITY_GUARD`).
+ */
 export const PULL_IN_TIMER = "self:tim()";
-export const PULL_IN_MAPMODE = "ele[#ele]:map()";
+export const PULL_IN_MAPMODE = "ele[#ele].map()";
 
 /** The quiet resting phase the paint sets on a region's cells. */
 const DEFAULT_REST_PHASE = 48;
@@ -384,13 +391,21 @@ function renderPaint(restPhase: number, withBlanks: boolean): string {
   );
 }
 
-/** The pull-in calls, by slot count: the Timer alone under two, the Timer and 255/4 under three or five. */
-function renderPullIn(slots: SlotCount): string {
-  return slots >= 3 ? PULL_IN_TIMER + PULL_IN_MAPMODE : PULL_IN_TIMER;
-}
-
 /** The callback: the runtime entry installed after the pull-in ran. */
 const CALLBACK = `self.touch_cb=${RUNTIME_ENTRY}`;
+
+/**
+ * The Setup's tail: the pull-ins and the callback. 255/4 is pulled in only when it carries parts
+ * (change 22) - under two slots there is no 255/4, and a 255/4 holding the firmware's default is
+ * never called, or the Setup would switch the page.
+ */
+function renderTail(utility: boolean): string {
+  return joinLua(
+    utility
+      ? [PULL_IN_TIMER, PULL_IN_MAPMODE, CALLBACK]
+      : [PULL_IN_TIMER, CALLBACK],
+  );
+}
 
 // ---------------------------------------------------------------------------
 // The emit.
@@ -432,7 +447,6 @@ export function emitSurface(
   const blanks = blankIndices(surface.regions);
   const cellMap = renderCellMap(built.map, blanks);
   const paint = renderPaint(restPhase, blanks.size > 0);
-  const pullIn = renderPullIn(slots);
   // Change 17: the receive half - the rows when a region receives, the colour input when it is on.
   const colour = colourInputOf(surface);
   const rows = surface.regions.some(receivesOf);
@@ -453,12 +467,12 @@ export function emitSurface(
   const receive = receiveOptions === undefined ? RECEIVE_NONE : RECEIVE_ON;
 
   // The Setup's data half and its closing half. The paint ends in `end` and what follows starts
-  // with a name, so one separator; every other seam is `}` or `)` against a name. Under five slots
-  // the contact tables are the trimmed 255/0's (library-trim.ts) and the Setup is the packer's last
-  // slot (change 17): parts it takes stand between the two halves, behind their own head.
+  // with a name, so one separator; every other seam is `}` or `)` against a name. Under five slots the contact tables are the trimmed 255/0's (library-trim.ts)
+  // and the Setup is the packer's last slot (change 17): parts it takes stand between the two
+  // halves, behind their own head. Its room is measured with 255/4's pull-in; the pull-in is
+  // written only when the packer put a part in 255/4 (change 22).
   const head =
     MARKER + regionTable + cellMap + (slots === 5 ? "" : SETUP_STATE) + paint;
-  const tail = pullIn + CALLBACK;
   const packed = packRuntime(branches, {
     slots,
     sweepCalls,
@@ -466,9 +480,15 @@ export function emitSurface(
     handOver,
     receive: receiveOptions,
     extras,
-    setup: slots === 5 ? { head, tail } : undefined,
+    setup:
+      slots === 5
+        ? { head, tail: renderTail(true), bare: renderTail(false) }
+        : undefined,
   });
-  const setup = packed.setup ?? head + " " + tail;
+  const pullIn = packed.utility
+    ? PULL_IN_TIMER + PULL_IN_MAPMODE
+    : PULL_IN_TIMER;
+  const setup = packed.setup ?? head + " " + renderTail(packed.utility);
 
   return {
     setup,
