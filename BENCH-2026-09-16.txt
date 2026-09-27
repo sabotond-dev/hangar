@@ -4656,3 +4656,12 @@ Recorded: SNAKE's step time becomes a fine ladder - every 10 ms from 50 to 1000 
 stepper types any value and snaps to the nearest 10 ms; the default stays 220 ms (the first game,
 frames.json and the OG unmoved); both events re-measured at the worst literal; older links land
 at the defaults (the stamp's known pattern).
+
+> can you also put a MIDIRX or something on Snake like in sequencers so you can midi sync the
+> steps inside a DAW?
+
+Recorded 2026-09-27, folded into change 24: SNAKE takes the sequencers' MIDI clock sync (ORBIT's
+idiom, change 8; STEPS, RADAR POINTS, GHOST in 12; RADAR in 12b) - `Sync: Internal / External`
+and `Division` (8th / 16th / 32nd = 12 / 6 / 3 clocks a step); under External the snake steps on
+the DAW's clock, Start begins a fresh game on the bar, Stop pauses the snake where it is (its last
+note released), Continue resumes; the step time knob is ignored under External.
