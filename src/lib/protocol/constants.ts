@@ -6,9 +6,11 @@
 // (255) carries its setup (0) and timer (6) - the library's two halves - and
 // its utility event (4), the Sandbox runtime's second slot. Writing event 4 was
 // once refused because it is the module's page-next button; D-19 retired the
-// refusal, so under an installed surface the button runs the runtime, under a
-// catalog configuration it still turns the page, and PUT BACK restores the slot.
-// Decided at 13-17 (D-18 / D-19); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
+// refusal. Since change 22 (BENCH-2026-09-16.txt section 22) every string HANGAR
+// writes there turns the page on a press of the button: a catalog configuration
+// and Clear write the firmware's own, a surface its runtime behind a guard that
+// only the touch Setup's pull-in opens (sandbox/runtime.ts), and PUT BACK restores
+// the slot. Decided at 13-17 (D-18 / D-19); see .planning/phases/13-gui-overhaul/13-17-SUMMARY.md
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import {
@@ -48,7 +50,8 @@ export const ELEMENT_TOUCH = 0;
  * allowed to match.
  *
  * Its setup (0) and its timer (6) are addressed - the library's two halves -
- * and its utility event (4), the Sandbox runtime's second slot since 13-17.
+ * and its utility event (4), the Sandbox runtime's second slot since 13-17,
+ * behind the utility guard since change 22.
  */
 export const ELEMENT_SYSTEM = 255;
 export const EVENT_SETUP = EventTypeToNumber(EventType.SETUP);
@@ -140,6 +143,37 @@ export const SYSTEM_DEFAULT_TIMER = defaultFor(ELEMENT_SYSTEM, EVENT_TIMER);
  * snapshot from before 13-17 (`hangar.snapshot.v3` or older) restores it.
  */
 export const SYSTEM_DEFAULT_UTILITY = defaultFor(ELEMENT_SYSTEM, EVENT_UTILITY);
+
+/**
+ * The string a system slot is written with: the configuration's own, or the
+ * firmware's default where it published the empty string - "none of its own",
+ * every catalog configuration's 255/4 (13-17). The one substitution rule: the
+ * install store's #systemStringOr and the Grid Editor profile file
+ * (share/profile.ts) both write through it, so the file carries what Store on
+ * ZONA writes and the utility button turns the page after either (change 22,
+ * BENCH-2026-09-16.txt section 22; utility-button.spec.ts). `event` is the
+ * slot's event number: 0 the Setup, 4 the Utility, 6 the Timer.
+ */
+export function systemSlotString(
+  config: {
+    readonly system: string;
+    readonly systemTimer: string;
+    readonly systemUtility: string;
+  },
+  event: 0 | 4 | 6,
+): string {
+  if (event === EVENT_TIMER) {
+    return config.systemTimer !== ""
+      ? config.systemTimer
+      : SYSTEM_DEFAULT_TIMER;
+  }
+  if (event === EVENT_UTILITY) {
+    return config.systemUtility !== ""
+      ? config.systemUtility
+      : SYSTEM_DEFAULT_UTILITY;
+  }
+  return config.system !== "" ? config.system : SYSTEM_DEFAULT_SETUP;
+}
 
 export const PROTOCOL_VERSION = grid.getProperty("VERSION") as {
   MAJOR: number;

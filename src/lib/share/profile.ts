@@ -17,6 +17,7 @@ import {
   EVENT_SETUP,
   EVENT_TIMER,
   EVENT_UTILITY,
+  systemSlotString,
 } from "../protocol/constants";
 import type { Surface } from "../store/schema";
 import { classifyImport, type ExportFile } from "../store/transfer";
@@ -105,16 +106,22 @@ export function zonaElements(): readonly ZonaElement[] {
   return out;
 }
 
-/** The string a slot holds, by element and event; undefined for an event HANGAR does not write. */
+/**
+ * The string a slot holds, by element and event; undefined for an event HANGAR does not write.
+ * The system element's three through the store's own substitution (`systemSlotString`): a
+ * catalog card publishes no 255/4 of its own, and until change 22 the file carried that as an
+ * empty utility event - which the Editor would load as a utility button that no longer turns
+ * the page. The file now carries the firmware's page-next there, as Store on ZONA writes it.
+ */
 export function slotString(
   strings: ProfileStrings,
   element: number,
   event: number,
 ): string | undefined {
   if (element === ELEMENT_SYSTEM) {
-    if (event === EVENT_SETUP) return strings.system;
-    if (event === EVENT_UTILITY) return strings.systemUtility;
-    if (event === EVENT_TIMER) return strings.systemTimer;
+    if (event === EVENT_SETUP) return systemSlotString(strings, 0);
+    if (event === EVENT_UTILITY) return systemSlotString(strings, 4);
+    if (event === EVENT_TIMER) return systemSlotString(strings, 6);
     return undefined;
   }
   if (element === ELEMENT_TOUCH) {

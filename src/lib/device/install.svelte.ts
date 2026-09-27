@@ -709,7 +709,10 @@ export class InstallStore {
    * default, ladder.spec.ts). `event` is the slot's event number: 0 the
    * Setup (`system`), 6 the Timer (`systemTimer`), 4 the Utility
    * (`systemUtility`). Reads a FIELD, never a kind: the store cannot tell a
-   * surface from an entry (13-17).
+   * surface from an entry (13-17). The rule itself is the protocol module's
+   * `systemSlotString` since change 22, which the Grid Editor profile file
+   * writes through as well; with no protocol module in hand, the
+   * configuration's own string, verbatim.
    */
   #systemStringOr(
     config: ConfigStrings,
@@ -717,19 +720,10 @@ export class InstallStore {
     protocolLib?: Protocol,
   ): string {
     const lib = protocolLib ?? this.#modules?.protocolLib;
-    if (event === 6) {
-      return config.systemTimer !== ""
-        ? config.systemTimer
-        : (lib?.SYSTEM_DEFAULT_TIMER ?? "");
-    }
-    if (event === 4) {
-      return config.systemUtility !== ""
-        ? config.systemUtility
-        : (lib?.SYSTEM_DEFAULT_UTILITY ?? "");
-    }
-    return config.system !== ""
-      ? config.system
-      : (lib?.SYSTEM_DEFAULT_SETUP ?? "");
+    if (lib) return lib.systemSlotString(config, event);
+    if (event === 6) return config.systemTimer;
+    if (event === 4) return config.systemUtility;
+    return config.system;
   }
 
   // --- the two closed decisions the components render ----------------------
