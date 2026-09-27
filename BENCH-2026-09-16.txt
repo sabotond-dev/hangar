@@ -4623,3 +4623,36 @@ may still live in 255/4 only behind a guard that the Setup's pull-in sets - a re
 `gpl(gpn())` and nothing else - and a spec proves the rule over every string HANGAR can write
 there. A module already stored from the Sandbox keeps the broken button until the page is
 stored again or cleared from HANGAR (the Target page select still reaches every page).
+
+23. Store and Clear over a page HANGAR did not write (2026-09-27)
+--------------------------------------------------------------------------------
+
+Andrew Huang's report (email, 2026-09-26), relayed by the user: sending a Playground config to page
+2 with "Store on ZONA" always fails with "HANGAR couldn't read what Page 3 holds, and it won't
+write over something it hasn't copied. Nothing was written." - page 2 held a configuration made in
+the Grid Editor; pages 1, 3 and 4 work; the page named in the message changes between attempts.
+
+> Andrew reported a bug on his page 2 which held a config made in the Grid Editor not Hangar.
+> Hangar SHOULD be able to rewrite (store into it) and clear configs made in Grid Editor as well.
+
+Read before briefing: the block is `snapshotFailedBlock` (install-copy.ts:357), raised by
+`#snapshot` (install.svelte.ts:541) when `fetchAll` times out or `canWriteBack` refuses the read
+(D-03: an empty string is what a fetch of a non-active page produces); the page it names is
+`#page()`, not the Target page the user chose - hence "Page 3" for a Store to page 2. Recorded:
+(1) Store and Clear never refuse because the page could not be read - the snapshot is a
+best-effort copy (Put back was retired in 13.1), and a Store / Clear over a page HANGAR could not
+copy goes ahead, the previous configuration replaced; (2) every message names the page the user
+chose; (3) the cause is found and fixed where it is HANGAR's (reading a page that is not the
+active one, a timeout on a Grid Editor configuration's strings) so the copy succeeds whenever the
+module can give it. Queued after change 22 (both edit the install path).
+
+24. SNAKE's step time freely chosen (2026-09-27)
+--------------------------------------------------------------------------------
+
+Andrew Huang, same email: "I'm wondering if it would be possible to freely choose the step time
+of Snake instead of only being able to use the four preset values that are offered."
+
+Recorded: SNAKE's step time becomes a fine ladder - every 10 ms from 50 to 1000 ms (96 rungs), the
+stepper types any value and snaps to the nearest 10 ms; the default stays 220 ms (the first game,
+frames.json and the OG unmoved); both events re-measured at the worst literal; older links land
+at the defaults (the stamp's known pattern).
