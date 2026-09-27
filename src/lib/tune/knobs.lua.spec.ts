@@ -113,6 +113,8 @@ describe("the Lua-entry knob descriptors (src/lib/tune/knobs.lua.ts)", () => {
       "strip.crossCc (128)",
       "lumen.cc (128)",
       "lumen.yCc (128)",
+      // Change 24: SNAKE's step time, every 10 ms from 50 to 1000.
+      "snake.speed (96)",
       "snake.note (128)",
       "snake.deathNote (128)",
       "quadrant.note (128)",

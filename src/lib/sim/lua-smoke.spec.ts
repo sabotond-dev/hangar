@@ -12547,6 +12547,9 @@ describe("SNAKE remade (change 14)", () => {
     { tick: 638, p1: 36, p2: 110 },
   ];
 
+  /** The death pause's beat since change 24: 220 ms, 22 ticks, at any Step time. */
+  const PAUSE = 22;
+
   /** Every screen cell whose rendered colour is exactly `rgb`. */
   function cellsOf(frame: Uint8Array, rgb: string): number[] {
     const out: number[] = [];
@@ -12564,12 +12567,13 @@ describe("SNAKE remade (change 14)", () => {
     const channel = knobValueOf(entry, "channel");
     const lowest = knobValueOf(entry, "note");
     const rendered = renderLua(entry);
-    // Since change 17B the release reads the pending note's channel, off-status and number from a
-    // triple (the Bite and the Death are two outputs); at the default Types the off is 144*3//2-88,
-    // 128 - the wire below still reads it.
+    // Since change 17B the release reads the pending note's channel, type and number from a triple
+    // (the Bite and the Death are two outputs); since change 24 the off status is computed at the
+    // release, 144*3//2-88 = 128 at the default Types - the wire below still reads it. The Bite's
+    // pair is left by the Setup's F (the bite), the Death's by the Timer.
     expect(
-      rendered.timer.includes("s:gms(z[1],z[2],z[3],0)") &&
-        rendered.timer.includes(`{${channel},144*3//2-88,`),
+      rendered.timer.includes("s:gms(z[1],z[2]*3//2-88,z[3],0)") &&
+        rendered.setup.includes(`s.z={${channel},144,m}`),
       "snake: the Timer sends NOTE-OFF, status 128, through gms",
     ).toBe(true);
     // The walk, read off the entry: `(w*7+23+s.g)%81`, seeded per game.
@@ -12644,10 +12648,12 @@ describe("SNAKE remade (change 14)", () => {
       expect(cellsOf(host.frame, snakeRgb), "no snake-coloured cell").toEqual(
         [],
       );
-      // Held for two more generations; the death note released on the first.
-      run(period);
+      // Held for two more beats; the death note released on the first. Since change 24 the
+      // pause is six FIXED 220 ms beats (PAUSE ticks each) at any Step time - at the default the
+      // same ticks as before, when it was six generations.
+      run(PAUSE);
       expect(events.at(-1), "the death note released").toEqual({
-        tick: deathTick + period,
+        tick: deathTick + PAUSE,
         cmd: 128,
         p1: lowest - 12,
         p2: 0,
@@ -12655,19 +12661,19 @@ describe("SNAKE remade (change 14)", () => {
       expect(cellsOf(host.frame, foodRgb).length, "still flashing").toBe(
         bodyLength + 1,
       );
-      run(period);
+      run(PAUSE);
       expect(cellsOf(host.frame, foodRgb).length, "still flashing").toBe(
         bodyLength + 1,
       );
-      // The third generation blacks the board; two more stay dark.
-      run(period);
+      // The third beat blacks the board; two more stay dark.
+      run(PAUSE);
       expect(lit(host.frame), "the board blacked").toBe(0);
-      run(period * 2);
+      run(PAUSE * 2);
       expect(lit(host.frame), "still dark").toBe(0);
       const sentBeforeRestart = events.length;
       // The sixth restarts: the two-cell snake and the food at 41, no send.
-      run(period);
-      const restartTick = deathTick + 6 * period;
+      run(PAUSE);
+      const restartTick = deathTick + 6 * PAUSE;
       expect(tick).toBe(restartTick);
       expect(cellsOf(host.frame, snakeRgb), "restarted").toEqual([39, 40]);
       expect(cellsOf(host.frame, foodRgb), "the food back at 41").toEqual([41]);
@@ -12685,7 +12691,8 @@ describe("SNAKE remade (change 14)", () => {
         p1: lowest + 3,
         p2: 100,
       });
-      const generationsAtRestart = restartTick / period;
+      // The counter counts steps: the first game's and the pause's six.
+      const generationsAtRestart = deathTick / period + 6;
       const secondFood = (41 * 7 + 23 + generationsAtRestart) % 81;
       expect(secondFood, "the seeded walk lands elsewhere").not.toBe(firstFood);
       expect(cellsOf(host.frame, foodRgb), "the second game's food").toEqual([
@@ -12777,6 +12784,368 @@ describe("SNAKE remade (change 14)", () => {
       expect(host.errors, host.errors.join(" | ")).toEqual([]);
     } finally {
       host.close();
+    }
+  }, 60000);
+  // CHANGE 24 (2026-09-27, BENCH-2026-09-16.txt section 24): the step time every 10 ms from 50 to
+  // 1000, the death pause a fixed 1.32 s, and ORBIT's clock sync.
+
+  /** The first game's steps at any Step time: the generations of PRE_CHANGE_FIRST_GAME at 220 ms. */
+  const FIRST_GAME_STEPS = PRE_CHANGE_FIRST_GAME.map((on) => on.tick / 22);
+
+  /** SNAKE opened at its defaults with some knobs set by literal, on the real library. */
+  async function openSnake(over: Record<string, string> = {}) {
+    const entry = entryById("snake");
+    const indices: Record<string, number> = { ...entry.defaults };
+    for (const [id, literal] of Object.entries(over)) {
+      const at = entry.knobs.find((k) => k.id === id)?.values.indexOf(literal);
+      if (at === undefined || at < 0)
+        throw new Error(`snake.${id} does not offer ${literal}`);
+      indices[id] = at;
+    }
+    const { setup, timer } = renderLua(entry, indices);
+    const host = await createLuaHost({
+      sim: new PadSim(blankPadState()),
+      system: TOUCH_LIBRARY,
+      systemTimer: TOUCH_LIBRARY_TIMER,
+      setup,
+      timer,
+    });
+    return { host, setup, timer };
+  }
+
+  it("steps once per Step time at 50 ms and at 1000 ms (change 24): the Timer re-arms at the period, the first game is the same game in steps, and the death pause is a fixed 1.32 s at either", async () => {
+    const entry = entryById("snake");
+    const speed = entry.knobs.find((k) => k.id === "speed");
+    expect(speed?.values, "every 10 ms from 50 to 1000, ascending").toEqual(
+      Array.from({ length: 96 }, (_, i) => String(50 + 10 * i)),
+    );
+    expect(speed?.values[entry.defaults.speed], "220 stays the default").toBe(
+      "220",
+    );
+    expect(FIRST_GAME_STEPS, "the first game in steps").toEqual([
+      1, 5, 14, 25, 27, 29,
+    ]);
+    for (const ms of [50, 1000]) {
+      const period = ms / 10;
+      const { host, setup, timer } = await openSnake({ speed: String(ms) });
+      try {
+        expect(setup, `${ms}: the Setup arms the Timer at ${ms}`).toContain(
+          `gtt(0,${ms})`,
+        );
+        expect(timer, `${ms}: the Timer re-arms at ${ms}`).toContain(
+          `gtt(0,${ms})`,
+        );
+        type Ev = { tick: number; cmd: number; p1: number; p2: number };
+        const events: Ev[] = [];
+        let seen = 0;
+        let tick = 0;
+        const frames: string[] = [];
+        const run = (n: number): void => {
+          for (let i = 0; i < n; i += 1) {
+            host.tick();
+            tick += 1;
+            frames[tick] = Array.from(host.frame).join(",");
+            while (seen < host.midi.length) {
+              const m = host.midi[seen];
+              seen += 1;
+              events.push({ tick, cmd: m.cmd, p1: m.p1, p2: m.p2 });
+            }
+          }
+        };
+        run(1);
+        const snakeRgb = rgbAt(host.frame, 40);
+        const foodRgb = rgbAt(host.frame, 41);
+        // THE STEP: over the first three periods the picture changes on the period and never
+        // between - one step per Timer call, the Timer re-armed at the Step time.
+        run(3 * period);
+        const changed: number[] = [];
+        for (let t = 2; t <= 3 * period + 1; t += 1)
+          if (frames[t] !== frames[t - 1]) changed.push(t);
+        expect(changed, `${ms}: a step on every period`).toEqual([
+          period,
+          2 * period,
+          3 * period,
+        ]);
+        // THE FIRST GAME, the same game in steps: every note-on on its step times the period.
+        const deathTick =
+          FIRST_GAME_STEPS[FIRST_GAME_STEPS.length - 1] * period;
+        run(deathTick - tick);
+        expect(
+          events.filter((e) => e.cmd === 144),
+          `${ms}: the first game's note-ons`,
+        ).toEqual(
+          PRE_CHANGE_FIRST_GAME.map((on, i) => ({
+            tick: FIRST_GAME_STEPS[i] * period,
+            cmd: 144,
+            p1: on.p1,
+            p2: on.p2,
+          })),
+        );
+        // THE DEATH PAUSE, FIXED: the flash for three beats of 220 ms, dark for three, the restart
+        // on the sixth - 132 ticks after the death at either Step time.
+        expect(cellsOf(host.frame, snakeRgb), `${ms}: the flash`).toEqual([]);
+        run(3 * PAUSE - 1);
+        expect(
+          cellsOf(host.frame, foodRgb).length,
+          `${ms}: still flashing 650 ms after the death`,
+        ).toBe(8);
+        run(1);
+        expect(lit(host.frame), `${ms}: dark at 660 ms`).toBe(0);
+        run(3 * PAUSE - 1);
+        expect(lit(host.frame), `${ms}: still dark at 1310 ms`).toBe(0);
+        run(1);
+        expect(tick).toBe(deathTick + 6 * PAUSE);
+        expect(cellsOf(host.frame, snakeRgb), `${ms}: restarted`).toEqual([
+          39, 40,
+        ]);
+        // The next game's first step comes one Step time later: the restart re-armed @SPEED.
+        const restartTick = tick;
+        run(period);
+        expect(events.at(-1), `${ms}: the next game's first bite`).toEqual({
+          tick: restartTick + period,
+          cmd: 144,
+          p1: PRE_CHANGE_FIRST_GAME[0].p1,
+          p2: 100,
+        });
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+  }, 60000);
+
+  it("SNAKE on the DAW's clock (change 24): Internal leaves MIDIRTM unrouted; External routes it, the Timer steps nothing, Start restarts and releases, a step every Division clocks, Stop halts and releases, Continue resumes, active sensing does nothing, the death pause runs in steps, and the preview holds Internal", async () => {
+    const CLOCK = 248;
+    const START = 250;
+    const CONTINUE = 251;
+    const STOP = 252;
+    const SENSING = 254;
+    const entry = entryById("snake");
+    const sync = entry.knobs.find((k) => k.id === "sync");
+    const division = entry.knobs.find((k) => k.id === "division");
+    expect(sync?.values).toEqual(["false", "true"]);
+    expect(sync?.previewIndex, "the preview has no clock").toBe(0);
+    expect(division?.values, "an 8th, a 16th, a 32nd").toEqual([
+      "12",
+      "6",
+      "3",
+    ]);
+    expect(division?.values[entry.defaults.division]).toBe("6");
+    expect(previewIndices(entry, { ...entry.defaults, sync: 1 })?.sync).toBe(0);
+
+    // INTERNAL (the defaults): grxm(2,0); the callback the Timer makes is never routed to.
+    {
+      const { host } = await openSnake();
+      try {
+        expect(host.rxMode, "Internal: MIDIRTM unrouted").toBe(0);
+      } finally {
+        host.close();
+      }
+    }
+
+    // EXTERNAL at the default Division, 6 clocks a 16th.
+    const { host } = await openSnake({ sync: "true" });
+    try {
+      expect(host.rxMode, "External: MIDIRTM routed to Lua").toBe(3);
+      // The first-period caveat: before the Timer's first call there is no callback.
+      expect(host.rtm(START), "no callback before the first Timer call").toBe(
+        false,
+      );
+      const snakeRgb = rgbAt(host.frame, 40);
+      const foodRgb = rgbAt(host.frame, 41);
+      const snake = (): number[] => cellsOf(host.frame, snakeRgb);
+      const settle = (): void => {
+        for (let i = 0; i < 3; i += 1) host.tick();
+      };
+      // THE TIMER STEPS NOTHING: 500 ticks (two dozen Timer calls) and the picture is the Setup's.
+      for (let i = 0; i < 500; i += 1) host.tick();
+      expect(snake(), "the Timer stepped nothing").toEqual([39, 40]);
+      expect(cellsOf(host.frame, foodRgb)).toEqual([41]);
+      expect(host.midi, "nothing sent").toEqual([]);
+      // Clocks before Start: nothing runs.
+      for (let i = 0; i < 12; i += 1) host.rtm(CLOCK);
+      settle();
+      expect(snake(), "no Start, no step").toEqual([39, 40]);
+      // START, then the first clock lands a step: the bite at 41, its note.
+      expect(host.rtm(START), "the handler exists").toBe(true);
+      host.rtm(CLOCK);
+      settle();
+      expect(snake(), "the first clock after Start steps").toEqual([
+        39, 40, 41,
+      ]);
+      expect(host.midi.map((m) => [m.cmd, m.p1, m.p2])).toEqual([
+        [144, 51, 100],
+      ]);
+      // Five more clocks: nothing; the sixth: the next step, the bite released first.
+      for (let i = 0; i < 5; i += 1) host.rtm(CLOCK);
+      settle();
+      expect(snake(), "no step inside a Division").toEqual([39, 40, 41]);
+      host.rtm(CLOCK);
+      settle();
+      expect(snake(), "a step every six clocks").not.toEqual([39, 40, 41]);
+      expect(snake().length, "the same length, moved").toBe(3);
+      expect(host.midi.at(-1), "released on the next step").toMatchObject({
+        cmd: 128,
+        p1: 51,
+        p2: 0,
+      });
+      // Two more steps and then the one that bites (step 5); STOP releases it at once.
+      for (let i = 0; i < 6 * 2; i += 1) host.rtm(CLOCK);
+      const beforeBite = host.midi.length;
+      for (let i = 0; i < 6; i += 1) host.rtm(CLOCK);
+      expect(
+        host.midi.slice(beforeBite).map((m) => [m.cmd, m.p1, m.p2]),
+        "the second bite on step 5",
+      ).toEqual([[144, 52, 100]]);
+      settle();
+      const atStop = snake();
+      host.rtm(STOP);
+      expect(host.midi.at(-1), "Stop releases the pending note").toMatchObject({
+        cmd: 128,
+        p1: 52,
+        p2: 0,
+      });
+      const quiet = host.midi.length;
+      for (let i = 0; i < 24; i += 1) host.rtm(CLOCK);
+      host.rtm(SENSING);
+      for (let i = 0; i < 24; i += 1) host.rtm(CLOCK);
+      for (let i = 0; i < 300; i += 1) host.tick();
+      expect(snake(), "stopped where it is").toEqual(atStop);
+      expect(host.midi.length, "nothing sent while stopped").toBe(quiet);
+      // CONTINUE: the count kept, so the next step comes within one Division.
+      host.rtm(CONTINUE);
+      let clocks = 0;
+      while (snake().join() === atStop.join() && clocks < 12) {
+        host.rtm(CLOCK);
+        settle();
+        clocks += 1;
+      }
+      expect(
+        clocks,
+        "Continue resumes inside one Division",
+      ).toBeLessThanOrEqual(6);
+      expect(snake()).not.toEqual(atStop);
+      // START AGAIN: a fresh game from the two-cell snake, the food at 41.
+      host.rtm(START);
+      settle();
+      expect(snake(), "Start restarts").toEqual([39, 40]);
+      expect(cellsOf(host.frame, foodRgb)).toEqual([41]);
+      expect(host.errors, host.errors.join(" | ")).toEqual([]);
+    } finally {
+      host.close();
+    }
+
+    // THE WHOLE FIRST GAME ON THE CLOCK, on a fresh landing (Start before any step, so the walk's
+    // seed is 0 as on the shelf), the Timer running between clocks: the notes on the same steps
+    // as under Internal, and the death pause six STEPS - the flash for three, dark for three, the
+    // restart on the sixth. A later Start seeds the walk with the steps counted so far, as a death
+    // does, so it plays another game.
+    {
+      const { host } = await openSnake({ sync: "true" });
+      try {
+        for (let i = 0; i < 30; i += 1) host.tick();
+        const snakeRgb = rgbAt(host.frame, 40);
+        const foodRgb = rgbAt(host.frame, 41);
+        const snake = (): number[] => cellsOf(host.frame, snakeRgb);
+        expect(host.rtm(START)).toBe(true);
+        const from = host.midi.length;
+        let step = 0;
+        const stepOnce = (): void => {
+          for (let i = 0; i < 6; i += 1) {
+            host.rtm(CLOCK);
+            host.tick();
+          }
+          step += 1;
+        };
+        const onsAt: number[] = [];
+        while (step < FIRST_GAME_STEPS[FIRST_GAME_STEPS.length - 1]) {
+          const before = host.midi.length;
+          stepOnce();
+          if (host.midi.slice(before).some((m) => m.cmd === 144))
+            onsAt.push(step);
+        }
+        expect(onsAt, "the first game's note-ons, in steps").toEqual(
+          FIRST_GAME_STEPS,
+        );
+        expect(snake(), "the flash").toEqual([]);
+        stepOnce();
+        stepOnce();
+        expect(
+          cellsOf(host.frame, foodRgb).length,
+          "flashing two steps on",
+        ).toBe(8);
+        for (let i = 0; i < 200; i += 1) host.tick();
+        expect(
+          cellsOf(host.frame, foodRgb).length,
+          "the pause waits for the clock, not the Timer",
+        ).toBe(8);
+        stepOnce();
+        expect(lit(host.frame), "dark on the third step").toBe(0);
+        stepOnce();
+        stepOnce();
+        expect(lit(host.frame), "still dark").toBe(0);
+        stepOnce();
+        expect(snake(), "restarted on the sixth step").toEqual([39, 40]);
+        expect(
+          host.midi.slice(from).filter((m) => m.cmd === 128).length,
+          "every note released",
+        ).toBe(host.midi.slice(from).filter((m) => m.cmd === 144).length);
+        expect(host.errors, host.errors.join(" | ")).toEqual([]);
+      } finally {
+        host.close();
+      }
+    }
+
+    // START RELEASES: a Start with a bite pending sends its off at once, then the fresh game.
+    {
+      const { host: h } = await openSnake({ sync: "true" });
+      try {
+        for (let i = 0; i < 30; i += 1) h.tick();
+        const rgb = rgbAt(h.frame, 40);
+        h.rtm(START);
+        h.rtm(CLOCK);
+        expect(h.midi.at(-1), "the bite").toMatchObject({ cmd: 144, p1: 51 });
+        h.rtm(START);
+        expect(h.midi.at(-1), "Start releases the pending note").toMatchObject({
+          cmd: 128,
+          p1: 51,
+          p2: 0,
+        });
+        for (let i = 0; i < 3; i += 1) h.tick();
+        expect(cellsOf(h.frame, rgb), "the fresh game").toEqual([39, 40]);
+        expect(h.errors, h.errors.join(" | ")).toEqual([]);
+      } finally {
+        h.close();
+      }
+    }
+
+    // DIVISION 12 and 3: the second step twelve and three clocks after the first.
+    for (const [div, clocks] of [
+      ["12", 12],
+      ["3", 3],
+    ] as const) {
+      const { host: h } = await openSnake({ sync: "true", division: div });
+      try {
+        for (let i = 0; i < 30; i += 1) h.tick();
+        const rgb = rgbAt(h.frame, 40);
+        h.rtm(START);
+        h.rtm(CLOCK);
+        for (let i = 0; i < 3; i += 1) h.tick();
+        const first = cellsOf(h.frame, rgb);
+        expect(first, `${div}: the first clock stepped`).toEqual([39, 40, 41]);
+        for (let i = 0; i < clocks - 1; i += 1) h.rtm(CLOCK);
+        for (let i = 0; i < 3; i += 1) h.tick();
+        expect(cellsOf(h.frame, rgb), `${div}: not yet`).toEqual(first);
+        h.rtm(CLOCK);
+        for (let i = 0; i < 3; i += 1) h.tick();
+        expect(
+          cellsOf(h.frame, rgb),
+          `${div}: the step on clock ${clocks + 1}`,
+        ).not.toEqual(first);
+        expect(h.errors, h.errors.join(" | ")).toEqual([]);
+      } finally {
+        h.close();
+      }
     }
   }, 60000);
 });
@@ -15068,8 +15437,11 @@ describe("every colour knob a full RGB picker (change 19, BENCH-2026-09-16.txt s
     },
     {
       id: "snake",
-      wire: "ec3322d714c018a71f041d628d2bf5255975d4222507009bbf867b2b74f2b202",
-      corner: [896, 768],
+      // Change 24 (2026-09-27) moved the text at the defaults - the fine step time, the fixed death
+      // pause and the clock sync (Internal at the defaults: the same first game, frames and OG) -
+      // so the capture is re-taken at the change; it was ec3322d7... from 0f8c474 to de624ee.
+      wire: "dd5230eddba83bb1be7ba0f40e978c28f2f5183970edb698c7654be1efd20845",
+      corner: [904, 892],
     },
     {
       id: "pomodoro",

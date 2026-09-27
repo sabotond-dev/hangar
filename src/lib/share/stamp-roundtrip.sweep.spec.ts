@@ -407,8 +407,9 @@ describe("stamp round-trip sweep: every knob position either route can reach", (
     expect(
       wide,
       "the wide knobs: ORBIT's four ring notes and, since change 17, every output's Number (0..127)",
-      // 40 since change 17C: FOUR FADERS' four Numbers; 41 with NINE PADS' base note.
-    ).toBe(41);
+      // 40 since change 17C: FOUR FADERS' four Numbers; 41 with NINE PADS' base note; 42 with
+      // SNAKE's step time since change 24 (every 10 ms from 50 to 1000, 96 rungs).
+    ).toBe(42);
     // RE-CHOSEN BY PLAN 11-01, which removed nine hand-authored entries on the
     // user's bench report. The catalog's hand-authored knob total went 133 to
     // 91 and its colour knobs 45 to 29, so `guarded` went 88 to 62 - which is

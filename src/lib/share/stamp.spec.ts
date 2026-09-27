@@ -434,6 +434,15 @@ describe("the stamp: format x", () => {
     for (const minted of MINTED) {
       const each = entry(minted.id);
       const knobs = stampKnobs(each);
+      // SNAKE's rack grew at change 24 (a wide step time, Sync and Division): its change-19 link
+      // is the wrong length now and lands unreadable - the next test's pattern, never restored.
+      if (minted.id === "snake") {
+        expect(
+          decodeFor(each, minted.payload),
+          "snake: a link minted before change 24 lands unreadable",
+        ).toEqual({ kind: "unreadable" });
+        continue;
+      }
       const read = readLuaColourPayload(knobs, minted.payload);
       expect(
         read,
@@ -455,6 +464,46 @@ describe("the stamp: format x", () => {
         `${minted.id}: a link minted before change 19 lands older`,
       ).toEqual({ kind: "older" });
     }
+  });
+
+  it("lands a SNAKE link minted before change 24 unreadable, and round-trips a fine step time with the clock sync", () => {
+    // CAPTURED 2026-09-27 at de624ee with the encoder and SNAKE's rack as they stood: step time
+    // 110 ms (index 3 of 300 220 160 110), every other knob at its default. Change 24 made the step
+    // time every 10 ms from 50 to 1000 - 96 rungs, a WIDE field of two characters - and added Sync
+    // and Division, so the payload is the wrong length: `unreadable`, the card at its defaults (the
+    // stamp's known pattern for a grown rack), never restored on a wrong rung.
+    const each = entry("snake");
+    const speed = each.knobs.find((k) => k.id === "speed");
+    expect(speed?.values.length, "96 rungs").toBe(96);
+    expect(speed?.values[0]).toBe("50");
+    expect(speed?.values[95]).toBe("1000");
+    expect(speed?.values[each.defaults.speed], "220 stays the default").toBe(
+      "220",
+    );
+    expect(
+      fieldChars(stampKnobs(each).find((k) => k.id === "speed")!),
+      "a 96-rung knob rides two base-32 characters",
+    ).toBe(2);
+    expect(decodeFor(each, "w730f7f8000000014")).toEqual({
+      kind: "unreadable",
+    });
+    // A link minted now: 110 ms, External, a 32nd - every index restored.
+    const tuned = {
+      ...each.defaults,
+      speed: speed!.values.indexOf("110"),
+      sync: 1,
+      division: 2,
+    };
+    const payload = encodeFor(each, tuned);
+    expect(payload, "a tuned SNAKE carries a stamp").toBeDefined();
+    expect(decodeFor(each, payload)).toEqual({
+      kind: "restored",
+      indices: expect.objectContaining({ speed: 6, sync: 1, division: 2 }),
+    });
+    expect(
+      encodeFor(each, each.defaults),
+      "the defaults carry none",
+    ).toBeUndefined();
   });
 
   it("refuses every malformed payload as unreadable", () => {
@@ -735,6 +784,22 @@ describe("the stamp: the envelope", () => {
           expect(
             encodeFor(each, each.defaults),
             "steps: its own defaults must still carry no stamp",
+          ).toBeUndefined();
+          nulls += 1;
+          continue;
+        }
+        // SNAKE, at change 24 (2026-09-27, BENCH-2026-09-16.txt section 24): its step time became
+        // every 10 ms from 50 to 1000, so the default 220 moved from index 1 to index 17. The
+        // captured default vector names `speed: 1`, which is 60 ms now - no longer the defaults,
+        // so it encodes to a stamp. The entry's OWN defaults still carry none; not regenerated.
+        if (record.entry === "snake") {
+          expect(
+            encodeFor(each, indices),
+            "snake: the captured vector is no longer the defaults (change 24)",
+          ).toBeDefined();
+          expect(
+            encodeFor(each, each.defaults),
+            "snake: its own defaults must still carry no stamp",
           ).toBeUndefined();
           nulls += 1;
           continue;
