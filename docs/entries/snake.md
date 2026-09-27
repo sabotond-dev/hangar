@@ -340,3 +340,92 @@ Type, Channel and Number. "Bite" is the brief's own example name.
   as controllers from 60 on wire channel 5 and the Death as note 40 on 9 - the first bite 63 at 100, every bite
   released at 0 on its controller, the death on and off on 9, nothing else on the wire; no callback over a previous
   landing's.
+
+## Change 24, 2026-09-27 - the step time freely chosen, a fixed death pause, the DAW's clock (`BENCH-2026-09-16.txt` section 24)
+
+Andrew Huang, by email to the user: "I'm wondering if it would be possible to freely choose the step time of Snake
+instead of only being able to use the four preset values that are offered." Then the user: "can you also put a MIDIRX
+or something on Snake like in sequencers so you can midi sync the steps inside a DAW?" - folded into the same change.
+
+### The two strings the entry carried until change 24, verbatim (at `de624ee`)
+
+```lua
+--[[@cb]]local function P(k,r,g,b)local a=glag(0,k)glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end local function I(s)for k=0,80 do P(k,0,0,0)end s.b={}s.o={}s.p=1 s.l=2 s.u=1 s.v=0 s.f=41 s.t=nil s.d=nil s.g=s.c for k=39,40 do s.b[k-39]=k s.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)end local function F(s,n)local g=0 for k=0,80 do if k~=n and not s.o[k]then g=k break end end local w=s.f for _=1,12 do w=(w*7+23+s.g)%81 if w~=n and not s.o[w]then g=w break end end s.f=g P(g,@FOODC)end self.P=P self.I=I self.F=F self.c=0 I(self)self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then return end s.t=1 local h=s.b[s.p]local n=N(x,y)local c=n%9-h%9 local r=n//9-h//9 local m=c<0 and -c or c local w=r<0 and -r or r if m>w then if s.u==0 then s.u=c>0 and 1 or -1 s.v=0 end elseif w>0 then if s.v==0 then s.v=r>0 and 1 or -1 s.u=0 end end end self.midirx_cb=nil gtt(0,@SPEED)
+```
+
+```lua
+--[[@cb]]gtt(0,@SPEED)local s=self local P,I,F=s.P,s.I,s.F s.c=s.c+1 local z=s.z if z then s:gms(z[1],z[2],z[3],0)s.z=nil end local d=s.d if d then d=d-1 s.d=d if d==3 then for k=0,80 do P(k,0,0,0)end elseif d==0 then I(s)end return end local h=s.b[s.p]if not s.t then local o=s.u~=0 local d=o and s.f//9-h//9 or s.f%9-h%9 if d~=0 then d=d>0 and 1 or -1 if o then s.v=d s.u=0 else s.u=d s.v=0 end end end local n=(h//9+s.v)%9*9+(h%9+s.u)%9 if s.o[n]then s:gms(@DCH,@DT,@DN,110)s.z={@DCH,@DT*3//2-88,@DN}for k=0,80 do if s.o[k]then P(k,@FOODC)end end s.d=6 return end s.p=(s.p+1)%81 if n==s.f then s.l=s.l+1 F(s,n)local m=(@NOTE+s.l%12)%128 s:gms(@CH,@TYPE,m,100)s.z={@CH,@TYPE*3//2-88,m}else local t=s.b[(s.p-s.l)%81]s.o[t]=nil P(t,0,0,0)end s.b[s.p]=n s.o[n]=1 P(n,@SNAKEC)
+```
+
+### What moved
+
+- **Step time** (`speed`, `@SPEED`): every 10 ms from 50 to 1000, ascending - 96 rungs (`STEP_TIMES`); the stepper
+  walks it in tens and a typed value snaps to the nearest ten (change 16's `nearestRung`, a tie to the lower value).
+  220 stays the default, now at index 17, so the first game, `frames.json` and the OG are unmoved. It was
+  `300 220 160 110`, declared descending (change 16's review flagged it; change 16's e2e walk used it as the witness
+  of the value order - that rule now rests on `tune-ui.spec.ts`'s and `view.spec.ts`'s own fixtures). Ignored under
+  External.
+- **The death pause, decided: a fixed time.** It was six generations, so 6 s at 1000 ms and 0.3 s at 50. The honest
+  pause is the same at every Step time: the death step and every countdown call re-arm the Timer at 220 ms
+  (`gtt(0,220)`), the third call blacks the board, the sixth restarts, and the restart's `gtt(0,@SPEED)` wins - flash
+  660 ms, dark 660 ms, 1.32 s in all, which is exactly the pause the default always had (so the default's ticks did
+  not move). Under External the countdown is six STEPS of the clock instead: the re-arms are inert there (the Timer
+  steps nothing), the restart lands on the DAW's grid, and a Stop freezes the pause with the snake.
+- **Sync and Division** (`sync` / `@SYNC`, `division` / `@DIV`), ORBIT's idiom (change 8; STEPS, RADAR POINTS and
+  GHOST in 12; RADAR in 12b): Internal / External (`false` / `true`, `previewIndex` 0 - the browser has no clock),
+  8th / 16th / 32nd = 12 / 6 / 3 clocks a step, a 16th by default. `grxm(2,@SYNC and 3 or 0)` at the Setup's end.
+  The step is the Timer's `local function f()` and the release its `local function u()`; the Timer makes
+  `s.rtmrx_cb=function(s,h,b)` on every call, reaching `f`, `u` and `I` as upvalues: 250 Start and 252 Stop release
+  the pending note, Start restarts (`I(s)`: the two-cell snake, the food at 41, the autopilot back on, the clock
+  count at 0 - a fresh game on the bar), 250 / 251 set the run flag and 252 clears it (the snake stays where it is),
+  248 while running steps every `@DIV` clocks (`s.q%@DIV<1`), the first clock after Start landing a step; 254 and
+  anything else does nothing. The Timer ends `if not @SYNC then f()end` - ORBIT's `if @SYNC then return end f(s)`,
+  four characters shorter. `self.midirx_cb=nil` stays (no voice MIDI is received); `rtmrx_cb` is the other field.
+  **The first-period caveat (ORBIT's):** the callback is made by the Timer, so a Start or a clock inside the first
+  Step time after a Store is not seen; the snake waits for the next Start or Continue.
+- **The room.** The clock would not fit as first written - 842 / 1,133 (Setup / Timer at the corner), 159 over the
+  two events together - so the Lua was tightened, the candidates measured as a whole and none moving a frame: the
+  painter's two layers in a `for l=1,2` loop; the steer's dominant axis by `c*c>r*r` and `r~=0` and every sign by
+  the host's `glim(d,-1,1)`; the flash through `pairs(s.o)`; the pending note stored as `{channel, type, number}`
+  with the off computed at the release; the new head into `s.o` before the placer, so `F` needs no `n`; the
+  Setup's own `local s=self`; `I(s,q)` doing the countdown's black as well as the restart, `if d%3<1 then
+I(s,d>0)end`; the clock count reset inside `I`; `u` and `f` closing over the Timer's `s`. The Bite (growth,
+  placer, note) moved into the Setup's `F` to balance the two events. No system slot, no library helper.
+- **Costs** (characters under the pinned `compressScript` after `initLuaFormatter()`, the RGB444 picker corner - every
+  colour knob 255,255,255, every other knob its longest literal; the defaults in brackets): Setup **896 -> 904**
+  (890 -> 894), Timer **768 -> 892** (757 -> 882). 4 and 16 free. The worst literal of the step time, `1000`, is one
+  character over the old `300` in each event (measured alone: 897 / 769).
+- **The stamp.** The step time is a wide knob now (96 rungs, two base-32 characters) and the rack grew by two, so
+  every SNAKE link minted before this change is the wrong length and lands `unreadable` - the card at its defaults,
+  the known pattern for a grown rack. `stamp.spec.ts` holds a link minted at `de624ee` (step time 110) and change 19's
+  captured link unreadable, and a link minted now (110 ms, External, a 32nd) restored; the wild fixture's default
+  vector names `speed: 1`, which is 60 ms now, so it encodes to a stamp (the STEPS / CHORUS pattern).
+
+### The first game, the frames and the OG
+
+Unmoved. At the defaults (220 ms, Internal) the first game is the old one to the tick - `lua-smoke.spec.ts`'s
+pre-change note-on list, pasted from a run at `8878084`, still holds - and the pause is the same six 220 ms beats, so
+`frames.json` (`290ff266`, ticks 0, 37, 101, 500 and 1009 - the last inside the second game's dark pause) and the OG
+(27 files, 159,169 B, `9becd682…`) are byte-identical through the gate (`--before change-24` at `f6e8922`, `--after
+change-24` at `0935333`). The text at the defaults did move (the Lua above), so change 19's per-card wire capture for
+SNAKE is re-taken at the change (`dd5230ed…`).
+
+### The VM cases (`lua-smoke.spec.ts`, +2)
+
+- **"steps once per Step time at 50 ms and at 1000 ms"**: the ladder is 50..1000 in tens with 220 the default; at
+  each end the Setup arms and the Timer re-arms `gtt(0,<ms>)`, the picture changes on the period and never between
+  over three periods, the first game's note-ons land on the same steps (1, 5, 14, 25, 27, the death on 29) times the
+  period, the flash holds 650 ms, the board is dark at 660 ms and still at 1,310 ms, the restart comes 132 ticks after
+  the death at either Step time, and the next game's first bite one period after the restart.
+- **"SNAKE on the DAW's clock"**: Internal leaves `rxMode` at 0; External routes it (3); no callback before the Timer's
+  first call; 500 ticks of the Timer step nothing and send nothing; clocks before Start step nothing; Start then the
+  first clock lands the bite (51 at 100); five clocks nothing, the sixth the next step with the bite released; the
+  second bite on step 5 and Stop releasing it at once; 48 clocks, active sensing and 300 ticks with the snake frozen and
+  nothing sent; Continue resuming inside one Division; Start again the two-cell snake and the food at 41. On a fresh
+  landing the whole first game on the clock with the Timer ticking between clocks: the note-ons on the same steps, the
+  flash for two more steps unmoved by 200 Timer ticks, dark on the third step, the restart on the sixth, every note
+  released. Start with a bite pending releases it before the fresh game. Division 12 and 3: the second step on clock 13
+  and clock 4.
+- Moved: change 14's first case (the release's text; the pause as `PAUSE`, 22 ticks, and the generation count at the
+  restart as the steps counted); change 19's SNAKE row (the capture and the corner 904 / 892). Change 14's steer case
+  and 17B's outputs case green untouched.

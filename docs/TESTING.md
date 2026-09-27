@@ -8618,3 +8618,99 @@ equal to what Store writes); (4) the probe's starting string - not in the brief'
 (5) `preview.ts`'s stand-in parameter `self` - the live preview would otherwise have run the page switch branch; (6)
 every figure on a worktree, and the first c4 run discarded (no credentials); (7) `audition.spec.ts`'s count, outside
 the brief's file list as 21A's was.
+
+## 2026-09-27 change 24 - SNAKE's step time every 10 ms from 50 to 1000, a fixed death pause, and the DAW's clock
+
+`BENCH-2026-09-16.txt` section 24 (Andrew Huang's ask, and the user's addition: sync SNAKE's steps to a DAW), the
+Done paragraph "change 24". Outside the GSD cycle, no plan file. No push, no device, no deploy; `src/vendor/`,
+`library.ts`, every other entry, `sequence.ts`, the manifest, `pad-sim.ts`, `firmware-oracle.spec.ts`, the Sandbox
+and the device layer untouched. Commits: `2210d8f` feat(catalog) the entry and the spec pins; `5b56e9e` test(e2e) the
+widget walk; `0935333` chore(gate) `QUICK_TESTS` 1129; `9bca427` docs(audition) row 54 and `ROW_COUNT` 54; then this
+section, `docs/entries/snake.md`'s dated section, `docs/TUNING-REVIEW.md`'s SNAKE rows, the Done paragraph and the gate
+records `gate/change-24.*` (before, at `f6e8922` over change 22's uncommitted edits - the working tree was shared) and
+`gate/change-24-after.*` (at `0935333`, on a clean `git worktree --detach` `../hangar-gate-24` with its own `npm ci`, no
+junction, removed after the records were copied; change 23's uncommitted edits were in the main tree by then).
+
+**The shape.** `@SPEED` is `STEP_TIMES`, `50 60 … 1000` (96 rungs, ascending, a wide stamp field), 220 at index 17.
+The death pause is six fixed 220 ms beats (the death step and every countdown call `gtt(0,220)`, the restart's
+`gtt(0,@SPEED)` winning), 1.32 s at any Step time; under External six clock steps. `sync` (`@SYNC`, `false` /
+`true`, `previewIndex` 0) and `division` (`@DIV`, `12 6 3`, default 6) on ORBIT's idiom: `grxm(2,@SYNC and 3 or 0)` at
+the Setup's end, `s.rtmrx_cb` made by the Timer on every call with the step `f()`, the release `u()` and the restart
+`I(s)` as upvalues - 250 Start releases and restarts (the clock count at 0), 252 Stop releases and halts, 251 resumes,
+248 steps every `@DIV` clocks, 254 nothing; the Timer ends `if not @SYNC then f()end`. The first-period caveat is
+ORBIT's (no callback before the Timer's first call). To fit, the Lua was tightened without moving a frame (the
+painter's layers in a loop, `c*c>r*r` and `glim` for the steer, `pairs(s.o)` for the flash, the off status computed at
+the release, the new head into `s.o` before the placer, `I(s,q)` for the countdown's black) and the Bite moved into the
+Setup's `F`. Nine knobs to eleven (three to five outside the outputs; TUNE-01's six lifted for a sync card by change
+8's answer 2).
+
+**Budgets, Setup / Timer** (characters under the pinned `compressScript` after `initLuaFormatter()`, the RGB444 picker
+corner; the defaults in brackets): **896 / 768 -> 904 / 892** (890 / 757 -> 894 / 882). 4 and 16 free. The ladder
+alone, measured before the rest: 897 / 769 (`1000` one character over `300` in each event); the ladder with the fixed
+pause alone 896 / 789; the first draft with the clock 842 / 1,133. No system slot, no library helper.
+
+**What the suites prove, new and moved.**
+
+- `lua-smoke.spec.ts` +2 in "SNAKE remade (change 14)": "steps once per Step time at 50 ms and at 1000 ms" (the Timer
+  re-armed at the period, one picture change per period over three, the first game's note-ons on steps 1, 5, 14, 25,
+  27 and the death on 29 times the period, the flash to 650 ms, dark at 660 and 1,310 ms, the restart 132 ticks after
+  the death at either end, the next bite one period later); "SNAKE on the DAW's clock" (Internal `rxMode` 0, External
+  3, no callback before the first Timer call, the Timer stepping nothing over 500 ticks, clocks before Start nothing,
+  Start and the first clock the bite, a step every six clocks with the release first, Stop releasing at once and
+  freezing through 48 clocks, active sensing and 300 ticks, Continue inside one Division, Start again the two-cell
+  snake; on a fresh landing the whole first game on the clock, the pause in steps and not moved by 200 Timer ticks;
+  Start releasing a pending bite; Division 12 and 3). Moved: change 14's first case (the release text; `PAUSE` 22
+  ticks; the steps counted at the restart), change 19's SNAKE row (the defaults' capture `ec3322d7…` -> `dd5230ed…`,
+  the corner 904 / 892).
+- `stamp.spec.ts` +1: a SNAKE link minted at `de624ee` (step time 110, `w730f7f8000000014`) lands `unreadable`; the
+  speed knob is 96 rungs, 50..1000, 220 the default, two base-32 characters; a link minted now (110 ms, External, a
+  32nd) restores every index; the defaults carry none. Moved: change 19's MINTED loop lands SNAKE's captured link
+  `unreadable` (the rack grew); the wild fixture's SNAKE default vector (`speed: 1`, 60 ms now) encodes to a stamp and
+  the entry's own defaults carry none (the STEPS / CHORUS pattern).
+- Moved pins: `knobs.lua.spec.ts` (`snake.speed (96)` among the named wide knobs), `stamp-roundtrip.sweep.spec.ts`
+  (wide 41 -> 42), `tune-ui.spec.ts` (the shelf's widget split 301 -> 303 knobs, words 94 -> 96), `audition.spec.ts`
+  (`ROW_COUNT` 53 -> 54), `e2e/tuning.e2e.ts` (the stepper walk on the fine ladder: a typed 104 to 100, 115 to 110 - a
+  tie to the lower - the arrows and boxes in tens, End 1000, 9999 the top, 20 the foot 50, the reset 220; the sections
+  Look, Feel, MIDI, Sync).
+
+**Not moved, and why.** `view.spec.ts` and `tune-ui.spec.ts` keep SNAKE's old descending ladder as their OWN fixture
+of the value-order rule (a local array, not the entry); `view.ts`'s comment still names it as the example. The
+audition's cost table row for SNAKE (871 / 732, five knobs) predates 17B and 19 and was left (the table is append-only
+for this change); row 54 carries today's figures in the prose.
+
+**Counts, carried + delta** (carried = the committed tree when this ran, change 22's figures): quick 101 / 1126 + 1
+todo -> **101 / 1129 + 1 todo** (+3), green twice at `--maxWorkers=2` on the working tree at `2210d8f`'s content; the
+gate's quick term read `no Vitest summary lines` (the pipe, as before), its JSON 1128 passed / 1 failed (the recorded
+ordering hole, `radius.spec.ts` layer B on the worktree's absent build) / 1 todo; check **692**, 0 errors (the
+before-record's 693 / 31 errors were change 22's in-progress edits); lint clean; the sweep **4 / 19** green; e2e 122
+runs -> **122** (one title renamed); c3 by its three files **28 passed** in 36.3 s on a fresh detached wrangler dev on
+4173, HTTP 000 after (5173 untouched; the run waited for change 22's e2e on the same port to end); utilities **44 ->
+44**; testids **357** equal; copy exports equal; scoped CSS `c673a834…` and raw CSS `9b60d8a3…` equal; `frames.json`
+`290ff266` and the three other fixtures equal; the OG 27 files / 159,169 B / `9becd682…` equal.
+
+**The gate** (`--before change-24` at `f6e8922`; `--after change-24 --against change-24 --check 692` at `0935333`):
+the wire set `c8ecbfed…` -> `193d352f…`, 17,863 -> 18,057 records: 17,142 byte-identical, 721 moved (714 `E/snake/`,
+7 `S/` - change 22's page-3 strings), 0 removed, 194 added (all `E/snake/`: the step time's 92 new positions, Sync's
+two, Division's three, each in two events); the full `6d5f5a3c…` -> `bbb8a19b…`, 17,890 -> 18,084, 17,168 identical,
+721 moved, 1 removed / 195 added (SNAKE's cross-product record renamed by its state count, 1,152 -> 6,912); the
+Sandbox set `51c02c3c…` -> `651664f8…`, 393 of 1,178 moved - change 22's, none of SNAKE's. Outside `E/snake/` nothing
+moved that is change 24's. The census `524499d6…` -> `f4f38f63…` (3,603 literals either side: SNAKE's two strings out
+and in, the old ladder's `300` `160` `110` `220`, `@SYNC` `@DIV` `Sync` `Division` `sync` `division` `false` `true`
+`mode` `12`; change 22's utility literal and `I[`); the titles `70c16c91…` -> `464788bd…` (1,123 -> 1,130 vitest incl.
+the todo: this change's +3, change 22's +5 and its measuring spec's -1; 122 playwright); the JS `00c1b22b…` ->
+`7fb4d159…` (74 files; snake.ts is in the bundle, and change 22's files); comment lines 6 files moved, snake.ts's
+header now at the ten-line rule (`comment-lines.mjs --todo`: it read 12 before); `src/` against `f6e8922` 18 modified /
+1 added, of which this change's six (`audition.spec.ts` came after the run, a constant and a comment). The script
+exits at the wire by design.
+
+**Departures from the brief:** (1) the death pause became a fixed 1.32 s under Internal and six clock steps under
+External (the recommendation, and it fit); (2) the step routine is a Timer local and the clock callback is made by the
+Timer (the Setup had no room), so ORBIT's first-period caveat applies - a Start or a clock in the first Step time after
+a Store is not seen; (3) the Timer ends `if not @SYNC then f()end`, four characters shorter than ORBIT's `if @SYNC then
+return end f(s)`; (4) the Lua was tightened and the Bite moved into the Setup's `F` to make the clock fit - every
+catalog-wide gate and the first game unchanged; (5) the fixed pause's `gtt(0,220)` and the restart's
+`gtt(0,@SPEED)` moved the text at the defaults, so change 19's capture for SNAKE is re-taken; (6) five files outside the
+brief's list moved by necessity - `stamp-roundtrip.sweep.spec.ts`, `knobs.lua.spec.ts`, `tune-ui.spec.ts`,
+`e2e/tuning.e2e.ts` and `audition.spec.ts`; (7) the audition row is 54 (change 22 took 53); (8) the after-run on a
+clean worktree, the working tree carrying change 23's edits. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS
+untouched.
