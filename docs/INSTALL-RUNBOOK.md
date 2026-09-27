@@ -396,3 +396,20 @@ any profile. `Import a profile`, in the Sandbox only, reads a file HANGAR export
 surface as a new draft under a fresh address; a profile made elsewhere has no surface inside and
 is refused with a line saying so. The export needs no ZONA and no Web Serial: it is the browser's
 own download, and it lands in your Downloads folder on Windows, macOS and Linux alike.
+
+## The utility button after a Sandbox store (2026-09-27, change 22)
+
+**2026-09-27, change 22 - a page stored from the Sandbox before today does not change pages from its
+utility button.** The module's utility button runs the system element's utility event (255/4), and
+the firmware's own body there is the page switch, `gpl(gpn())`. Until this change every surface
+stored from the Sandbox put part of its runtime into that event in place of the page switch, so on
+that page a press of the button re-ran the runtime and stayed where it was. From today every string
+HANGAR writes there changes page on a press: a surface's runtime stands behind a guard only the page's
+own Setup opens, a surface that needs no runtime there gets the firmware's page switch verbatim, and a
+catalog card, `Clear` and every `Store on ZONA` write the firmware's own. **A page stored from the
+Sandbox before today keeps the broken button until that page is stored again from HANGAR (any card or
+surface) or cleared from HANGAR with `Clear`.** You do not need the button to get there: the
+`Target` select beside `Apply to ZONA` switches the module to any page, including the one the button
+cannot leave. Pages written by Grid Editor, by a catalog card or by `Clear` were never affected. A
+Grid Editor profile file exported from a catalog card before today carried an empty utility event;
+export it again (it now carries the page switch), or leave that event out when you load it.

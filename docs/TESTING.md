@@ -8450,3 +8450,171 @@ sides) because the picture did not move; (5) an extra's head keeps its summary o
 the button, as `021b8b1` put it) rather than in the control column, where 21A saw it cut at 1440; its chevron is in the
 reset column because the remove box holds the lock column. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays
 `[ ]`.
+
+## 2026-09-27 change 22 - the utility button always changes page
+
+`BENCH-2026-09-16.txt` section 22, the Done paragraph "change 22". SERIOUS, fixed outside the GSD cycle: every
+Sandbox store replaced the firmware's utility event (255/4, `--[[@cb]]gpl(gpn())`, grid-fw `grid_ui_system.h:38`)
+with the runtime, so the module's utility button stopped changing pages. Commits, no push, no device, no deploy:
+`f10b49c` fix(sandbox) 255/4's runtime behind a guard; `5050fbd` fix(share) a card's Grid Editor profile carries the
+page-next; `5382d76` fix(dev) the install probe's starting utility string; `ba2cdd3` test(device)
+`utility-button.spec.ts`; `3d23128` chore(gate) `QUICK_FILES` 101, `QUICK_TESTS` 1126; `1b49e83` test(e2e) the
+Sandbox store walk; then this section, the Done paragraph and the gate records `gate/change-22.*` (before, at
+`3990c94`, the tree clean) and `gate/change-22-after.*` (at `3d23128` with `1b49e83`'s e2e file, in a clean worktree).
+
+**A second executor.** Changes 23 and 24 were recorded while this ran (`f6e8922`, `de624ee`), and change 24 (SNAKE)
+was executed in the same working tree: its `--before change-24` was recorded at 18:38Z over this change's uncommitted
+edits, and its `2210d8f` landed between `3d23128` and `1b49e83`. Every commit here is `git commit --only` on this
+change's paths; `2210d8f` holds only its own six files. From the first sign of it every figure below was taken on a
+`git worktree --detach` at `3d23128` with its own `npm ci` (no junction), the build, and `.dev.vars` copied in (ignored;
+the e2e's credentials), `1b49e83`'s `e2e/sandbox.e2e.ts` the one file changed - removed and pruned after.
+
+**The audit - every writer of 255/4, before -> after:**
+
+| Writer                                                        | Before                                                                                          | After                                                                                                                       |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| A Sandbox surface, five slots (Store, Apply, `land.ts`)       | **wrong**: `--[[@cb]]I=I or{}<parts>`, or `--[[@cb]]I=I or{}` alone - no page switch either way | `--[[@cb]]if self then gpl(gpn())else <parts> end`, or `--[[@cb]]gpl(gpn())` verbatim when it carries no part               |
+| A Sandbox surface, three slots (the emitter's option)         | **wrong**, the same                                                                             | the same guard                                                                                                              |
+| A Sandbox surface, two slots                                  | `""` - the store substituted the default on the wire; the profile file carried `""`             | `--[[@cb]]gpl(gpn())` verbatim                                                                                              |
+| The Setup's pull-in                                           | `ele[#ele]:map()` - the button's own call, with `self`                                          | `ele[#ele].map()` - no `self`; written only when 255/4 carries parts                                                        |
+| Every catalog card (27; `tune/model.ts` publishes `""`)       | right on the wire: the store's `#systemStringOr` wrote `SYSTEM_DEFAULT_UTILITY`                 | unchanged; the rule is `systemSlotString` in `protocol/constants.ts` now, the store and the profile both writing through it |
+| Clear (`clearToDefault`), and the defaults leg of every Store | right: `SYSTEM_DEFAULT_UTILITY`                                                                 | unchanged                                                                                                                   |
+| The Grid Editor profile file - a card                         | **wrong**: `""` at 255/4 (Grid Editor would load a button that does nothing)                    | the page-next, as Store writes it                                                                                           |
+| The Grid Editor profile file - a surface                      | **wrong**: the unguarded runtime                                                                | the guarded landing                                                                                                         |
+| The `/dev/install/` probe's starting string                   | **wrong** if clicked: `--[[@cb]]--[[utility]]`                                                  | `--[[@cb]]gpl(gpn())--[[utility]]` (still distinct from the default, as install.e2e.ts needs)                               |
+| Put back / a snapshot's restore, the skeleton's no-op cycle   | the module's own string back (a `v3` snapshot the default)                                      | unchanged - the owner's, not HANGAR's                                                                                       |
+
+`sequence.ts`'s slot list is right (255/4 third) and was not touched; `library.ts` and `library-trim.ts` write nothing
+to 255/4 and were not touched; no catalog card's Lua names `map()`, `gpl` or `gpn`.
+
+**The guard, its cost, and the head.** Measured three ways on the `two` fixture (255/4 and the Setup): `if self then
+gpl(gpn())else <parts> end`, 32 and 0 - chosen; `if not self then ... else gpl(gpn())end`, 36 and 0; the brief's
+global flag (`UB`, every single capital being taken: `UB=1 ele[#ele]:map()UB=nil` in the Setup, `if UB then ... else
+gpl(gpn())end`), 30 and 12 - it also put `emit/sixteen-off` over at the Setup (920). With the guard alone, `vhbxk`
+(one of every kind, every one receiving, runtime.spec test 7) had no placement at any search depth (the exact search's
+limit raised 2,500-fold found none), so the branch table's head `I=I or{}` now stands only in a slot that defines a
+branch (`I[n]=`): nine characters back in every branchless slot, and `vhbxk` fits again (4,518 of 4,540).
+
+**The five slots at the picker corner, before -> after** (255/6 / 255/0 / 255/4 / the Timer / the Setup; the gate's 62
+fixtures; `guarded` = 255/4 the runtime behind the guard, `default` = the firmware's page-next verbatim):
+
+| Fixture                     | Before                                | After                                 | 255/4   |
+| --------------------------- | ------------------------------------- | ------------------------------------- | ------- |
+| runtime/page3               | 893 / 908 / 905 / 897 / 868 fits      | 893 / 902 / 903 / 897 / 892 fits      | guarded |
+| runtime/two                 | 892 / 903 / 508 / 111 / 412 fits      | 906 / 903 / 510 / 111 / 412 fits      | guarded |
+| runtime/latch               | 852 / 877 / 419 / 111 / 389 fits      | 852 / 869 / 443 / 111 / 389 fits      | guarded |
+| runtime/wide                | 892 / 903 / 508 / 111 / 381 fits      | 906 / 903 / 510 / 111 / 381 fits      | guarded |
+| runtime/one                 | 892 / 903 / 508 / 111 / 381 fits      | 906 / 903 / 510 / 111 / 381 fits      | guarded |
+| runtime/scaled              | 893 / 908 / 852 / 972 / 903 **over**  | 893 / 902 / 882 / 972 / 895 **over**  | guarded |
+| runtime/relative-half       | 892 / 908 / 845 / 315 / 429 fits      | 906 / 908 / 876 / 285 / 429 fits      | guarded |
+| runtime/relative-full       | 892 / 908 / 845 / 315 / 429 fits      | 906 / 908 / 876 / 285 / 429 fits      | guarded |
+| runtime/spring              | 892 / 903 / 508 / 111 / 435 fits      | 906 / 903 / 510 / 111 / 435 fits      | guarded |
+| runtime/notes               | 852 / 877 / 419 / 111 / 533 fits      | 852 / 869 / 443 / 111 / 533 fits      | guarded |
+| runtime/knobs               | 893 / 890 / 17 / 113 / 492 fits       | 893 / 882 / 19 / 113 / 477 fits       | default |
+| runtime/multitouch          | 852 / 880 / 892 / 850 / 447 fits      | 852 / 880 / 861 / 904 / 447 fits      | guarded |
+| runtime/five-fingers        | 882 / 847 / 253 / 113 / 385 fits      | 882 / 901 / 215 / 113 / 385 fits      | guarded |
+| runtime/multitouch-relative | 882 / 847 / 253 / 113 / 393 fits      | 882 / 901 / 215 / 113 / 393 fits      | guarded |
+| runtime/two-pads            | 884 / 880 / 758 / 111 / 417 fits      | 904 / 880 / 754 / 111 / 417 fits      | guarded |
+| runtime/page3-multitouch    | 863 / 880 / 852 / 1088 / 893 **over** | 863 / 902 / 854 / 1088 / 885 **over** | guarded |
+| runtime/types               | 906 / 908 / 905 / 897 / 900 fits      | 893 / 902 / 882 / 950 / 905 **over**  | guarded |
+| runtime/receive-types       | 892 / 908 / 845 / 315 / 424 fits      | 906 / 908 / 876 / 285 / 424 fits      | guarded |
+| runtime/deaf                | 863 / 880 / 892 / 492 / 465 fits      | 863 / 880 / 861 / 546 / 465 fits      | guarded |
+| runtime/colours             | 871 / 908 / 886 / 673 / 456 fits      | 863 / 908 / 890 / 693 / 456 fits      | guarded |
+| runtime/colours-dim         | 871 / 908 / 886 / 673 / 456 fits      | 863 / 908 / 890 / 693 / 456 fits      | guarded |
+| runtime/lanes               | 892 / 903 / 508 / 111 / 412 fits      | 906 / 903 / 510 / 111 / 412 fits      | guarded |
+| runtime/lanes-off           | 907 / 875 / 653 / 111 / 416 fits      | 899 / 875 / 677 / 111 / 416 fits      | guarded |
+| runtime/strum               | 858 / 886 / 536 / 111 / 482 fits      | 858 / 878 / 560 / 111 / 482 fits      | guarded |
+| runtime/wait                | 858 / 886 / 536 / 111 / 447 fits      | 858 / 878 / 560 / 111 / 447 fits      | guarded |
+| runtime/roam                | 858 / 907 / 908 / 293 / 460 fits      | 858 / 907 / 848 / 369 / 460 fits      | guarded |
+| runtime/page3-off           | 852 / 908 / 858 / 1088 / 903 **over** | 852 / 908 / 882 / 1088 / 895 **over** | guarded |
+| runtime/multitouch-off      | 858 / 889 / 886 / 552 / 418 fits      | 858 / 881 / 886 / 576 / 418 fits      | guarded |
+| runtime/one-cell            | 892 / 908 / 845 / 315 / 506 fits      | 906 / 908 / 876 / 285 / 506 fits      | guarded |
+| runtime/thin-spring         | 892 / 903 / 508 / 111 / 393 fits      | 906 / 903 / 510 / 111 / 393 fits      | guarded |
+| runtime/thin-off            | 907 / 875 / 653 / 111 / 416 fits      | 899 / 875 / 677 / 111 / 416 fits      | guarded |
+| runtime/touched             | 858 / 908 / 854 / 1147 / 898 **over** | 858 / 902 / 884 / 1147 / 890 **over** | guarded |
+| runtime/from-y              | 854 / 908 / 847 / 181 / 399 fits      | 908 / 908 / 871 / 111 / 399 fits      | guarded |
+| runtime/off-pad             | 858 / 908 / 854 / 640 / 434 fits      | 858 / 908 / 878 / 632 / 434 fits      | guarded |
+| runtime/duo-gate            | 888 / 871 / 491 / 113 / 402 fits      | 888 / 863 / 515 / 113 / 402 fits      | guarded |
+| runtime/value-fader         | 856 / 903 / 669 / 111 / 396 fits      | 848 / 903 / 693 / 111 / 396 fits      | guarded |
+| runtime/cc-touch            | 854 / 905 / 566 / 111 / 396 fits      | 846 / 905 / 590 / 111 / 396 fits      | guarded |
+| runtime/three-extras        | 856 / 908 / 896 / 181 / 421 fits      | 848 / 908 / 898 / 195 / 421 fits      | guarded |
+| runtime/ribbon-gate         | 899 / 907 / 509 / 113 / 443 fits      | 899 / 899 / 533 / 113 / 443 fits      | guarded |
+| runtime/ribbon-spring       | 899 / 907 / 509 / 113 / 416 fits      | 899 / 899 / 533 / 113 / 416 fits      | guarded |
+| runtime/ribbon-relative     | 899 / 907 / 509 / 113 / 413 fits      | 899 / 899 / 533 / 113 / 413 fits      | guarded |
+| runtime/pad-notes           | 852 / 882 / 698 / 113 / 412 fits      | 852 / 874 / 722 / 113 / 412 fits      | guarded |
+| runtime/knob-note           | 858 / 882 / 611 / 113 / 397 fits      | 858 / 874 / 635 / 113 / 397 fits      | guarded |
+| runtime/ribbons-off         | 861 / 882 / 698 / 113 / 445 fits      | 861 / 874 / 722 / 113 / 445 fits      | guarded |
+| emit/page3                  | 893 / 908 / 905 / 897 / 877 fits      | 893 / 902 / 903 / 897 / 901 fits      | guarded |
+| emit/one                    | 892 / 903 / 508 / 111 / 383 fits      | 906 / 903 / 510 / 111 / 383 fits      | guarded |
+| emit/eight                  | 852 / 907 / 894 / 181 / 614 fits      | 852 / 907 / 896 / 195 / 614 fits      | guarded |
+| emit/twelve                 | 852 / 907 / 894 / 181 / 758 fits      | 852 / 907 / 896 / 195 / 758 fits      | guarded |
+| emit/sixteen                | 852 / 907 / 894 / 181 / 892 fits      | 852 / 907 / 896 / 195 / 892 fits      | guarded |
+| emit/four-faders            | 892 / 903 / 508 / 111 / 482 fits      | 906 / 903 / 510 / 111 / 482 fits      | guarded |
+| emit/page3-blanks           | 893 / 908 / 852 / 1034 / 865 **over** | 893 / 902 / 882 / 1034 / 857 **over** | guarded |
+| emit/page3-options          | 906 / 908 / 905 / 897 / 902 fits      | 893 / 902 / 882 / 950 / 907 **over**  | guarded |
+| emit/page3-touches          | 852 / 880 / 892 / 850 / 452 fits      | 852 / 880 / 861 / 904 / 452 fits      | guarded |
+| emit/page3-quiet-blanks     | 893 / 908 / 907 / 728 / 574 fits      | 893 / 908 / 880 / 779 / 574 fits      | guarded |
+| emit/eight-off              | 858 / 907 / 908 / 293 / 622 fits      | 858 / 907 / 848 / 369 / 622 fits      | guarded |
+| emit/sixteen-off            | 858 / 907 / 908 / 293 / 908 fits      | 858 / 907 / 848 / 369 / 908 fits      | guarded |
+| emit/twelve-off             | 858 / 907 / 908 / 293 / 770 fits      | 858 / 907 / 848 / 369 / 770 fits      | guarded |
+| emit/sixteen-typed          | 852 / 907 / 894 / 181 / 851 fits      | 852 / 907 / 896 / 195 / 851 fits      | guarded |
+| emit/floor                  | 899 / 890 / 100 / 113 / 542 fits      | 899 / 882 / 124 / 113 / 542 fits      | guarded |
+| emit/page3-touch            | 858 / 908 / 854 / 1147 / 908 **over** | 858 / 902 / 884 / 1147 / 900 **over** | guarded |
+| emit/page3-touch-quiet      | 858 / 908 / 882 / 904 / 590 fits      | 858 / 908 / 882 / 851 / 666 fits      | guarded |
+| emit/page3-touch-ribbon     | 858 / 908 / 858 / 1131 / 907 **over** | 858 / 908 / 889 / 1123 / 907 **over** | guarded |
+
+55 fit before, 53 after: **no longer fit** `runtime/types` and `emit/page3-options` (page 3 with every type / every
+option on: 906 / 908 / 905 / 897 / 900 and 902 -> refused on the Timer). Beside the fixtures, emit.spec test 12's
+kinds at the dearest literals: plain, `vhbxk` is over (it fitted); every continuous element a Pitch note, `vbk` and
+`hbk` fit again and `vhbx` is over. The Setups did not move (the cap floor 11 / 14 and the floor with every option on,
+4, unmoved); `emit/sixteen-off`'s Setup is still 908.
+
+**The invariant spec** (`src/lib/device/utility-button.spec.ts`, five tests, 17 s): every string run in wasmoon inside
+the firmware's wrapper (`grid_ui.c:374`) and fired as `events.lua` fires a press, `eve(element)`: `gpn` then `gpl 3` and
+nothing else, no global added or replaced, no error. Sources: the 62 gate fixtures at two, three and five slots and at
+the corner (248: 184 guarded, 64 the default), the 27 cards at their defaults and their corner (54, every one the
+page-next through `systemSlotString`), Clear and every Store's defaults leg (1; the source names the default at all
+three places the store writes one), the profile file for a surface and a card (2), the probe (1), the default itself
+(1) - **307 strings, 47 distinct**. Each guarded string is also pulled in as the Setup does: every part the packer put
+there defined, no page call, and a press after it the page switch with every definition left where the pull-in put it.
+A negative check presses page 3's runtime without its guard: no page switch, definitions made again.
+
+**Runs** (from row 2, the worktree at `3d23128`):
+
+| #   | What                                                                | Free GB | Result                                                                                                   |
+| --- | ------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| 1   | quick, the main tree, 20:51 (only this change's files dirty)        | 5.0     | 1126 passed, 1 failed - `radius.spec.ts`'s stale-build guard (the probe's `.svelte` newer than `build/`) |
+| 2   | quick `--maxWorkers=2`, the worktree after its build                | -       | **101 / 1126 + 1 todo**                                                                                  |
+| 3   | quick `--maxWorkers=2` again                                        | -       | **101 / 1126 + 1 todo**                                                                                  |
+| 4   | check / lint                                                        | -       | **692 / 0 / 0**; lint clean                                                                              |
+| 5   | the sweep                                                           | -       | **4 / 19** (168 s)                                                                                       |
+| 6   | c4 by files (catalog, fidelity, first-experience, library, sandbox) | 3.99    | 1 passed, 25 failed - every request 401: the worktree had no `.dev.vars`; discarded                      |
+| 7   | c4 by files again, `.dev.vars` copied                               | 4.46    | **26 passed** (44.9 s) - the Sandbox store walk with the guard asserted                                  |
+| 8   | c1 by files (install, session)                                      | 3.14    | **35 passed** (1.4 m)                                                                                    |
+
+install.e2e.ts and session.e2e.ts needed no edit: neither pins a Sandbox landing's frames (the install titles read the
+probe's textareas at run time, so the probe's new string flows through), and the Sandbox store walk is sandbox.e2e.ts's.
+Port 4173 was checked free before every chunk; no server died.
+
+**The gate** (`--after change-22 --against change-22 --check 692`, the worktree): exits 1 at the wire by design. **The
+catalog wire did not move** - of the base set's 17,890 records 7 moved, every one `S/page3/` (its landed 255/0, 255/4
+and Setup, its emitted Setup and 255/4, at the corner too); no `E/`, `P/`, library or default record. The set
+`529219e8…` -> `032a53f3…`, full `f673bf93…` -> `f2df16b8…`. **The Sandbox set** `61085205…` -> `651664f8…`: 1,178
+records, 470 byte-identical, 708 moved, 0 added, 0 removed - every two-slot record equal; every 255/4 and every Setup
+at three and five slots and at the corner moved (the pull-in's spelling moves the Setup's bytes at the same length);
+of the rest, where a slot lost its head or took a part 255/4 gave up: 255/6 23 of 62, 255/0 26, the Timer 26 at five
+slots and 36 at three. From the two records by hand: SCOPED CSS **`c673a834…` equal** (the RAW CSS `9b60d8a3…` equal
+too); utilities **44 -> 44**, 0 appeared, 0 disappeared; the four fixtures and the OG (27 files, 159,169 B) equal;
+check 691 -> **692**; quick 100 / 1121 -> **101 / 1126 + 1 todo**; titles 1122 -> 1127 vitest (+5), 122 playwright runs
+equal; testids 357 -> 357 (`12ca66ac…` equal); the copy exports `08194098…` equal; the census 3,601 -> 3,604 literals (`"ele[#ele]:map()"`,
+`"--[[@cb]]--[[utility]]"`, the stand-in's `function(s)` out; `"ele[#ele].map()"`, `"gpl(gpn())"`, `"if self then"`,
+`"I["`, the probe's new string, `function(self)` in); the JS `748e1005…` -> `93e9e453…`; `src/` 11 modified, 1 added, the refuse list's `--stat` empty.
+
+**Departures from the brief:** (1) the guard is `self`, not a global flag - cheaper by ten characters a landing and
+none in the Setup, measured beside the flag; (2) the branch table's head only where a slot defines a branch - to keep
+one of every kind on five slots; (3) the profile file's three system slots through the store's substitution (the
+brief named 255/4; `system` and `systemTimer` are never `""` from a shipped caller, and the one rule keeps the file
+equal to what Store writes); (4) the probe's starting string - not in the brief's list, a HANGAR string for 255/4;
+(5) `preview.ts`'s stand-in parameter `self` - the live preview would otherwise have run the page switch branch; (6)
+every figure on a worktree, and the first c4 run discarded (no credentials); (7) `audition.spec.ts`'s count, outside
+the brief's file list as 21A's was.

@@ -152,8 +152,12 @@ const flat = doc.replace(/\s+/g, " ");
  * 51 -> 52 the same day (change 21A, docs/MIDI.md sections 9 and 10): the Sandbox's
  * Touch note and a fader that plays notes - five clauses (a)-(e). Its Config cell
  * is "any sandbox surface" in lower case, so `namesIn` claims nothing from it.
+ *
+ * 52 -> 53 on 2026-09-27 (change 22, BENCH-2026-09-16.txt section 22): the utility
+ * button changes page after a Sandbox store - five clauses (a)-(e), the Config cell
+ * "any sandbox surface" again.
  */
-const ROW_COUNT = 52;
+const ROW_COUNT = 53;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;

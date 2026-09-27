@@ -4624,6 +4624,89 @@ may still live in 255/4 only behind a guard that the Setup's pull-in sets - a re
 there. A module already stored from the Sandbox keeps the broken button until the page is
 stored again or cleared from HANGAR (the Target page select still reaches every page).
 
+**Done - change 22, 2026-09-27 (the utility button always changes page; nothing asked, every decision recorded).** Six
+commits before the docs, no push, no device, no deploy: `f10b49c` fix(sandbox) 255/4's runtime behind a guard;
+`5050fbd` fix(share) a card's Grid Editor profile carries the page-next; `5382d76` fix(dev) the install probe's starting
+utility string; `ba2cdd3` test(device) `utility-button.spec.ts`; `3d23128` chore(gate) `QUICK_FILES` 101,
+`QUICK_TESTS` 1126; `1b49e83` test(e2e) the Sandbox store walk; then this paragraph with `docs/TESTING.md`'s
+"2026-09-27 change 22", the dated sections in `docs/entries/sandbox-runtime.md` and `docs/INSTALL-RUNBOOK.md` (the
+recovery), audition row 53 and the gate records `gate/change-22.*` (before, at `3990c94`, clean) and
+`gate/change-22-after.*` (at `3d23128` plus `1b49e83`'s e2e file, in a clean worktree).
+
+**The audit, every writer of 255/4, before -> after.** A Sandbox surface on five slots (Store, Apply): **wrong** -
+`--[[@cb]]I=I or{}<parts>`, or `--[[@cb]]I=I or{}` alone, never the page switch -> `--[[@cb]]if self then
+gpl(gpn())else <parts> end`, or `--[[@cb]]gpl(gpn())` verbatim when the packer gives it no part. On three slots: the
+same. On two: `""` (the store substituted the default on the wire, the profile file carried `""`) -> the default
+verbatim. The Setup's pull-in `ele[#ele]:map()` -> `ele[#ele].map()`, written only when 255/4 carries parts. Every
+catalog card (27): **already right** on the wire - the tuner publishes `""` and the store wrote
+`SYSTEM_DEFAULT_UTILITY`; unchanged (the rule is now `systemSlotString`, which the store and the profile both call).
+Clear and the defaults leg of every Store: **already right**, `SYSTEM_DEFAULT_UTILITY`; unchanged. The Grid Editor
+profile file: **wrong** for a card (`""` at 255/4 - the Editor would load a button that does nothing) and for a surface
+(the unguarded runtime) -> the page-next / the guarded landing. The `/dev/install/` probe's starting string: **wrong**
+if clicked (`--[[@cb]]--[[utility]]`) -> `--[[@cb]]gpl(gpn())--[[utility]]`. Put back and the skeleton's no-op cycle
+write the module's own string back - the owner's, not HANGAR's; unchanged. `sequence.ts`'s slot list is right and
+untouched; `library.ts` and `library-trim.ts` write nothing to 255/4.
+
+**The guard.** The firmware registers a body as `ele[n].map = function (self) ... end` (`grid_ui.c:374`) and fires a
+press as `eve(element)` (`events.lua`), so on a press `self` is the system element; the pull-in's dot call passes
+none. 255/4 is `--[[@cb]]if self then gpl(gpn())else <parts> end` - the marker kept, a fixed point of the pinned
+minifier - so a press runs `gpl(gpn())` and nothing else (no part defined again, `Y`'s `s.touch_cb~=O` safe) and the
+pull-in defines the parts. **Cost: 32 characters in 255/4, none in the Setup.** Measured beside it: `if not self then
+... else gpl(gpn())end` 36 / 0; the brief's global flag - no single capital is free (the library's twenty-one, the
+runtime's `S F I R O Q D K W V Y Z A E`, the emitter's `J M`), so `UB`: Setup `UB=1 ele[#ele]:map()UB=nil`, 255/4 `if
+UB then <parts> else gpl(gpn())end` - 30 / 12, and it put sixteen elements every one Off over the cap (Setup 920). The
+guard alone left one element of every kind receiving (`vhbxk`) with no placement at any search depth, so the branch
+table's head `I=I or{}` now stands only in a slot that defines a branch: nine back in every branchless slot, `vhbxk`
+fits again (4,518 of 4,540).
+
+**The five slots at the picker corner, before -> after** (255/6 / 255/0 / 255/4 / Timer / Setup; all 62 fixtures in
+`docs/TESTING.md`'s table): page 3 893/908/905/897/877 -> **893/902/903/897/901, fits** (44 free, 69 before; 255/4
+carries `R A I[4]`); page 3 receiving nothing 893/908/907/728/502 -> 893/908/880/779/502; eight 852/907/894/181/614 ->
+852/907/896/195/614; sixteen 852/907/894/181/892 -> 852/907/896/195/892; sixteen every one Off 858/907/908/293/908 ->
+858/907/848/369/908; two elements 892/903/508/111/412 -> 906/903/510/111/412; the knobs fixture 893/890/17/113/492 ->
+893/882/19/113/477 (255/4 the default verbatim, no pull-in). **No longer fit:** page 3 with every option on
+(906/908/905/897/902 -> refused on the Timer, 950), page 3 with every type (906/908/905/897/900 -> over), and one
+element of every kind receiving at emit.spec's dearest literals (`vhbxk`); with every continuous element a Pitch note
+`vhbx` is over and `vbk`, `hbk` fit again. The Setups did not move: the cap floor (11, 14 from twelve) and the floor
+with every option on (4) unmoved. 55 of the gate's 62 fixtures fit before, 53 after.
+
+**The proof.** `utility-button.spec.ts`, five tests: 307 strings (47 distinct) - the 62 gate fixtures at two, three
+and five slots and at the corner (248: 184 guarded, 64 the default), the 27 cards at their defaults and at their
+corner through the store's substitution (54), Clear and the Store's defaults leg, the profile file for a surface and a
+card, the probe's start, the default - each run in wasmoon inside the firmware's wrapper and pressed as the firmware
+presses: `gpn` then `gpl` once, no other call, no global added or replaced, no error; each guarded one also pulled in
+as the Setup does (every part the packer put there defined, no page call) and pressed after that (the same page switch,
+every definition left as it was). A negative check presses the runtime without its guard and finds no page switch.
+runtime.spec's and emit.spec's VM tests unchanged and green; their `map` stand-in names its parameter `self` now, as the
+firmware does, and so does `preview.ts`'s (the live preview's).
+
+**Counts, carried + delta** (carried = `3990c94`, clean): quick 100 / 1121 + 1 todo -> **101 / 1126 + 1 todo** (+5,
+the new spec), green twice at `--maxWorkers=2` on the worktree; `QUICK_TESTS` **1126**; check 691 -> **692**; lint
+clean; the sweep **4 / 19** (168 s); e2e c4 by files **26 / 26**, c1 by files **35 / 35** (install and session needed
+no edit - neither pins a Sandbox landing's frames; the probe's string is read at run time), a first c4 run discarded
+(the worktree had no `.dev.vars`: every request 401); titles 1122 -> 1127 vitest, 122 playwright runs; audition rows
+52 -> **53**; utilities **44 -> 44**; SCOPED CSS **`c673a834…` equal**; testids 357 equal; copy exports equal;
+fixtures and OG equal. **The gate:** the catalog wire did not move - 7 of 17,890 records moved, every one `S/page3/`
+(set `529219e8…` -> `032a53f3…`); the Sandbox set `61085205…` -> `651664f8…`, 470 of 1,178 byte-identical (every
+two-slot record), every 255/4 and Setup at three and five slots moved, 255/6, 255/0 and the Timer where a head or a part
+moved; exit 1 at the wire by design.
+
+**A second executor ran change 24 in the same tree** (its `--before change-24` at 18:38Z read this change's
+uncommitted edits; its `2210d8f` landed between `3d23128` and `1b49e83`); every commit here is `--only` on this
+change's paths; every count, run and gate term above was taken on a detached worktree at `3d23128` with its own
+`npm ci`, removed and pruned after (the five-slot figures were measured in the tree before the other's first edit). `QUICK_TESTS` 1126 is this change's tree's figure; `2210d8f`'s tests are not counted in it.
+
+**Departures from the brief:** (1) the guard is `self`, not a global flag - measured cheaper and it leaves the Setup
+alone; (2) the branch table's head only where a slot defines a branch, to keep `vhbxk` on five slots; (3) the profile's
+three system slots through the store's one rule (the brief named 255/4); (4) the install probe's starting string, not
+in the brief's list; (5) `preview.ts`'s stand-in parameter; (6) the figures on a worktree, and one c4 run discarded;
+(7) `audition.spec.ts`'s count. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04 stays `[ ]`.
+
+**What I would have asked:** (1) the `self` guard or the global flag the brief shaped - the flag costs ten more and
+put sixteen elements every one Off over; (2) is losing page 3 with every option on, and one of every kind at the
+dearest literals, acceptable for the button, or should the packer look for more (the Timer's head, the trimmed
+halves)? (3) should Put back refuse to restore a pre-fix Sandbox 255/4 (a module's own string, but a broken one)?
+
 23. Store and Clear over a page HANGAR did not write (2026-09-27)
 --------------------------------------------------------------------------------
 

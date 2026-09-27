@@ -894,3 +894,68 @@ minor pentatonic from 48 plays 58 for the chromatic 59; a knob ribbon's notes ea
 `docs/MIDI.md` section 10's table and budgets (emit.spec.ts test 12): `W` 146 to 585 by its pieces, `D` 174 -> 299 / 399
 / 524, `O` +24, `R` +6; page 3 receiving cannot take a Touch note on its pad, with every Receive off it can; the cap
 floor with every option on 4 from empty (the meter's representative unmoved, 11 and 14).
+
+## The utility button always changes page (2026-09-27, change 22; `BENCH-2026-09-16.txt` section 22)
+
+The firmware's default for the system element's utility event (255/4) is `--[[@cb]]gpl(gpn())`
+(grid-fw `grid_ui_system.h:38`): a press of the module's utility button goes to the next page. Since
+13-17 the packer put runtime parts in 255/4 as `--[[@cb]]I=I or{}<parts>`, pulled in by the Setup's
+`ele[#ele]:map()` - so every Sandbox store replaced the page switch, and a press re-ran the parts'
+definitions instead. The rule, the user's word: never remove that function.
+
+### The guard
+
+The firmware registers every body as `ele[n].map = function (self) ... end` (`grid_ui.c:374`) and
+fires a press as `eve(element)` (`events.lua:13-16`): on a press `self` is the system element. The
+Setup's pull-in is now `ele[#ele].map()` - a dot, no `self`, the same fifteen characters - and 255/4 is
+
+    --[[@cb]]if self then gpl(gpn())else <parts> end
+
+so a press runs the page switch and nothing else (no part defined again - a second `O` would fail
+`Y`'s `s.touch_cb~=O`, 18b's class of bug - no MIDI, no global), and the pull-in defines the parts. A
+255/4 the packer gives no part is `--[[@cb]]gpl(gpn())` verbatim (`UTILITY_DEFAULT`, held equal to the
+pinned package's default), and the Setup then has no `map()` call at all; under two slots the landing
+is the same default, never the empty string. The guard is part of 255/4's head in the packer, so no
+placement can drop it. Both strings are fixed points of the pinned `compressScript`.
+
+**The cost, measured three ways** (two elements, the `two` fixture: 255/4 and the Setup): the
+guard as written, 32 in 255/4 and 0 in the Setup; `if not self then <parts> else gpl(gpn())end`, 36
+and 0; a global flag the pull-in sets and clears (`UB=1 ele[#ele]:map()UB=nil`, `if UB then <parts>
+else gpl(gpn())end` - `UB` because every single capital is already the library's, the runtime's or the
+emitter's), 30 and 12 - 42 a landing, and it put sixteen elements every one Off over the cap, since
+the Setup is where the cap is measured. The guard as written is the cheapest and the Setup is unmoved.
+
+### The branch table's head where a branch is
+
+32 characters in 255/4 put the one-element-of-every-kind surface (every element receiving, `vhbxk`)
+over five slots, and no placement existed at any search depth. The head `I=I or{}` now stands only in
+a slot whose parts include a branch (`I[n]=`): every other read of `I` - the entry's `I[r[5]]`, the
+release's, `Y`'s rows - is inside a function body, called only for a kind whose branch some slot
+defined behind its head. Nine characters back in every branchless slot; `vhbxk` fits again (runtime.spec
+test 7, 4,518 of 4,540). Tried on 255/4 alone first, it won none of the lost surfaces back.
+
+### What moved, what no longer fits
+
+Page 3 at the corner 893 / 908 / 905 / 897 / 877 -> **893 / 902 / 903 / 897 / 901, fits** (44 free
+across the five, 69 before); its 255/4 carries `R`, `A` and `I[4]` behind the guard. **No longer fit:**
+page 3 with every option on (emit.spec test 8; 906 / 908 / 905 / 897 / 902 -> refused on the Timer, 950,
+over by 42 - no placement at any search depth, the exact search's limit raised 2,500-fold), page 3 with every type (`runtime/types`, the same
+shape), and one element of every kind receiving at emit.spec's dearest literals (cc 102, channel 16:
+`vhbxk` in test 12's plain list). Every continuous element a Pitch note: `vbk` and `hbk` fit again,
+`vhbx` no longer does. Sixteen elements every one Off keeps its Setup at 908, fits. The cap floor and
+the meter's representative did not move (the Setup is unmoved). Of the gate's 62 fixtures, 55 fit
+before and 53 after; 64 of their 248 landings put the firmware default in 255/4 (62 of them the two-slot
+landings, which have no runtime slot there).
+
+### Proved
+
+`utility-button.spec.ts` (five tests): 307 strings, 47 distinct - the 62 gate fixtures at two, three
+and five slots and at the corner, the 27 cards at their defaults and their corner through the store's
+substitution, Clear and every Store's defaults leg, the Grid Editor profile file for a surface and for
+a card, the install probe's starting string - each run in wasmoon inside the firmware's wrapper and
+fired as a press: `gpn` then `gpl 3` and nothing else, no global added or replaced, no error. Each of the
+184 guarded ones is also pulled in as the Setup does: the parts the packer placed there defined, no page
+call, and a press after it the same page switch with every definition where the pull-in left it. A
+negative check presses page 3's runtime without its guard and finds no page switch. The VM tests of
+runtime.spec and emit.spec run unchanged - their stand-in for `ele[#ele].map` names its parameter
+`self` now, as the firmware does (so does `preview.ts`'s, which the live preview runs).
