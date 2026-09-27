@@ -4748,3 +4748,9 @@ idiom, change 8; STEPS, RADAR POINTS, GHOST in 12; RADAR in 12b) - `Sync: Intern
 and `Division` (8th / 16th / 32nd = 12 / 6 / 3 clocks a step); under External the snake steps on
 the DAW's clock, Start begins a fresh game on the bar, Stop pauses the snake where it is (its last
 note released), Continue resumes; the step time knob is ignored under External.
+
+Change 22's questions, decided 2026-09-27: the `self` guard stands (a firmware press always passes
+`self`, the Setup's dot call passes none; ten characters cheaper than a flag and the Setup
+untouched); the four dense surfaces that no longer fit are accepted (the budget's own refusal);
+a restore of a module's own pre-fix Sandbox 255/4 (Put back's path) must not bring the broken
+button back - every write goes through the store's `systemSlotString` rule, folded into change 23.
