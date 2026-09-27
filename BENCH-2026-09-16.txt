@@ -4604,3 +4604,22 @@ reset column, the lock column being the remove box's. STATE / ROADMAP / REQUIREM
 **What I would have asked:** (1) Pitch on the plate - the range (`C3–C5`), or the Min note alone? (2) `PB` / `CP` on the
 plate - keep the word, or draw nothing? (3) the webkit Clear title's 200 ms hold sits 50 ms under `executeMs` - widen
 that margin in the test (a 100 ms hold still shows CLEARING...), or leave it strict?
+
+22. SERIOUS: the utility button must always change pages (2026-09-27)
+--------------------------------------------------------------------------------
+
+> Found a serious bug: Sandbox configs can remove the code under utility which makes it
+> impossible for the real life hardware to change pages with pushing the utility button. you
+> should never remove that function
+
+Confirmed against the tree: the firmware's default for the system element's utility event (255/4)
+is `--[[@cb]]gpl(gpn())` (grid-fw `grid_ui_system.h:38`, GRID_ACTIONSTRING_SYSTEM_MAPMODE - the
+button goes to the next page). Since 13-17 the Sandbox has packed its runtime into 255/4 as a
+third slot (pulled in by the Setup's `ele[#ele]:map()`), so every Sandbox store replaced the page
+switch; the button then re-ran the runtime's definitions instead of changing page. RULE, from
+now on and for every landing HANGAR makes (Sandbox, every catalog card, Clear, the Grid Editor
+profile export): the utility event always changes page when the button is pressed. The runtime
+may still live in 255/4 only behind a guard that the Setup's pull-in sets - a real press runs
+`gpl(gpn())` and nothing else - and a spec proves the rule over every string HANGAR can write
+there. A module already stored from the Sandbox keeps the broken button until the page is
+stored again or cleared from HANGAR (the Target page select still reaches every page).
