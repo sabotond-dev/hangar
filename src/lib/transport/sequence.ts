@@ -26,6 +26,7 @@ import {
   moduleKeyOf,
   sendConfig,
   storePage,
+  systemSlotString,
 } from "$lib/protocol";
 import type { StepId } from "./capture";
 import { NackError, type RequestQueue } from "./queue";
@@ -377,7 +378,13 @@ export async function writeAll(
   }
 }
 
-/** Phase 2's caller, unchanged in behaviour, now an adapter over writeAll. */
+/**
+ * Phase 2's caller, an adapter over writeAll. The three system slots go through systemSlotString
+ * since change 23 (BENCH-2026-09-16.txt sections 23 and 24): a module's own 255/4 from a Sandbox
+ * store made before change 22 is written back as the firmware's page-next, so the skeleton's cycle
+ * reports that page as no no-op rather than restoring a utility button that does not turn the page.
+ * Every other string a module can hand over is written back as it came.
+ */
 export async function writeBack(
   q: RequestQueue,
   id: Identity,
@@ -385,7 +392,14 @@ export async function writeBack(
 ): Promise<void> {
   const set: Partial<ConfigSet> = {};
   for (const slot of SLOTS) set[slot.key] = f[slot.key].actionString ?? "";
-  await writeAll(q, targetOf(id), set as ConfigSet);
+  const fetchedSet = set as ConfigSet;
+  await writeAll(q, targetOf(id), {
+    ...fetchedSet,
+    // The slot's event number, as the install store passes it: 6 the Timer, 0 the Setup, 4 the Utility.
+    systemTimer: systemSlotString(fetchedSet, 6),
+    system: systemSlotString(fetchedSet, 0),
+    systemUtility: systemSlotString(fetchedSet, 4),
+  });
 }
 
 /**

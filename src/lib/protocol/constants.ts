@@ -153,6 +153,18 @@ export const SYSTEM_DEFAULT_UTILITY = defaultFor(ELEMENT_SYSTEM, EVENT_UTILITY);
  * ZONA writes and the utility button turns the page after either (change 22,
  * BENCH-2026-09-16.txt section 22; utility-button.spec.ts). `event` is the
  * slot's event number: 0 the Setup, 4 the Utility, 6 the Timer.
+ *
+ * Every write of a stored copy goes through it too since change 23 (the
+ * probe's put-back, the walking skeleton's write-back; BENCH-2026-09-16.txt
+ * sections 23 and 24): a module's own 255/4 from a Sandbox store made before
+ * change 22 - the runtime with no guard, PRE_GUARD_UTILITY_HEAD first - is
+ * written as the firmware's page-next, so no restore can bring back a utility
+ * button that does not turn the page. That module's pre-change-22 touch Setup
+ * pulls 255/4 in as a method call, which would take the guard's page branch,
+ * so the guard is not added to the old string: the button is kept, the old
+ * runtime is not, and the page works again once it is stored from the Sandbox.
+ * No landing HANGAR makes today starts with that head (the guarded form and
+ * the default are the only two, utility-button.spec.ts).
  */
 export function systemSlotString(
   config: {
@@ -168,12 +180,23 @@ export function systemSlotString(
       : SYSTEM_DEFAULT_TIMER;
   }
   if (event === EVENT_UTILITY) {
-    return config.systemUtility !== ""
-      ? config.systemUtility
+    const own = config.systemUtility;
+    return own !== "" && !own.startsWith(PRE_GUARD_UTILITY_HEAD)
+      ? own
       : SYSTEM_DEFAULT_UTILITY;
   }
   return config.system !== "" ? config.system : SYSTEM_DEFAULT_SETUP;
 }
+
+/**
+ * How every 255/4 a Sandbox store wrote before change 22 began: the marker,
+ * then the runtime's branch table with no guard in front of it (the Sandbox's
+ * `MARKER` and `STATE`, sandbox/runtime.ts, as they were joined until
+ * `f10b49c`). A press of such a string defines the runtime again and never
+ * turns the page; systemSlotString writes the firmware's own default in its
+ * place.
+ */
+export const PRE_GUARD_UTILITY_HEAD = "--[[@cb]]I=I or{}";
 
 export const PROTOCOL_VERSION = grid.getProperty("VERSION") as {
   MAJOR: number;
