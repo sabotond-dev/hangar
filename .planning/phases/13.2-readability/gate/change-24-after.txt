@@ -1,0 +1,1013 @@
+# 13.2 gate --after change-24 --against change-24 --check 692
+HEAD 0935333 (09353334dac1fa0ffd11f783967eb07100f30793); dirty (src e2e scripts docs) 0; free memory 3.28 GB; 2026-09-27T19:35:02Z
+before-record HEAD f6e8922c089fd5ec0367cd31909092fb96042989
+
+## the wire
+18057 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9
+
+## the strings
+222 files; 3603 distinct literals (8772 occurrences); 9 copy modules; 357 data-testids
+literal census sha256 f4f38f637b4399a0931964d7b7fc888d3c8dd2f745da0a6dcc17bd79c0bdb0a4
+copy exports   sha256 08194098355685f77b9132a8ef26f9d1990d052a17f42c8340858aeae6b0d168
+data-testids   sha256 12ca66ac43b1ef394488f54949ce77b0ef42ac9294dab088beea051152afbd91
+- 1 -> 0	"--[[@cb]]--[[utility]]"
+- 1 -> 0	"--[[@cb]]gtt(0,@SPEED)local s=self local P,I,F=s.P,s.I,s.F s.c=s.c+1 local z=s.z if z then s:gms(z[1],z[2],z[3],0)s.z=nil end local d=s.d if d then d=d-1 s.d=d if d==3 then for k=0,80 do P(k,0,0,0)end elseif d==0 then I(s)end return end local h=s.b[s.p]if not s.t then local o=s.u~=0 local d=o and s.f//9-h//9 or s.f%9-h%9 if d~=0 then d=d>0 and 1 or -1 if o then s.v=d s.u=0 else s.u=d s.v=0 end end end local n=(h//9+s.v)%9*9+(h%9+s.u)%9 if s.o[n]then s:gms(@DCH,@DT,@DN,110)s.z={@DCH,@DT*3//2-88,@DN}for k=0,80 do if s.o[k]then P(k,@FOODC)end end s.d=6 return end s.p=(s.p+1)%81 if n==s.f then s.l=s.l+1 F(s,n)local m=(@NOTE+s.l%12)%128 s:gms(@CH,@TYPE,m,100)s.z={@CH,@TYPE*3//2-88,m}else local t=s.b[(s.p-s.l)%81]s.o[t]=nil P(t,0,0,0)end s.b[s.p]=n s.o[n]=1 P(n,@SNAKEC)"
+- 1 -> 0	"--[[@cb]]local function P(k,r,g,b)local a=glag(0,k)glc(a,1,r,g,b,1)glc(a,2,r,g,b,1)glp(a,1,255)glp(a,2,255)end local function I(s)for k=0,80 do P(k,0,0,0)end s.b={}s.o={}s.p=1 s.l=2 s.u=1 s.v=0 s.f=41 s.t=nil s.d=nil s.g=s.c for k=39,40 do s.b[k-39]=k s.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)end local function F(s,n)local g=0 for k=0,80 do if k~=n and not s.o[k]then g=k break end end local w=s.f for _=1,12 do w=(w*7+23+s.g)%81 if w~=n and not s.o[w]then g=w break end end s.f=g P(g,@FOODC)end self.P=P self.I=I self.F=F self.c=0 I(self)self.touch_cb=function(s,i,e,x,y)if e==3 or e>=5 and e<9 then return end s.t=1 local h=s.b[s.p]local n=N(x,y)local c=n%9-h%9 local r=n//9-h//9 local m=c<0 and -c or c local w=r<0 and -r or r if m>w then if s.u==0 then s.u=c>0 and 1 or -1 s.v=0 end elseif w>0 then if s.v==0 then s.v=r>0 and 1 or -1 s.u=0 end end end self.midirx_cb=nil gtt(0,@SPEED)"
+- 4 -> 3	"110"
+- 9 -> 10	"12"
+- 3 -> 2	"160"
+- 2 -> 1	"220"
+- 1 -> 0	"300"
+- 5 -> 6	"@DIV"
+- 5 -> 6	"@SYNC"
+- 4 -> 5	"Division"
+- 6 -> 7	"Sync"
+- 6 -> 7	"division"
+- 11 -> 12	"false"
+- 82 -> 84	"mode"
+- 10 -> 11	"sync"
+- 88 -> 89	"true"
++ 0 -> 1	"--[[@cb]]gpl(gpn())--[[utility]]"
++ 0 -> 1	"--[[@cb]]gtt(0,@SPEED)local s=self local P,I,F=s.P,s.I,s.F local function u()local z=s.z if z then s:gms(z[1],z[2]*3//2-88,z[3],0)s.z=nil end end local function f()s.c=s.c+1 u()local d=s.d if d then d=d-1 s.d=d gtt(0,220)if d%3<1 then I(s,d>0)end return end local h=s.b[s.p]if not s.t then local o=s.u~=0 local d=o and s.f//9-h//9 or s.f%9-h%9 if d~=0 then d=glim(d,-1,1)s.u,s.v=o and 0 or d,o and d or 0 end end local n=(h//9+s.v)%9*9+(h%9+s.u)%9 if s.o[n]then s:gms(@DCH,@DT,@DN,110)s.z={@DCH,@DT,@DN}for k in pairs(s.o)do P(k,@FOODC)end s.d=6 gtt(0,220)return end s.p=(s.p+1)%81 s.o[n]=1 if n==s.f then F(s)else local t=s.b[(s.p-s.l)%81]s.o[t]=nil P(t,0,0,0)end s.b[s.p]=n P(n,@SNAKEC)end s.rtmrx_cb=function(s,h,b)if b>249 and b<253 then s.r=b<252 if b~=251 then u()end if b<251 then I(s)end elseif b==248 and s.r then if s.q%@DIV<1 then f()end s.q=s.q+1 end end if not @SYNC then f()end"
++ 0 -> 1	"--[[@cb]]local function P(k,r,g,b)local a=glag(0,k)for l=1,2 do glc(a,l,r,g,b,1)glp(a,l,255)end end local function I(s,q)for k=0,80 do P(k,0,0,0)end if q then return end s.b={}s.o={}s.p=1 s.l=2 s.u=1 s.v=0 s.f=41 s.q=0 s.t,s.d=nil s.g=s.c for k=39,40 do s.b[k-39]=k s.o[k]=1 P(k,@SNAKEC)end P(41,@FOODC)gtt(0,@SPEED)end local function F(s)s.l=s.l+1 local g=0 for k=0,80 do if not s.o[k]then g=k break end end local w=s.f for _=1,12 do w=(w*7+23+s.g)%81 if not s.o[w]then g=w break end end s.f=g P(g,@FOODC)local m=(@NOTE+s.l%12)%128 s:gms(@CH,@TYPE,m,100)s.z={@CH,@TYPE,m}end local s=self s.P=P s.I=I s.F=F s.c=0 I(s)s.touch_cb=function(s,i,e,x,y)if e==3 or e>4 and e<9 then return end s.t=1 local h,n=s.b[s.p],N(x,y)local c,r=n%9-h%9,n//9-h//9 if c*c>r*r then if s.u==0 then s.u=glim(c,-1,1)s.v=0 end elseif r~=0 and s.v==0 then s.v=glim(r,-1,1)s.u=0 end end s.midirx_cb=nil grxm(2,@SYNC and 3 or 0)"
++ 0 -> 1	"I["
+
+## the comment lines
+223 files; 61129 lines, 40551 code, 15931 comment, 4647 blank, 4787 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/catalog/entries/snake.ts | 263 | 321 | 131 | 166 | 99 | 123 |
+| src/lib/device/install.svelte.ts | 1564 | 1558 | 566 | 569 | 32 | 32 |
+| src/lib/protocol/constants.ts | 251 | 285 | 166 | 179 | 13 | 15 |
+| src/lib/sandbox/runtime.ts | 1049 | 1076 | 409 | 419 | 11 | 11 |
+| src/lib/share/profile.ts | 226 | 233 | 47 | 53 | 12 | 12 |
+| src/routes/dev/install/+page.svelte | 314 | 317 | 51 | 54 | 15 | 15 |
+| **totals (223 -> 223 files)** | 61006 | 61129 | 15861 | 15931 | 4761 | 4787 |
+
+6 file(s) moved
+
+## check and lint
+check: 1790537742824 COMPLETED 692 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: no Vitest summary lines found on stdin. A run that printed no summary proves nothing, so this is a failure, not a pass.
+quick exit 1
+
+## the build
+build exit 0; stamp 0935333
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 9b60d8a3a48f5478572d80a0da8a2eefba68b24fb5096cf65309d7d90c16812e (15 stylesheets)
+15 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 9b60d8a3a48f5478572d80a0da8a2eefba68b24fb5096cf65309d7d90c16812e
+SCOPED CSS sha256 c673a834843f984f9dbcb27d2082e290359de183ad6a78787b2c9e3e2baee770
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 7fb4d159a723fac321b88128957b8d73875cf5cd4f334874caaf3055af0d66cd (74 files)
+
+## the titles
+TITLES sha256 464788bd4deebbde2f1df2fa54518e04a50e8abe43356abf256cce16d1407059 (1130 vitest titles incl. todo, 122 playwright runs)
+
+## src/ against the before-record's HEAD f6e8922c089fd5ec0367cd31909092fb96042989
+git diff --name-status: 18 modified, 1 added, 0 deleted, 0 renamed
+  A	src/lib/device/utility-button.spec.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-24
+wire moved: set c8ecbfed63994fd506622cc177b5f48f2816db19581c95d78de506a97b16d66a -> 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b; full 6d5f5a3c218ae7daf7e0a12a02aeddd9dcebc55433051be9747ca2d1431051f8 -> bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1
+  ~ E/snake/defaults/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/defaults/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/corner/setup d0a4e4a710642c90 -> c72001e150339fa1
+  ~ E/snake/corner/timer a0004ba2553486c3 -> e3f5fc778c824fe4
+  ~ E/snake/knob speed=0/setup 8487e9679c399c0e -> cdf4692b88a119a1
+  ~ E/snake/knob speed=0/timer 483c959e8a730c5e -> 17a77b5ea486990a
+  ~ E/snake/knob speed=1/setup d8e714f20009adfc -> 1660d9049b023821
+  ~ E/snake/knob speed=1/timer f0cdef995915d3e6 -> 914027a76de2bae4
+  ~ E/snake/knob speed=2/setup 1ea55eea8937cc61 -> 2f02ce705e9070d9
+  ~ E/snake/knob speed=2/timer 05fb5b833a591fb9 -> 7d77d7dd9f715207
+  ~ E/snake/knob speed=3/setup 4a34ea69357a8edc -> 3651f36100b3483d
+  ~ E/snake/knob speed=3/timer c4a9d1637f5f76f1 -> ad57e202bd2948df
+  ~ E/snake/knob body=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob body=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob body=1/setup 4e646b8cba90f56c -> 8515ac5c44168ae5
+  ~ E/snake/knob body=1/timer 95766a83f59ae622 -> 40c62cdf0d8d4ecc
+  ~ E/snake/knob body=2/setup 412a2fa8a67b43a6 -> fbc40355e187c4d9
+  ~ E/snake/knob body=2/timer 85eddb44ade6cedb -> 4518a22e1b64293a
+  ~ E/snake/knob body=3/setup 37f958075b8ac205 -> 8d7ed93f16d701ed
+  ~ E/snake/knob body=3/timer cb8391862033df23 -> dc6ded1b1dc23a15
+  ~ E/snake/knob body=4/setup 2ef0ee5c6935ad53 -> ead534ebedbeefdd
+  ~ E/snake/knob body=4/timer 4e20c108ce418bb1 -> eedf584ddda1b3f4
+  ~ E/snake/knob body=5/setup 13c5541d05b8363b -> 13cdb3476ba7ec76
+  ~ E/snake/knob body=5/timer 28857dad4ff7b08f -> 14193348adb12a96
+  ~ E/snake/knob body=19/setup c488c1f342cc5446 -> be2949d184902793
+  ~ E/snake/knob body=19/timer 603780dca2051559 -> 0eaf8521c7476051
+  ~ E/snake/knob body=20/setup 27f67d172243ff5d -> 3c42687f06a823f2
+  ~ E/snake/knob body=20/timer 782e50d6499a14aa -> a3d3ce5fa1a3d3e2
+  ~ E/snake/knob body=21/setup f0f6c113637967a1 -> c18a0c365f5feb4c
+  ~ E/snake/knob body=21/timer b09dd80f96a4d42d -> a5394dcc0c3e37f7
+  ~ E/snake/knob body=35/setup 8ef7fe9f4c1140e2 -> 8acfa4efa3bc9057
+  ~ E/snake/knob body=35/timer 78b1d8fc8694fc96 -> 5d916d8e234dc3db
+  ~ E/snake/knob body=243/setup 153fa655bc3c12d6 -> bdfdd2d269972076
+  ~ E/snake/knob body=243/timer e92a7a5d066c2da0 -> d0b75d352508288d
+  ~ E/snake/knob body=244/setup 0c0b2ba14cb83cef -> 5a993ce09f080157
+  ~ E/snake/knob body=244/timer b48d8e26947709ef -> c3cfe50941d565a9
+  ~ E/snake/knob body=257/setup f01de078d189c8d5 -> 70018765c3cb7dce
+  ~ E/snake/knob body=257/timer ec71b05cacea7820 -> e23d537f08aecde5
+  ~ E/snake/knob body=258/setup 5b44a60b82c9013f -> 3167db173f7cf3b8
+  ~ E/snake/knob body=258/timer f796a0f2e406c56f -> 8ab9308fe6e3b8ae
+  ~ E/snake/knob body=259/setup dbe9bcdd4e9150f0 -> a7b482c6504d15d2
+  ~ E/snake/knob body=259/timer 7f3fb5fc05b0d4a5 -> 8765914962051759
+  ~ E/snake/knob body=273/setup 6a26b074d15a66d9 -> 2694acade7d03add
+  ~ E/snake/knob body=273/timer f38d3c6ddd0b6b2b -> 04f728286c3a4384
+  ~ E/snake/knob body=274/setup 08894caf68e89b48 -> 69a27d91c6b439c7
+  ~ E/snake/knob body=274/timer 37a79265344b10c0 -> 444f9a5dd4c8947d
+  ~ E/snake/knob body=275/setup 31d12ba59772d6b0 -> b262deb77659f5fc
+  ~ E/snake/knob body=275/timer 24f497793a5bd301 -> 74e4dc36d911da23
+  ~ E/snake/knob body=289/setup 07c99ad85941a69b -> 5c9e38ab69575cc6
+  ~ E/snake/knob body=289/timer a881e727bc7fc661 -> 784c9c9b9935bcb8
+  ~ E/snake/knob body=498/setup 4c3bbe703db0b843 -> 0d5b00ed8e4cbde9
+  ~ E/snake/knob body=498/timer 7dbf6d611f14d8c5 -> 9ab9dc64c9ef1e86
+  ~ E/snake/knob body=499/setup 899a4a04f0866689 -> 3525a6919e6779d3
+  ~ E/snake/knob body=499/timer a9a8aab4113ce2e4 -> 44e1b4d356678f4f
+  ~ E/snake/knob body=513/setup 1d6d38ce8cf4f6db -> f260dcbf118543e3
+  ~ E/snake/knob body=513/timer d9075403c940e142 -> d05caf8ddd256244
+  ~ E/snake/knob body=3842/setup 6baf9965cd1a4948 -> 8c87163ae44d575e
+  ~ E/snake/knob body=3842/timer 1126caa6d9829a46 -> 24ee2af8adcc0777
+  ~ E/snake/knob body=3843/setup a08e5ffac5afbaa6 -> c2b11aefa0c94dc2
+  ~ E/snake/knob body=3843/timer bc25aae4fb633c3f -> 12224f2c766edefa
+  ~ E/snake/knob body=3857/setup 1ee8571f3db44ca5 -> 7728798e119b79ba
+  ~ E/snake/knob body=3857/timer 67ef82b282de2db5 -> 7d7f8d78426278f6
+  ~ E/snake/knob body=3858/setup 5803a19590181dda -> 7a130ae233f60dec
+  ~ E/snake/knob body=3858/timer 4485daf2eed11241 -> f0316e299f9698e3
+  ~ E/snake/knob body=3872/setup 9e82377943afbb2c -> aa21790f340fbdbd
+  ~ E/snake/knob body=3872/timer d39557fd6950e431 -> 9aab5490eea440a8
+  ~ E/snake/knob body=4081/setup ce599a6736c0c6a2 -> 1fe74128f3f90336
+  ~ E/snake/knob body=4081/timer f47a51db8093864b -> 62f10757d8a78450
+  ~ E/snake/knob body=4095/setup d66a04c32d6e7962 -> e29103bbd9049e23
+  ~ E/snake/knob body=4095/timer 6f9d73906945fc4c -> 4cc38e57239be44b
+  ~ E/snake/knob food=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob food=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob food=1/setup 3d1390bdedd15438 -> 8e26a1b77c9cc858
+  ~ E/snake/knob food=1/timer fc4d67e47a86cc48 -> d43ed1d96a66b526
+  ~ E/snake/knob food=2/setup 553ae0cb5e9bbcf7 -> 94a2f8ef85d2e11b
+  ~ E/snake/knob food=2/timer cb9e61f013627ea5 -> 4ca141ddabe89ec6
+  ~ E/snake/knob food=3/setup 733da2a1ba1e8044 -> 71334c4e4fad7d26
+  ~ E/snake/knob food=3/timer 74919f9267b7c16b -> b2ea9e3205d1e407
+  ~ E/snake/knob food=4/setup 4d63595e1f4319ae -> 892227b9aff1e23c
+  ~ E/snake/knob food=4/timer 65b6c2ee7f66a505 -> 13de6830dd317a71
+  ~ E/snake/knob food=5/setup 38c3df92e8c372ed -> aafb246eadc180d5
+  ~ E/snake/knob food=5/timer 7c0f8c7c02d52078 -> 4b88437acff70495
+  ~ E/snake/knob food=19/setup 99ab49d6779cc61c -> 306449fe6034ceb7
+  ~ E/snake/knob food=19/timer 2fe8b77c925e023e -> c23cb242a79d4461
+  ~ E/snake/knob food=20/setup 3bcce6e2854f19c2 -> 51e471ceff2e5c90
+  ~ E/snake/knob food=20/timer f8015a7799af8675 -> b3bf2bb1cadb4c3c
+  ~ E/snake/knob food=21/setup 9df6f804c690bf9d -> 0827c7d5acc64bc9
+  ~ E/snake/knob food=21/timer 13a1d409bed18840 -> 200a4d934749c020
+  ~ E/snake/knob food=35/setup 037c266ca7fa8263 -> 01d9ccac67130eb7
+  ~ E/snake/knob food=35/timer 28f0e748d2e602f8 -> 1507120b65fccee1
+  ~ E/snake/knob food=244/setup a576a7c6dadcc90b -> 904c1c496a55c2c4
+  ~ E/snake/knob food=244/timer 4a01fb59208d53ff -> bcb3c1c02953484c
+  ~ E/snake/knob food=245/setup d1028a0edc122f61 -> 8a81f2556f7891bf
+  ~ E/snake/knob food=245/timer 81d014e6b22d1670 -> e3d819404f4913ec
+  ~ E/snake/knob food=259/setup 2734f7472492ee52 -> 496718d3448892a6
+  ~ E/snake/knob food=259/timer 26c129a1635cef0e -> 091f204024e03cab
+  ~ E/snake/knob food=260/setup 66a5ad5056aa83c6 -> 0802e1a9a1885ac9
+  ~ E/snake/knob food=260/timer 0e8eef16bc770939 -> bcb63ceb3d1daa9c
+  ~ E/snake/knob food=261/setup dc9fbf2702f9b21c -> 3da6e43251166503
+  ~ E/snake/knob food=261/timer 5ae42b18c8eb41bb -> 2d317c16c1d7ddbc
+  ~ E/snake/knob food=275/setup fac9f4d27385991a -> 67e1ee04403e3d97
+  ~ E/snake/knob food=275/timer de175767f9d10875 -> 6c79c1951811fd26
+  ~ E/snake/knob food=276/setup 794e6437a7eeba5d -> 9d250027369037c6
+  ~ E/snake/knob food=276/timer f86a878424c8d751 -> 157b704aaa0efaa9
+  ~ E/snake/knob food=277/setup 60ec2064af1210af -> 561ff9300f56ed79
+  ~ E/snake/knob food=277/timer 91a4fa822580375f -> 9c300d8a35c5b5ae
+  ~ E/snake/knob food=291/setup 3e7d93bc3c910c19 -> a2c863ab49175487
+  ~ E/snake/knob food=291/timer 39b0f1bec84ed04d -> 191d7e6945011d6b
+  ~ E/snake/knob food=500/setup 25e2aefec1ba6d2b -> d9d018dd2fad2118
+  ~ E/snake/knob food=500/timer 278010a2fc334aeb -> b0461c3d18ee7f2f
+  ~ E/snake/knob food=501/setup cde48a0a78c9a364 -> 0ce122de3fa09d01
+  ~ E/snake/knob food=501/timer 2670c4358697cee6 -> be7daec03b837016
+  ~ E/snake/knob food=515/setup 1dbc3eca5abc4d66 -> 7b5cec187299be1b
+  ~ E/snake/knob food=515/timer bd1db6080845ee5b -> 60f3ab537367702a
+  ~ E/snake/knob food=3843/setup 97aa0694dee0a507 -> 15dc4e75ca43493c
+  ~ E/snake/knob food=3843/timer 241cf3a78fbcd3a1 -> 23827d091865d206
+  ~ E/snake/knob food=3844/setup 87306cb696016f2d -> 9dfc5bb41906a8b3
+  ~ E/snake/knob food=3844/timer adadf91de9d26e38 -> 8dbb6561874321ec
+  ~ E/snake/knob food=3857/setup 803d5c96244bc60c -> f47ce483d8f2735c
+  ~ E/snake/knob food=3857/timer 540ad78a6654adc9 -> 9989b558afab9978
+  ~ E/snake/knob food=3858/setup 8e9377ca091c951e -> e87cacbe1602a7ac
+  ~ E/snake/knob food=3858/timer ea8e3b7c1c51eaf1 -> 41b552a3d0456d6b
+  ~ E/snake/knob food=3859/setup 8376985b1200d78c -> 3ac9ecf7b3fd5076
+  ~ E/snake/knob food=3859/timer 65be95d977137dd2 -> b4084e0bb7664aa3
+  ~ E/snake/knob food=3873/setup 2162891abc40c2ce -> 8ef5402f0a5b89e6
+  ~ E/snake/knob food=3873/timer 56a401feafa4e108 -> 2fc186509f4d3db6
+  ~ E/snake/knob food=4081/setup ba655062e9235e4d -> 7f6ac49d1a456f75
+  ~ E/snake/knob food=4081/timer 03dd60eae642ef35 -> 5572958353e050dd
+  ~ E/snake/knob food=4095/setup 28c26ed5eb438860 -> 4818c7aa9c31300b
+  ~ E/snake/knob food=4095/timer 60254a0ddbb40416 -> 2a2d7ed86ea38234
+  ~ E/snake/knob note=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob note=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=1/setup d8e714f20009adfc -> c664544ba9be8c80
+  ~ E/snake/knob note=1/timer 438c47ec5e0ca48a -> 64f4ffb18441c70b
+  ~ E/snake/knob note=2/setup d8e714f20009adfc -> 118de40a2493e304
+  ~ E/snake/knob note=2/timer cc2ab121359928c0 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=3/setup d8e714f20009adfc -> 9d5032c2d3189944
+  ~ E/snake/knob note=3/timer c055e3e064913d72 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=4/setup d8e714f20009adfc -> 3314542239acfc30
+  ~ E/snake/knob note=4/timer 69289b3b37a03f5b -> 64f4ffb18441c70b
+  ~ E/snake/knob note=5/setup d8e714f20009adfc -> af38643f5051b331
+  ~ E/snake/knob note=5/timer 396c0d6a445828ac -> 64f4ffb18441c70b
+  ~ E/snake/knob note=6/setup d8e714f20009adfc -> 5b9205d959d49aba
+  ~ E/snake/knob note=6/timer 25ad4a11d3d00e28 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=7/setup d8e714f20009adfc -> 5443387fd4902e9f
+  ~ E/snake/knob note=7/timer 4cc52354ec1da3a6 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=8/setup d8e714f20009adfc -> f39eb757815395eb
+  ~ E/snake/knob note=8/timer 3b12ca5e5f978d74 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=9/setup d8e714f20009adfc -> bb778b87bdf8254f
+  ~ E/snake/knob note=9/timer 80fba54ec97a71f2 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=10/setup d8e714f20009adfc -> 46d5fb49ae89fab4
+  ~ E/snake/knob note=10/timer 942c0bf05ca14ead -> 64f4ffb18441c70b
+  ~ E/snake/knob note=11/setup d8e714f20009adfc -> 5fa1740b5eb96a37
+  ~ E/snake/knob note=11/timer 8939604e64f7ef1f -> 64f4ffb18441c70b
+  ~ E/snake/knob note=12/setup d8e714f20009adfc -> adf0a0e8d8d5b323
+  ~ E/snake/knob note=12/timer 05f171c77e0aacbc -> 64f4ffb18441c70b
+  ~ E/snake/knob note=13/setup d8e714f20009adfc -> 5b59a62ea73f5097
+  ~ E/snake/knob note=13/timer b000a6d57d9140e3 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=14/setup d8e714f20009adfc -> 2a328767d7ecab98
+  ~ E/snake/knob note=14/timer baeb6460fb199609 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=15/setup d8e714f20009adfc -> b72d52857cfd636f
+  ~ E/snake/knob note=15/timer 960f22d9e7654def -> 64f4ffb18441c70b
+  ~ E/snake/knob note=16/setup d8e714f20009adfc -> 5f7e04d21137446f
+  ~ E/snake/knob note=16/timer 518a2a49f81e46a3 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=17/setup d8e714f20009adfc -> 5de5b901808e4e96
+  ~ E/snake/knob note=17/timer a0dfcec1ad8cdd12 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=18/setup d8e714f20009adfc -> ac3102602623c84b
+  ~ E/snake/knob note=18/timer 828b837a42d76ab6 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=19/setup d8e714f20009adfc -> 0e24e07f9d8a19b3
+  ~ E/snake/knob note=19/timer 5a7456faae75367b -> 64f4ffb18441c70b
+  ~ E/snake/knob note=20/setup d8e714f20009adfc -> dbf37f4882fa00d2
+  ~ E/snake/knob note=20/timer 4c917e9d02026e25 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=21/setup d8e714f20009adfc -> 97d6033bd075a5e8
+  ~ E/snake/knob note=21/timer 98c72b90f1228b33 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=22/setup d8e714f20009adfc -> 550252b1c900d11b
+  ~ E/snake/knob note=22/timer beb3b627558aa041 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=23/setup d8e714f20009adfc -> f346e5c45ab43d80
+  ~ E/snake/knob note=23/timer 0a9f5c14239c0046 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=24/setup d8e714f20009adfc -> 2f631fbad0d9e064
+  ~ E/snake/knob note=24/timer 39ceb2d6ae6093b2 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=25/setup d8e714f20009adfc -> 5cd52cb261a9404d
+  ~ E/snake/knob note=25/timer 94640a9b9fa952da -> 64f4ffb18441c70b
+  ~ E/snake/knob note=26/setup d8e714f20009adfc -> 3cea3ff2647c91ee
+  ~ E/snake/knob note=26/timer da195b16c5efb01b -> 64f4ffb18441c70b
+  ~ E/snake/knob note=27/setup d8e714f20009adfc -> e4541906fe8eaad6
+  ~ E/snake/knob note=27/timer 66f2625379b2c0c0 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=28/setup d8e714f20009adfc -> f76e28f827e154c6
+  ~ E/snake/knob note=28/timer 917aeab9a61ab391 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=29/setup d8e714f20009adfc -> 4f91eb6596f56e45
+  ~ E/snake/knob note=29/timer 6a86f16717191e98 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=30/setup d8e714f20009adfc -> 45d31754a3a46f7c
+  ~ E/snake/knob note=30/timer f5f62d1c289709dc -> 64f4ffb18441c70b
+  ~ E/snake/knob note=31/setup d8e714f20009adfc -> e26506be9de67845
+  ~ E/snake/knob note=31/timer b18405d56c101ebe -> 64f4ffb18441c70b
+  ~ E/snake/knob note=32/setup d8e714f20009adfc -> cc577748c5dde863
+  ~ E/snake/knob note=32/timer 6f96fbea63009a49 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=33/setup d8e714f20009adfc -> 27603dc360001e02
+  ~ E/snake/knob note=33/timer 0f7a7a0dc20dc9b9 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=34/setup d8e714f20009adfc -> 7a54606d9fea6757
+  ~ E/snake/knob note=34/timer dbdf2161a1c82a43 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=35/setup d8e714f20009adfc -> fb4f87cc7c1e2e51
+  ~ E/snake/knob note=35/timer 8a222a94cc4fc0ab -> 64f4ffb18441c70b
+  ~ E/snake/knob note=36/setup d8e714f20009adfc -> 458ab9a451847a16
+  ~ E/snake/knob note=36/timer 5acfa4b079921257 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=37/setup d8e714f20009adfc -> 0b214dc26591ba41
+  ~ E/snake/knob note=37/timer 62430bc9c6280ce7 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=38/setup d8e714f20009adfc -> c36ce211d9373d70
+  ~ E/snake/knob note=38/timer 913bfd443e765aca -> 64f4ffb18441c70b
+  ~ E/snake/knob note=39/setup d8e714f20009adfc -> 7ff89bdf179e6382
+  ~ E/snake/knob note=39/timer 72355c5f90e501c5 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=40/setup d8e714f20009adfc -> 83ac953f690897b0
+  ~ E/snake/knob note=40/timer 0391004cb77370cc -> 64f4ffb18441c70b
+  ~ E/snake/knob note=41/setup d8e714f20009adfc -> 2ce886d800e9e8be
+  ~ E/snake/knob note=41/timer cd1ec939a6f246aa -> 64f4ffb18441c70b
+  ~ E/snake/knob note=42/setup d8e714f20009adfc -> 2b53c95b60b4c881
+  ~ E/snake/knob note=42/timer 546a087cd72b872a -> 64f4ffb18441c70b
+  ~ E/snake/knob note=43/setup d8e714f20009adfc -> 23a1f36a8685cba8
+  ~ E/snake/knob note=43/timer d907907197ec0f4b -> 64f4ffb18441c70b
+  ~ E/snake/knob note=44/setup d8e714f20009adfc -> 83f0bf5659300fac
+  ~ E/snake/knob note=44/timer 4d2c3549f9e988f7 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=45/setup d8e714f20009adfc -> a31cc7d02840f91d
+  ~ E/snake/knob note=45/timer 3fc93ec61d1088d6 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=46/setup d8e714f20009adfc -> 040c063999e4af54
+  ~ E/snake/knob note=46/timer f05d960dd4130c38 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=47/setup d8e714f20009adfc -> 1b6872e4818b5881
+  ~ E/snake/knob note=47/timer 250806ad3fc97202 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=48/setup d8e714f20009adfc -> feba569bd0db6f61
+  ~ E/snake/knob note=48/timer e980603db61fff58 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=49/setup d8e714f20009adfc -> 1aceb924d10ff7cd
+  ~ E/snake/knob note=49/timer 5faf45cff57f13ad -> 64f4ffb18441c70b
+  ~ E/snake/knob note=50/setup d8e714f20009adfc -> 05c88fe18e184ad7
+  ~ E/snake/knob note=50/timer bd01603bbda1784a -> 64f4ffb18441c70b
+  ~ E/snake/knob note=51/setup d8e714f20009adfc -> c9a382b61257ffe8
+  ~ E/snake/knob note=51/timer daed2411d0019048 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=52/setup d8e714f20009adfc -> 4f7eabc63d6e3be4
+  ~ E/snake/knob note=52/timer faa07cc92ad7c009 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=53/setup d8e714f20009adfc -> 7911949300a55184
+  ~ E/snake/knob note=53/timer 83a8f534fe1a1272 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=54/setup d8e714f20009adfc -> 4e9e5e565e0609a8
+  ~ E/snake/knob note=54/timer 947385dda4fb2539 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=55/setup d8e714f20009adfc -> e3f00cb42eb8f2b4
+  ~ E/snake/knob note=55/timer 9cb6eb8b4f2f9533 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=56/setup d8e714f20009adfc -> 34eefc6a824ce6f0
+  ~ E/snake/knob note=56/timer 3c6fd83a9daaed50 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=57/setup d8e714f20009adfc -> f92fc6f2277d1881
+  ~ E/snake/knob note=57/timer 9ccdf2388908e5f0 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=58/setup d8e714f20009adfc -> b79cd12d03e430a9
+  ~ E/snake/knob note=58/timer f96f4ca42dbdd7c3 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=59/setup d8e714f20009adfc -> 0bfd2fd5324897ba
+  ~ E/snake/knob note=59/timer d1881a59c19f6c20 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=60/setup d8e714f20009adfc -> b5ac80cd2efc812a
+  ~ E/snake/knob note=60/timer 876d08e5c8fb9d55 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=61/setup d8e714f20009adfc -> 04b76a1b5888021a
+  ~ E/snake/knob note=61/timer a830a46d47713384 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=62/setup d8e714f20009adfc -> 84c19c0e7af32553
+  ~ E/snake/knob note=62/timer c468953ff94f0720 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=63/setup d8e714f20009adfc -> 5c221b7f205261fc
+  ~ E/snake/knob note=63/timer 50f7dfd357211ec1 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=64/setup d8e714f20009adfc -> de66e8da8c182d44
+  ~ E/snake/knob note=64/timer 18f074957d09103d -> 64f4ffb18441c70b
+  ~ E/snake/knob note=65/setup d8e714f20009adfc -> d3a7fce54b54d922
+  ~ E/snake/knob note=65/timer 045d1cf13f2d40e4 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=66/setup d8e714f20009adfc -> c1c01164df8c7422
+  ~ E/snake/knob note=66/timer c1587a74489336f4 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=67/setup d8e714f20009adfc -> e6199cd21cfcc1df
+  ~ E/snake/knob note=67/timer 4c80fae72ddd4041 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=68/setup d8e714f20009adfc -> 085ba9fbcda49367
+  ~ E/snake/knob note=68/timer 0e6825a1dd557efd -> 64f4ffb18441c70b
+  ~ E/snake/knob note=69/setup d8e714f20009adfc -> 2b6ea37a4bb12720
+  ~ E/snake/knob note=69/timer 39eef4108ebf97b3 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=70/setup d8e714f20009adfc -> 23b7988df9cdc404
+  ~ E/snake/knob note=70/timer f4c7983b4827a8c8 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=71/setup d8e714f20009adfc -> f9d144fd769af71e
+  ~ E/snake/knob note=71/timer 8c0bcbe84425e5a3 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=72/setup d8e714f20009adfc -> 46fcfa840b3e542e
+  ~ E/snake/knob note=72/timer 147d79e19798b60c -> 64f4ffb18441c70b
+  ~ E/snake/knob note=73/setup d8e714f20009adfc -> 054f9f8c9466fc63
+  ~ E/snake/knob note=73/timer 29204957a55630eb -> 64f4ffb18441c70b
+  ~ E/snake/knob note=74/setup d8e714f20009adfc -> dec34331bac8da3e
+  ~ E/snake/knob note=74/timer 89a347a1a095cb65 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=75/setup d8e714f20009adfc -> ae4acba22af11952
+  ~ E/snake/knob note=75/timer 69a31fbdf4261941 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=76/setup d8e714f20009adfc -> f021c6daf0c3d704
+  ~ E/snake/knob note=76/timer ca6bf5aa9885ac1c -> 64f4ffb18441c70b
+  ~ E/snake/knob note=77/setup d8e714f20009adfc -> 312e56d50e73fb79
+  ~ E/snake/knob note=77/timer 5d75f1ddf17dd158 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=78/setup d8e714f20009adfc -> 019fe34315ba68d8
+  ~ E/snake/knob note=78/timer 06a9d50c4e540b45 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=79/setup d8e714f20009adfc -> c7c5f58b2c6c445a
+  ~ E/snake/knob note=79/timer e5449f6aea2630fd -> 64f4ffb18441c70b
+  ~ E/snake/knob note=80/setup d8e714f20009adfc -> eb5265fc2d2d8ada
+  ~ E/snake/knob note=80/timer e1703e2b3f5fdaac -> 64f4ffb18441c70b
+  ~ E/snake/knob note=81/setup d8e714f20009adfc -> 697c8e69f836ebbb
+  ~ E/snake/knob note=81/timer 3cf77a37d148fcb4 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=82/setup d8e714f20009adfc -> eb2dca0f08a8653e
+  ~ E/snake/knob note=82/timer 066acc2810a58ed8 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=83/setup d8e714f20009adfc -> 3cf69b0cd5012f50
+  ~ E/snake/knob note=83/timer 255fae46114aa2c8 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=84/setup d8e714f20009adfc -> 4035467bce6467f8
+  ~ E/snake/knob note=84/timer 6cff44ad555488d3 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=85/setup d8e714f20009adfc -> e457cd2ce5a2c6b5
+  ~ E/snake/knob note=85/timer da83dcad7d67c592 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=86/setup d8e714f20009adfc -> d8b451c586a13445
+  ~ E/snake/knob note=86/timer 7af5e471312df2fe -> 64f4ffb18441c70b
+  ~ E/snake/knob note=87/setup d8e714f20009adfc -> 1edf761dffffaf67
+  ~ E/snake/knob note=87/timer b31d7d5adf10fdd8 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=88/setup d8e714f20009adfc -> fbbb6d3342e0d172
+  ~ E/snake/knob note=88/timer b4e602e43775531d -> 64f4ffb18441c70b
+  ~ E/snake/knob note=89/setup d8e714f20009adfc -> 0a0b0f0c99819d64
+  ~ E/snake/knob note=89/timer ef0899d1fd5f8e8e -> 64f4ffb18441c70b
+  ~ E/snake/knob note=90/setup d8e714f20009adfc -> b93a8bf117896087
+  ~ E/snake/knob note=90/timer d0eb818b12b04ee2 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=91/setup d8e714f20009adfc -> 03502a54b5260aaa
+  ~ E/snake/knob note=91/timer 182ad60b540bddf5 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=92/setup d8e714f20009adfc -> 5bab5edb1a707360
+  ~ E/snake/knob note=92/timer 7eda2f7d3c3d65ac -> 64f4ffb18441c70b
+  ~ E/snake/knob note=93/setup d8e714f20009adfc -> bc6645ff7c4be64a
+  ~ E/snake/knob note=93/timer 12bfebd881c6bf77 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=94/setup d8e714f20009adfc -> 0c833336c025d9c7
+  ~ E/snake/knob note=94/timer fbae3e476d312a3c -> 64f4ffb18441c70b
+  ~ E/snake/knob note=95/setup d8e714f20009adfc -> 6c63699c9b42f522
+  ~ E/snake/knob note=95/timer 7fda5b445d305e58 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=96/setup d8e714f20009adfc -> 30efa7f9fe98acc2
+  ~ E/snake/knob note=96/timer f1b668b93ab9ffbc -> 64f4ffb18441c70b
+  ~ E/snake/knob note=97/setup d8e714f20009adfc -> 1b120b648eccd3c8
+  ~ E/snake/knob note=97/timer 915dc80d7635bce7 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=98/setup d8e714f20009adfc -> a5b464481f13b712
+  ~ E/snake/knob note=98/timer 47098b4e624d0eeb -> 64f4ffb18441c70b
+  ~ E/snake/knob note=99/setup d8e714f20009adfc -> d9c47420cb325df8
+  ~ E/snake/knob note=99/timer 65461f2e60451023 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=100/setup d8e714f20009adfc -> 045dd04e0c97b0bd
+  ~ E/snake/knob note=100/timer 433ca541f07d71f7 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=101/setup d8e714f20009adfc -> 4d0973ca921865f0
+  ~ E/snake/knob note=101/timer 999567160f122b92 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=102/setup d8e714f20009adfc -> b2351d6a676266fe
+  ~ E/snake/knob note=102/timer b89c4820d8e67746 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=103/setup d8e714f20009adfc -> 72e406966392f28c
+  ~ E/snake/knob note=103/timer 35cf9df07a634ce1 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=104/setup d8e714f20009adfc -> d187760429a12198
+  ~ E/snake/knob note=104/timer b14e1a2b178327bb -> 64f4ffb18441c70b
+  ~ E/snake/knob note=105/setup d8e714f20009adfc -> 48fc324f02b260e5
+  ~ E/snake/knob note=105/timer 52688cabb9e64808 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=106/setup d8e714f20009adfc -> 876edaf090dde710
+  ~ E/snake/knob note=106/timer 5bbabfe21eeb36c0 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=107/setup d8e714f20009adfc -> d68b8b4256efee61
+  ~ E/snake/knob note=107/timer 29b0ea96d9faf97b -> 64f4ffb18441c70b
+  ~ E/snake/knob note=108/setup d8e714f20009adfc -> fd087ee05dd6c348
+  ~ E/snake/knob note=108/timer ba6653581ac9777a -> 64f4ffb18441c70b
+  ~ E/snake/knob note=109/setup d8e714f20009adfc -> 3b71c88d51553d4d
+  ~ E/snake/knob note=109/timer 3f4f9a0666fe6eac -> 64f4ffb18441c70b
+  ~ E/snake/knob note=110/setup d8e714f20009adfc -> 9d20c3c340c64ba8
+  ~ E/snake/knob note=110/timer ea74c8596cbc7d90 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=111/setup d8e714f20009adfc -> 4738870ee813cd48
+  ~ E/snake/knob note=111/timer 7f4e29f6184eb347 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=112/setup d8e714f20009adfc -> 1d98c6118ad35fe3
+  ~ E/snake/knob note=112/timer 2663907d670b99e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=113/setup d8e714f20009adfc -> 5237f88524bf0ab1
+  ~ E/snake/knob note=113/timer 38da5bedc442a495 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=114/setup d8e714f20009adfc -> 6bfb1a6c53a1e1bc
+  ~ E/snake/knob note=114/timer ff5a833b2cfeaf14 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=115/setup d8e714f20009adfc -> 08fff0956cbe2768
+  ~ E/snake/knob note=115/timer 7dbb9f7d11868d00 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=116/setup d8e714f20009adfc -> d164aa7fb196549d
+  ~ E/snake/knob note=116/timer dbf5498fbae6023a -> 64f4ffb18441c70b
+  ~ E/snake/knob note=117/setup d8e714f20009adfc -> 8883483b6a8d9797
+  ~ E/snake/knob note=117/timer 06df6f1e92d04c65 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=118/setup d8e714f20009adfc -> d77dcce5d17fb6d6
+  ~ E/snake/knob note=118/timer c42af5ff56ede672 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=119/setup d8e714f20009adfc -> 7bf0e9a9ef76f2ad
+  ~ E/snake/knob note=119/timer 2063805c0bb74586 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=120/setup d8e714f20009adfc -> f078e0336fef1a8f
+  ~ E/snake/knob note=120/timer 9356326ea984da56 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=121/setup d8e714f20009adfc -> 456e8746ed9cb9e2
+  ~ E/snake/knob note=121/timer 6f3b44dd67678658 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=122/setup d8e714f20009adfc -> 1745bcc93de1d71c
+  ~ E/snake/knob note=122/timer a163055ffe43782e -> 64f4ffb18441c70b
+  ~ E/snake/knob note=123/setup d8e714f20009adfc -> 06e30a99847bfefe
+  ~ E/snake/knob note=123/timer ff6b2ae1d7b67422 -> 64f4ffb18441c70b
+  ~ E/snake/knob note=124/setup d8e714f20009adfc -> 20c798ff8dcdc9cd
+  ~ E/snake/knob note=124/timer f703c345ad83851c -> 64f4ffb18441c70b
+  ~ E/snake/knob note=125/setup d8e714f20009adfc -> 72fdd409ca5d039c
+  ~ E/snake/knob note=125/timer 02e4efa960c6cedf -> 64f4ffb18441c70b
+  ~ E/snake/knob note=126/setup d8e714f20009adfc -> 567242fa62e35ca6
+  ~ E/snake/knob note=126/timer bcd788c6410599af -> 64f4ffb18441c70b
+  ~ E/snake/knob note=127/setup d8e714f20009adfc -> 1645050ed90cbad5
+  ~ E/snake/knob note=127/timer 58593f1961e7c596 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob channel=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=1/setup d8e714f20009adfc -> e25e2fc53ff77b52
+  ~ E/snake/knob channel=1/timer 0afc61787398adb1 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=2/setup d8e714f20009adfc -> 8bee6e5b74172de0
+  ~ E/snake/knob channel=2/timer e72e55f51c41ca41 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=3/setup d8e714f20009adfc -> 42c14a675e63d28b
+  ~ E/snake/knob channel=3/timer bd29968e06279365 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=4/setup d8e714f20009adfc -> 07872e5734f888b2
+  ~ E/snake/knob channel=4/timer 14c577e20a9a4055 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=5/setup d8e714f20009adfc -> 98f853ff9fe214f4
+  ~ E/snake/knob channel=5/timer 2b39a8aeaedccd16 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=6/setup d8e714f20009adfc -> b7f39c2228c31d7a
+  ~ E/snake/knob channel=6/timer 00c00c268a1325ca -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=7/setup d8e714f20009adfc -> e9a66e6ec477b16c
+  ~ E/snake/knob channel=7/timer c97fbe60c7b41ac5 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=8/setup d8e714f20009adfc -> 764c47bdaf5358b5
+  ~ E/snake/knob channel=8/timer e2c8ab45f5199bf3 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=9/setup d8e714f20009adfc -> da661bf8e8b2f219
+  ~ E/snake/knob channel=9/timer 53011337d8a93fe2 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=10/setup d8e714f20009adfc -> 21d197420bb03a19
+  ~ E/snake/knob channel=10/timer 028680199a5ae1cd -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=11/setup d8e714f20009adfc -> bb8e0520fc310353
+  ~ E/snake/knob channel=11/timer 0a6cb421bd896959 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=12/setup d8e714f20009adfc -> e8b8a7ee403dd133
+  ~ E/snake/knob channel=12/timer cd6753c76026882a -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=13/setup d8e714f20009adfc -> 15c36ff228233c7f
+  ~ E/snake/knob channel=13/timer b9a1a77b0953285d -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=14/setup d8e714f20009adfc -> 902d106ebf453ffe
+  ~ E/snake/knob channel=14/timer 06a42ee6d0b1d7f5 -> 64f4ffb18441c70b
+  ~ E/snake/knob channel=15/setup d8e714f20009adfc -> 26c523e585106b98
+  ~ E/snake/knob channel=15/timer 1de34c7fd57eca4e -> 64f4ffb18441c70b
+  ~ E/snake/knob midiType=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob midiType=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob midiType=1/setup d8e714f20009adfc -> 0c5cd5d7a7297377
+  ~ E/snake/knob midiType=1/timer ded3af8834d12620 -> 64f4ffb18441c70b
+  ~ E/snake/knob deathType=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathType=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob deathType=1/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathType=1/timer 85a11d66185450ae -> e8c41a19d01f3787
+  ~ E/snake/knob deathChannel=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=0/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob deathChannel=1/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=1/timer e3c42e84b48c4bf6 -> 92d922bf0ab20f3b
+  ~ E/snake/knob deathChannel=2/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=2/timer a3cc9e96bd0d3c6c -> 1ce5d0ec840b2887
+  ~ E/snake/knob deathChannel=3/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=3/timer b0f15fdca4d3f6cd -> ea8d9b5b26436016
+  ~ E/snake/knob deathChannel=4/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=4/timer 0b68a984d1bd5dd4 -> 37349b9ba9211f67
+  ~ E/snake/knob deathChannel=5/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=5/timer 511f34daf5a7cd2e -> e937f0abe08ac0df
+  ~ E/snake/knob deathChannel=6/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=6/timer 5003aa7ffcd04c0b -> 11367813e38f0aa8
+  ~ E/snake/knob deathChannel=7/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=7/timer 2a840569559b0599 -> dc20ca65c172b5d9
+  ~ E/snake/knob deathChannel=8/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=8/timer e986f56a9788123b -> bf549630402b630c
+  ~ E/snake/knob deathChannel=9/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=9/timer d3ae26a37f8ec8df -> f27e6c897a7dedd5
+  ~ E/snake/knob deathChannel=10/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=10/timer 5941d738ead280e4 -> 288333fb04f2b26d
+  ~ E/snake/knob deathChannel=11/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=11/timer 499072d0fe004c16 -> f166d0b73a22d995
+  ~ E/snake/knob deathChannel=12/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=12/timer bfbd710ebd1d0153 -> 1ca3fb298f108e5f
+  ~ E/snake/knob deathChannel=13/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=13/timer 5fa98c32a00e9409 -> fbbb2e1da953a1d7
+  ~ E/snake/knob deathChannel=14/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=14/timer 3950dd5c4ed3c804 -> 6cb0ff0183aa46be
+  ~ E/snake/knob deathChannel=15/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathChannel=15/timer 416bc34d5124e390 -> 99bb7acc9d7d4768
+  ~ E/snake/knob deathNote=0/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=0/timer c57eb167773395d2 -> d6a4838bb947c228
+  ~ E/snake/knob deathNote=1/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=1/timer 53023a07f60d7f49 -> 8d29ae8d4f5137bb
+  ~ E/snake/knob deathNote=2/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=2/timer face452b0334e831 -> b530fcda7e0f9e51
+  ~ E/snake/knob deathNote=3/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=3/timer e526833d55d47158 -> 864568529ec3d097
+  ~ E/snake/knob deathNote=4/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=4/timer 7ce78a1350540b10 -> 7aed20b63ca5efb1
+  ~ E/snake/knob deathNote=5/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=5/timer 1eab68a76bb2bc75 -> f7fc7049a29acbd9
+  ~ E/snake/knob deathNote=6/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=6/timer d6b2226d9d16f354 -> 298c2aaf159e7938
+  ~ E/snake/knob deathNote=7/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=7/timer df9e2db696bfc105 -> 0312c6425e77abb2
+  ~ E/snake/knob deathNote=8/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=8/timer e99f77163923cbba -> dc1ad746b5bbe8db
+  ~ E/snake/knob deathNote=9/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=9/timer 059dfac46a560f2d -> 16ac6c9b15577c2c
+  ~ E/snake/knob deathNote=10/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=10/timer 38ad83c142a8931e -> 14c43fb98dabd69f
+  ~ E/snake/knob deathNote=11/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=11/timer ea1cc40ea9e43427 -> 8d375a7ff3d4cf84
+  ~ E/snake/knob deathNote=12/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=12/timer 760553fe6a513dee -> 4912b43fed114811
+  ~ E/snake/knob deathNote=13/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=13/timer 3102151a3e1d81a7 -> 5d4bab510475d862
+  ~ E/snake/knob deathNote=14/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=14/timer 1a103613926cd989 -> eba2b0ce7cbf915f
+  ~ E/snake/knob deathNote=15/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=15/timer dbeda16026f8b073 -> 31c4affb12fd6680
+  ~ E/snake/knob deathNote=16/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=16/timer ca4196f93f3b55d6 -> 69d3831ef8c94484
+  ~ E/snake/knob deathNote=17/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=17/timer 01097847ac428571 -> 95461daee81f0203
+  ~ E/snake/knob deathNote=18/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=18/timer fb325f7631a5d741 -> 00fd93d28dcaec41
+  ~ E/snake/knob deathNote=19/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=19/timer db3551375c039cf7 -> 18f9dd16772fb860
+  ~ E/snake/knob deathNote=20/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=20/timer 83832c7e14788236 -> 0d8031359bd4ab0b
+  ~ E/snake/knob deathNote=21/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=21/timer ed9eae3f28bde545 -> 4c1905aa53591f2e
+  ~ E/snake/knob deathNote=22/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=22/timer 3c49d41636550132 -> 84919b6e2878806a
+  ~ E/snake/knob deathNote=23/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=23/timer f8f8f8dc7e4879ee -> dc3ce43675f2bc87
+  ~ E/snake/knob deathNote=24/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=24/timer f5bcc1eacfd1a2a3 -> 554cdc85f94756eb
+  ~ E/snake/knob deathNote=25/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=25/timer 66581d1dd2b63e4d -> 58a799bae8712581
+  ~ E/snake/knob deathNote=26/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=26/timer 619b8272dc882872 -> 14a19de48fcfdb61
+  ~ E/snake/knob deathNote=27/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=27/timer 0dd35f67303c426c -> b65ef0798f4135c0
+  ~ E/snake/knob deathNote=28/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=28/timer 420c3613e16f62f6 -> 77fa5b90ee4f486a
+  ~ E/snake/knob deathNote=29/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=29/timer 4a981643f3270bc3 -> 7a7c8694c1c9746a
+  ~ E/snake/knob deathNote=30/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=30/timer 0796c8c46bb3e7e0 -> 867f8668df79ae32
+  ~ E/snake/knob deathNote=31/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=31/timer 994ac2d833e6c0cb -> 2a067846aa7385a5
+  ~ E/snake/knob deathNote=32/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=32/timer c56507ca6067171c -> 9a03aa9d71f45920
+  ~ E/snake/knob deathNote=33/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=33/timer b2c594ef3b887c59 -> ea17f0c7c9881b35
+  ~ E/snake/knob deathNote=34/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=34/timer 04264b4ce1391fe9 -> baeeea159b48ab81
+  ~ E/snake/knob deathNote=35/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=35/timer 54a029ff8b915b06 -> c468f028d69109a8
+  ~ E/snake/knob deathNote=36/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=36/timer f0cdef995915d3e6 -> 64f4ffb18441c70b
+  ~ E/snake/knob deathNote=37/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=37/timer 606e1aa955e7ae1b -> a5f169a47c1abed2
+  ~ E/snake/knob deathNote=38/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=38/timer 87f5623ec8d4af00 -> f607392c94f728a7
+  ~ E/snake/knob deathNote=39/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=39/timer c96a65cf5112c1d7 -> 61e9d4c0b84b089d
+  ~ E/snake/knob deathNote=40/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=40/timer 85d5f89bdc063b42 -> d8e07cf8f485db5c
+  ~ E/snake/knob deathNote=41/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=41/timer dd1735b9aa8c3237 -> 81a5d1ab276697c1
+  ~ E/snake/knob deathNote=42/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=42/timer 88b71415b5b9f2b6 -> 2228e3fbf5aec3b6
+  ~ E/snake/knob deathNote=43/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=43/timer 45d520cc229740c1 -> 74e083a8d719de1f
+  ~ E/snake/knob deathNote=44/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=44/timer ccef9c3a8173aeb7 -> df8f06974af592df
+  ~ E/snake/knob deathNote=45/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=45/timer bc2bad29915ab65e -> d02d5435e7fb783c
+  ~ E/snake/knob deathNote=46/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=46/timer fe40835356dccca9 -> c4f83629c57cc1ac
+  ~ E/snake/knob deathNote=47/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=47/timer 60702ef4a39c9750 -> c30470cf4f6934bb
+  ~ E/snake/knob deathNote=48/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=48/timer ccfb6bfb52a697bc -> e883e5b94c15d7ca
+  ~ E/snake/knob deathNote=49/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=49/timer a3801ad65bf9ad4e -> ffe8a15f01511cab
+  ~ E/snake/knob deathNote=50/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=50/timer 526b0a478dd93411 -> d122e3503eb67f77
+  ~ E/snake/knob deathNote=51/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=51/timer ebab783a99f131c8 -> 1630629891d7bca7
+  ~ E/snake/knob deathNote=52/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=52/timer fbbac0aad741c445 -> e9c7085a789ee754
+  ~ E/snake/knob deathNote=53/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=53/timer 272f241051e4155d -> 6822d46edc0794e4
+  ~ E/snake/knob deathNote=54/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=54/timer 0f29a0a623cfa10c -> 78ae41cf203e5868
+  ~ E/snake/knob deathNote=55/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=55/timer 12389cf6265a65a0 -> ec8a56e6e7dfc7a8
+  ~ E/snake/knob deathNote=56/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=56/timer 58008c1d9146b4a8 -> 7e04aaa0a7d65e39
+  ~ E/snake/knob deathNote=57/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=57/timer 1dee87aabe1afc51 -> 23dbe87df7eac63d
+  ~ E/snake/knob deathNote=58/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=58/timer 29d7f29c6a324084 -> 3d1cf3ae07045c47
+  ~ E/snake/knob deathNote=59/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=59/timer 11531efc4c42b304 -> 8aa457fff9b89031
+  ~ E/snake/knob deathNote=60/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=60/timer af6073abe1923003 -> e48a7e64fc21f91a
+  ~ E/snake/knob deathNote=61/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=61/timer 12fdc02e3f75284b -> 9943cbee9a2fa086
+  ~ E/snake/knob deathNote=62/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=62/timer 50bd4c7ea99d7a34 -> 26532c71f1b14fa7
+  ~ E/snake/knob deathNote=63/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=63/timer 58b9368a3c76802d -> 56dc9ffd6bd4b448
+  ~ E/snake/knob deathNote=64/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=64/timer 2984a9fd88f0844d -> 4da3f138bef034bd
+  ~ E/snake/knob deathNote=65/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=65/timer 7655127dd966028b -> f4716fec1dc8daba
+  ~ E/snake/knob deathNote=66/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=66/timer 49db7ef5a5cce0b3 -> 4b25701760107d3e
+  ~ E/snake/knob deathNote=67/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=67/timer 6d76bab32883d89d -> ff811f941d6d6508
+  ~ E/snake/knob deathNote=68/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=68/timer 438929bdad943f5e -> 5a6435a4f1a8fef0
+  ~ E/snake/knob deathNote=69/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=69/timer 74526929dfc8ea93 -> 8d1954c59fa9044d
+  ~ E/snake/knob deathNote=70/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=70/timer 0fdeeb0a2e55aef2 -> 376992b38d6e67ac
+  ~ E/snake/knob deathNote=71/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=71/timer d8f17e25b045f622 -> ce921a003477698b
+  ~ E/snake/knob deathNote=72/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=72/timer 864d40ae51d7a2ba -> c61622ce7e1f764c
+  ~ E/snake/knob deathNote=73/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=73/timer ed338c151b9f94ae -> af441c540f606d87
+  ~ E/snake/knob deathNote=74/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=74/timer 782440225d5a9214 -> 8fa142d5aaa83c50
+  ~ E/snake/knob deathNote=75/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=75/timer 569c6714f9d3095d -> e1ff13544a73f386
+  ~ E/snake/knob deathNote=76/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=76/timer 3d9fc2a8c9a8b3df -> aae5907686e699f1
+  ~ E/snake/knob deathNote=77/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=77/timer 2f0e4440b774a5b2 -> 296c59a9983b4e25
+  ~ E/snake/knob deathNote=78/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=78/timer 7f931300a37c222a -> 2961bde5866108dd
+  ~ E/snake/knob deathNote=79/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=79/timer 33a484a5dc8a7f7b -> 4f3f28cd0561662e
+  ~ E/snake/knob deathNote=80/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=80/timer 601d51e3e9e32652 -> 54a98628175c01b0
+  ~ E/snake/knob deathNote=81/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=81/timer b0197458932dc8e5 -> 50dba9fd04779033
+  ~ E/snake/knob deathNote=82/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=82/timer bdceb51f8f194257 -> 27aa82809df19be2
+  ~ E/snake/knob deathNote=83/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=83/timer e0c6c39f09c0732d -> a0ab874880196e61
+  ~ E/snake/knob deathNote=84/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=84/timer e2ab2d9e1888b298 -> 2ae882d8965e71ba
+  ~ E/snake/knob deathNote=85/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=85/timer 2dbe803387663204 -> 4e4ea44b526a479f
+  ~ E/snake/knob deathNote=86/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=86/timer f29f5abe57894d62 -> c33990f98fd56a99
+  ~ E/snake/knob deathNote=87/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=87/timer acf11851853dcc11 -> 6756495e98a0fab5
+  ~ E/snake/knob deathNote=88/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=88/timer e47e3d9c6d025e0d -> bbbe6e1092083f00
+  ~ E/snake/knob deathNote=89/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=89/timer dc300e269a29a08e -> 7308c2d7beae034a
+  ~ E/snake/knob deathNote=90/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=90/timer 4b03183c6111cc42 -> a85f810f48840a74
+  ~ E/snake/knob deathNote=91/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=91/timer 643565beb2e8743c -> ff09070beb3f27b8
+  ~ E/snake/knob deathNote=92/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=92/timer 9aee09db320b22d3 -> 3dbb302c04c571df
+  ~ E/snake/knob deathNote=93/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=93/timer b209917ad0c6cd07 -> 611d19fa4d5f47cc
+  ~ E/snake/knob deathNote=94/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=94/timer 90a27f24059d2364 -> ec73df18bdc5cc47
+  ~ E/snake/knob deathNote=95/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=95/timer 6f3cbbaea91ccfa9 -> 6d086a4ab4c86167
+  ~ E/snake/knob deathNote=96/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=96/timer 47844fcbdd2bba40 -> 99ebfed51050d965
+  ~ E/snake/knob deathNote=97/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=97/timer e52aaadff1c31ad8 -> 43d32c72ea28f891
+  ~ E/snake/knob deathNote=98/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=98/timer 6ec43e8bb327383c -> 176699598929d6e9
+  ~ E/snake/knob deathNote=99/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=99/timer b5444cda2d614f6e -> 9104c0ad698577ba
+  ~ E/snake/knob deathNote=100/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=100/timer 8329dfc627b56764 -> cb9b2735bc5342c0
+  ~ E/snake/knob deathNote=101/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=101/timer a606246f7332804a -> e893075037751533
+  ~ E/snake/knob deathNote=102/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=102/timer a3a6c617e141b98b -> 70cb4c335a83cbd5
+  ~ E/snake/knob deathNote=103/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=103/timer 0808926aa83be467 -> 71e353fcef6a172f
+  ~ E/snake/knob deathNote=104/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=104/timer 4e0c952318cfaee6 -> bde12f39015f27a4
+  ~ E/snake/knob deathNote=105/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=105/timer 5402f9072ec13394 -> aff11537955e862c
+  ~ E/snake/knob deathNote=106/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=106/timer a488ef477cecdcf5 -> f8fb5a9546e7d23e
+  ~ E/snake/knob deathNote=107/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=107/timer d0b1408ca8c193d7 -> 78eb3cfb74c578ee
+  ~ E/snake/knob deathNote=108/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=108/timer 73e4cd7df965d90d -> f9de03ee3b8d3961
+  ~ E/snake/knob deathNote=109/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=109/timer ad6e2164bf4818d4 -> b06206476c64c403
+  ~ E/snake/knob deathNote=110/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=110/timer eb59ef1633c345cb -> cf5f5c2510292324
+  ~ E/snake/knob deathNote=111/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=111/timer bf318b9ed70e6019 -> 8b31d0cde4bccc31
+  ~ E/snake/knob deathNote=112/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=112/timer d5b039a63ed9a470 -> b80428180c03b550
+  ~ E/snake/knob deathNote=113/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=113/timer 6ea9db3753ce0e0c -> 2e61b3646b28a778
+  ~ E/snake/knob deathNote=114/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=114/timer f6d478f8c6e7eb93 -> 06910b4ca0ccca35
+  ~ E/snake/knob deathNote=115/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=115/timer b00117d9c094a95a -> edc8796ccebb9543
+  ~ E/snake/knob deathNote=116/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=116/timer d8f126ebeba61149 -> f480d4cc1ef47f14
+  ~ E/snake/knob deathNote=117/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=117/timer 52d484abe06ef096 -> 98a493e8177d4589
+  ~ E/snake/knob deathNote=118/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=118/timer 8e4d626da7d4e818 -> 180a3871e20746a5
+  ~ E/snake/knob deathNote=119/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=119/timer acefcf9b41842e4d -> 83e07da51998d917
+  ~ E/snake/knob deathNote=120/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=120/timer 5da6deb7a1d2631d -> 9b88a30de3974dec
+  ~ E/snake/knob deathNote=121/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=121/timer bcdba5087fcc44f6 -> 57eaf580943245f3
+  ~ E/snake/knob deathNote=122/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=122/timer 971e30fc91da0ff0 -> ebe7beec7d649222
+  ~ E/snake/knob deathNote=123/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=123/timer e29dfac14c9056c1 -> dad923c1c7b51b2c
+  ~ E/snake/knob deathNote=124/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=124/timer f37ace1cbdcf5c8b -> 3fede3b79355ec88
+  ~ E/snake/knob deathNote=125/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=125/timer 54388dcd04a592bd -> 52b9d583e4498795
+  ~ E/snake/knob deathNote=126/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=126/timer b5de8d4f401aaef0 -> 1ea58174fa64ab6c
+  ~ E/snake/knob deathNote=127/setup d8e714f20009adfc -> 8ad053f1d93b7b5e
+  ~ E/snake/knob deathNote=127/timer a1abf502ecaec80a -> 8077ca3429118704
+  - E/snake/cross-product (1152 states)
+  ~ S/page3/landed/system e269196a6f5eb70b -> b054fe3b710b4c5f
+  ~ S/page3/landed/systemUtility 711a4165f1adc213 -> 361c9c30fd7b7d21
+  ~ S/page3/landed/setup 800c881498ae342e -> 2015a0a38b107f1a
+  ~ S/page3/emitted/setup 800c881498ae342e -> 2015a0a38b107f1a
+  ~ S/page3/emitted/mapmode 711a4165f1adc213 -> 361c9c30fd7b7d21
+  ~ S/page3/emitted-at-corner/setup 800c881498ae342e -> 2015a0a38b107f1a
+  ~ S/page3/emitted-at-corner/mapmode 711a4165f1adc213 -> 361c9c30fd7b7d21
+  + E/snake/knob speed=4/setup
+  + E/snake/knob speed=4/timer
+  + E/snake/knob speed=5/setup
+  + E/snake/knob speed=5/timer
+  + E/snake/knob speed=6/setup
+  + E/snake/knob speed=6/timer
+  + E/snake/knob speed=7/setup
+  + E/snake/knob speed=7/timer
+  + E/snake/knob speed=8/setup
+  + E/snake/knob speed=8/timer
+  + E/snake/knob speed=9/setup
+  + E/snake/knob speed=9/timer
+  + E/snake/knob speed=10/setup
+  + E/snake/knob speed=10/timer
+  + E/snake/knob speed=11/setup
+  + E/snake/knob speed=11/timer
+  + E/snake/knob speed=12/setup
+  + E/snake/knob speed=12/timer
+  + E/snake/knob speed=13/setup
+  + E/snake/knob speed=13/timer
+  + E/snake/knob speed=14/setup
+  + E/snake/knob speed=14/timer
+  + E/snake/knob speed=15/setup
+  + E/snake/knob speed=15/timer
+  + E/snake/knob speed=16/setup
+  + E/snake/knob speed=16/timer
+  + E/snake/knob speed=17/setup
+  + E/snake/knob speed=17/timer
+  + E/snake/knob speed=18/setup
+  + E/snake/knob speed=18/timer
+  + E/snake/knob speed=19/setup
+  + E/snake/knob speed=19/timer
+  + E/snake/knob speed=20/setup
+  + E/snake/knob speed=20/timer
+  + E/snake/knob speed=21/setup
+  + E/snake/knob speed=21/timer
+  + E/snake/knob speed=22/setup
+  + E/snake/knob speed=22/timer
+  + E/snake/knob speed=23/setup
+  + E/snake/knob speed=23/timer
+  + E/snake/knob speed=24/setup
+  + E/snake/knob speed=24/timer
+  + E/snake/knob speed=25/setup
+  + E/snake/knob speed=25/timer
+  + E/snake/knob speed=26/setup
+  + E/snake/knob speed=26/timer
+  + E/snake/knob speed=27/setup
+  + E/snake/knob speed=27/timer
+  + E/snake/knob speed=28/setup
+  + E/snake/knob speed=28/timer
+  + E/snake/knob speed=29/setup
+  + E/snake/knob speed=29/timer
+  + E/snake/knob speed=30/setup
+  + E/snake/knob speed=30/timer
+  + E/snake/knob speed=31/setup
+  + E/snake/knob speed=31/timer
+  + E/snake/knob speed=32/setup
+  + E/snake/knob speed=32/timer
+  + E/snake/knob speed=33/setup
+  + E/snake/knob speed=33/timer
+  + E/snake/knob speed=34/setup
+  + E/snake/knob speed=34/timer
+  + E/snake/knob speed=35/setup
+  + E/snake/knob speed=35/timer
+  + E/snake/knob speed=36/setup
+  + E/snake/knob speed=36/timer
+  + E/snake/knob speed=37/setup
+  + E/snake/knob speed=37/timer
+  + E/snake/knob speed=38/setup
+  + E/snake/knob speed=38/timer
+  + E/snake/knob speed=39/setup
+  + E/snake/knob speed=39/timer
+  + E/snake/knob speed=40/setup
+  + E/snake/knob speed=40/timer
+  + E/snake/knob speed=41/setup
+  + E/snake/knob speed=41/timer
+  + E/snake/knob speed=42/setup
+  + E/snake/knob speed=42/timer
+  + E/snake/knob speed=43/setup
+  + E/snake/knob speed=43/timer
+  + E/snake/knob speed=44/setup
+  + E/snake/knob speed=44/timer
+  + E/snake/knob speed=45/setup
+  + E/snake/knob speed=45/timer
+  + E/snake/knob speed=46/setup
+  + E/snake/knob speed=46/timer
+  + E/snake/knob speed=47/setup
+  + E/snake/knob speed=47/timer
+  + E/snake/knob speed=48/setup
+  + E/snake/knob speed=48/timer
+  + E/snake/knob speed=49/setup
+  + E/snake/knob speed=49/timer
+  + E/snake/knob speed=50/setup
+  + E/snake/knob speed=50/timer
+  + E/snake/knob speed=51/setup
+  + E/snake/knob speed=51/timer
+  + E/snake/knob speed=52/setup
+  + E/snake/knob speed=52/timer
+  + E/snake/knob speed=53/setup
+  + E/snake/knob speed=53/timer
+  + E/snake/knob speed=54/setup
+  + E/snake/knob speed=54/timer
+  + E/snake/knob speed=55/setup
+  + E/snake/knob speed=55/timer
+  + E/snake/knob speed=56/setup
+  + E/snake/knob speed=56/timer
+  + E/snake/knob speed=57/setup
+  + E/snake/knob speed=57/timer
+  + E/snake/knob speed=58/setup
+  + E/snake/knob speed=58/timer
+  + E/snake/knob speed=59/setup
+  + E/snake/knob speed=59/timer
+  + E/snake/knob speed=60/setup
+  + E/snake/knob speed=60/timer
+  + E/snake/knob speed=61/setup
+  + E/snake/knob speed=61/timer
+  + E/snake/knob speed=62/setup
+  + E/snake/knob speed=62/timer
+  + E/snake/knob speed=63/setup
+  + E/snake/knob speed=63/timer
+  + E/snake/knob speed=64/setup
+  + E/snake/knob speed=64/timer
+  + E/snake/knob speed=65/setup
+  + E/snake/knob speed=65/timer
+  + E/snake/knob speed=66/setup
+  + E/snake/knob speed=66/timer
+  + E/snake/knob speed=67/setup
+  + E/snake/knob speed=67/timer
+  + E/snake/knob speed=68/setup
+  + E/snake/knob speed=68/timer
+  + E/snake/knob speed=69/setup
+  + E/snake/knob speed=69/timer
+  + E/snake/knob speed=70/setup
+  + E/snake/knob speed=70/timer
+  + E/snake/knob speed=71/setup
+  + E/snake/knob speed=71/timer
+  + E/snake/knob speed=72/setup
+  + E/snake/knob speed=72/timer
+  + E/snake/knob speed=73/setup
+  + E/snake/knob speed=73/timer
+  + E/snake/knob speed=74/setup
+  + E/snake/knob speed=74/timer
+  + E/snake/knob speed=75/setup
+  + E/snake/knob speed=75/timer
+  + E/snake/knob speed=76/setup
+  + E/snake/knob speed=76/timer
+  + E/snake/knob speed=77/setup
+  + E/snake/knob speed=77/timer
+  + E/snake/knob speed=78/setup
+  + E/snake/knob speed=78/timer
+  + E/snake/knob speed=79/setup
+  + E/snake/knob speed=79/timer
+  + E/snake/knob speed=80/setup
+  + E/snake/knob speed=80/timer
+  + E/snake/knob speed=81/setup
+  + E/snake/knob speed=81/timer
+  + E/snake/knob speed=82/setup
+  + E/snake/knob speed=82/timer
+  + E/snake/knob speed=83/setup
+  + E/snake/knob speed=83/timer
+  + E/snake/knob speed=84/setup
+  + E/snake/knob speed=84/timer
+  + E/snake/knob speed=85/setup
+  + E/snake/knob speed=85/timer
+  + E/snake/knob speed=86/setup
+  + E/snake/knob speed=86/timer
+  + E/snake/knob speed=87/setup
+  + E/snake/knob speed=87/timer
+  + E/snake/knob speed=88/setup
+  + E/snake/knob speed=88/timer
+  + E/snake/knob speed=89/setup
+  + E/snake/knob speed=89/timer
+  + E/snake/knob speed=90/setup
+  + E/snake/knob speed=90/timer
+  + E/snake/knob speed=91/setup
+  + E/snake/knob speed=91/timer
+  + E/snake/knob speed=92/setup
+  + E/snake/knob speed=92/timer
+  + E/snake/knob speed=93/setup
+  + E/snake/knob speed=93/timer
+  + E/snake/knob speed=94/setup
+  + E/snake/knob speed=94/timer
+  + E/snake/knob speed=95/setup
+  + E/snake/knob speed=95/timer
+  + E/snake/knob sync=0/setup
+  + E/snake/knob sync=0/timer
+  + E/snake/knob sync=1/setup
+  + E/snake/knob sync=1/timer
+  + E/snake/knob division=0/setup
+  + E/snake/knob division=0/timer
+  + E/snake/knob division=1/setup
+  + E/snake/knob division=1/timer
+  + E/snake/knob division=2/setup
+  + E/snake/knob division=2/timer
+  + E/snake/cross-product (6912 states)
+FAIL: the wire
