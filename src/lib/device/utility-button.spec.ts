@@ -12,7 +12,9 @@
 // change. The sources: every Sandbox gate fixture (scripts/gate/sandbox-fixtures.mjs) landed at two,
 // three and five slots and at the picker corner; every catalog card's tuner at its defaults and at
 // its corner, through the store's substitution; Clear's and every Store's defaults leg; the Grid
-// Editor profile file for a surface and for a card; the /dev/install/ probe's starting string.
+// Editor profile file for a surface and for a card; the /dev/install/ probe's starting string; and
+// since change 23 the two writers of a stored copy - the probe's put-back and the walking skeleton's
+// write-back - over every 255/4 a Sandbox store wrote before change 22 (BENCH-2026-09-16.txt section 24).
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { readFileSync } from "node:fs";
@@ -23,6 +25,10 @@ import { padReady } from "$lib/pad/ready";
 import {
   ELEMENT_SYSTEM,
   EVENT_UTILITY,
+  type GridRequest,
+  PRE_GUARD_UTILITY_HEAD,
+  SYSTEM_DEFAULT_SETUP,
+  SYSTEM_DEFAULT_TIMER,
   SYSTEM_DEFAULT_UTILITY,
   defaultFor,
   systemSlotString,
@@ -34,9 +40,12 @@ import type { Surface } from "$lib/sandbox/model";
 import {
   MARKER,
   PAGE_NEXT,
+  STATE,
   UTILITY_DEFAULT,
   UTILITY_GUARD,
 } from "$lib/sandbox/runtime";
+import type { RequestQueue } from "$lib/transport/queue";
+import { type Identity, writeBack } from "$lib/transport/sequence";
 import { buildProfile } from "$lib/share/profile";
 import { stampKnobs } from "$lib/share/stamp";
 import type { SimEngine } from "$lib/sim/engine";
@@ -391,6 +400,131 @@ describe("the utility button always changes page (change 22, BENCH-2026-09-16.tx
         .join(
           ", ",
         )}; ${Object.values(covered).reduce((a, b) => a + b, 0)} in all, ${distinct.size} distinct`,
+    );
+  }, 120_000);
+
+  it("6. every write of a stored copy - the probe's put-back and the walking skeleton's write-back - goes through systemSlotString: a module's own 255/4 from a Sandbox store made before change 22 is written as the page switch, and a press of what is written turns the page (change 23)", async () => {
+    // BENCH-2026-09-16.txt section 24, change 22's third question, decided: a restore must not bring
+    // the broken button back. The strings a module can hold from before change 22: every gate fixture
+    // at three and five slots as the runtime wrote it then - the guard taken off, the branch table's
+    // head at the front (`f10b49c`'s diff: `joinLua([MARKER, STATE, ...parts])`) - and the head alone.
+    const head = `${MARKER}${UTILITY_GUARD} ${PAGE_NEXT}else `;
+    const preGuard = new Set<string>([PRE_GUARD_UTILITY_HEAD]);
+    for (const name of Object.keys(FIXTURES)) {
+      for (const slots of [3, 5] as const) {
+        const body = emitSurface(FIXTURES[name], { slots }).mapmode as string;
+        if (!body.startsWith(head)) continue;
+        const parts = body
+          .slice(head.length)
+          .replace(/ ?end$/, "")
+          .replace(/^I=I or\{\}/, "");
+        preGuard.add(`${PRE_GUARD_UTILITY_HEAD}${parts}`);
+      }
+    }
+    expect(preGuard.size, "the pre-change-22 strings").toBeGreaterThan(10);
+    expect(PRE_GUARD_UTILITY_HEAD).toBe(`${MARKER}${STATE}`);
+    // The negative check, as test 1 has it: pressed as written, not one turns the page.
+    for (const old of [...preGuard].slice(0, 3)) {
+      expect((await press(old)).log).not.toContain(`gpl ${NEXT_PAGE}`);
+    }
+
+    // THE PUT-BACK: the install store's restore writes its three system slots through
+    // #systemStringOr, which is systemSlotString; the source says so, and the one rule turns every
+    // pre-change-22 string into the page switch.
+    const store = readFileSync(
+      new URL("./install.svelte.ts", import.meta.url),
+      "utf8",
+    );
+    const putBack = store.slice(store.indexOf("async putBack()"));
+    expect(
+      putBack.slice(0, putBack.indexOf("#ramLeg(")),
+      "the put-back's utility goes through the one rule",
+    ).toContain(
+      "systemUtility: this.#systemStringOr(snapshot, 4, protocolLib)",
+    );
+    expect(store).toContain(
+      "if (lib) return lib.systemSlotString(config, event);",
+    );
+    for (const old of preGuard) {
+      const written = systemSlotString(
+        { system: "", systemTimer: "", systemUtility: old },
+        4,
+      );
+      expect(written).toBe(SYSTEM_DEFAULT_UTILITY);
+      await expectPressTurnsPage(
+        "the put-back",
+        written,
+        "a restored pre-change-22 255/4",
+      );
+    }
+
+    // THE WALKING SKELETON'S WRITE-BACK (sequence.ts writeBack, the no-op cycle's write): what it puts
+    // on the wire at 255/4, read off the frames, for a module holding each of those strings - and for
+    // a module whose own 255/4 turns the page, written back as it came.
+    const identity: Identity = {
+      zona: {
+        sx: 0,
+        sy: 0,
+        rot: 0,
+        hwcfg: 0,
+        moduleType: undefined,
+        revision: undefined,
+        heartbeatType: 1,
+        firmware: { major: 1, minor: 5, patch: 5 },
+        lastSeen: 0,
+      },
+      activePage: 1,
+      otherModules: [],
+      storeAllowed: true,
+    };
+    const utilityWrittenBack = async (own: string): Promise<string> => {
+      const sent: GridRequest[] = [];
+      const queue = {
+        request: async (req: GridRequest) => {
+          sent.push(req);
+          return {} as never;
+        },
+      } as unknown as RequestQueue;
+      const at = (event: number, actionString: string) => ({
+        event,
+        label: "System utility" as const,
+        actionString,
+        actionLength: actionString.length,
+      });
+      await writeBack(queue, identity, {
+        systemTimer: at(6, SYSTEM_DEFAULT_TIMER),
+        system: at(0, SYSTEM_DEFAULT_SETUP),
+        systemUtility: at(EVENT_UTILITY, own),
+        timer: at(6, "--[[@cb]]print(2)"),
+        setup: at(0, "--[[@cb]]print(1)"),
+      });
+      const utility = sent.find(
+        (r) =>
+          r.descr.class_parameters.ELEMENTNUMBER === ELEMENT_SYSTEM &&
+          r.descr.class_parameters.EVENTTYPE === EVENT_UTILITY,
+      );
+      return String(utility?.descr.class_parameters.ACTIONSTRING);
+    };
+    for (const old of [...preGuard].slice(0, 8)) {
+      const written = await utilityWrittenBack(old);
+      expect(written).toBe(SYSTEM_DEFAULT_UTILITY);
+      await expectPressTurnsPage(
+        "the skeleton's write-back",
+        written,
+        "a written-back pre-change-22 255/4",
+      );
+    }
+    const guarded = emitSurface(FIXTURES["emit/page3"], { slots: 5 })
+      .mapmode as string;
+    expect(
+      await utilityWrittenBack(guarded),
+      "a guarded 255/4, as it came",
+    ).toBe(guarded);
+    expect(await utilityWrittenBack(SYSTEM_DEFAULT_UTILITY)).toBe(
+      SYSTEM_DEFAULT_UTILITY,
+    );
+    console.log(
+      `the restore writers: ${preGuard.size} pre-change-22 strings through the put-back's rule, 8 through the skeleton's write-back, every one written as the page switch`,
     );
   }, 120_000);
 });
