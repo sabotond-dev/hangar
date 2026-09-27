@@ -159,8 +159,12 @@ const flat = doc.replace(/\s+/g, " ");
  *
  * 53 -> 54 the same day (change 24, BENCH-2026-09-16.txt section 24): SNAKE's step
  * time at 50 and 1000 ms and the DAW's clock - five clauses (a)-(e).
+ *
+ * 54 -> 55 the same day (change 23, BENCH-2026-09-16.txt section 23): Store and Clear
+ * over a page the Grid Editor stored - five clauses (a)-(e); the Config cell "any
+ * card, any page stored elsewhere" is lower case, so `namesIn` claims nothing from it.
  */
-const ROW_COUNT = 54;
+const ROW_COUNT = 55;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
