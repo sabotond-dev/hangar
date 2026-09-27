@@ -26,10 +26,13 @@
    * everywhere else): they are starting values a visitor overwrites, and reading the real default
    * would name $lib/protocol from a route that names exactly two specifiers. An empty box means "none
    * of its own" - the store substitutes the real default in one place per slot (#systemStringOr, keyed by the event number).
+   * The utility's starting value turns the page as the firmware's own does, a comment after the
+   * call keeping it apart from the default (change 22: every string HANGAR offers for 255/4 keeps
+   * the utility button changing pages; utility-button.spec.ts runs this one too).
    */
   let systemTimer = $state("--[[@cb]]--[[page timer]]");
   let system = $state("--[[@cb]]--[[page init]]");
-  let systemUtility = $state("--[[@cb]]--[[utility]]");
+  let systemUtility = $state("--[[@cb]]gpl(gpn())--[[utility]]");
   /** The page the request and confirm buttons below ask for (13-12). */
   let page = $state(0);
   let setup = $state("--[[@cb]]print(3)");
