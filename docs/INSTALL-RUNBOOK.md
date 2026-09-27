@@ -413,3 +413,21 @@ surface) or cleared from HANGAR with `Clear`.** You do not need the button to ge
 cannot leave. Pages written by Grid Editor, by a catalog card or by `Clear` were never affected. A
 Grid Editor profile file exported from a catalog card before today carried an empty utility event;
 export it again (it now carries the page switch), or leave that event out when you load it.
+
+## Store and Clear over a page HANGAR did not write (2026-09-27, change 23)
+
+**2026-09-27, change 23 - `Store on ZONA` and `Clear` write a page whatever it holds, a Grid Editor
+configuration included.** Until today HANGAR read a page before it would write to it, and refused
+the page when the read failed, with `Nothing copied yet` / `HANGAR couldn’t read what Page N holds,
+and it won’t write over something it hasn’t copied. Nothing was written.` - the row above for
+`Nothing to put back yet` is that block's older form. A configuration made in the Grid Editor failed
+that read on every attempt whenever one of its Code blocks carried a `--` comment on a line of its
+own: the Editor stores the line break, and HANGAR's read refused any string that was not printable
+ASCII. That block is gone. The read is now a copy taken when the module gives one (for this browser,
+as before), and a page it could not copy is written exactly like any other: `Store on ZONA` returns
+it to the firmware default, writes the configuration, stores it and reads it back; `Clear` returns it
+to the firmware default and stores it. What the page held before is replaced. A Grid Editor page's
+line breaks and tabs are copied as they come; a read the module refuses (a page it is still loading
+after a switch) is tried three times. Every line - Store's description, `Clear`'s, the bar after a
+write - names the page chosen in `Target`; the block named the page last copied, which is why the
+report read "Page 3" for a Store to Page 2. **On a bench:** audition row 55 (docs/HARDWARE-AUDITION.md).

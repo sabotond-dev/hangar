@@ -4743,6 +4743,107 @@ place: a page HANGAR could not copy is written like any other, and the failed co
 - `CLEAR_REASONS["no-snapshot"]` (Clear's reason while no copy was in hand):
   ~~`Needs a copy of what is on your ZONA first.`~~
 
+**Done - change 23, 2026-09-27 (Store and Clear over a page HANGAR did not write; Andrew Huang unblocked; nothing
+asked, every decision recorded).** Six commits before the docs, no push, no device, no deploy: `0560efe`
+fix(protocol) the restore rule in `systemSlotString` and the skeleton's `writeBack`; `73dc12b` fix(install) the copy
+best-effort, `snapshot-failed` retired, the Target named, the fake, the strings ledger above; `6b75c4c` test(device)
+the restore writers in `utility-button.spec.ts`; `a918fc0` test(e2e) the Grid Editor page on the fake; `71efd55`
+chore(gate) `QUICK_TESTS` 1138; `6bd577a` docs(audition) row 55; then this paragraph with `docs/TESTING.md`'s
+"2026-09-27 change 23", the dated section of `docs/INSTALL-RUNBOOK.md` and the gate records `gate/change-23.*`
+(before, at `6ee5072`) and `gate/change-23-after.*` (at `71efd55`), each on a detached worktree with its own `npm
+ci`, removed and pruned after.
+
+**The diagnosis - which cause Andrew hit.** The firmware stores and answers a configuration string as it was
+written, any byte (`grid_decode.c:1262-1290`; the fetch returns the registered source, `grid_ui.c:420-455`). The Grid
+Editor sends `compressScript(toLua())` verbatim and refuses only at 909 characters (`instructions.ts:163-173`), and
+the pinned minifier keeps a `--` comment with its line break (`--[[@cb]] -- note\nlocal x = 2\nprint(x)`
+minifies to `--[[@cb]]\n-- note\nlocal x=2 print(x)`), so a Grid Editor page routinely holds line breaks, and tabs. HANGAR's copy
+ran the write-back guard, `canWriteBack`, whose printable rule (`^[\x20-\x7e]*$`) refused that page on every read ->
+`snapshot-failed`; the Store click read again first and wrote nothing unless a copy landed, so "Store on ZONA always
+fails" on exactly that page and never on pages 1, 3 and 4 (HANGAR's own or factory strings, printable). **The page
+number moved** because the block named `#page()` = `snapshotPage`, the page last COPIED: arriving on page 2 from page
+3 it said "Page 3", from page 1 "Page 1"; and from `snapshot-failed` no further switch re-read (not a writable
+phase), so the name stayed stale until a click. Reproduced on the fake against the code before the fix (a throwaway
+spec in the before-worktree, never committed): H4 the line break -> `snapshot-failed`, "Page 3", three Store clicks
+0 CONFIG/EXECUTE, `canWriteBack`: "Setup has a non-printable character at index 9" - **Andrew's case**; H3 a
+905-character printable page copied fine - not the length; H1 a fetch in the page load a switch starts
+(`grid_ui.c:1017` reports the new page first; `grid_ui.c:466-474` refuses the recall; `grid_decode.c:1318-1360` then
+sends a NACK AND the empty REPORT) failed the copy once and the click's re-read then succeeded - never "always"; H5
+extra element-0 events cannot exist (a ZONA's touch element has events 0 and 6, its system element 0, 4 and 6 -
+`grid_module.c:455-466`: the five slots are the whole page); a non-active page is fetched only in that race - HANGAR
+fetches the page the module reports, after the module's own report confirms a switch.
+
+**The new rule.** Store on ZONA and Clear never refuse because a page could not be read. The copy is best-effort:
+`canCopy` (a string came back and it is not the refused-fetch shape) replaces `canWriteBack` for it, so a Grid Editor
+page is copied as it came (for this tab and the browser's record, as before); it is tried three rounds with the
+backoff (the page-load race); a page not copied lands `ready` with no copy in hand, nothing persisted, nothing spoken.
+A Store over it is the eighteen frames, a Clear the twelve, the read-back proof deciding, the page replaced. **The
+block is retired, not kept as a note:** `snapshot-failed` left the union (13 phases), `snapshotFailedBlock`,
+`SNAPSHOT_FAILED_TITLE` and `CLEAR_REASONS["no-snapshot"]` by name (the ledger above; no string written) - the copy has
+had no control on the site since 13.1-06 (D-07), so a sentence about it after a successful store would be a false
+alarm of change 3's kind. Clear no longer asks for a copy (SAFE-03's third term; the next gate amends it). Nothing else
+on the write path moved: the click, the defaults leg, RAM then flash, the read-back proof.
+
+**Every message fixed** (the page named is the Target, the page chosen): `#page()` is now the page the action
+ADDRESSED (the module's reported page at the leg's start - writes never leave with the target not at rest), else the
+page read; `snapshotPage` is set on the copy's first line, copied or not, so it follows the Target and a page that
+cannot be copied is read once per arrival, not once per heartbeat. Through `#page()`: `liveSnapshotSaved`,
+`liveKept`, `liveCleared`, `liveRestored`, `liveSettled`, `keptMismatchBlock`, `partialBlock`, `nothingLandedBlock`,
+`lostBlock`, `restoredUnconfirmedBlock` (spoken titles carry no page; the live lines do). In the components:
+`DestinationZone.svelte`'s `page` (Store's description, every failure block) and `Clear.svelte`'s (its description
+and `Clearing…` label) read `pageRequested` first, then `snapshotPage`; the bar's clause reads `snapshotPage` through
+the routes, which is the Target once read. The retired block was the only one that named the page last copied.
+
+**Where the failure was HANGAR's, fixed:** the guard (above); the page-load race (the rounds); the enumeration, which
+ran only after a successful read, runs either way. Fetching "with the right page field" needed nothing: HANGAR already
+fetched the reported page. The fake learned firmware's answers: a refused fetch is a NACK and then the empty REPORT
+(it was the REPORT alone), `loading` counts fetches a page load refuses, `pages` holds every other page's flash and a
+switch loads the page it reaches.
+
+**Change 22's folded decision.** `systemSlotString` writes a 255/4 that starts with `PRE_GUARD_UTILITY_HEAD`
+(`--[[@cb]]I=I or{}`, every Sandbox store's head before `f10b49c`) as the firmware's page-next; no landing HANGAR makes
+today starts with it, so no wire moved. Writers through it now: the probe's put-back (its three system slots through
+`#systemStringOr`; it also refuses a copy it cannot write - a Grid Editor line break, which `sendConfig` refuses - before
+the wire) and the walking skeleton's `writeBack` (the no-op cycle; a pre-change-22 page now reads back as no no-op,
+which is true). The guard is not added to the old string: that page's old Setup pulls 255/4 in as a method call,
+which would take the guard's page branch; the button is kept, the old runtime is not, and the page works again once
+stored from the Sandbox. A Grid Editor owner's own utility script is restored as it was. The firmware-native revert
+(PAGEDISCARD) writes no string. Added to `utility-button.spec.ts` as test 6: 46 pre-change-22 strings (every gate
+fixture at three and five slots with the guard taken off, and the head alone) pressed as written (no page switch),
+then through the put-back's rule (all 46) and off the skeleton's write-back frames (8 of them) - the page switch,
+pressed in wasmoon - a guarded 255/4 and the default written back as they came.
+
+**Counts, carried + delta** (carried = `6ee5072`, built): quick 101 / 1129 + 1 todo -> **101 / 1138 + 1 todo** (+9:
+install.spec +4, write-guard.spec +2, synthetic.spec +2, utility-button.spec +1), green twice at `--maxWorkers=2` on
+the after-worktree; `QUICK_TESTS` **1138** (read fresh: 1129 was change 24's); check 692 -> **692**; lint clean; e2e
+**c1 by files 36 / 36** (35 before; a first run 35 / 1 on the new title's own assertion, which had not counted the
+copy's reads after the switch - tightened to name them; no server died); titles 1130 -> 1139 vitest, 122 -> 123
+playwright runs; audition rows 54 -> **55**; utilities **44 -> 44**; SCOPED CSS **`c673a834…` equal**; testids 357
+equal; copy exports `08194098…` -> `48ba2b07…` (three retired, none joined); fixtures and OG equal. **The gate:** every
+wire term byte-identical - set `193d352f…`, full `bbb8a19b…`, Sandbox set `651664f8…`; exit 1 at the census by design
+(out: the block's three strings, the Clear reason, `no-snapshot`, `snapshot-failed`; in: `canCopy`'s two reasons, the
+head). The before record's quick term read exit 1 only because a fresh worktree has no build (radius.spec layer B);
+run by hand once built, green. **The e2e write log** (the new title): connect and browse write nothing; the Target
+change is HEARTBEAT (255) then the switch, then SERIALNUMBER/FETCH and five CONFIG/FETCH at Page 2; Store 18 frames at
+Page 2 (the defaults verbatim in SLOTS order, HEARTBEAT, the card's five, HEARTBEAT, PAGESTORE, five fetches), kept
+after 2 heartbeats; Clear 12; the wire 15 CONFIG/EXECUTE, 2 PAGESTORE, 1 switch, 0 discards, 4 heartbeats.
+
+**Change 24 ran in the same tree** (its `5b56e9e`..`edff143` landed between my before record and my commits: e2e, docs
+and the gate script, no `src/` file - so the wire and the src terms compare clean; its e2e titles are in the titles
+term). Every commit here is `--only` on this change's paths.
+
+**Departures from the brief:** (1) the block retired rather than kept as a note (above); (2) `device-clause.ts` and
+the probe's `retrySnapshot` (re-aimed as the probe's read-again with no copy in hand; the probe route untouched) moved
+because the phase left the union; (3) `write-guard.ts` gained `canCopy` (the copy's own guard; `canWriteBack` unchanged
+for the write-back); (4) the put-back refuses an unwritable copy before the wire (a consequence of copying Grid Editor
+pages); (5) `audition.spec.ts`'s count; (6) the gate on worktrees. STATE / ROADMAP / REQUIREMENTS untouched; CAT-04
+stays `[ ]`; next gate: amend SAFE-03.
+
+**What I would have asked:** (1) retire the block or keep a quiet note after the store - retired; (2) should a
+restore also refuse a Grid Editor owner's own utility script that does not turn the page, or only HANGAR's own
+pre-change-22 string - only HANGAR's here; (3) the hardware - audition row 55 is where the page-load race and the
+Editor's stored bytes meet a module.
+
 24. SNAKE's step time freely chosen (2026-09-27)
 --------------------------------------------------------------------------------
 

@@ -1,0 +1,89 @@
+# 13.2 gate --after change-23 --against change-23 --check 692
+HEAD 71efd55 (71efd550edc9e4eff2acc138bfbf0c6bbd13039a); dirty (src e2e scripts docs) 0; free memory 3.38 GB; 2026-09-27T19:58:02Z
+before-record HEAD 6ee50724655b4f4d638558591670830e4c5cf0d0
+
+## the wire
+18057 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9
+
+## the strings
+222 files; 3600 distinct literals (8756 occurrences); 9 copy modules; 357 data-testids
+literal census sha256 bb6d4c3fd719c8f04aac00eaa703e8cb6117fdfaa8ce03d9a3811396f6b949fa
+copy exports   sha256 48ba2b0752e8e72be500013a5a541cbd1156ed598d7e41c0b7f2b53a71bc5586
+data-testids   sha256 12ca66ac43b1ef394488f54949ce77b0ef42ac9294dab088beea051152afbd91
+- 1 -> 0	"Click ${} to read it again"
+- 1 -> 0	"HANGAR couldn’t read what ${} holds, and it won’t write over something it hasn’t copied. Nothing was written."
+- 1 -> 0	"Needs a copy of what is on your ZONA first."
+- 1 -> 0	"Nothing copied yet"
+- 3 -> 0	"no-snapshot"
+- 5 -> 6	"ready"
+- 11 -> 0	"snapshot-failed"
+- 8 -> 6	"timeout"
++ 0 -> 1	"${} fetch returned an empty config string - the shape a refused fetch produces"
++ 0 -> 1	"${} fetch returned no config string"
++ 0 -> 1	"--[[@cb]]I=I or{}"
+
+## the comment lines
+223 files; 61364 lines, 40626 code, 16088 comment, 4650 blank, 4804 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/device/install-copy.ts | 447 | 452 | 255 | 270 | 98 | 114 |
+| src/lib/device/install.svelte.ts | 1558 | 1636 | 569 | 635 | 32 | 32 |
+| src/lib/protocol/constants.ts | 285 | 308 | 179 | 199 | 15 | 15 |
+| src/lib/protocol/write-guard.ts | 78 | 111 | 36 | 51 | 8 | 8 |
+| src/lib/transport/fixtures/synthetic.ts | 718 | 797 | 175 | 200 | 13 | 13 |
+| src/lib/transport/sequence.ts | 510 | 524 | 106 | 113 | 10 | 10 |
+| src/lib/ui/DestinationZone.svelte | 387 | 393 | 58 | 65 | 15 | 15 |
+| src/lib/ui/shell/device-clause.ts | 126 | 123 | 31 | 33 | 15 | 16 |
+| **totals (223 -> 223 files)** | 61129 | 61364 | 15931 | 16088 | 4787 | 4804 |
+
+8 file(s) moved
+
+## check and lint
+check: 1790539111947 COMPLETED 692 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 101 files, 1138 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 71efd55
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 9b60d8a3a48f5478572d80a0da8a2eefba68b24fb5096cf65309d7d90c16812e (15 stylesheets)
+15 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 9b60d8a3a48f5478572d80a0da8a2eefba68b24fb5096cf65309d7d90c16812e
+SCOPED CSS sha256 c673a834843f984f9dbcb27d2082e290359de183ad6a78787b2c9e3e2baee770
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 b646d0190f49634410ae3706ba055794b3ba29f5b0b8d15a3b36157b79d54cbb (74 files)
+
+## the titles
+TITLES sha256 4c1936c9c987ab1f1574f36c19741458d959e58f44a0e9f194693c8001a8c75b (1139 vitest titles incl. todo, 123 playwright runs)
+
+## src/ against the before-record's HEAD 6ee50724655b4f4d638558591670830e4c5cf0d0
+git diff --name-status: 16 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-23
+wire: equal (set 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b, full bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1)
+sandbox set: equal (651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9)
+FAIL: the literal census (f4f38f637b4399a0931964d7b7fc888d3c8dd2f745da0a6dcc17bd79c0bdb0a4 -> bb6d4c3fd719c8f04aac00eaa703e8cb6117fdfaa8ce03d9a3811396f6b949fa; the -/+ lines above name every literal whose count moved)

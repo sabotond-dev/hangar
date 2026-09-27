@@ -8714,3 +8714,86 @@ brief's list moved by necessity - `stamp-roundtrip.sweep.spec.ts`, `knobs.lua.sp
 `e2e/tuning.e2e.ts` and `audition.spec.ts`; (7) the audition row is 54 (change 22 took 53); (8) the after-run on a
 clean worktree, the working tree carrying change 23's edits. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS
 untouched.
+
+## 2026-09-27 change 23 - Store and Clear over a page HANGAR did not write
+
+`BENCH-2026-09-16.txt` section 23, the Done paragraph "change 23". Andrew Huang (a guest) was blocked: "Store on
+ZONA" to his page 2, which held a Grid Editor configuration, always failed with "HANGAR couldn't read what Page 3
+holds, and it won't write over something it hasn't copied. Nothing was written." Fixed outside the GSD cycle.
+Commits, no push, no device, no deploy: `0560efe` fix(protocol) the restore rule in `systemSlotString` and the
+skeleton's `writeBack`; `73dc12b` fix(install) the copy best-effort, `snapshot-failed` retired, the Target named,
+the fake; `6b75c4c` test(device) the restore writers in `utility-button.spec.ts`; `a918fc0` test(e2e) the Grid
+Editor page on the fake; `71efd55` chore(gate) `QUICK_TESTS` 1138; `6bd577a` docs(audition) row 55; then this
+section, the runbook's dated section, the Done paragraph and the gate records `gate/change-23.*` (before, at
+`6ee5072`, in a detached worktree with its own `npm ci`) and `gate/change-23-after.*` (at `71efd55`, the same way).
+Change 24's `5b56e9e`..`edff143` landed between the two (e2e, docs and the gate script only; no `src/` file).
+
+**The diagnosis, reproduced on the fake against the code before the fix** (a throwaway spec in the before-worktree,
+never committed; the fake taught the firmware's multi-page and refused-fetch answers first):
+
+| Hypothesis                                                                                                                     | Firmware                                                                                                                                                                                                                         | On the old code                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| H4 - the Grid Editor's strings carry a line break (a `--` comment the minifier keeps) or a tab, which the copy's guard refused | the module stores and answers any byte (`grid_decode.c:1262-1290`; `grid_ui.c:420-455` returns the registered source); the Editor refuses only at 909 characters (`instructions.ts:163-173`) and sends `compressScript` verbatim | **Andrew's case**: `snapshot-failed` on every read, three Store clicks wrote 0 CONFIG/EXECUTE, the block named "Page 3" - the page last copied |
+| H3 - a string of 900+ characters                                                                                               | accepted up to 909 (`grid_protocol.h:127`); the Editor stops at 908                                                                                                                                                              | a 905-character printable page copied fine: not it                                                                                             |
+| H1 - a fetch while the page a switch started is still loading                                                                  | `grid_ui.c:1017` reports the new page before the load ends; `grid_ui.c:466-474` refuses the recall; `grid_decode.c:1318-1360` sends a NACK and then the empty REPORT                                                             | the copy failed once, and the Store click's re-read then succeeded - never "always"                                                            |
+| H5 - extra events on element 0                                                                                                 | a ZONA's touch element has two events (0, 6), its system element three (0, 4, 6) - `grid_module.c:455-466`, `grid_ui_touch.c:85-96`, `grid_ui_system.c:24-26`: HANGAR's five slots are the whole page                            | nothing to fetch beyond the five                                                                                                               |
+| a fetch of a page that is not active                                                                                           | HANGAR fetches the page the module reports, once the switch is confirmed by the module's own report (13-12)                                                                                                                      | only in the race above                                                                                                                         |
+
+**The new rule.** The copy of a page is best-effort and never a write's precondition: `canCopy` (a string came back
+and it is not the refused-fetch shape) replaces `canWriteBack` for the copy; COPY_ROUNDS (3) reads with the backoff;
+a page that is not copied lands `ready` with no copy in hand, and nothing is spoken. `snapshot-failed` left the union
+(13 phases); `snapshotFailedBlock`, `SNAPSHOT_FAILED_TITLE` and `CLEAR_REASONS["no-snapshot"]` are retired by name;
+Clear asks for no copy (SAFE-03's third term, the next gate's to amend). Every sentence names the Target: `#page()` is
+the page the action addressed, `snapshotPage` the page read from the copy's first line, and the zone and Clear name
+`pageRequested` first. The write path is unchanged - the click, the defaults leg, the configuration, the store, the
+read-back proof: eighteen frames per Store, twelve per Clear. The probe's put-back writes its system slots through
+`systemSlotString` and refuses a copy it cannot write (a line break: `sendConfig` writes printable ASCII); the
+skeleton's `writeBack` writes its system slots through it too; `systemSlotString` writes a pre-change-22 Sandbox 255/4
+(`--[[@cb]]I=I or{}` first) as the page-next.
+
+**The fake** (`src/lib/transport/fixtures/synthetic.ts`, which `e2e/fake-zona.ts` hands every class to): a refused
+fetch is a NACK echoing the id and then the empty REPORT (it was the empty REPORT alone); `loading` counts the fetches
+a running page load refuses; `pages` holds every other page's flash, and a switch files the page it leaves and loads
+the page it reaches (a page never stored the factory's).
+
+**Tests.** New (vitest +9): `install.spec.ts` "a page the Grid Editor stored is copied as it came - a line break, a
+tab, 905 characters - and Store on ZONA and Clear replace it, each proved by the read-back (change 23)"; "a page whose
+every fetch goes unanswered is ready with no copy, and Store on ZONA and Clear go ahead exactly as over a copied one
+(change 23)"; "the Target page is the page read, stored and named: a switch to a page whose load is still running is
+read again after the module's refusal, a load that outlasts every round leaves no copy, and Store on ZONA and Clear
+still write the Target and name it (change 23)"; "the probe's put-back writes the three system slots through
+systemSlotString: ... (change 23)"; `write-guard.spec.ts` "a Grid Editor configuration is a copy: ..." and "the
+refused-fetch shape is no copy: ..."; `synthetic.spec.ts` "a refused fetch - ... (change 23)" and "with `pages`, a
+switch files the page it leaves ... (change 23)"; `utility-button.spec.ts` "6. every write of a stored copy - the
+probe's put-back and the walking skeleton's write-back - goes through systemSlotString: ... (change 23)". Replaced
+(the count unmoved): `install.spec.ts` "an empty fetched string is snapshot-failed, and everything stays disabled" ->
+"a page the module cannot give a copy of is ready with no copy, and nothing is refused for it: Store on ZONA goes to
+the wire and the module's own refusal is the answer (change 23)"; "no snapshot, no clear - and the fourteen-row
+enablement table" -> "a page with no copy is cleared all the same - and the thirteen-row enablement table".
+Retitled: "CLEAR writes five defaults ... and the phase list is 13-12's less the store's unconfirmed" -> "... less the
+store's unconfirmed and the uncopied page's block"; `device-ui.spec.ts` "fourteen phases are each accounted for, the
+four the spec has no row for ..." -> "thirteen phases ..., the three ...". e2e +1 title (desktop only):
+`install.e2e.ts` "a page the Grid Editor stored is replaced by Store on ZONA and reset by Clear: ... (change 23)"; the
+probe's first title keeps its name, its uncopied module now `idle > snapshotting > ready` with 20 CONFIG/FETCH (three
+rounds and the read-again).
+
+**The e2e write log** (the new title, decoded in Node): connect and browse - 0 CONFIG/EXECUTE, 0 PAGESTORE, 0 switch,
+0 discard, 0 heartbeat; the Target change - HEARTBEAT/EXECUTE (TYPE 255), the page switch, then the copy's reads,
+SERIALNUMBER/FETCH and five CONFIG/FETCH at Page 2 in SLOTS order, one round; Store - five CONFIG/EXECUTE (the
+defaults, verbatim, 255/6, 255/0, 255/4, 0/6, 0/0, Page 2), HEARTBEAT, five CONFIG/EXECUTE (the card, byte for byte
+what the fake's flash then holds), HEARTBEAT, PAGESTORE/EXECUTE, five CONFIG/FETCH at Page 2 = 18, kept after 2
+heartbeats; Clear - five defaults, HEARTBEAT, PAGESTORE, five CONFIG/FETCH = 12; the whole wire 15 CONFIG/EXECUTE, 2
+PAGESTORE, 1 switch, 0 discard, 4 heartbeats.
+
+**Counts, carried + delta** (carried = `6ee5072` in the before-worktree, built): quick 101 / 1129 + 1 todo -> **101 /
+1138 + 1 todo** (+9), green twice at `--maxWorkers=2` on the after-worktree; `QUICK_TESTS` 1129 -> **1138**; check
+692 -> **692**; lint clean; e2e c1 by files 35 -> **36 / 36** (a first run 35 / 1: the new title's own assertion
+missed the copy's reads after the switch, and was tightened to name them); titles 1130 -> 1139 vitest, 122 -> 123
+playwright runs; audition rows 54 -> **55**; utilities **44 -> 44**; SCOPED CSS **`c673a834…` equal**, raw CSS
+`9b60d8a3…` equal; testids 357 **equal** (`12ca66ac…`); fixtures and OG equal; copy exports `08194098…` ->
+`48ba2b07…` (three names retired, none joined); census `f4f38f63…` -> `bb6d4c3f…` (out: the block's three strings, the
+Clear reason, `no-snapshot` 3, `snapshot-failed` 11; in: canCopy's two reasons and `--[[@cb]]I=I or{}`); normalised
+JS `7fb4d159…` -> `b646d019…`; `src/` 16 modified / 0 added. **The wire, every term byte-identical**: set
+`193d352f…`, full `bbb8a19b…`, Sandbox set `651664f8…` - no Lua moved. The script exits 1 at the census by design. The
+before record's quick term read `quick exit 1` (the fresh worktree had no build, and radius.spec.ts layer B refuses to
+pass on none); run by hand on that worktree once built: 101 / 1129 + 1 todo, green.
