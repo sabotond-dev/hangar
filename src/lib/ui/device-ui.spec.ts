@@ -1243,17 +1243,12 @@ describe("the device UI's structural rules", () => {
     try {
       install.snapshotPage = PAGE;
 
-      // THE THREE REASONS, through the store's own rule, in the record's
+      // THE TWO REASONS (three until change 23: no-snapshot left with the
+      // precondition it named), through the store's own rule, in the record's
       // order: the caption is the reason, the description is the reason, the
       // button is disabled with a real attribute, and the label is the
       // user's word.
       const drive: Record<ClearReason, () => void> = {
-        "no-snapshot": () => {
-          session.phase = "connected";
-          install.phase = "ready";
-          install.snapshot = undefined;
-          install.applyReady = true;
-        },
         "no-session": () => {
           session.phase = "idle";
           install.phase = "idle";
@@ -1302,9 +1297,10 @@ describe("the device UI's structural rules", () => {
         ).toBe(1);
         seen[key] = reason;
       }
-      expect(Object.keys(seen).sort(), "all three reasons were driven").toEqual(
-        ["incapable", "no-session", "no-snapshot"],
-      );
+      expect(Object.keys(seen).sort(), "both reasons were driven").toEqual([
+        "incapable",
+        "no-session",
+      ]);
 
       // LIVE: the store says no reason, the target is at rest, the session is
       // connected. The caption is EMPTY (the two-line box keeps its shape),
@@ -1641,10 +1637,15 @@ describe("the device UI's structural rules", () => {
     expect(fill).not.toContain("deviceActions?:");
   });
 
-  it("fourteen phases are each accounted for, the four the spec has no row for are present by name, the three uncertain phases keep three distinct bodies and three distinct clauses, and the bar takes the draft and the device as two props", () => {
+  it("thirteen phases are each accounted for, the three the spec has no row for are present by name, the three uncertain phases keep three distinct bodies and three distinct clauses, and the bar takes the draft and the device as two props", () => {
     // Plan 13-11, task 2 - THE ANTI-COLLAPSE TEST. The union is read from the
-    // store's source so the fourteen cannot drift from the thirteen or the
-    // fifteen without this test noticing. FOURTEEN SINCE 2026-09-16 (change
+    // store's source so the count cannot drift without this test noticing.
+    // THIRTEEN SINCE 2026-09-27 (change 23, BENCH-2026-09-16.txt section 23,
+    // the user's word: "Hangar SHOULD be able to rewrite (store into it) and
+    // clear configs made in Grid Editor as well"): the copy of a page is
+    // best-effort and never a write's precondition, so nothing lands
+    // `snapshot-failed` - a retirement by the user's word, not a collapse.
+    // FOURTEEN FROM 2026-09-16 (change
     // 3, BENCH-2026-09-16.txt section 3): 13-18 kept six uncertain outcomes
     // on purpose, and this test held four bodies for the four the spec's one
     // "Transfer uncertain" row maps onto; the store's `unconfirmed` is
@@ -1661,15 +1662,19 @@ describe("the device UI's structural rules", () => {
     ].map((m) => m[1] as InstallPhase);
     expect(
       phases.length,
-      "fourteen phases (fifteen from 10-12 to 2026-09-16)",
-    ).toBe(14);
+      "thirteen phases (fifteen from 10-12 to 2026-09-16, fourteen to 2026-09-27)",
+    ).toBe(13);
     expect(
       phases,
       "the store's unconfirmed left by the user's word",
     ).not.toContain("unconfirmed");
+    expect(
+      phases,
+      "the uncopied page's block left by the user's word (change 23)",
+    ).not.toContain("snapshot-failed");
 
     // Every phase renders, in one of two places since 13.1-06 (13.1-CONTEXT
-    // D-06): the six failure-shaped phases by a case of their own in the
+    // D-06): the five failure-shaped phases by a case of their own in the
     // destination zone's phase-to-builder mapping - the block with its
     // steps under the bar's row - and the six success phases by the bar's
     // device clause alone (their bodies retired with InstallState.svelte;
@@ -1685,11 +1690,10 @@ describe("the device UI's structural rules", () => {
       "nothing-landed",
       "restored-unconfirmed",
       "lost",
-      "snapshot-failed",
     ];
     expect(
       [...cased].sort(),
-      "the six failure-shaped phases each have a case of their own in the zone's mapping - a name missing here is a phase collapsed into a neighbour, a name added is a success phase that grew a body it should not have",
+      "the five failure-shaped phases each have a case of their own in the zone's mapping - a name missing here is a phase collapsed into a neighbour, a name added is a success phase that grew a body it should not have",
     ).toEqual([...FAILURE_SHAPED].sort());
     expect(zone).toContain("writing ? heldPhase : install.phase");
     expect(zone).toContain('aria-busy={writing ? "true" : undefined}');
@@ -1704,12 +1708,13 @@ describe("the device UI's structural rules", () => {
       ).toBe(true);
     }
 
-    // THE FOUR THE SPEC HAS NO ROW FOR, PRESENT BY NAME. These are the safety
-    // rail; a re-skin that folded one into a neighbour goes red here naming
-    // it. Two are failure-shaped and keep a body in the zone; two are the
-    // restore's and the reset's success and are the bar's clause, read off
-    // the copy module's own caption for each.
-    for (const phase of ["restored-unconfirmed", "snapshot-failed"]) {
+    // THE THREE THE SPEC HAS NO ROW FOR, PRESENT BY NAME (four until change
+    // 23 retired snapshot-failed). These are the safety rail; a re-skin that
+    // folded one into a neighbour goes red here naming it. One is
+    // failure-shaped and keeps a body in the zone; two are the restore's and
+    // the reset's success and are the bar's clause, read off the copy
+    // module's own caption for each.
+    for (const phase of ["restored-unconfirmed"]) {
       expect(
         cased,
         `${phase}: a phase the spec has no row for was collapsed into a neighbour`,
@@ -1725,7 +1730,6 @@ describe("the device UI's structural rules", () => {
       "cleared",
       "restored",
       "restored-unconfirmed",
-      "snapshot-failed",
     ]);
 
     // THE THREE UNCERTAIN PHASES: three cases calling three DIFFERENT

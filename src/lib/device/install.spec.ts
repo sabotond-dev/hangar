@@ -47,6 +47,7 @@ import {
   TOUCH_DEFAULT_SETUP,
   TOUCH_DEFAULT_TIMER,
   ZONA_HWCFG,
+  PRE_GUARD_UTILITY_HEAD,
   type DecodedClass,
   decodeFrame,
   moduleKeyOf,
@@ -84,7 +85,6 @@ import {
   nothingLandedBlock,
   partialBlock,
   restoredUnconfirmedBlock,
-  snapshotFailedBlock,
 } from "./install-copy";
 import {
   type ConfigStrings,
@@ -145,6 +145,20 @@ const ORIGINAL: ConfigStrings = {
   systemUtility: MODULE_SYSTEM_UTILITY,
   setup: MODULE_SETUP,
   timer: MODULE_TIMER,
+};
+/**
+ * A page the Grid Editor stored (change 23, BENCH-2026-09-16.txt section 23),
+ * as the module answers it: the Editor writes compressScript's output
+ * verbatim, and the pinned minifier keeps a `--` comment with its line break;
+ * a tab rides in a string; the Setup is 906 characters (the Editor refuses
+ * only at 909). Every one of the five differs from ORIGINAL and PAIR.
+ */
+const EDITOR_PAGE: ConfigStrings = {
+  systemTimer: "--[[@cb]]\n-- the page timer\nlocal t=1",
+  system: '--[[@cb]]print("page\tinit")',
+  systemUtility: "--[[@cb]]\n-- the utility button\ngpl(gpn())",
+  setup: "--[[@cb]]\n-- the pads\n" + "a=1 ".repeat(220) + "b=22",
+  timer: "--[[@cb]]\n-- every 100 ms\nprint(2)",
 };
 /** The tuner's five strings, different from the module's in all five. */
 const PAIR: ConfigStrings = {
@@ -560,6 +574,8 @@ type Rig = Awaited<ReturnType<typeof connected>>;
 async function throughStore(
   rig: Rig,
   action: Promise<void>,
+  /** What the module beats with, when it is on another page than the fixture's (change 23). */
+  beat: () => void = rig.heartbeat,
 ): Promise<number | undefined> {
   const finish = begin(action);
   await settle();
@@ -576,7 +592,7 @@ async function throughStore(
   if (rig.store.phase === "writing" && requested()) {
     await after(20);
     fedAt = clock.t;
-    rig.heartbeat();
+    beat();
   }
   await finish();
   return fedAt;
@@ -923,80 +939,367 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(writesOf("CONFIG", "EXECUTE")).toBe(0);
   });
 
-  it("an empty fetched string is snapshot-failed, and everything stays disabled", async () => {
+  it("a page the module cannot give a copy of is ready with no copy, and nothing is refused for it: Store on ZONA goes to the wire and the module's own refusal is the answer (change 23)", async () => {
     // The module's RAM is on page 3; its heartbeat (the fixture's) reports
-    // page 2. Firmware answers a fetch of a non-active page with an empty
-    // string, which is exactly what D-03 refuses.
-    const { store, state, storage, writesOf, session } = await connected({
+    // page 2 - the one state the page target cannot rule out by construction
+    // (write-guard.ts). Firmware refuses the recall of a page that is not
+    // active and answers with a NACK and then the empty REPORT
+    // (grid_decode.c:1318-1360), which the fake does since change 23. The
+    // copy is tried COPY_ROUNDS times and then simply not taken: `ready`, no
+    // copy, no record, nothing spoken - until change 23 this was
+    // `snapshot-failed`, and Store and Clear refused the page.
+    const { store, state, storage, writesOf, session, fake } = await connected({
       state: { activePage: ACTIVE_PAGE + 1 },
     });
-    expect(store.phase).toBe("snapshot-failed");
+    expect(store.phase).toBe("ready");
     expect(store.snapshot).toBeUndefined();
-    expect(store.snapshotPage).toBeUndefined();
-    expect(store.moduleId, "the key was never published").toBeUndefined();
+    expect(store.snapshotPage, "the page read, copied or not").toBe(
+      ACTIVE_PAGE,
+    );
+    expect(store.moduleId, "the key is published only with a copy").toBe(
+      undefined,
+    );
     expect(store.snapshotDurable).toBe(false);
-    // Nothing was persisted: an empty pair is refused BEFORE storage is
-    // touched, so no record of a snapshot that was never taken exists.
-    expect(storage.map.size, "a record for an empty snapshot").toBe(0);
+    expect(storage.map.size, "a record for a copy never taken").toBe(0);
     expect(writesOf("CONFIG", "EXECUTE")).toBe(0);
+    // Three rounds, each ended by the module's refusal of the first fetch;
+    // the enumeration ran all the same.
+    expect(outcomes(store.steps)).toEqual([
+      ["fetch-serial", "ok"],
+      ["fetch-system-timer", "nack"],
+      ["fetch-system-timer", "nack"],
+      ["fetch-system-timer", "nack"],
+      ["fetch-page-count", "ok"],
+    ]);
+    await after(500);
+    expect(
+      session.speech,
+      "the copy that was not taken is not spoken",
+    ).not.toBe(liveSnapshotSaved(ACTIVE_PAGE));
+    expect(store.clearEnabled(true), "Clear asks for no copy").toBe(true);
+    expect(store.clearReason(true)).toBeUndefined();
+
+    // STORE ON ZONA IS NOT REFUSED BY HANGAR: armed, and the click goes to
+    // the wire at the page the module reports. The module is not on it, so
+    // it refuses the first write (grid_decode.c:1272, the backstop Pitfall 4
+    // rests on) - one CONFIG/EXECUTE, never retried, the restore heartbeat,
+    // no store - and the store says what it heard.
+    store.observeConfig(PAIR);
+    expect(store.armed).toBe(true);
+    const framesBefore = fake.writes.length;
+    await drive(store.keepOnDevice(PAIR, "x"));
+    expect(store.phase).toBe("nothing-landed");
+    expect(store.cause).toBe("nack");
+    expect(
+      written(fake)
+        .slice(framesBefore)
+        .map((f) => f.map((c) => `${c.class_name}/${c.class_instr}`)),
+    ).toEqual([["CONFIG/EXECUTE"], ["HEARTBEAT/EXECUTE"]]);
+    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(0);
     await after(500);
     expect(session.speech).toBe(
-      announceTitle(snapshotFailedBlock(ACTIVE_PAGE).title),
+      announceTitle(nothingLandedBlock("store", ACTIVE_PAGE).title),
     );
 
-    // The click retries the snapshot first, and writes ONLY if that lands.
-    // The module is still on the wrong page, so: nothing.
-    await drive(store.tryOnDevice(PAIR, "x"));
-    expect(store.phase).toBe("snapshot-failed");
-    expect(
-      writesOf("CONFIG", "EXECUTE"),
-      "a write over an uncopied module",
-    ).toBe(0);
-    expect(
-      store.steps.map((s) => s.id),
-      "the click read the module again",
-    ).toEqual([
-      "fetch-serial",
-      "fetch-system-timer",
-      "fetch-system",
-      "fetch-system-utility",
-      "fetch-timer",
-      "fetch-setup",
-    ]);
-
-    // Store on ZONA does the same (2026-09-16): armed from `snapshot-failed`
-    // - the one click re-reads first - it reads the module again, and writes
-    // nothing while the copy is refused.
-    store.observeConfig(PAIR);
-    expect(store.armed, "Store is armed from snapshot-failed").toBe(true);
-    await drive(store.keepOnDevice(PAIR, "x"));
-    expect(store.phase).toBe("snapshot-failed");
-    expect(
-      writesOf("CONFIG", "EXECUTE"),
-      "a Store over an uncopied module",
-    ).toBe(0);
-    expect(writesOf("PAGESTORE", "EXECUTE")).toBe(0);
-    expect(
-      store.steps.map((s) => s.id),
-      "the Store read the module again",
-    ).toEqual([
-      "fetch-serial",
-      "fetch-system-timer",
-      "fetch-system",
-      "fetch-system-utility",
-      "fetch-timer",
-      "fetch-setup",
-    ]);
-
-    // Fix the module - it is on the page its heartbeat reported - and retry.
+    // The module on the page its heartbeat reported: the probe's read-again
+    // takes the copy (a read), and it persists.
     state.activePage = ACTIVE_PAGE;
     await drive(store.retrySnapshot());
     expect(store.phase).toBe("ready");
     expect(store.snapshot).toEqual(ORIGINAL);
     expect(store.snapshotPage).toBe(ACTIVE_PAGE);
     expect(store.moduleId).toBe(expectedKey());
-    expect(storage.map.size, "the retry persisted the copy").toBe(1);
-    expect(writesOf("CONFIG", "EXECUTE"), "the retry is a read").toBe(0);
+    expect(storage.map.size, "the read-again persisted the copy").toBe(1);
+    expect(writesOf("CONFIG", "EXECUTE"), "the read-again is a read").toBe(1);
+  });
+
+  it("a page the Grid Editor stored is copied as it came - a line break, a tab, 905 characters - and Store on ZONA and Clear replace it, each proved by the read-back (change 23)", async () => {
+    // Andrew Huang's page 2 (BENCH-2026-09-16.txt section 23). The Grid
+    // Editor writes compressScript's output verbatim, and the pinned minifier
+    // keeps a `--` comment with its line break; until change 23 the copy's
+    // guard was canWriteBack's printable rule, which refused the page on
+    // every read - `snapshot-failed`, "Nothing was written", on every Store.
+    expect(EDITOR_PAGE.setup.length).toBeGreaterThan(900);
+    expect(EDITOR_PAGE.setup.length).toBeLessThan(909);
+    const rig = await connected({
+      state: {
+        configs: {
+          [EVENT_SETUP]: EDITOR_PAGE.setup,
+          [EVENT_TIMER]: EDITOR_PAGE.timer,
+        },
+        system: {
+          [EVENT_SETUP]: EDITOR_PAGE.system,
+          [EVENT_TIMER]: EDITOR_PAGE.systemTimer,
+          [EVENT_UTILITY]: EDITOR_PAGE.systemUtility,
+        },
+      },
+    });
+    const { store, fake, state, storage, session } = rig;
+    expect(store.phase).toBe("ready");
+    expect(store.snapshot, "copied byte for byte").toEqual(EDITOR_PAGE);
+    expect(pageEntry(storage, ACTIVE_PAGE), "and recorded").toBeDefined();
+    expect(outcomes(store.steps).map(([, o]) => o)).toEqual([
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+    ]);
+    await after(500);
+    expect(session.speech).toBe(liveSnapshotSaved(ACTIVE_PAGE));
+
+    // STORE ON ZONA replaces it: the eighteen frames, the proof, `kept`.
+    const beforeStore = fake.writes.length;
+    await storedOn(rig);
+    const stored = written(fake).slice(beforeStore).map(shape);
+    expect(stored).toHaveLength(18);
+    expect(stored.slice(0, 12)).toEqual(storeClickRamFrames(PAIR));
+    expect(stored.slice(12).map((f) => f[0].cls)).toEqual(STORE_CLICK_TAIL);
+    expect(outcomes(store.steps)).toEqual(STORE_CLICK_STEPS);
+    expect(state.flash?.[EVENT_SETUP], "the Editor's Setup is gone").toBe(
+      PAIR.setup,
+    );
+    expect(state.systemFlash?.[EVENT_UTILITY]).toBe(PAIR.systemUtility);
+    await after(500);
+    expect(session.speech).toBe(liveKept(ACTIVE_PAGE));
+
+    // CLEAR over it (a fresh module holding the Editor's page again): the
+    // five defaults, the restore, the store, the proof - `cleared`.
+    const again = await connected({
+      state: {
+        configs: {
+          [EVENT_SETUP]: EDITOR_PAGE.setup,
+          [EVENT_TIMER]: EDITOR_PAGE.timer,
+        },
+        system: {
+          [EVENT_SETUP]: EDITOR_PAGE.system,
+          [EVENT_TIMER]: EDITOR_PAGE.systemTimer,
+          [EVENT_UTILITY]: EDITOR_PAGE.systemUtility,
+        },
+      },
+    });
+    expect(again.store.clearEnabled(true)).toBe(true);
+    const beforeClear = again.fake.writes.length;
+    await throughStore(again, again.store.clearToDefault());
+    expect(again.store.phase).toBe("cleared");
+    const cleared = written(again.fake).slice(beforeClear).map(shape);
+    expect(cleared).toHaveLength(12);
+    expect(cleared.slice(0, 6)).toEqual(ramLegFrames(DEFAULTS));
+    expect(cleared.slice(6).map((f) => f[0].cls)).toEqual(STORE_CLICK_TAIL);
+    expect(again.state.flash?.[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
+    expect(again.state.systemFlash?.[EVENT_UTILITY]).toBe(
+      SYSTEM_DEFAULT_UTILITY,
+    );
+    await after(500);
+    expect(again.session.speech).toBe(liveCleared(ACTIVE_PAGE));
+  });
+
+  it("a page whose every fetch goes unanswered is ready with no copy, and Store on ZONA and Clear go ahead exactly as over a copied one (change 23)", async () => {
+    // A timeout on every fetch of the copy (the answer held back in the fake,
+    // then let through for the writes and the proof). Three rounds, each
+    // ended at the first fetch's three bounded attempts; no copy.
+    const mute = { on: true };
+    const rig = await connected({
+      wrap: (inner) => (outbound, id) =>
+        mute.on &&
+        outbound.class_name === "CONFIG" &&
+        outbound.class_instr === "FETCH"
+          ? []
+          : inner(outbound, id),
+    });
+    const { store, fake, state, storage, session } = rig;
+    expect(store.phase).toBe("ready");
+    expect(store.snapshot).toBeUndefined();
+    expect(storage.map.size).toBe(0);
+    const timedOut = store.steps.filter((s) => s.outcome === "timeout");
+    expect(timedOut.map((s) => [s.id, s.attempts])).toEqual([
+      ["fetch-system-timer", RETRY_ATTEMPTS],
+      ["fetch-system-timer", RETRY_ATTEMPTS],
+      ["fetch-system-timer", RETRY_ATTEMPTS],
+    ]);
+    expect(store.clearEnabled(true)).toBe(true);
+
+    mute.on = false;
+    const beforeStore = fake.writes.length;
+    await storedOn(rig);
+    const stored = written(fake).slice(beforeStore).map(shape);
+    expect(stored).toHaveLength(18);
+    expect(stored.slice(0, 12)).toEqual(storeClickRamFrames(PAIR));
+    expect(stored.slice(12).map((f) => f[0].cls)).toEqual(STORE_CLICK_TAIL);
+    expect(state.flash?.[EVENT_TIMER]).toBe(PAIR.timer);
+    await after(500);
+    expect(session.speech).toBe(liveKept(ACTIVE_PAGE));
+
+    const beforeClear = fake.writes.length;
+    await throughStore(rig, store.clearToDefault());
+    expect(store.phase).toBe("cleared");
+    const cleared = written(fake).slice(beforeClear).map(shape);
+    expect(cleared.slice(0, 6)).toEqual(ramLegFrames(DEFAULTS));
+    expect(cleared.slice(6).map((f) => f[0].cls)).toEqual(STORE_CLICK_TAIL);
+    expect(state.flash?.[EVENT_TIMER]).toBe(TOUCH_DEFAULT_TIMER);
+  });
+
+  it("the Target page is the page read, stored and named: a switch to a page whose load is still running is read again after the module's refusal, a load that outlasts every round leaves no copy, and Store on ZONA and Clear still write the Target and name it (change 23)", async () => {
+    // Four pages: the fixture's own on page 2, the Grid Editor's on page 1
+    // (the fake files each page's flash and loads the page a switch reaches,
+    // grid_ui.c:1002-1080). The module reports the new page before its load
+    // ends (grid_ui.c:1017 sets it first) and refuses every recall until then
+    // (grid_ui.c:466-469) - `loading` counts the fetches it refuses.
+    const TO = 1;
+    const rig = await connected({
+      state: {
+        pages: {
+          [TO]: {
+            configs: {
+              [EVENT_SETUP]: EDITOR_PAGE.setup,
+              [EVENT_TIMER]: EDITOR_PAGE.timer,
+            },
+            system: {
+              [EVENT_SETUP]: EDITOR_PAGE.system,
+              [EVENT_TIMER]: EDITOR_PAGE.systemTimer,
+              [EVENT_UTILITY]: EDITOR_PAGE.systemUtility,
+            },
+          },
+        },
+      },
+    });
+    const { store, fake, state, session } = rig;
+    const beatOn = (page: number) => () => rig.push(zonaHeartbeat(page));
+    expect(store.snapshotPage).toBe(ACTIVE_PAGE);
+
+    // The switch, then the report while the load still runs: the first
+    // round's first fetch is refused (a NACK, then the empty REPORT), the
+    // second round copies the Editor's page.
+    expect(await store.switchPage(TO)).toBe(true);
+    state.loading = 1;
+    beatOn(TO)();
+    await until(
+      () =>
+        store.phase === "ready" &&
+        store.snapshotPage === TO &&
+        store.snapshot !== undefined,
+      "the copy of the new page",
+    );
+    expect(store.snapshot).toEqual(EDITOR_PAGE);
+    expect(outcomes(store.steps)).toEqual([
+      ["fetch-serial", "ok"],
+      ["fetch-system-timer", "nack"],
+      ["fetch-system-timer", "ok"],
+      ["fetch-system", "ok"],
+      ["fetch-system-utility", "ok"],
+      ["fetch-timer", "ok"],
+      ["fetch-setup", "ok"],
+    ]);
+    await after(500);
+    expect(session.speech).toBe(liveSnapshotSaved(TO));
+
+    // Back to page 2 and to page 1 again, with a load that outlasts all
+    // three rounds: no copy - and the page every sentence names is still the
+    // Target, never the page last copied (until change 23 a Store to Page 2
+    // was told about Page 3).
+    expect(await store.switchPage(ACTIVE_PAGE)).toBe(true);
+    beatOn(ACTIVE_PAGE)();
+    await until(
+      () => store.phase === "ready" && store.snapshotPage === ACTIVE_PAGE,
+      "the copy of page 2",
+    );
+    expect(store.snapshot).toEqual(ORIGINAL);
+    expect(await store.switchPage(TO)).toBe(true);
+    state.loading = 3;
+    beatOn(TO)();
+    await until(
+      () =>
+        store.pageSettled() &&
+        store.phase === "ready" &&
+        store.snapshotPage === TO,
+      "the page read without a copy",
+    );
+    await after(1000);
+    expect(store.phase).toBe("ready");
+    expect(store.snapshot, "no copy of the Target").toBeUndefined();
+    expect(store.snapshotPage, "the page named is the Target").toBe(TO);
+    expect(state.loading).toBe(0);
+
+    store.observeConfig(PAIR);
+    expect(store.armed).toBe(true);
+    const beforeStore = fake.writes.length;
+    await throughStore(rig, store.keepOnDevice(PAIR, "Aurora"), beatOn(TO));
+    expect(store.phase).toBe("kept");
+    const stored = written(fake).slice(beforeStore);
+    expect(stored).toHaveLength(18);
+    expect(
+      stored
+        .flat()
+        .filter((c) => c.class_name === "CONFIG")
+        .every((c) => Number(c.class_parameters.PAGENUMBER) === TO),
+      "every write and every fetch of the click addresses the Target",
+    ).toBe(true);
+    expect(stored.slice(0, 12).map(shape)).toEqual(storeClickRamFrames(PAIR));
+    expect(state.flash?.[EVENT_SETUP]).toBe(PAIR.setup);
+    expect(
+      state.pages?.[ACTIVE_PAGE]?.configs[EVENT_SETUP],
+      "page 2 untouched",
+    ).toBe(MODULE_SETUP);
+    await after(500);
+    expect(session.speech).toBe(liveKept(TO));
+
+    const beforeClear = fake.writes.length;
+    await throughStore(rig, store.clearToDefault(), beatOn(TO));
+    expect(store.phase).toBe("cleared");
+    expect(written(fake).slice(beforeClear)).toHaveLength(12);
+    expect(state.flash?.[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
+    await after(500);
+    expect(session.speech).toBe(liveCleared(TO));
+  });
+
+  it("the probe's put-back writes the three system slots through systemSlotString: a module's own 255/4 from a Sandbox store made before change 22 goes back as the page-next, and a copy HANGAR cannot write is refused before the wire (change 23)", async () => {
+    // BENCH-2026-09-16.txt section 24, change 22's third question, decided:
+    // a restore must not bring the broken button back.
+    const PRE_GUARD = `${PRE_GUARD_UTILITY_HEAD}function R()end`;
+    const rig = await connected({
+      state: {
+        system: {
+          [EVENT_SETUP]: MODULE_SYSTEM,
+          [EVENT_TIMER]: MODULE_SYSTEM_TIMER,
+          [EVENT_UTILITY]: PRE_GUARD,
+        },
+      },
+    });
+    const { store, fake, state } = rig;
+    expect(store.snapshot?.systemUtility, "copied as it came").toBe(PRE_GUARD);
+    await storedOn(rig);
+    const before = fake.writes.length;
+    await throughStore(rig, store.putBack());
+    expect(store.phase).toBe("restored");
+    const back = written(fake).slice(before).map(shape);
+    expect(back.slice(0, 6)).toEqual(
+      ramLegFrames({
+        ...ORIGINAL,
+        systemUtility: SYSTEM_DEFAULT_UTILITY,
+      }),
+    );
+    expect(state.systemFlash?.[EVENT_UTILITY]).toBe(SYSTEM_DEFAULT_UTILITY);
+    expect(state.systemFlash?.[EVENT_SETUP], "the rest as copied").toBe(
+      MODULE_SYSTEM,
+    );
+
+    // A Grid Editor page's copy carries a line break: the write guard refuses
+    // it and nothing leaves.
+    const editor = await connected({
+      state: {
+        configs: {
+          [EVENT_SETUP]: EDITOR_PAGE.setup,
+          [EVENT_TIMER]: EDITOR_PAGE.timer,
+        },
+      },
+    });
+    expect(editor.store.snapshot?.setup).toBe(EDITOR_PAGE.setup);
+    const framesBefore = editor.fake.writes.length;
+    await drive(editor.store.putBack());
+    expect(editor.fake.writes.length - framesBefore).toBe(0);
+    expect(editor.store.phase).toBe("ready");
   });
 
   it("nothing is written without a click, armed means Store may write, and the probe's TRY ON DEVICE writes exactly five, the system timer first and the utility third, verbatim", async () => {
@@ -2289,8 +2592,12 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(third.store.putBackState(), "while fetch-serial is pending").toBe(
       "absent",
     );
-    await until(() => settledPhase(third.store.phase), "the snapshot to fail");
-    expect(third.store.phase).toBe("snapshot-failed");
+    await until(
+      () => settledPhase(third.store.phase),
+      "the copy to be given up",
+    );
+    // Not copied, and nothing refused for it (change 23): `ready`.
+    expect(third.store.phase).toBe("ready");
     expect(third.store.snapshot).toBeUndefined();
     expect(third.store.rememberedModule).toBe(true);
     expect(
@@ -2951,43 +3258,34 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(store.clearEnabled(true)).toBe(true);
   });
 
-  it("no snapshot, no clear - and the fourteen-row enablement table", async () => {
-    // SAFE-03 BY CONSTRUCTION, over the one state that produces it honestly:
-    // the module answers a fetch of a non-active page with an empty string,
-    // canWriteBack (src/lib/protocol/write-guard.ts) refuses it, and the phase
-    // is `snapshot-failed` with no snapshot in hand. CLEAR is behind that
-    // guard by construction rather than by calling it - the guard's verdict is
-    // the second term of clearEnabled and `capable` is the third.
-    const refused = await connected({ state: { activePage: ACTIVE_PAGE + 1 } });
-    expect(refused.store.phase).toBe("snapshot-failed");
-    expect(refused.store.snapshot).toBeUndefined();
-    const framesBefore = refused.fake.writes.length;
-    const stepsBefore = refused.store.steps.length;
+  it("a page with no copy is cleared all the same - and the thirteen-row enablement table", async () => {
+    // SAFE-03'S "NO SNAPSHOT, NO CLEAR" IS RETIRED BY THE USER'S WORD (change
+    // 23, BENCH-2026-09-16.txt section 23: "Hangar SHOULD be able to rewrite
+    // (store into it) and clear configs made in Grid Editor as well"). A page
+    // whose load outlasts the copy's three rounds (every recall refused,
+    // grid_ui.c:466-469) is `ready` with no copy in hand, and CLEAR is live
+    // over it: the five defaults, the restore, the store, the proof - landing
+    // `cleared` exactly as over a copied page.
+    const uncopied = await connected({ state: { loading: 3 } });
+    expect(uncopied.store.phase).toBe("ready");
+    expect(uncopied.store.snapshot).toBeUndefined();
+    expect(uncopied.store.clearEnabled(true)).toBe(true);
+    expect(uncopied.store.clearReason(true)).toBeUndefined();
+    const framesBefore = uncopied.fake.writes.length;
+    await throughStore(uncopied, uncopied.store.clearToDefault());
+    expect(uncopied.store.phase).toBe("cleared");
+    const frames = written(uncopied.fake).slice(framesBefore).map(shape);
+    expect(frames.slice(0, 6)).toEqual(ramLegFrames(DEFAULTS));
+    expect(frames.slice(6).map((f) => f[0].cls)).toEqual(STORE_CLICK_TAIL);
+    expect(uncopied.state.flash?.[EVENT_SETUP]).toBe(TOUCH_DEFAULT_SETUP);
+    // DEGR-02, the browser half: present, disabled, with its own reason.
+    expect(uncopied.store.clearReason(false)).toBe("incapable");
 
-    expect(refused.store.clearEnabled(true)).toBe(false);
-    expect(refused.store.clearReason(true)).toBe("no-snapshot");
-    await drive(refused.store.clearToDefault());
-
-    // ZERO WRITES OF ANY CLASS, not zero of the class a clear would have used.
-    expect(
-      refused.fake.writes.length - framesBefore,
-      "a clear over an uncopied module",
-    ).toBe(0);
-    expect(refused.store.phase, "and it changed no phase").toBe(
-      "snapshot-failed",
-    );
-    expect(
-      refused.store.steps.length - stepsBefore,
-      "it did not even read the module - unlike TRY ON DEVICE, a clear from snapshot-failed retries nothing",
-    ).toBe(0);
-    // DEGR-02, the browser half of the same verdict: present, disabled, with
-    // its own reason.
-    expect(refused.store.clearReason(false)).toBe("incapable");
-
-    // The whole partition, over every phase the machine has. A fifteenth phase
-    // added without a row here fails on the source scan below rather than
-    // quietly defaulting to disabled (fifteen until 2026-09-16, when the
-    // store's `unconfirmed` left by the user's word - change 3).
+    // The whole partition, over every phase the machine has. A fourteenth
+    // phase added without a row here fails on the source scan below rather
+    // than quietly defaulting to disabled (fifteen until 2026-09-16, when the
+    // store's `unconfirmed` left by the user's word - change 3; fourteen
+    // until 2026-09-27, when `snapshot-failed` left the same way - change 23).
     const ENABLED: InstallPhase[] = [
       "ready",
       "settled",
@@ -3004,9 +3302,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       "snapshotting",
       "writing",
       "lost",
-      "snapshot-failed",
     ];
-    expect(ENABLED.length + DISABLED.length, "fourteen states").toBe(14);
+    expect(ENABLED.length + DISABLED.length, "thirteen states").toBe(13);
 
     const declaration = stripComments(sourceOf("./install.svelte.ts"));
     const union = declaration.slice(
@@ -3026,9 +3323,9 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // one of them (plan 10-13). The copy rule is that no string names a
     // control that is not on the screen, and install-copy.spec.ts asserts that
     // the body names PUT BACK; this is the half that makes the pairing true -
-    // in `cleared` PUT BACK is not merely present, it is ENABLED, and it is so
-    // by construction rather than by coincidence, because a snapshot in hand
-    // is the second term of CLEAR's own enablement rule.
+    // in `cleared` PUT BACK is not merely present, it is ENABLED, because
+    // this rig holds a copy (PUT BACK's own term; CLEAR has not needed one
+    // since change 23).
     store.phase = "cleared";
     expect(
       store.putBackState(),
@@ -3042,35 +3339,30 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
       true,
     );
     // Store on ZONA's own predicate is `armed` (#storeRefusal: the writable
-    // phases plus snapshot-failed, a session, the page at rest, a pair inside
-    // 908); the probe's TRY has none here on purpose - its enablement is the
-    // probe's. device-ui.spec.ts holds the zone from the other side.
+    // phases, a session, the page at rest, a pair inside 908); the probe's
+    // TRY has none here on purpose - its enablement is the probe's.
+    // device-ui.spec.ts holds the zone from the other side.
 
-    for (const phase of ENABLED) {
-      store.phase = phase;
-      expect(store.clearEnabled(true), `${phase} should enable CLEAR`).toBe(
-        true,
-      );
-      expect(
-        store.clearReason(true),
-        `${phase} named a reason`,
-      ).toBeUndefined();
-    }
-    for (const phase of DISABLED) {
-      store.phase = phase;
-      expect(store.clearEnabled(true), `${phase} should disable CLEAR`).toBe(
-        false,
-      );
-    }
-    // And the snapshot term dominates the phase term: with no copy of the
-    // module, not one of the fourteen enables the control.
-    store.snapshot = undefined;
-    for (const phase of [...ENABLED, ...DISABLED]) {
-      store.phase = phase;
-      expect(store.clearEnabled(true), `${phase} enabled without a copy`).toBe(
-        false,
-      );
-      expect(store.clearReason(true)).toBe("no-snapshot");
+    // The same partition with a copy in hand and without one: no row of the
+    // table asks for a copy (change 23).
+    for (const copy of [ORIGINAL, undefined]) {
+      store.snapshot = copy;
+      for (const phase of ENABLED) {
+        store.phase = phase;
+        expect(store.clearEnabled(true), `${phase} should enable CLEAR`).toBe(
+          true,
+        );
+        expect(
+          store.clearReason(true),
+          `${phase} named a reason`,
+        ).toBeUndefined();
+      }
+      for (const phase of DISABLED) {
+        store.phase = phase;
+        expect(store.clearEnabled(true), `${phase} should disable CLEAR`).toBe(
+          false,
+        );
+      }
     }
   });
 
@@ -3446,7 +3738,7 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     }
   });
 
-  it("CLEAR writes five defaults and PUT BACK five originals in SLOTS order, the classifier reads the first, the third and the fourth write, and the phase list is 13-12's less the store's unconfirmed", async () => {
+  it("CLEAR writes five defaults and PUT BACK five originals in SLOTS order, the classifier reads the first, the third and the fourth write, and the phase list is 13-12's less the store's unconfirmed and the uncopied page's block", async () => {
     // THE FOURTH STRING, END TO END (12.1-07, SAFE-03 / SAFE-05 / SAFE-07),
     // AND THE FIFTH (13-17):
     // one test that reads the write order OFF THE LIST rather than from a
@@ -3583,7 +3875,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     // 13-12'S STATES, LESS ONE: WRITABLE_PHASES is the list as 13-12 left it
     // (read from HEAD 98e3868 at this plan's start and pinned here as text)
     // with `unconfirmed` gone - the user's word on 2026-09-16 (change 3,
-    // BENCH-2026-09-16.txt section 3) - and the union has fourteen.
+    // BENCH-2026-09-16.txt section 3) - and the union has thirteen since
+    // change 23 took `snapshot-failed` out (section 23, the user's word).
     const source = sourceOf("./install.svelte.ts");
     const list = source.match(
       /const WRITABLE_PHASES: readonly InstallPhase\[\] = \[[^\]]*\];/,
@@ -3610,8 +3903,8 @@ describe("InstallStore: the snapshot, the two RAM clicks, and the way back (SAFE
     expect(union, "the phase union is declared").not.toBeNull();
     expect(
       (union?.[1].match(/\| "/g) ?? []).length,
-      "fourteen phases: 13-12's fifteen less the store's unconfirmed",
-    ).toBe(14);
+      "thirteen phases: 13-12's fifteen less the store's unconfirmed and snapshot-failed",
+    ).toBe(13);
   });
 
   // -------------------------------------------------------------------------

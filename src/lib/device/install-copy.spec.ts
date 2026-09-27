@@ -49,7 +49,6 @@ import {
   restoredCaption,
   restoredUnconfirmedBlock,
   settledCaption,
-  snapshotFailedBlock,
   stepOrClear,
   type ClearReason,
   type FailedWords,
@@ -179,6 +178,12 @@ const RETIRED_UNCONFIRMED = [
   ["unconfirmed", "Block"].join(""),
   ["FIRMWARE_DEFAULT", "_NAME"].join(""),
 ];
+/** Assembled: the uncopied page's three names, retired 2026-09-27 (change 23) by the user's word - not exported, named in the header. */
+const RETIRED_UNCOPIED = [
+  ["SNAPSHOT_FAILED", "_TITLE"].join(""),
+  ["snapshotFailed", "Block"].join(""),
+  ["no-", "snapshot"].join(""),
+];
 /** Assembled: the store confirmation's six names, retired 2026-09-16 (change 2) by the user's word - not exported, named in the header. */
 const RETIRED_CONFIRMATION = [
   ["NOT_NOW", "_LABEL"].join(""),
@@ -217,7 +222,6 @@ const SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
     PAGE,
   ],
   lostBlock: [false, HEADER_LABEL, PAGE],
-  snapshotFailedBlock: [PAGE],
   keepLineEnabled: [PAGE],
   clearLine: [PAGE],
   liveSnapshotSaved: [PAGE],
@@ -342,7 +346,6 @@ const failureBlocks = (): readonly [string, InstallBlock][] => [
     ),
   ],
   ["lostBlock", lostBlock(false, HEADER_LABEL, PAGE)],
-  ["snapshotFailedBlock", snapshotFailedBlock(PAGE)],
 ];
 
 /**
@@ -540,7 +543,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         "partialBlock(system timer only).steps[1]",
         "lostBlock.steps[2]",
         "lostBlock(store leg).steps[2]",
-        "snapshotFailedBlock.title",
       ].sort(),
     );
     expect(ledger).toContain(
@@ -572,7 +574,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         "partialBlock(utility only).steps[0]",
         "partialBlock(page init only).steps[0]",
         "partialBlock(system timer only).steps[0]",
-        "snapshotFailedBlock.steps[0]",
       ].sort(),
     );
     expect(record).toContain(
@@ -641,6 +642,32 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         `${retired} is retired without being named`,
       ).toBe(true);
     }
+    // THE UNCOPIED PAGE IS WRITTEN LIKE ANY OTHER BY THE USER'S WORD
+    // (2026-09-27, change 23: "Hangar SHOULD be able to rewrite (store into
+    // it) and clear configs made in Grid Editor as well"). The block, its
+    // title and the Clear reason that asked for a copy first are exported by
+    // nothing and retired in the header by name with the date; the record's
+    // twenty-third section carries the word and strikes the block's detail.
+    expect(installCopySource()).toContain(
+      "THE UNCOPIED PAGE'S STRINGS ARE RETIRED BY NAME, 2026-09-27",
+    );
+    expect(record).toContain(
+      "23. Store and Clear over a page HANGAR did not write",
+    );
+    for (const retired of RETIRED_UNCOPIED) {
+      expect(
+        Object.keys(copy).includes(retired) ||
+          Object.keys(CLEAR_REASONS).includes(retired),
+        `${retired} is still exported`,
+      ).toBe(false);
+      expect(
+        installCopySource().includes(retired),
+        `${retired} is retired without being named`,
+      ).toBe(true);
+    }
+    expect(record).toContain(
+      "~~`HANGAR couldn’t read what Page 2 holds, and it won’t write over something it hasn’t copied. Nothing was written.`~~",
+    );
     expect(keptMismatchBlock(PAGE).detail).toBe(
       "Reading Page 2 back after the store gave something different. HANGAR won’t call that stored.",
     );
@@ -769,7 +796,6 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     expect(KEEP_REASONS["already-kept"]).toBe(
       "Already stored on ZONA. Change something to store it again.",
     );
-    expect(snapshotFailedBlock(PAGE).title).toBe("Nothing copied yet");
     // The two probe-only steps name the probe's action, not a click on a
     // control that does not exist.
     expect(restoredUnconfirmedBlock(PAGE).steps).toEqual([
@@ -881,7 +907,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       ["stepOrClear", stepOrClear(PAGE)],
       ["lostBlock.steps[2]", lostBlock(false, HEADER_LABEL, PAGE).steps[2]],
     ];
-    expect(clearStrings.length, "the scan has strings to scan").toBe(10);
+    // Nine since change 23: CLEAR_REASONS' no-snapshot row left.
+    expect(clearStrings.length, "the scan has strings to scan").toBe(9);
     for (const [name, text] of clearStrings) {
       for (const stem of STEMS) {
         expect(
@@ -1055,8 +1082,9 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         ).toBe(true);
       }
     }
-    // Ten since 2026-09-16 (change 3): the unconfirmed block's two named steps left with it.
-    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(10);
+    // Ten since 2026-09-16 (change 3): the unconfirmed block's two named steps left with it;
+    // nine since 2026-09-27 (change 23): the uncopied page's one left with its block.
+    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(9);
     // And every write click that prose names appears with its own case: a
     // label never appears re-cased inside a sentence. Since 13.1-06 NOTHING
     // is excused: `Put back` (excused as the register's own verb) is retired
@@ -1105,21 +1133,16 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
     }
     expect(KEEP_REASONS["already-kept"]).toContain("Change something");
 
-    // The reset's three, closed the same way, and TWO OF THEM ARE REFERENCES
+    // The reset's two (three until change 23: no-snapshot left with the
+    // precondition it named), closed the same way, and BOTH ARE REFERENCES
     // RATHER THAN RETYPED SENTENCES - asserted by identity, so a rewrite of
     // Put back's or Store on ZONA's string moves this table with it and no
     // second copy of a shipped sentence can drift.
-    const clearReasons: readonly ClearReason[] = [
-      "no-snapshot",
-      "no-session",
-      "incapable",
-    ];
-    expect(Object.keys(CLEAR_REASONS).sort(), "exactly three reasons").toEqual(
+    const clearReasons: readonly ClearReason[] = ["no-session", "incapable"];
+    expect(Object.keys(CLEAR_REASONS).sort(), "exactly two reasons").toEqual(
       [...clearReasons].sort(),
     );
-    expect(new Set(Object.values(CLEAR_REASONS)).size, "three distinct").toBe(
-      3,
-    );
+    expect(new Set(Object.values(CLEAR_REASONS)).size, "two distinct").toBe(2);
     expect(CLEAR_REASONS["no-session"], "the no-session sentence, reused").toBe(
       NEEDS_ZONA,
     );
@@ -1132,14 +1155,15 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "the no-session sentence is written twice - reference it, do not retype it",
     ).toBe(1);
 
-    // Six failure titles, each ending in a letter, each announced with the
-    // full stop added and nothing else. FIVE OF THEM ARE THE UNCERTAIN
+    // Five failure titles, each ending in a letter, each announced with the
+    // full stop added and nothing else. FOUR OF THEM ARE THE UNCERTAIN
     // OUTCOMES SECTION 16 OFFERS ONE LINE FOR - kept six by D-23, one retired
-    // by the user's word on 2026-09-16 (change 3, the unconfirmed store); the
-    // sixth is the lost cable. None names a page: a title is the same whatever
+    // by the user's word on 2026-09-16 (change 3, the unconfirmed store) and
+    // one on 2026-09-27 (change 23, the uncopied page); the fifth is the lost
+    // cable. None names a page: a title is the same whatever
     // page it happened on, and the bar reads it with a representative page.
     const blocks = failureBlocks();
-    expect(blocks.length, "the six failure builders").toBe(6);
+    expect(blocks.length, "the five failure builders").toBe(5);
     const titles: string[] = [];
     for (const [name, block] of blocks) {
       expect(block.title, `${name} has no title`).not.toBe("");
@@ -1155,7 +1179,7 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       expect(block.steps.length, `${name} has no steps`).toBeGreaterThan(0);
       titles.push(block.title);
     }
-    expect(new Set(titles).size, "six distinct titles").toBe(6);
+    expect(new Set(titles).size, "five distinct titles").toBe(5);
     expect(
       titles.includes(
         "The device stopped responding. Your draft is safe; device state could not be verified",
@@ -1163,8 +1187,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       "section 16's one line for six outcomes is not a title - D-23 kept the six",
     ).toBe(false);
 
-    // FIVE success utterances, the 2000 ms line, and six announced titles:
-    // twelve distinct strings, the whole of what the live region can say.
+    // FIVE success utterances, the 2000 ms line, and five announced titles:
+    // eleven distinct strings, the whole of what the live region can say.
     // Two of the five are section 16's own lines spoken as sentences.
     const utterances = [
       liveSnapshotSaved(PAGE),
@@ -1175,8 +1199,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
       LIVE_STILL_WRITING,
       ...titles.map(announceTitle),
     ];
-    expect(utterances.length).toBe(12);
-    expect(new Set(utterances).size, "twelve distinct utterances").toBe(12);
+    expect(utterances.length).toBe(11);
+    expect(new Set(utterances).size, "eleven distinct utterances").toBe(11);
     for (const utterance of utterances) {
       expect(utterance.endsWith("."), `${utterance} is not a sentence`).toBe(
         true,
@@ -1271,7 +1295,8 @@ describe("the install flow's copy contract (the Bible, the batch, D-23)", () => 
         }
       }
     }
-    // Ten since 2026-09-16 (change 3): the unconfirmed block's two named steps left with it.
-    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(10);
+    // Ten since 2026-09-16 (change 3): the unconfirmed block's two named steps left with it;
+    // nine since 2026-09-27 (change 23): the uncopied page's one left with its block.
+    expect(named, "the steps do name controls").toBeGreaterThanOrEqual(9);
   });
 });

@@ -48,7 +48,6 @@ import {
   nothingLandedBlock,
   partialBlock,
   restoredUnconfirmedBlock,
-  snapshotFailedBlock,
 } from "./install-copy";
 import {
   PageTarget,
@@ -74,17 +73,21 @@ type CaptureStep = import("$lib/transport").CaptureStep;
 type DecodedClass = import("$lib/protocol").DecodedClass;
 
 /**
- * The fourteen states of 07-UI-SPEC's machine (fourteen until 10-12, fifteen
- * until 2026-09-16). `cleared` is its own state: after a clear the module
- * runs the firmware's own default, which neither `settled` nor `restored`
- * describes truthfully (A-50, D-20). `snapshot-failed` is I9's cause 4; the
- * other I9 causes are read off the session, the tuner's budget and
- * `snapshotting` / `writing` by the component. Since 2026-09-16 `settled` is
- * the /dev/install/ probe's alone, like `restored`: no route reaches a
- * RAM-only landing (the bar's clause and the anti-collapse test keep it in
- * the union by name). `unconfirmed` LEFT the union the same day
- * (BENCH-2026-09-16.txt section 3, the user's word): a store's
- * acknowledgement is not an outcome, the read-back is, so nothing lands it.
+ * The thirteen states of 07-UI-SPEC's machine (fourteen until change 23,
+ * fifteen until 2026-09-16). `cleared` is its own state: after a clear the
+ * module runs the firmware's own default, which neither `settled` nor
+ * `restored` describes truthfully (A-50, D-20). The I9 causes are read off
+ * the session, the tuner's budget and `snapshotting` / `writing` by the
+ * component. Since 2026-09-16 `settled` is the /dev/install/ probe's alone,
+ * like `restored`: no route reaches a RAM-only landing (the bar's clause and
+ * the anti-collapse test keep it in the union by name). `unconfirmed` LEFT
+ * the union the same day (BENCH-2026-09-16.txt section 3, the user's word):
+ * a store's acknowledgement is not an outcome, the read-back is, so nothing
+ * lands it. `snapshot-failed` (I9's cause 4) LEFT it with change 23 (section
+ * 23, the user's word: "Hangar SHOULD be able to rewrite (store into it) and
+ * clear configs made in Grid Editor as well"): the copy is best-effort and
+ * never a write's precondition, so a page that could not be copied lands
+ * `ready` with no copy in hand, and nothing lands the old state.
  */
 export type InstallPhase =
   | "idle"
@@ -97,7 +100,6 @@ export type InstallPhase =
   | "cleared"
   | "partial"
   | "lost"
-  | "snapshot-failed"
   | "kept-mismatch"
   | "restored-unconfirmed"
   | "nothing-landed";
@@ -148,8 +150,8 @@ interface HeavyModules {
 
 /**
  * The phases a write may start from: every settled outcome of an earlier
- * action, plus `ready`. `snapshot-failed` retries the snapshot first and
- * writes only if that lands; #pageCheck re-snapshots from the same list.
+ * action, plus `ready` - with a copy of the page in hand or without one
+ * (change 23); #pageCheck reads a new page again from the same list.
  */
 const WRITABLE_PHASES: readonly InstallPhase[] = [
   "ready",
@@ -167,6 +169,15 @@ const WRITABLE_PHASES: readonly InstallPhase[] = [
 
 /** D-12 / D-19: the re-fetch proof after a store is bounded to this many rounds (Pitfall 6). */
 const REFETCH_ROUNDS = 3;
+/**
+ * The copy's rounds (change 23): a round whose fetch is refused or answered
+ * empty is tried again after retryBackoffMs, as the store's proof is - the
+ * page load a switch starts refuses every recall while it runs
+ * (grid_ui.c:466-469), and the module reports the new page before that load
+ * ends (grid_ui.c:1017 sets it first). Three rounds, then the page is not
+ * copied, and nothing is refused for it.
+ */
+const COPY_ROUNDS = 3;
 /** Z-09: the one honest line of `writing`, and the only utterance that is not a transition. */
 const SLOW_LINE_MS = 2000;
 
@@ -237,8 +248,8 @@ export class InstallStore {
   config = $state.raw<ConfigStrings | undefined>(undefined);
   /**
    * True exactly when Store on ZONA may write (2026-09-16): a session with a
-   * queue, a writable phase (or `snapshot-failed`, which the click re-reads
-   * first), the page target at rest, the pair published and inside 908. Until
+   * queue, a writable phase (a copy of the page in hand or not, change 23),
+   * the page target at rest, the pair published and inside 908. Until
    * 2026-09-16 it meant "the module holds the pair on screen" (Z-05); that
    * predicate is `keepReason()`'s already-kept row now.
    */
@@ -321,6 +332,13 @@ export class InstallStore {
    * window is PAGE_SWITCH_WINDOW_MS, named only through the awaited module.
    */
   #target: PageTarget | undefined;
+  /**
+   * The page the last action ADDRESSED (change 23): the module's reported
+   * page when a leg started, which is the Target the visitor chose, since no
+   * write leaves while the target is not at rest (13-12). Cleared when a new
+   * page is read. #page() names it first.
+   */
+  #addressed: number | undefined;
 
   constructor(session: DeviceSession) {
     this.#session = session;
@@ -512,9 +530,11 @@ export class InstallStore {
 
   /**
    * Pitfall 4's third layer: the module's reported page differs from the
-   * snapshot's and nothing is in flight, so read the module again for the new
-   * page - PUT BACK then writes the page it snapshotted and the record gains
-   * a second entry. Never from `writing` or `snapshotting`.
+   * page last read and nothing is in flight, so read the module again for the
+   * new page - PUT BACK then writes the page it copied and the record gains a
+   * second entry. Never from `writing` or `snapshotting`. `snapshotPage` is
+   * the page READ OR TRIED since change 23, so a page that cannot be copied
+   * is read once per arrival, never once per heartbeat.
    */
   #pageCheck(): void {
     const id = this.#session.identity;
@@ -529,17 +549,31 @@ export class InstallStore {
   // --- the snapshot, in the order that gates each step ----------------------
 
   /**
-   * Each step gates the next (07-RESEARCH Code Examples 1): 1. the module
-   * names itself ("fetch-serial"; a timeout degrades to a session-only
-   * snapshot and never throws); 2. all FIVE strings come back on the module's
-   * REPORTED page and pass canWriteBack (D-03: the empty string is what a
-   * fetch of a non-active page produces; a factory module's own defaults are
-   * 24, 22 and 19 characters); 3. the set is held IN MEMORY; 4. only then is
-   * the durable record consulted, and written IF ABSENT. `ready` publishes
-   * after all of that.
+   * THE COPY, BEST-EFFORT SINCE CHANGE 23 (BENCH-2026-09-16.txt section 23,
+   * the user's word: "Hangar SHOULD be able to rewrite (store into it) and
+   * clear configs made in Grid Editor as well"). A copy of the page is taken
+   * whenever the module can give one, for this tab and the browser's record,
+   * and it is never a write's precondition: Store on ZONA and Clear go ahead
+   * over a page HANGAR could not copy exactly as over one it did. Each step
+   * gates the next (07-RESEARCH Code Examples 1): 1. the module names itself
+   * ("fetch-serial"; a timeout degrades to a session-only copy and never
+   * throws); 2. all FIVE strings come back on the module's REPORTED page and
+   * pass canCopy - a string, and not the empty shape a refused fetch produces
+   * (D-03) - for up to COPY_ROUNDS rounds; a Grid Editor configuration's
+   * line break or tab is what the module holds and is copied as it came
+   * (canWriteBack's printable rule refused exactly those pages until change
+   * 23: Andrew Huang's page 2); 3. the set is held IN MEMORY; 4. only then is
+   * the durable record consulted, and written IF ABSENT. The enumeration runs
+   * whether or not the page was copied. `ready` publishes after all of that.
+   * `snapshotPage` is the page read from the first line on, copied or not, so
+   * every sentence names the page the module is on - the Target, once a
+   * switch is confirmed (13-12).
    */
   async #snapshot(id: Identity, q: RequestQueue, gen: number): Promise<void> {
     this.phase = "snapshotting";
+    this.snapshotPage = id.activePage;
+    this.snapshot = undefined;
+    this.#addressed = undefined;
     this.#recomputeArmed();
     this.steps = [];
     const { protocolLib, transportLib } = await heavyModules();
@@ -554,19 +588,26 @@ export class InstallStore {
     }
     if (gen !== this.#generation) return;
 
-    let set: Awaited<ReturnType<Transport["fetchAll"]>>;
-    try {
-      set = await transportLib.fetchAll(q, id);
-    } catch {
+    // Up to COPY_ROUNDS reads of the five: a fetch the module refused (its
+    // NACK, a timeout) or answered with the empty shape is read again after
+    // the backoff; a dead link ends it through the generation check.
+    let set: Awaited<ReturnType<Transport["fetchAll"]>> | undefined;
+    for (let round = 0; round < COPY_ROUNDS && set === undefined; round++) {
+      if (round > 0) await this.#sleep(protocolLib.retryBackoffMs(round - 1));
       if (gen !== this.#generation) return;
-      this.#fail(
-        "snapshot-failed",
-        "timeout",
-        snapshotFailedBlock(this.#page()).title,
-      );
-      return;
+      try {
+        const read = await transportLib.fetchAll(q, id);
+        if (
+          protocolLib.canCopy(transportLib.SLOTS.map((slot) => read[slot.key]))
+            .ok
+        ) {
+          set = read;
+        }
+      } catch {
+        // Refused or unanswered: the next round, or no copy.
+      }
+      if (gen !== this.#generation) return;
     }
-    if (gen !== this.#generation) return;
 
     // THE ENUMERATION (13-12), once per connection, after the five fetches
     // (their step ids read as before) and before `ready`. A read, never a
@@ -578,18 +619,19 @@ export class InstallStore {
     }
     if (gen !== this.#generation) return;
 
-    // D-03 over Z-16: an empty string is refused BEFORE the record is
-    // consulted, so a remembered module whose RAM reads empty on this page is
-    // not offered its own record (deferred to 07-13). One guard per SLOTS row.
-    const guard = protocolLib.canWriteBack(
-      transportLib.SLOTS.map((slot) => set[slot.key]),
-    );
-    if (!guard.ok) {
-      this.#fail(
-        "snapshot-failed",
-        "timeout",
-        snapshotFailedBlock(this.#page()).title,
-      );
+    if (set === undefined) {
+      // NO COPY OF THIS PAGE, AND NOTHING REFUSED FOR IT (change 23): no
+      // record is consulted or written, the phase is `ready`, and Store on
+      // ZONA and Clear replace whatever the page holds as they would any
+      // page. Nothing is spoken: the copy is a courtesy with no control of
+      // its own on the site since 13.1-06 (D-07).
+      this.snapshotFromV1 = false;
+      this.snapshotFromV2 = false;
+      this.snapshotFromV3 = false;
+      this.snapshotDurable = false;
+      this.cause = undefined;
+      this.phase = "ready";
+      this.#recomputeArmed();
       return;
     }
     const fetched: ConfigStrings = {
@@ -653,9 +695,16 @@ export class InstallStore {
     this.#session.announce(liveSnapshotSaved(this.#page()));
   }
 
-  /** The click on `snapshot-failed`: read the module again. Writes nothing. */
+  /**
+   * The /dev/install/ probe's read-again (its "Retry snapshot"; no route
+   * calls it): with no copy of the page in hand, from a phase a write could
+   * start from and nothing in flight, read the module again. Writes nothing.
+   * Until change 23 it was the way out of `snapshot-failed`, which Store on
+   * ZONA also took before it wrote; nothing waits for a copy now.
+   */
   async retrySnapshot(): Promise<void> {
-    if (this.phase !== "snapshot-failed") return;
+    if (this.snapshot !== undefined || this.#inFlight) return;
+    if (!WRITABLE_PHASES.includes(this.phase)) return;
     const q = this.#queue;
     const id = this.#session.identity;
     if (!q || !id || this.#session.phase !== "connected") return;
@@ -787,16 +836,17 @@ export class InstallStore {
 
   /**
    * CLEAR's one enablement rule (10-UI-SPEC 10.5): phase in WRITABLE_PHASES
-   * && snapshot != null && capability.canWrite. SAFE-03 by construction: no
-   * snapshot, no clear - canWriteBack gates the snapshot FETCH
-   * (protocol/write-guard.ts) and `capable` is the browser half (DEGR-02).
-   * `connected` is not a fourth term: every phase reachable without a session
-   * is outside WRITABLE_PHASES, and clearToDefault() checks the queue anyway.
+   * && capability.canWrite && the page target at rest. `capable` is the
+   * browser half (DEGR-02). SAFE-03's third term - no snapshot, no clear - is
+   * retired by the user's word (change 23, BENCH-2026-09-16.txt section 23:
+   * Clear resets a page the Grid Editor wrote, copied or not); the next gate
+   * amends SAFE-03. `connected` is not a term: every phase reachable without
+   * a session is outside WRITABLE_PHASES, and clearToDefault() checks the
+   * queue anyway.
    */
   clearEnabled(capable: boolean): boolean {
     return (
       WRITABLE_PHASES.includes(this.phase) &&
-      this.snapshot !== undefined &&
       capable &&
       // 13-12: and the page target at rest - a clear resets the page the
       // module is ON.
@@ -805,18 +855,19 @@ export class InstallStore {
   }
 
   /**
-   * Why CLEAR is disabled, or undefined when live: 10-UI-SPEC 10.5's three
-   * reasons in precedence order. Two disabled moments name no reason -
-   * `writing`, and since 13-12 a page target not at rest - and the component
-   * disables and holds its last line through both.
+   * Why CLEAR is disabled, or undefined when live: 10-UI-SPEC 10.5's reasons
+   * in precedence order, two since change 23 (`no-snapshot` left with the
+   * precondition it named). Three disabled moments name no reason -
+   * `writing`, the copy being read (`snapshotting`), and since 13-12 a page
+   * target not at rest - and the component disables and holds its last line
+   * through them.
    */
   clearReason(capable: boolean): ClearReason | undefined {
     if (this.clearEnabled(capable)) return undefined;
     if (!capable) return "incapable";
-    if (this.snapshot === undefined) return "no-snapshot";
-    // 13-12: a pending page target with a session and a snapshot in hand has
-    // no word in the closed record on purpose - the destination zone carries
-    // that line, and Clear.svelte disables on `applyReady`.
+    // 13-12: a pending page target with a session has no word in the closed
+    // record on purpose - the destination zone carries that line, and
+    // Clear.svelte disables on `applyReady`.
     if (this.#queue && this.#session.phase === "connected") return undefined;
     return "no-session";
   }
@@ -843,11 +894,17 @@ export class InstallStore {
   }
 
   /**
-   * The page the copy names: the snapshot's page (install-copy D-23). The 0
-   * stands in only for the snapshot-failed title, which names no page.
+   * The page every sentence names (install-copy D-23), since change 23 the
+   * page the visitor chose (BENCH-2026-09-16.txt section 23): the page the
+   * last action ADDRESSED - the module's reported page when its leg started,
+   * which is the Target, because no write leaves while the target is not at
+   * rest (13-12) - else the page last read, which follows the Target from the
+   * first line of every read. Until change 23 it was the page last COPIED,
+   * which a copy that failed left behind: a Store to Page 2 said "Page 3".
+   * The 0 stands in before any page has been read.
    */
   #page(): number {
-    return this.snapshotPage ?? 0;
+    return this.#addressed ?? this.snapshotPage ?? 0;
   }
 
   /**
@@ -907,6 +964,7 @@ export class InstallStore {
     this.action = "discard";
     this.leg = "ram";
     this.cause = undefined;
+    this.#addressed = id.activePage;
     this.phase = "writing";
     this.#recomputeArmed();
     this.steps = [];
@@ -956,20 +1014,14 @@ export class InstallStore {
    * The refusal list every write reads, first match wins. Over budget never
    * reaches the queue (TUNE-05, D-10): `configMax` is CONFIG_MAX from the
    * awaited protocol module, and sendConfig refuses at the same constant from
-   * the other side.
+   * the other side. No row asks for a copy of the page (change 23).
    */
   #tryRefusal(
     config: ConfigStrings | undefined,
     configMax: number,
-    rereads = false,
   ): TryRefusal | undefined {
     if (config === undefined) return "measuring";
-    if (
-      !WRITABLE_PHASES.includes(this.phase) &&
-      !(rereads && this.phase === "snapshot-failed")
-    ) {
-      return "not-writable";
-    }
+    if (!WRITABLE_PHASES.includes(this.phase)) return "not-writable";
     if (!this.#queue || this.#session.phase !== "connected")
       return "no-session";
     // 13-12: nothing writes while the page target is not at rest.
@@ -980,15 +1032,16 @@ export class InstallStore {
   }
 
   /**
-   * Store on ZONA's refusal list - `armed`'s predicate: #tryRefusal's, with
-   * `snapshot-failed` admitted because the click re-reads the module first
-   * and writes only if that lands `ready` (SAFE-03 by the retry).
+   * Store on ZONA's refusal list - `armed`'s predicate: #tryRefusal's. Until
+   * change 23 it admitted `snapshot-failed` because the click re-read the
+   * module first and wrote only if that landed a copy; a page is written
+   * copied or not since then (BENCH-2026-09-16.txt section 23).
    */
   #storeRefusal(
     config: ConfigStrings | undefined,
     configMax: number,
   ): TryRefusal | undefined {
-    return this.#tryRefusal(config, configMax, true);
+    return this.#tryRefusal(config, configMax);
   }
 
   /**
@@ -997,16 +1050,12 @@ export class InstallStore {
    * the three system slots substituted through #systemStringOr (12-03,
    * 12.1-07, 13-17), through #ramLeg in SLOTS order, landing `settled` with
    * `lastWritten` and `name` set. Refuses on #tryRefusal's list without
-   * touching the queue; from `snapshot-failed` it reads the module again
-   * first and writes only if that lands `ready`.
+   * touching the queue.
    */
   async tryOnDevice(
     config: ConfigStrings | undefined,
     name: string,
   ): Promise<void> {
-    if (this.phase === "snapshot-failed" && config !== undefined) {
-      await this.retrySnapshot();
-    }
     const { protocolLib } = await heavyModules();
     if (this.#tryRefusal(config, protocolLib.CONFIG_MAX) !== undefined) return;
     if (config === undefined) return;
@@ -1038,6 +1087,16 @@ export class InstallStore {
    * leaves it set, so the next put-back stores again. Since 2026-09-16
    * (change 3) a late acknowledgement alone lands nothing: the read-back
    * decides. LIVE_RESTORED is spoken once, on entry to `restored`.
+   *
+   * THE THREE SYSTEM SLOTS GO THROUGH #systemStringOr (change 23; the
+   * decision on change 22's third question, BENCH-2026-09-16.txt section
+   * 24): a module's own 255/4 from a Sandbox store made before change 22 goes
+   * back as the firmware's page-next (protocol systemSlotString), so the
+   * restore never brings back a utility button that does not turn the page;
+   * every other string goes back as it was copied. And a copy HANGAR cannot
+   * write (a Grid Editor page's line break or tab; sendConfig writes
+   * printable ASCII, D-09) is refused here, before the wire - the copy guard
+   * accepts what the write guard does not (change 23).
    */
   async putBack(): Promise<void> {
     const snapshot = this.snapshot;
@@ -1051,12 +1110,29 @@ export class InstallStore {
     // page-change re-snapshot keeps these equal, and refusing is the honest
     // answer when it could not.
     if (id.activePage !== this.snapshotPage) return;
-    const ok = await this.#ramLeg("put-back", snapshot);
+    const { protocolLib, transportLib } = await heavyModules();
+    const restore: ConfigStrings = {
+      systemTimer: this.#systemStringOr(snapshot, 6, protocolLib),
+      system: this.#systemStringOr(snapshot, 0, protocolLib),
+      systemUtility: this.#systemStringOr(snapshot, 4, protocolLib),
+      setup: snapshot.setup,
+      timer: snapshot.timer,
+    };
+    const writable = protocolLib.canWriteBack(
+      transportLib.SLOTS.map((slot) => ({
+        event: slot.event,
+        label: slot.label,
+        actionString: restore[slot.key],
+        actionLength: restore[slot.key].length,
+      })),
+    );
+    if (!writable.ok) return;
+    const ok = await this.#ramLeg("put-back", restore);
     if (!ok) return;
     this.lastWritten = undefined;
     this.name = undefined;
     if (this.storedThisSession) {
-      const outcome = await this.#storeLeg("put-back", snapshot);
+      const outcome = await this.#storeLeg("put-back", restore);
       if (outcome === false) return;
       if (outcome !== "kept") {
         this.#fail(
@@ -1161,10 +1237,12 @@ export class InstallStore {
    * read-back does - #storeLeg); a RAM leg that fails lands `partial`,
    * `nothing-landed` or `lost` as any RAM leg does, and stores nothing. One click and nothing
    * opens (BENCH-2026-09-16.txt section 2): refused unless the store is armed
-   * and keepReason() names nothing; from `snapshot-failed` it reads the
-   * module again first and writes only if that lands `ready`. The whole
-   * click is one action, `keep`, and one capture (`steps` is reset by the
-   * first leg alone).
+   * and keepReason() names nothing. Over a page HANGAR could not copy - a
+   * Grid Editor configuration it could not read, say - it goes ahead exactly
+   * the same, replacing what was there (change 23, section 23): until then
+   * the click read the module again first and wrote nothing unless a copy
+   * landed. The whole click is one action, `keep`, and one capture (`steps`
+   * is reset by the first leg alone).
    */
   async keepOnDevice(
     config: ConfigStrings | undefined,
@@ -1172,9 +1250,6 @@ export class InstallStore {
   ): Promise<void> {
     if (!this.armed) return;
     if (this.keepReason(this.#capable()) !== undefined) return;
-    if (this.phase === "snapshot-failed" && config !== undefined) {
-      await this.retrySnapshot();
-    }
     // In hand since #attach (armed implies a queue); no await before the
     // first leg publishes `writing`.
     const protocolLib = this.#modules?.protocolLib;
@@ -1258,6 +1333,7 @@ export class InstallStore {
     this.action = action;
     this.leg = "store";
     this.cause = undefined;
+    this.#addressed = id.activePage;
     this.phase = "writing";
     this.#recomputeArmed();
     this.refetchRounds = 0;
@@ -1352,6 +1428,8 @@ export class InstallStore {
     this.action = action;
     this.leg = "ram";
     this.cause = undefined;
+    // The page this leg writes: targetOf(id) below addresses the same one.
+    this.#addressed = id.activePage;
     this.landed = undefined;
     this.failed = undefined;
     this.landedSlots = [];

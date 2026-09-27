@@ -16,9 +16,12 @@ import {
   ELEMENT_SYSTEM,
   ELEMENT_TOUCH,
   EVENT_SETUP,
+  EVENT_TIMER,
   PROTOCOL_VERSION,
   SYSTEM_DEFAULT_SETUP,
   SYSTEM_EVENTS,
+  TOUCH_DEFAULT_SETUP,
+  TOUCH_DEFAULT_TIMER,
   type DecodedClass,
 } from "$lib/protocol";
 
@@ -500,6 +503,28 @@ export interface ZonaState {
    * firmware's (grid_esp32_port.c:473-481) and docs/HARDWARE-AUDITION.md row 51 is where it is seen.
    */
   editorConnected?: boolean;
+  /**
+   * EVERY OTHER PAGE'S FLASH (change 23, BENCH-2026-09-16.txt section 23), keyed by page: what a switch
+   * loads, as grid_ui.c:1002-1080 loads the page it reaches from NVM. Absent means the fixture's one-page
+   * shape, unchanged: a switch reloads RAM from the one flash (powerCycle). Present, a switch files the
+   * page it leaves - its FLASH, never its unstored RAM, which a page load discards - under that page and
+   * loads the page it reaches, a page never stored answering the factory's own defaults. The active page's
+   * flash stays `flash` / `systemFlash`, so a store still lands on the page the module is on.
+   */
+  pages?: Record<number, PageFlash>;
+  /**
+   * How many CONFIG/FETCHes are answered as firmware answers them while a bulk operation - a page load -
+   * is still running (change 23): grid_ui.c:466-469 refuses the recall, and grid_decode.c:1318-1360 then
+   * sends a NACK and the REPORT anyway with nothing in it. Counted down one per fetch. Absent means none.
+   */
+  loading?: number;
+}
+
+/** One page's flash, both elements, keyed by event number as `configs` and `system` are. */
+export interface PageFlash {
+  configs: Record<number, string>;
+  /** Absent means the factory's system element (systemOf materialises it). */
+  system?: Record<number, string>;
 }
 
 /** Firmware's initial page count, in the fixture and nowhere shipped (grid_ui.c:77). */
@@ -536,6 +561,35 @@ export function powerCycle(state: ZonaState): void {
   state.system = { ...systemFlashOf(state) };
 }
 
+/**
+ * A switch on a module with several pages (change 23): the page it leaves filed under its number as its
+ * FLASH (grid_ui.c:1002-1080 reloads from NVM, so unstored RAM is gone), the page it reaches loaded into
+ * RAM and made the active page's flash. A page never stored is the factory's: the touch element's two
+ * defaults, the system element materialised by systemOf.
+ */
+function loadPage(
+  state: ZonaState,
+  pages: Record<number, PageFlash>,
+  page: number,
+): void {
+  pages[state.activePage] = {
+    configs: { ...flashOf(state) },
+    system: { ...systemFlashOf(state) },
+  };
+  const next = pages[page] ?? {
+    configs: {
+      [EVENT_SETUP]: TOUCH_DEFAULT_SETUP,
+      [EVENT_TIMER]: TOUCH_DEFAULT_TIMER,
+    },
+  };
+  delete pages[page];
+  state.activePage = page;
+  state.configs = { ...next.configs };
+  state.system = next.system ? { ...next.system } : undefined;
+  state.flash = { ...state.configs };
+  state.systemFlash = { ...systemOf(state) };
+}
+
 /** A module addressed by name, or by the global address. */
 const GLOBAL_ADDRESS = -127;
 const isMe = (outbound: DecodedClass, state: ZonaState): boolean =>
@@ -563,18 +617,39 @@ export function zonaResponder(
     const meOrGlobal = me || isGlobal(outbound);
 
     if (class_name === "CONFIG" && class_instr === "FETCH" && me) {
-      // Firmware answers a fetch of a page that is not active with an empty
-      // string rather than an error (grid_ui.c:464-501), which is exactly the
-      // shape D-09's write refusal exists to catch.
-      const config =
-        page === state.activePage ? ramRead(state, element, event) : "";
+      // Firmware refuses the recall of a page that is not active, and of any
+      // page while a bulk operation (a page load) runs (grid_ui.c:464-474),
+      // and then answers with a NACK echoing the id AND the REPORT anyway,
+      // ACTIONLENGTH 0 and nothing in it (grid_decode.c:1318-1360) - the
+      // empty shape D-09's write refusal and the copy guard exist to catch.
+      // The NACK is sent first, so a queue waiting on the fetch hears the
+      // refusal (change 23: the fixture sent the empty REPORT alone until then).
+      const loading = (state.loading ?? 0) > 0;
+      if (loading) state.loading = (state.loading ?? 0) - 1;
+      if (loading || page !== state.activePage) {
+        return [
+          configNackFrame({
+            sx: state.sx,
+            sy: state.sy,
+            lastheader: requestId,
+          }),
+          configReportFrame({
+            sx: state.sx,
+            sy: state.sy,
+            page,
+            event,
+            config: "",
+            element,
+          }),
+        ];
+      }
       return [
         configReportFrame({
           sx: state.sx,
           sy: state.sy,
           page,
           event,
-          config,
+          config: ramRead(state, element, event),
           element,
         }),
       ];
@@ -617,6 +692,10 @@ export function zonaResponder(
       // a second page's contents, stated as the fixture's limit.
       if (page === state.activePage) return [];
       if (state.pageChangeEnabled === false) return [];
+      if (state.pages) {
+        loadPage(state, state.pages, page);
+        return [];
+      }
       state.activePage = page;
       powerCycle(state);
       return [];

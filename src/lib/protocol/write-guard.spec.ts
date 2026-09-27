@@ -6,7 +6,7 @@ import {
   PRINTABLE_ASCII,
   TOUCH_EVENTS,
 } from "./constants";
-import { canWriteBack, type FetchedEvent } from "./write-guard";
+import { canCopy, canWriteBack, type FetchedEvent } from "./write-guard";
 
 const defaultConfig = (event: number): string => {
   const entry = TOUCH_EVENTS.find((e) => e.value === event);
@@ -80,5 +80,55 @@ describe("write-back guard (D-09)", () => {
     const index = [...config].findIndex((ch) => !PRINTABLE_ASCII.test(ch));
     expect(index).toBeGreaterThan(0);
     expect(refusal([timer(config)])).toContain(`index ${index}`);
+  });
+});
+
+describe("the copy guard (change 23)", () => {
+  /** A Code block with a `--` comment, as the Grid Editor stores it: the minifier keeps the line break. */
+  const EDITOR_COMMENT = "--[[@cb]]\n-- a comment\nlocal x=2 print(x)";
+
+  it("a Grid Editor configuration is a copy: a line break, a tab, a character above ASCII and 900 characters are what the module holds", () => {
+    const strings = [
+      EDITOR_COMMENT,
+      '--[[@cb]]print("a\tb")',
+      "--[[@cb]]print('café')",
+      "--[[@cb]]" + "a=1 ".repeat(224),
+    ];
+    expect(strings[3].length).toBeGreaterThan(900);
+    for (const s of strings) {
+      expect(canCopy([setup(s), timer(defaultConfig(EVENT_TIMER))])).toEqual({
+        ok: true,
+      });
+      // The write-back guard still refuses the first three: HANGAR writes
+      // printable ASCII and nothing else (descriptors.ts sendConfig).
+    }
+    expect(canWriteBack([setup(EDITOR_COMMENT)]).ok).toBe(false);
+    expect(canWriteBack([setup(strings[1])]).ok).toBe(false);
+    expect(canWriteBack([setup(strings[2])]).ok).toBe(false);
+  });
+
+  it("the refused-fetch shape is no copy: an empty string, a zero length, no string at all", () => {
+    for (const events of [
+      [
+        {
+          event: EVENT_TIMER,
+          label: "Timer",
+          actionString: "",
+          actionLength: 0,
+        },
+      ],
+      [
+        {
+          event: EVENT_TIMER,
+          label: "Timer",
+          actionString: "x",
+          actionLength: 0,
+        },
+      ],
+      [setup(undefined)],
+    ] as FetchedEvent[][]) {
+      const result = canCopy(events);
+      expect(result.ok).toBe(false);
+    }
   });
 });

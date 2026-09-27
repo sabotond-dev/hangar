@@ -27,7 +27,6 @@
     nothingLandedBlock,
     partialBlock,
     restoredUnconfirmedBlock,
-    snapshotFailedBlock,
     type InstallBlock,
     type KeepReason,
   } from "$lib/device/install-copy";
@@ -105,8 +104,16 @@
       writing,
   );
 
-  /** The page every line names, as the module reports it: the snapshot's page, else identify's; 0 before a ZONA has identified itself. */
-  const page = $derived(install.snapshotPage ?? reportedPage ?? 0);
+  /**
+   * The page every line names: the Target, the page the visitor chose (change 23,
+   * BENCH-2026-09-16.txt section 23) - the requested page while a switch is on its
+   * way, else the page last read, which is the module's own report once the switch
+   * is confirmed; identify's before any read; 0 before a ZONA has identified itself.
+   * Until change 23 it read the page last COPIED, which a failed copy left behind.
+   */
+  const page = $derived(
+    install.pageRequested ?? install.snapshotPage ?? reportedPage ?? 0,
+  );
 
   /**
    * Store's description, in precedence: a browser that cannot write, the snapshot
@@ -136,9 +143,10 @@
   });
   const shown: InstallPhase = $derived(writing ? heldPhase : install.phase);
   /**
-   * The six failure-shaped phases, one builder each (device-ui.spec.ts reads that the
+   * The five failure-shaped phases, one builder each (device-ui.spec.ts reads that the
    * three uncertain outcomes keep three bodies; the store's `unconfirmed` left on
-   * 2026-09-16, change 3); the six success phases return nothing -
+   * 2026-09-16, change 3, and `snapshot-failed` on 2026-09-27, change 23: a page
+   * HANGAR could not copy is written like any other); the six success phases return nothing -
    * their captions are the bar's device clause. The two restore phases are the
    * /dev/install/ probe's since 13.1-06. A Store's leg takes the store form of the
    * nothing-landed block; the header's Clear keeps the form it had.
@@ -163,8 +171,6 @@
         return restoredUnconfirmedBlock(page);
       case "lost":
         return lostBlock(install.leg === "store", KEEP_LABEL, page);
-      case "snapshot-failed":
-        return snapshotFailedBlock(page);
       default:
         return undefined;
     }

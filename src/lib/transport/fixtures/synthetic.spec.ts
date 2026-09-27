@@ -21,6 +21,7 @@ import {
   fetchSerialNumber,
   hostHeartbeat,
   moduleKeyOf,
+  pageActive,
   sendConfig,
   storePage,
 } from "$lib/protocol";
@@ -610,5 +611,74 @@ describe("the scripted ZONA", () => {
     expect(Number(addressed.replies[0][0].class_parameters.WORD0) >>> 0).toBe(
       0x11111111,
     );
+  });
+
+  it("a refused fetch - a page that is not active, or any page while a load runs - is a NACK echoing the id and then the empty REPORT, as firmware sends both (change 23)", () => {
+    // grid_ui.c:464-474 refuses the recall; grid_decode.c:1318-1360 sends the
+    // NACK and then the REPORT anyway, ACTIONLENGTH 0 and nothing in it.
+    const refusedShape = (replies: DecodedClass[][], id: number) => {
+      expect(replies, "two frames").toHaveLength(2);
+      const [nack] = replies[0];
+      expect(`${nack.class_name}/${nack.class_instr}`).toBe(
+        "CONFIG/NACKNOWLEDGE",
+      );
+      expect(Number(nack.class_parameters.LASTHEADER)).toBe(id);
+      const [report] = replies[1];
+      expect(`${report.class_name}/${report.class_instr}`).toBe(
+        "CONFIG/REPORT",
+      );
+      expect(Number(report.class_parameters.ACTIONLENGTH)).toBe(0);
+      expect(report.class_parameters.ACTIONSTRING ?? "").toBe("");
+    };
+    const state = zonaState();
+    const answer = zonaResponder(state);
+    const other = ask(answer, fetchConfig(0, 0, ACTIVE_PAGE + 1, EVENT_SETUP));
+    refusedShape(other.replies, other.id);
+
+    // A load that refuses two fetches: two refusals, then the page's own.
+    state.loading = 2;
+    for (let i = 0; i < 2; i++) {
+      const busy = ask(answer, fetchConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP));
+      refusedShape(busy.replies, busy.id);
+    }
+    expect(state.loading).toBe(0);
+    const done = ask(answer, fetchConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP));
+    expect(done.replies).toHaveLength(1);
+    expect(done.replies[0][0].class_parameters.ACTIONSTRING).toBe(SETUP_CONFIG);
+  });
+
+  it("with `pages`, a switch files the page it leaves as its flash and loads the page it reaches - a Grid Editor page's line break included - and a page never stored is the factory's (change 23)", () => {
+    const EDITOR = "--[[@cb]]\n-- a comment\nprint(5)";
+    const state = zonaState({
+      pages: {
+        1: { configs: { [EVENT_SETUP]: EDITOR, [EVENT_TIMER]: EDITOR } },
+      },
+    });
+    const answer = zonaResponder(state);
+    // RAM the page never stored is lost on a load; its flash is what is filed.
+    ask(
+      answer,
+      sendConfig(0, 0, ACTIVE_PAGE, EVENT_SETUP, "--[[@cb]]print(9)"),
+    );
+    ask(answer, hostHeartbeat());
+    ask(answer, pageActive(0, 0, 1));
+    expect(state.activePage).toBe(1);
+    const read = ask(answer, fetchConfig(0, 0, 1, EVENT_SETUP));
+    expect(read.replies[0][0].class_parameters.ACTIONSTRING).toBe(EDITOR);
+    expect(state.pages?.[ACTIVE_PAGE]?.configs[EVENT_SETUP]).toBe(SETUP_CONFIG);
+    // A store lands on the active page's flash only.
+    ask(answer, sendConfig(0, 0, 1, EVENT_SETUP, "--[[@cb]]print(6)"));
+    ask(answer, storePage());
+    expect(state.flash?.[EVENT_SETUP]).toBe("--[[@cb]]print(6)");
+    ask(answer, hostHeartbeat());
+    ask(answer, pageActive(0, 0, 3));
+    expect(state.pages?.[1]?.configs[EVENT_SETUP]).toBe("--[[@cb]]print(6)");
+    expect(state.configs[EVENT_SETUP], "page 4 never stored").toBe(
+      TOUCH_EVENTS.find((e) => e.value === EVENT_SETUP)?.defaultConfig,
+    );
+    expect(
+      ask(answer, fetchConfig(0, 0, 3, EVENT_SETUP, ELEMENT_SYSTEM))
+        .replies[0][0].class_parameters.ACTIONSTRING,
+    ).toBe(SYSTEM_DEFAULT_SETUP);
   });
 });

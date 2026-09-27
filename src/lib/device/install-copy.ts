@@ -16,6 +16,22 @@
 // Each entry keeps its heading and its names; the argument is in the SUMMARY
 // it points at (13.2-CONTEXT D-05).
 //
+// THE UNCOPIED PAGE'S STRINGS ARE RETIRED BY NAME, 2026-09-27
+// (BENCH-2026-09-16.txt section 23, the user's word: "Hangar SHOULD be able
+// to rewrite (store into it) and clear configs made in Grid Editor as
+// well"): SNAPSHOT_FAILED_TITLE (`Nothing copied yet`), snapshotFailedBlock
+// (its detail `HANGAR couldn’t read what Page N holds, and it won’t write
+// over something it hasn’t copied. Nothing was written.` and its step `Click
+// Store on ZONA to read it again`) and CLEAR_REASONS' no-snapshot row
+// (`Needs a copy of what is on your ZONA first.`). The phase `snapshot-failed`
+// left the install store's union with them: the copy of a page is
+// best-effort, Store on ZONA and Clear replace a page HANGAR could not copy
+// exactly as one it did, and a copy that fails is said nowhere - it had no
+// control of its own since 13.1-06 (D-07). No sentence was written in their
+// place. Every sentence names the page the visitor chose (the Target), the
+// page the write addressed; the block named the last page copied. SAFE-03's
+// "no snapshot, no clear" is the next gate's to amend.
+//
 // THE UNCONFIRMED STORE'S STRINGS ARE RETIRED BY NAME, 2026-09-16
 // (BENCH-2026-09-16.txt section 3, the user's word: "remove this, this is not
 // a true bug report, it works fine"): UNCONFIRMED_TITLE (`Your ZONA didn’t
@@ -239,10 +255,11 @@ export const clearedCaption = (page: number): string =>
   `${pageName(page)} reset to its firmware default and stored`;
 
 // ---------------------------------------------------------------------------
-// The five uncertain outcomes and the lost cable: six titles, on purpose (D-23
-// kept six uncertain; the store's unconfirmed left on 2026-09-16, the ledger
-// above; section I.5 of the batch - each has its own recovery, so each has its
-// own title and steps). Titles end in a letter; announceTitle adds the full
+// The four uncertain outcomes and the lost cable: five titles, on purpose (D-23
+// kept six uncertain; the store's unconfirmed left on 2026-09-16 and the
+// uncopied page on 2026-09-27, the ledger above; section I.5 of the batch -
+// each has its own recovery, so each has its own title and steps). Titles
+// end in a letter; announceTitle adds the full
 // stop. `name` is interpolated raw and never re-cased where a builder takes one.
 
 const KEPT_MISMATCH_TITLE = "Stored, but what read back doesn’t match";
@@ -250,8 +267,6 @@ const RESTORED_UNCONFIRMED_TITLE = "Put back in memory, not yet stored";
 const NOTHING_LANDED_TITLE = "Nothing reached your ZONA";
 const PARTIAL_TITLE = "Only part of this reached your ZONA";
 const LOST_TITLE = "Your ZONA was unplugged mid-write";
-/** I.5.7's title, reworded at 13.1-06: the fact is the copy, not the retired control. */
-const SNAPSHOT_FAILED_TITLE = "Nothing copied yet";
 
 /**
  * The step three blocks share (I.5.8, rewritten at 13.1-06 under D-07): the
@@ -353,15 +368,6 @@ export function lostBlock(
   };
 }
 
-/** The snapshot could not be taken (I.5.7): nothing written, no write until a copy exists. */
-export function snapshotFailedBlock(page: number): InstallBlock {
-  return {
-    title: SNAPSHOT_FAILED_TITLE,
-    detail: `HANGAR couldn’t read what ${pageName(page)} holds, and it won’t write over something it hasn’t copied. Nothing was written.`,
-    steps: [`Click ${KEEP_LABEL} to read it again`],
-  };
-}
-
 // ---------------------------------------------------------------------------
 // The no-session sentence (I.3.4): the header's Clear reason for no session,
 // through CLEAR_REASONS below. Written once, referenced.
@@ -410,12 +416,11 @@ export const KEEP_REASONS: Readonly<Record<KeepReason, string>> = {
 export const clearLine = (page: number): string =>
   `Returns ${pageName(page)} to its firmware default and stores it, so it stays after power-off. Your browser draft stays as it is.`;
 
-/** The three reasons, closed like KeepReason. */
-export type ClearReason = "no-snapshot" | "no-session" | "incapable";
+/** The two reasons, closed like KeepReason (three until change 23: no-snapshot left, the ledger above). */
+export type ClearReason = "no-session" | "incapable";
 
-/** Two of the three are REFERENCES, so a rewrite of the shared sentence moves this table with it. */
+/** Both are REFERENCES, so a rewrite of the shared sentence moves this table with it. */
 export const CLEAR_REASONS: Readonly<Record<ClearReason, string>> = {
-  "no-snapshot": "Needs a copy of what is on your ZONA first.",
   "no-session": NEEDS_ZONA,
   incapable: KEEP_REASONS.incapable,
 };

@@ -4729,6 +4729,20 @@ chose; (3) the cause is found and fixed where it is HANGAR's (reading a page tha
 active one, a timeout on a Grid Editor configuration's strings) so the copy succeeds whenever the
 module can give it. Queued after change 22 (both edit the install path).
 
+### The strings change 23 retired, verbatim (D-05's register)
+
+In `src/lib/device/install-copy.ts` (the ledger block "THE UNCOPIED PAGE'S STRINGS ARE RETIRED BY
+NAME, 2026-09-27"); the sample page is wire 1, read as `Page 2`. No string was written in their
+place: a page HANGAR could not copy is written like any other, and the failed copy is said nowhere.
+
+- `SNAPSHOT_FAILED_TITLE` (the block's title, I.5.7 as reworded at 13.1-06):
+  ~~`Nothing copied yet`~~
+- `snapshotFailedBlock` (its detail and its one step):
+  ~~`HANGAR couldn’t read what Page 2 holds, and it won’t write over something it hasn’t copied. Nothing was written.`~~
+  ~~`Click Store on ZONA to read it again`~~
+- `CLEAR_REASONS["no-snapshot"]` (Clear's reason while no copy was in hand):
+  ~~`Needs a copy of what is on your ZONA first.`~~
+
 24. SNAKE's step time freely chosen (2026-09-27)
 --------------------------------------------------------------------------------
 

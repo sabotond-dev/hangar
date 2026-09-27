@@ -5,7 +5,7 @@
   (D-04): install.clearToDefault() writes the firmware's own defaults (Setup 641,
   Timer 22, by event number - not emptiness) and then the same ACK-gated store
   leg as Store on ZONA (round 4c). Disabled with its reason, never hidden
-  (DEGR-02): the caption is install-copy's closed record of three, held through a
+  (DEGR-02): the caption is install-copy's closed record of two (three until change 23), held through a
   write and a pending page target; the sr-only description is never conditional.
   The box is DeviceSlot's: 44px both axes, two 14px fixed lines; nothing transitions.
   Decided at 13.1-05 (13.1-CONTEXT D-04); see .planning/phases/13.1-bench-corrections-four/13.1-05-SUMMARY.md
@@ -46,8 +46,8 @@
   /* Held through a pending page target too (13-12): the destination zone carries that state's line. */
   const shown = $derived(writing || pending ? held : reason);
 
-  /** The page the description and the busy label name, as the module reports it (the copy adds one); 0 is never read before a snapshot exists. */
-  const page = $derived(install.snapshotPage ?? 0);
+  /** The page the description and the busy label name: the Target, the page the visitor chose (change 23) - the requested page while a switch is on its way, else the page last read, the module's own report (the copy adds one); 0 before any page is read. */
+  const page = $derived(install.pageRequested ?? install.snapshotPage ?? 0);
 
   /** The caption: the shown reason from the closed record, or nothing when live. */
   const caption = $derived(shown === undefined ? "" : CLEAR_REASONS[shown]);

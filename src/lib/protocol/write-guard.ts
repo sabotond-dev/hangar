@@ -75,3 +75,36 @@ export function canWriteBack(fetched: FetchedEvent[]): WriteGuard {
   }
   return { ok: true };
 }
+
+/**
+ * Decide whether the fetched strings are a real copy of what the module holds
+ * (change 23, BENCH-2026-09-16.txt section 23). The install store's copy of a
+ * page is a courtesy, never a write's precondition, and it is not a write-back
+ * either, so it asks less than canWriteBack: a string came back, and it is not
+ * the empty shape a refused fetch produces (a page that is not the active one,
+ * or a fetch during a page load: grid_ui.c:466-474 refuses, grid_decode.c
+ * :1318-1360 sends a NACK and then the REPORT with ACTIONLENGTH 0). Anything
+ * else the module answered is what it holds, and is copied as it came: a
+ * configuration the Grid Editor stored carries a line break wherever a Code
+ * block had a `--` comment (the pinned minifier keeps the comment and its line
+ * break) and may carry a tab, and nothing but the length stops the Editor
+ * sending either (instructions.ts:163-173). canWriteBack's printable rule
+ * refused exactly those pages.
+ */
+export function canCopy(fetched: FetchedEvent[]): WriteGuard {
+  for (const { label, actionString, actionLength } of fetched) {
+    if (actionString === undefined) {
+      return {
+        ok: false,
+        reason: `${label} fetch returned no config string`,
+      };
+    }
+    if (actionString === "" || actionLength === 0) {
+      return {
+        ok: false,
+        reason: `${label} fetch returned an empty config string - the shape a refused fetch produces`,
+      };
+    }
+  }
+  return { ok: true };
+}

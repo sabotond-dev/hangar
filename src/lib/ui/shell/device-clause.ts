@@ -4,11 +4,12 @@
  * `● {draft} · {device}`; the device half is the install store's phase as ONE
  * clause, every clause install-copy.ts's own caption, busy label or failure
  * title, so the bar and the install block cannot word a state differently.
- * Fourteen phases (fifteen until 2026-09-16) against the spec's twelve rows:
- * the session's three rows are the header's control, "Draft differs" is the
+ * Thirteen phases (fifteen until 2026-09-16, fourteen until change 23 took
+ * snapshot-failed out, 2026-09-27) against the spec's twelve rows: the
+ * session's three rows are the header's control, "Draft differs" is the
  * draft clause, "Transfer uncertain" is THREE clauses (device-ui.spec.ts
- * asserts them pairwise distinct), and four phases the spec has no row for -
- * restored, restored-unconfirmed, cleared, snapshot-failed - are the safety rail.
+ * asserts them pairwise distinct), and three phases the spec has no row for -
+ * restored, restored-unconfirmed, cleared - are the safety rail.
  * Decided at 13-11; see .planning/phases/13-gui-overhaul/13-11-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -27,12 +28,11 @@ import {
   restoredCaption,
   restoredUnconfirmedBlock,
   settledCaption,
-  snapshotFailedBlock,
 } from "$lib/device/install-copy";
 
 /**
  * How the bar's dot reads a phase: `live` for a state the module confirmed
- * (the action colour), `busy` for a leg in flight, `uncertain` for the six
+ * (the action colour), `busy` for a leg in flight, `uncertain` for the five
  * titles that end without a proof (full ink, never the alarm red -
  * Z-01: the red means one thing on this page), `none` for idle.
  */
@@ -45,19 +45,19 @@ export const UNCERTAIN_PHASES: readonly InstallPhase[] = [
   "nothing-landed",
 ];
 
-/** The four phases the spec has no row for. Kept as a list so a test can name them. */
+/** The three phases the spec has no row for (four until change 23). Kept as a list so a test can name them. */
 export const UNCHARTED_PHASES: readonly InstallPhase[] = [
   "restored",
   "restored-unconfirmed",
   "cleared",
-  "snapshot-failed",
 ];
 
 /**
  * The device clause for a phase, or undefined for `idle`, which has none.
  * `page` is the page the clause names, as the module reports it (the copy
- * adds one, D-23): the snapshot's page, which the route reads off the store.
- * The six titles never name a page, so a representative 0 gives a title;
+ * adds one, D-23): the store's snapshotPage, the page last read - the Target
+ * once a switch is confirmed (change 23) - which the route reads off the store.
+ * The five titles never name a page, so a representative 0 gives a title;
  * the confirmed captions do, so they take the real one.
  */
 export function deviceClause(
@@ -95,8 +95,6 @@ export function deviceClause(
       return restoredUnconfirmedBlock(0).title;
     case "lost":
       return lostBlock(false, "", 0).title;
-    case "snapshot-failed":
-      return snapshotFailedBlock(0).title;
   }
 }
 
@@ -119,7 +117,6 @@ export function deviceTone(phase: InstallPhase): DeviceTone {
     case "nothing-landed":
     case "restored-unconfirmed":
     case "lost":
-    case "snapshot-failed":
       return "uncertain";
   }
 }
