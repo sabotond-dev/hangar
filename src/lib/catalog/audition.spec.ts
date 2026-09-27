@@ -156,8 +156,11 @@ const flat = doc.replace(/\s+/g, " ");
  * 52 -> 53 on 2026-09-27 (change 22, BENCH-2026-09-16.txt section 22): the utility
  * button changes page after a Sandbox store - five clauses (a)-(e), the Config cell
  * "any sandbox surface" again.
+ *
+ * 53 -> 54 the same day (change 24, BENCH-2026-09-16.txt section 24): SNAKE's step
+ * time at 50 and 1000 ms and the DAW's clock - five clauses (a)-(e).
  */
-const ROW_COUNT = 53;
+const ROW_COUNT = 54;
 
 /** CONT-02's floor: at least six hand-authored configurations. */
 const LUA_FLOOR = 6;
