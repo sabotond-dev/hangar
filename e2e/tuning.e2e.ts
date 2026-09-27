@@ -87,10 +87,10 @@ import {
   SHARE_SNAPSHOT,
   offeredLine,
 } from "../src/lib/tune/inspector-copy";
-// SNAKE, for the widget walk (change 16): its step time is declared
-// DESCENDING (300 220 160 110), the witness that the stepper walks the
-// rungs in value order and a typed 100 snaps to 110. snake.ts imports only
-// a type from the catalog.
+// SNAKE, for the widget walk (change 16): its step time is the stepper's
+// witness - since change 24 every 10 ms from 50 to 1000, so a typed 104
+// snaps to 100 and a typed 115 (a tie) to the lower. snake.ts imports no
+// compiler and no simulator.
 import { SNAKE } from "../src/lib/catalog/entries/snake";
 // Arc, for the CC number title (13.1-07): the values the field must offer
 // and refuse are read off the entry, never typed here. arc.ts imports only
@@ -876,29 +876,33 @@ test.describe("turning a knob", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("every widget kind, walked (change 16): a typed 100 snaps to SNAKE's 110, the boxes and the arrows step in value order, End is the top rung, a word is refused, the reset box and the lock work, a segment is one click, the chip opens the palette, the sections read in order, a select lands on its option, and every control hits 44px", async ({
+  test("every widget kind, walked (change 16): a typed 104 snaps to SNAKE's 100, the boxes and the arrows step in value order, End is the top rung, a word is refused, the reset box and the lock work, a segment is one click, the chip opens the palette, the sections read in order, a select lands on its option, and every control hits 44px", async ({
     page,
   }) => {
     // The reworked rows on the deployed bytes, one walk per widget kind at
     // the desktop width (the phone width is tuning-webkit.e2e.ts's). SNAKE
-    // is the witness for the stepper: its step time is declared DESCENDING
-    // (300 220 160 110 ms), so "up" must be the next LARGER value whatever
-    // the declared order, and a typed 100 must land on 110 - the nearest
-    // declared rung, never between two. tune-ui.spec.ts holds the rule
-    // (nearestRung, valueOrder); this is the wiring, pressed.
+    // is the witness for the stepper: since change 24 its step time is every
+    // 10 ms from 50 to 1000 (96 rungs, ascending), so a typed 104 must land
+    // on 100 - the nearest declared rung, never between two - and the arrows
+    // walk it in tens. Until change 24 the ladder was declared DESCENDING
+    // (300 220 160 110) and witnessed the value order here too; tune-ui.spec.ts
+    // and view.spec.ts hold that rule on their own fixtures (nearestRung,
+    // valueOrder); this is the wiring, pressed.
     const consoleErrors = collectErrors(page);
     const speed = SNAKE.knobs.find((knob) => knob.id === "speed");
     expect(speed, "SNAKE carries a step time knob").toBeDefined();
-    expect(speed!.values).toEqual(["300", "220", "160", "110"]);
-    expect(speed!.default).toBe(1);
+    expect(speed!.values).toEqual(
+      Array.from({ length: 96 }, (_, i) => String(50 + 10 * i)),
+    );
+    expect(speed!.default).toBe(17);
     await openPanel(page, `/playground/${SNAKE.id}/`, SNAKE.id);
 
-    // THE SECTIONS, in the fixed order, only the ones SNAKE fills - no Sound since change 17B:
-    // the lowest note is the Bite output's Number, on the wire.
+    // THE SECTIONS, in the fixed order, only the ones SNAKE fills - no Sound since change 17B
+    // (the lowest note is the Bite output's Number, on the wire), Sync since change 24.
     await expect(
       page.locator("[data-testid='shell-inspector'] h3"),
-      "the sections are Look, Feel and MIDI, in that order (no Sound or Sync on SNAKE)",
-    ).toHaveText(["Look", "Feel", "MIDI"]);
+      "the sections are Look, Feel, MIDI and Sync, in that order (no Sound on SNAKE)",
+    ).toHaveText(["Look", "Feel", "MIDI", "Sync"]);
 
     // THE STEPPER. The row arrives at 220 ms with its unit beside the value.
     const row = page.getByTestId("knob-speed");
@@ -908,7 +912,7 @@ test.describe("turning a knob", () => {
     const reset = page.getByTestId("knob-speed-reset");
     const lock = page.getByTestId("knob-speed-hold");
     await expect(row).toHaveAttribute("data-widget", "stepper");
-    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(row).toHaveAttribute("data-index", "17");
     await expect(input).toHaveValue("220");
     await expect(input).toHaveAttribute("role", "spinbutton");
     await expect(input).toHaveAttribute("aria-valuetext", "220 ms");
@@ -919,59 +923,74 @@ test.describe("turning a knob", () => {
     ).toBeDisabled();
     await expect(row).toHaveAttribute("data-changed", "false");
 
-    // A typed 100, committed with Enter, snaps to 110 - index 3 in the
-    // declared order - and the field shows the rung, not the typed text.
-    await input.fill("100");
+    // A typed 104, committed with Enter, snaps to 100 - index 5 - and the
+    // field shows the rung, not the typed text; a typed 115 is a tie and
+    // goes to the lower value, 110.
+    await input.fill("104");
     await expect(row, "typing alone moves nothing").toHaveAttribute(
       "data-index",
-      "1",
+      "17",
     );
     await input.press("Enter");
     await recomputed(page);
-    await expect(row).toHaveAttribute("data-index", "3");
-    await expect(input).toHaveValue("110");
+    await expect(row).toHaveAttribute("data-index", "5");
+    await expect(input).toHaveValue("100");
     await expect(row).toHaveAttribute("data-changed", "true");
     await expect(reset).toBeEnabled();
-    await expect(down, "110 is the foot of the ladder").toBeDisabled();
+    await input.fill("115");
+    await input.press("Enter");
+    await recomputed(page);
+    await expect(row, "a tie goes to the lower value").toHaveAttribute(
+      "data-index",
+      "6",
+    );
+    await expect(input).toHaveValue("110");
 
-    // The arrows and the boxes walk the VALUE order: up from 110 is 160
-    // (index 2), the up box is 220 (index 1), End is 300 (index 0).
+    // The arrows and the boxes walk the rungs in tens: up from 110 is 120,
+    // the up box 130, End is 1000 (index 95).
     await input.focus();
     await page.keyboard.press("ArrowUp");
     await recomputed(page);
-    await expect(row).toHaveAttribute("data-index", "2");
-    await expect(input).toHaveValue("160");
+    await expect(row).toHaveAttribute("data-index", "7");
+    await expect(input).toHaveValue("120");
     await up.click();
     await recomputed(page);
-    await expect(row).toHaveAttribute("data-index", "1");
-    await expect(input).toHaveValue("220");
+    await expect(row).toHaveAttribute("data-index", "8");
+    await expect(input).toHaveValue("130");
     await input.focus();
     await page.keyboard.press("End");
     await recomputed(page);
-    await expect(row).toHaveAttribute("data-index", "0");
-    await expect(input).toHaveValue("300");
-    await expect(up, "300 is the top of the ladder").toBeDisabled();
+    await expect(row).toHaveAttribute("data-index", "95");
+    await expect(input).toHaveValue("1000");
+    await expect(up, "1000 is the top of the ladder").toBeDisabled();
     await down.click();
     await recomputed(page);
-    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(row).toHaveAttribute("data-index", "94");
+    await expect(input).toHaveValue("990");
 
     // A word is not a value: on blur the field shows the rung it was on and
     // the region never went busy.
     await input.fill("fast");
     await input.blur();
-    await expect(input).toHaveValue("220");
-    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(input).toHaveValue("990");
+    await expect(row).toHaveAttribute("data-index", "94");
     await expect(region(page)).toHaveAttribute("data-busy", "false");
-    // A typed 999 clamps to the top rung.
-    await input.fill("999");
+    // A typed 9999 clamps to the top rung, a typed 20 to the foot.
+    await input.fill("9999");
+    await input.press("Enter");
+    await recomputed(page);
+    await expect(row).toHaveAttribute("data-index", "95");
+    await input.fill("20");
     await input.press("Enter");
     await recomputed(page);
     await expect(row).toHaveAttribute("data-index", "0");
+    await expect(input).toHaveValue("50");
+    await expect(down, "50 is the foot of the ladder").toBeDisabled();
 
     // The reset box puts the row back; the lock toggles its word and state.
     await reset.click();
     await recomputed(page);
-    await expect(row).toHaveAttribute("data-index", "1");
+    await expect(row).toHaveAttribute("data-index", "17");
     await expect(row).toHaveAttribute("data-changed", "false");
     await expect(reset).toBeDisabled();
     await expect(lock).toHaveAttribute("aria-pressed", "false");
