@@ -1259,8 +1259,8 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
     // THE STORE, ON ONE CLICK (2026-09-16: the routes' one write): the five
     // firmware defaults into memory, then the surface's five in SLOTS order
     // - the TRIMMED library halves carrying runtime parts (change 10B), the
-    // runtime's 255/4, the packed Timer, the data-half Setup calling
-    // ele[#ele]:map() - then one
+    // runtime's 255/4 behind the utility guard (change 22), the packed Timer,
+    // the data-half Setup calling ele[#ele].map() - then one
     // store, proved by the read-back after a heartbeat this loop has to
     // push. The fake's two RAMs and its two flashes hold the surface's five.
     await page.getByTestId("store-on-zona").click();
@@ -1303,16 +1303,24 @@ test.describe("the Sandbox, with a ZONA that answers from Node", () => {
       "function Q(s,i,e,x,y)",
     );
     const utility = zona.state.system?.[EVENT_UTILITY] ?? "";
-    expect(utility.startsWith("--[[@cb]]"), "255/4 holds a body").toBe(true);
-    // The runtime's head is the branch table since change 17 (the contact tables are the trimmed 255/0's).
-    expect(utility, "the runtime's head").toContain("I=I or{}");
+    // Change 22: the page switch first, behind the guard - a press of the
+    // utility button (self the system element) changes page; the Setup's
+    // pull-in (no self) defines the parts after the else.
+    expect(
+      utility.startsWith("--[[@cb]]if self then gpl(gpn())else "),
+      "255/4: the page switch first, the runtime behind the guard",
+    ).toBe(true);
+    expect(utility.endsWith("end"), "255/4 closes the guard").toBe(true);
     expect(
       systemTimer + system + utility,
       "the release and the entry landed somewhere",
     ).toMatch(/R=function[\s\S]*O=function|O=function[\s\S]*R=function/);
     expect(utility).not.toBe(MODULE_SYSTEM_UTILITY);
     const setup = zona.state.configs[EVENT_SETUP];
-    expect(setup, "the data half pulls the utility in").toContain(
+    expect(setup, "the data half pulls the utility in, with no self").toContain(
+      "ele[#ele].map()",
+    );
+    expect(setup, "never as the button's own call").not.toContain(
       "ele[#ele]:map()",
     );
     expect(setup).toContain("self:tim()");
