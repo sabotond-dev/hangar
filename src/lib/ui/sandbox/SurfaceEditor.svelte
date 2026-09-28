@@ -61,6 +61,8 @@
   import { noteName } from "$lib/tune/view";
   import ContextMenu from "./ContextMenu.svelte";
   import {
+    PLATE_CAPTION_H,
+    PLATE_CAPTION_MIN_W,
     SANDBOX_DELETE_HIT,
     SANDBOX_DELETE_ICON,
     SANDBOX_HANDLE,
@@ -771,7 +773,14 @@
   }
 </script>
 
-<div class="editor" data-testid="surface-editor" data-mode={view.mode}>
+<div
+  class="editor"
+  data-testid="surface-editor"
+  data-mode={view.mode}
+  style:--plate-cap="{PLATE}px"
+  style:--caption-h="{PLATE_CAPTION_H}px"
+  style:--caption-min="{PLATE_CAPTION_MIN_W}px"
+>
   <!--
     One tab stop with its own spatial keyboard model, which is what role="application"
     tells an assistive technology; a grid of gridcells would promise 81 focusable cells
@@ -1269,25 +1278,40 @@
     id={statusId}
     role="status"
     data-testid="surface-status"
+    title={status}
   >
     {status}
   </p>
 </div>
 
 <style>
+  /*
+    The editor (change 25; layout.ts, THE CENTRE FITS THE SCREEN): the plate, its caption and its status
+    line, the last two at fixed heights so --plate-size - the plate's edge - is exact. --editor-rows is
+    what they take: the caption's 12 + 18 and the status line's 8 + two lines of 13px at 1.45. Here, the
+    stacked page's edge: the width, the 571 cap, and the viewport's height less the rows and the centre's
+    padding, so the plate is whole on screen when scrolled to. The desktop's is below.
+  */
   .editor {
+    --editor-rows: calc(12px + var(--caption-h) + 8px + 2 * 1.45 * 13px);
+    --plate-size: min(
+      100%,
+      var(--plate-cap),
+      100dvh - 2 * var(--centre-pad) - var(--editor-rows)
+    );
     display: flex;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     inline-size: 100%;
-    max-inline-size: var(--plate, 571px);
+    max-inline-size: var(--plate-cap);
   }
 
-  /* The plate: a square, the PDF's 571 at most, the workspace token under a boundary hairline; position: relative so the canvas and the SVG stack; touch-action: none so a finger is not a scroll. */
+  /* The plate: a square at the editor's edge, the PDF's 571 at most, the workspace token under a boundary hairline; position: relative so the canvas and the SVG stack; touch-action: none so a finger is not a scroll. */
   .plate {
     position: relative;
+    flex: none;
     box-sizing: border-box;
-    inline-size: 100%;
+    inline-size: var(--plate-size);
     max-inline-size: var(--plate);
     aspect-ratio: 1;
     border: 1px solid var(--color-boundary);
@@ -1590,26 +1614,69 @@
     outline: none;
   }
 
+  /*
+    The plate's caption: one line, as wide as the plate and never under PLATE_CAPTION_MIN_W while the editor
+    has it. The count stays whole at the right; the label
+    gives way first, to an ellipsis, and steps aside when the caption is narrower than the two need (the
+    label's 198px, the gap and the widest count's 95).
+  */
   .under {
     display: flex;
-    justify-content: space-between;
+    flex: none;
     align-items: baseline;
     gap: 16px;
+    inline-size: max(var(--plate-size), min(100%, var(--caption-min)));
+    block-size: var(--caption-h);
     margin-block-start: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+    container-type: inline-size;
   }
 
   .matrix {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: var(--color-ink-quiet);
   }
 
+  @container (max-width: 309.98px) {
+    .matrix {
+      display: none;
+    }
+  }
+
   .count {
+    flex: none;
+    margin-inline-start: auto;
     font-size: 13px;
     color: var(--color-ink-quiet);
   }
 
+  /* The status line: two lines held at the caption's width (change 25), the rest behind an ellipsis and in the title. */
   .status {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    flex: none;
+    overflow: hidden;
+    box-sizing: border-box;
+    inline-size: max(var(--plate-size), min(100%, var(--caption-min)));
+    block-size: calc(2 * 1.45 * 13px);
     margin: 8px 0 0;
-    min-block-size: 1.45em;
+    line-height: 1.45;
     color: var(--color-ink-quiet);
+  }
+
+  /* The desktop fits: the editor is a size container filling what the region gives it, the plate's edge read off its own box. */
+  @media (min-width: 1024px) {
+    .editor {
+      --plate-size: min(100cqi, 100cqb - var(--editor-rows), var(--plate-cap));
+      flex: 1 1 0;
+      min-block-size: 0;
+      max-inline-size: none;
+      container-type: size;
+    }
   }
 </style>

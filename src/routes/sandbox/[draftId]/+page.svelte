@@ -149,6 +149,11 @@
   import SurfaceEditor from "$lib/ui/sandbox/SurfaceEditor.svelte";
   import ToolRail from "$lib/ui/sandbox/ToolRail.svelte";
   import Rail from "$lib/ui/shell/Rail.svelte";
+  import {
+    PLATE_ASIDE_GAP,
+    PLATE_ASIDE_MAX,
+    PLATE_ASIDE_MIN,
+  } from "$lib/ui/shell/layout";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
   import type { PageData } from "./$types";
 
@@ -949,6 +954,7 @@
     fillShell({
       variant: "app",
       section: "sandbox",
+      fit: true,
       breadcrumb: ["SANDBOX", name.toUpperCase()],
       draft: draftLine,
       device: install.phase,
@@ -1072,6 +1078,9 @@
     data-depth={view.depth}
     data-unavailable={unavailable || undefined}
     data-mirror={mirror.state}
+    style:--aside-min="{PLATE_ASIDE_MIN}px"
+    style:--aside-max="{PLATE_ASIDE_MAX}px"
+    style:--aside-gap="{PLATE_ASIDE_GAP}px"
   >
     <header class="top">
       <p class="eyebrow type-micro">{EYEBROW_SANDBOX} / {name.toUpperCase()}</p>
@@ -1093,7 +1102,11 @@
               }}
             />
           {:else}
-            <h1 class="name type-page-title" data-testid="surface-name">
+            <h1
+              class="name type-page-title"
+              data-testid="surface-name"
+              title={name}
+            >
               {name}
             </h1>
             {#if !play}
@@ -1148,31 +1161,45 @@
         {/if}
       </div>
       <div class="lines">
-        <p class="sentence">{SUB_LINE}</p>
+        <p class="sentence" title={SUB_LINE}>{SUB_LINE}</p>
         <!-- The persistent, visible mode label (section 8): the sub-line's second line since round 4b, not the switch's helper - the PDF draws none there. -->
         <p
           class="mode-line type-helper"
           id="sandbox-mode-line"
           data-testid="mode-line"
+          title={play ? MODE_LINE_PLAY : MODE_LINE_EDIT}
         >
           {play ? MODE_LINE_PLAY : MODE_LINE_EDIT}
         </p>
         {#if mirroring}
-          <p class="mode-line type-helper" data-testid="mirror-status">
+          <p
+            class="mode-line type-helper"
+            data-testid="mirror-status"
+            title={mirrorStatus(
+              session.identity?.activePage,
+              mirror.lit,
+              mirror.silent,
+            )}
+          >
             {mirrorStatus(
               session.identity?.activePage,
               mirror.lit,
               mirror.silent,
             )}
           </p>
-          <p class="mode-line type-helper" data-testid="mirror-note">
+          <p
+            class="mode-line type-helper"
+            data-testid="mirror-note"
+            title={MIRROR_CANNOT}
+          >
             {MIRROR_CANNOT}
           </p>
         {/if}
       </div>
     </header>
 
-    <div class="centre">
+    <!-- The plate's region (change 25): the Play monitor or the empty surface's block beside the plate while the centre fits, under it on the stacked page. -->
+    <div class="centre" class:with-aside={play || empty}>
       <SurfaceEditor
         {view}
         onclick={(col, row, shift, alt) =>
@@ -1272,19 +1299,26 @@
     flex-wrap: wrap;
   }
 
-  /* The name and Rename: centred on each other, so Rename's 44px box and the switch's share one top and bottom. */
+  /*
+    The name and Rename: centred on each other, so Rename's 44px box and the switch's share one top and
+    bottom. The name gives way before the switches do (change 25): the block shrinks to 120px, its name
+    ending in an ellipsis, before Edit / Play and Mirror ZONA wrap onto a row of their own.
+  */
   .name-block {
     display: flex;
     align-items: center;
     gap: 16px;
-    flex: 1 1 240px;
-    min-inline-size: 0;
+    flex: 1 1 0;
+    min-inline-size: 120px;
   }
 
+  /* The name holds one line (change 25): a long one ends in an ellipsis, the whole name its title, the eyebrow's and the breadcrumb's. */
   .name {
     margin: 0;
     min-inline-size: 0;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--color-ink);
   }
 
@@ -1316,6 +1350,24 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  /*
+    The lines under the name (change 25): the sub-line - the same sentence on every surface - holds one
+    line, every line under it two, the rest behind an ellipsis and in the title.
+  */
+  .sentence,
+  .mode-line {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .sentence {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
   }
 
   .sentence {
@@ -1392,6 +1444,7 @@
     inline-size: 100%;
   }
 
+  /* The plate's region: the editor, then the aside under it on the stacked page. */
   .centre {
     display: flex;
     flex-direction: column;
@@ -1419,7 +1472,9 @@
 
   .starters {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 16px;
     margin-block-start: 8px;
   }
@@ -1429,6 +1484,7 @@
     min-block-size: 44px;
     min-inline-size: 44px;
     padding-inline: 20px;
+    white-space: nowrap;
     border: 1px solid var(--color-action);
     border-radius: 0;
     background: var(--color-action);
@@ -1462,5 +1518,59 @@
     margin-inline: 12px;
     border: 0;
     border-block-start: 1px solid var(--color-divider);
+  }
+
+  /*
+    The desktop fits (change 25; layout.ts, THE CENTRE FITS THE SCREEN): the Sandbox is the centre's
+    one flex child, its rows keep their height and the plate's region takes the rest, a size container.
+    Alone, the editor fills it and sizes its plate off its own box (SurfaceEditor.svelte). With an aside
+    - the Play monitor, or the empty surface's instruction and starters - the two stand side by side,
+    centred: the editor as wide as the plate the region allows (its height less the editor's rows, the
+    571 cap, its width less the aside's floor and the gap) and never narrower than the aside's floor,
+    so its caption and status line keep their words under a short plate, the plate centred in it; the
+    aside in what is left between its floor and its ceiling, never taller than the region, scrolling
+    inside itself when its lines do not fit.
+  */
+  @media (min-width: 1024px) {
+    .sandbox {
+      flex: 1 1 0;
+      min-block-size: 0;
+      inline-size: 100%;
+    }
+
+    .centre {
+      flex: 1 1 0;
+      min-block-size: 0;
+      container-type: size;
+    }
+
+    .centre.with-aside {
+      flex-direction: row;
+      align-items: stretch;
+      justify-content: center;
+      gap: var(--aside-gap);
+    }
+
+    .centre.with-aside > :global(.editor) {
+      flex: none;
+      inline-size: max(
+        min(
+          100cqb - var(--editor-rows),
+          var(--plate-cap),
+          100cqi - var(--aside-min) - var(--aside-gap)
+        ),
+        min(var(--aside-min), 100cqi - var(--aside-min) - var(--aside-gap))
+      );
+    }
+
+    .centre.with-aside > :global(.monitor),
+    .centre.with-aside > .empty {
+      flex: 1 1 0;
+      align-self: flex-start;
+      min-inline-size: var(--aside-min);
+      max-inline-size: var(--aside-max);
+      max-block-size: 100%;
+      overflow-y: auto;
+    }
   }
 </style>

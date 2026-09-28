@@ -19,6 +19,7 @@ export const load: PageLoad = ({ params }) => ({
   shell: {
     variant: "app" as const,
     section: "sandbox" as const,
+    fit: true,
     breadcrumb: ["SANDBOX"],
   },
 });

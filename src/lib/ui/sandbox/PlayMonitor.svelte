@@ -107,6 +107,8 @@
 <style>
   /* Under the plate at the plate's width: the panel token under a divider hairline (decorative - it bounds no control). */
   .monitor {
+    display: flex;
+    flex-direction: column;
     box-sizing: border-box;
     inline-size: 100%;
     max-inline-size: 571px;
@@ -155,8 +157,10 @@
     color: var(--color-ink-quiet);
   }
 
-  /* The lines: the mono face, tabular, newest at the top; twelve at most so the list never grows the page. */
+  /* The lines: the mono face, tabular, newest at the top; twelve at most so the list never grows the page. Beside the plate (change 25) the monitor is never taller than the plate's region and the lines scroll inside it. */
   .lines {
+    min-block-size: 0;
+    overflow-y: auto;
     margin: 12px 0 0;
     padding: 0;
     list-style: none;
