@@ -8,7 +8,8 @@
   // 13.1-05). The frame's numbers are layout.ts's as custom properties; the three breakpoints are
   // literals in the queries, held equal to BREAKPOINTS by shell.spec.ts test 5. The site root is a
   // 100dvh column (announcer, shell, footer) whose frame height is derived, never a calc (A.4).
-  // A route that declares `fit` (change 25: the card workspace, the Sandbox) gets a centre that never scrolls.
+  // A route that declares `fit` (change 25: the card workspace, the Sandbox) gets a centre that never scrolls,
+  // and since change 25b no context bar - its status and right zones are a line in the header - and the footer's strip.
   // The static imports of the session and the install store are the chunk guard's two allowed cases (config-shape.spec.ts test 13).
   // Decided at 13-05 / 13-11 / 13.1-01 / 13.1-05 (13.1-CONTEXT D-01, D-04); see .planning/phases/13.1-bench-corrections-four/13.1-05-SUMMARY.md
   import "../app.css";
@@ -78,6 +79,9 @@
    * (13.1-01, D-01) and the phone may scroll below 1024 (deferred-items D.10 open).
    */
   const fill = $derived(shell.fill ?? declared());
+
+  /** The app pages (change 25b): a fitting centre, so the bar's zones move into the header and the footer is its strip. */
+  const fitted = $derived(fill?.variant === "app" && fill.fit === true);
 </script>
 
 {#snippet clear()}
@@ -90,6 +94,20 @@
 
 {#snippet deviceActions()}
   <DeviceActions />
+{/snippet}
+
+<!-- The context bar's status and right zones, in the header on the app pages (change 25b). -->
+{#snippet headerContext()}
+  {#if fill}
+    <ContextBar
+      placement="header"
+      status={fill.status}
+      draft={fill.draft}
+      device={fill.device}
+      page={fill.page}
+      destination={fill.destination}
+    />
+  {/if}
 {/snippet}
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
@@ -118,16 +136,19 @@
         secondary={fill.secondary}
         {clear}
         {connection}
+        context={fitted ? headerContext : undefined}
       />
       {#if fill.variant === "app"}
-        <ContextBar
-          breadcrumb={fill.breadcrumb}
-          status={fill.status}
-          draft={fill.draft}
-          device={fill.device}
-          page={fill.page}
-          destination={fill.destination}
-        />
+        {#if !fitted}
+          <ContextBar
+            breadcrumb={fill.breadcrumb}
+            status={fill.status}
+            draft={fill.draft}
+            device={fill.device}
+            page={fill.page}
+            destination={fill.destination}
+          />
+        {/if}
         <div
           class="frame"
           class:no-inspector={!fill.inspector}
@@ -176,7 +197,7 @@
     GPLv3 section 6(d): the directions block lives in Footer.svelte (shell.spec.ts test 4 holds its five
     lines against git), mounted here so it is on every page that ships the bundle, filled shell or not.
   -->
-  <Footer {deviceActions} />
+  <Footer {deviceActions} strip={fitted} />
 </div>
 
 <style>

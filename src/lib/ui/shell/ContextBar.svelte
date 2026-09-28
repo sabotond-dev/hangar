@@ -9,6 +9,9 @@
   device's phase through device-clause.ts, and the bar reads nothing from a store.
   Not the install machine, not the page target: the destination is the route's
   snippet, and the zone grows the row rather than floating. A section named by its breadcrumb.
+  placement "header" (change 25b): on the app pages the bar leaves and its status and right
+  zones render inline in Header.svelte's context slot - no breadcrumb, no landmark, the same
+  two zones and the same testids, so nothing the bar said or held is lost.
   Decided at 13-05 / 13-11 (Bible section 9); see .planning/phases/13-gui-overhaul/13-11-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -26,6 +29,7 @@
     device,
     page,
     destination,
+    placement = "bar",
   }: {
     /** The left zone, one entry per crumb; joined with " / " as the PDF writes it. */
     breadcrumb?: readonly string[];
@@ -39,6 +43,8 @@
     page?: number;
     /** The right zone. Absent means the sentence, never an empty zone. */
     destination?: Snippet;
+    /** "bar": the section under the header. "header" (change 25b): the status and right zones alone, inline in the header's context slot. */
+    placement?: "bar" | "header";
   } = $props();
 
   const uid = $props.id();
@@ -56,20 +62,8 @@
   const dotted = $derived(draft !== undefined || clause !== undefined);
 </script>
 
-<section
-  class="bar"
-  aria-labelledby={crumbId}
-  data-testid="shell-context"
-  style:--context-h="{CONTEXT_H}px"
-  style:--crumb-size="{BREADCRUMB_SIZE}px"
->
-  <div class="zone crumb" data-zone="breadcrumb" id={crumbId}>
-    {#each breadcrumb as crumb, i (i)}
-      {#if i > 0}<span class="sep" aria-hidden="true">&nbsp;/&nbsp;</span>{/if}
-      <span class="crumb-word">{crumb}</span>
-    {/each}
-  </div>
-
+<!-- The status and right zones, drawn by both placements. -->
+{#snippet zones()}
   <div class="zone status" data-zone="status">
     {#if dotted}
       <span
@@ -107,7 +101,30 @@
       <span class="preview-only">{PREVIEW_ONLY}</span>
     {/if}
   </div>
-</section>
+{/snippet}
+
+{#if placement === "header"}
+  <div class="inline" data-testid="header-context">
+    {@render zones()}
+  </div>
+{:else}
+  <section
+    class="bar"
+    aria-labelledby={crumbId}
+    data-testid="shell-context"
+    style:--context-h="{CONTEXT_H}px"
+    style:--crumb-size="{BREADCRUMB_SIZE}px"
+  >
+    <div class="zone crumb" data-zone="breadcrumb" id={crumbId}>
+      {#each breadcrumb as crumb, i (i)}
+        {#if i > 0}<span class="sep" aria-hidden="true">&nbsp;/&nbsp;</span
+          >{/if}
+        <span class="crumb-word">{crumb}</span>
+      {/each}
+    </div>
+    {@render zones()}
+  </section>
+{/if}
 
 <style>
   .bar {
@@ -193,6 +210,38 @@
     color: var(--color-ink-quiet);
   }
 
+  /*
+    The header's placement (change 25b): the two zones on one line at the header's right, in its
+    register - the dotted line at 13px beside the preview sentence or the destination, as Clear's
+    and the connection control's words are. Header.svelte gives the line a row of its own beneath them.
+  */
+  .inline {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 24px;
+    min-inline-size: 0;
+  }
+
+  .inline .status {
+    font-size: 13px;
+  }
+
+  /* The destination's row sits on the header's line with the zone's 8px above it and none below: the header's own padding closes the band. */
+  .inline .destination > :global(.destination) {
+    padding-block-end: 0;
+  }
+
+  /* With the destination, the dotted line keeps to the row's middle while the zone's lines grow beneath it. */
+  .inline:has(.destination > :global(.destination)) {
+    align-items: flex-start;
+  }
+
+  .inline:has(.destination > :global(.destination)) .status {
+    min-block-size: 44px;
+    margin-block-start: 8px;
+  }
+
   /* Section 13: on narrow screens the three zones reflow to rows (a layout rule, keyed to width). */
   @media (max-width: 767.98px) {
     .bar {
@@ -208,6 +257,18 @@
 
     .status-line {
       white-space: normal;
+    }
+
+    /* In the header, the line wraps its two zones as the bar did, from the left. */
+    .inline {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      row-gap: 8px;
+    }
+
+    .inline:has(.destination > :global(.destination)) .status {
+      min-block-size: 0;
+      margin-block-start: 0;
     }
   }
 </style>

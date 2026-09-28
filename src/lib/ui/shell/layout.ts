@@ -26,6 +26,31 @@ export const CONTEXT_H = 59;
 /** Footer, about 50 tall: HANGAR / by intech studio left, the two links right. Fixed. */
 export const FOOTER_H = 50;
 
+/**
+ * THE APP PAGES' CHROME (change 25b, 2026-09-28: "Footer off the app pages,
+ * Drop the duplicate breadcrumb"). On the card workspace and in the Sandbox -
+ * the routes that declare `fit` - the context bar leaves (the eyebrow above
+ * the title and the rail carry the place) and its status and right zones take
+ * a line of their own in the header, under the row; the footer becomes one
+ * strip. Both give their height to the plate.
+ *
+ * The header's padding while it carries that line: the row's 44px controls
+ * sit where the 76px band centres them, so the row does not move between a
+ * content page and an app page; the line beneath ends this far above the rule.
+ */
+export const HEADER_CONTEXT_PAD = {
+  top: (HEADER_H - 44) / 2,
+  bottom: 10,
+} as const;
+
+/**
+ * The footer strip's line on the app pages: every footer link on one line in
+ * the licence row's 12px (GPLv3 section 6(d) keeps the source one click away
+ * on every page). Its controls are this tall at a fine pointer; under a coarse
+ * pointer the site's 44px floor holds and the strip grows to it.
+ */
+export const FOOTER_STRIP_H = 32;
+
 /** Left rail, x 0 to 224 at 1500. Fixed at 1440 and above. */
 export const RAIL_W = 224;
 

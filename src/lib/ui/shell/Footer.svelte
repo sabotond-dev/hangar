@@ -8,6 +8,11 @@
   Help & shortcuts is a disclosure (aria-expanded, aria-controls, closed) with the
   motion control under it. Prop: deviceActions, the layout's snippet (absent: no
   dead label); it renders its label and its panel row, which wraps beneath the pair.
+  strip (change 25b): on the app pages the same elements in the same order draw ONE LINE -
+  the brand, Help & shortcuts · Device actions, then the licence row at the right - in the
+  licence row's 12px, the build id the first thing to give way. Every link stays: the
+  source is one click away on every page (GPLv3 section 6(d)). A panel opens on a row
+  beneath the line. Below the compact band the page scrolls and the footer is the full one.
   Decided at 13-05 / 13-11 (GPLv3 section 6(d), D-09); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -15,13 +20,16 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import MotionControl from "../MotionControl.svelte";
-  import { FOOTER_H } from "./layout";
+  import { FOOTER_H, FOOTER_STRIP_H } from "./layout";
 
   let {
     deviceActions,
+    strip = false,
   }: {
     /** The Device actions control, handed over by the layout (DeviceActions.svelte since 13-11); absent means no label. */
     deviceActions?: Snippet;
+    /** The app pages' one-line strip (change 25b); the full two-row footer otherwise. */
+    strip?: boolean;
   } = $props();
 
   const uid = $props.id();
@@ -33,8 +41,11 @@
 
 <footer
   class="footer"
+  class:strip
   data-testid="shell-footer"
+  data-shape={strip ? "strip" : "full"}
   style:--footer-h="{FOOTER_H}px"
+  style:--strip-h="{FOOTER_STRIP_H}px"
 >
   <p class="brand">HANGAR / by intech studio</p>
 
@@ -168,5 +179,110 @@
 
   .footer > code {
     font-family: var(--font-mono);
+  }
+
+  /*
+    THE STRIP (change 25b), from the compact band up, where the centre fits the screen: one grid
+    row - the brand, Help & shortcuts, the dot, Device actions, the slack, GPLv3, Third-party
+    notices, Source, the build id, the dirty note - and a second row for whichever panel is open.
+    The build id's track is the only one that can shrink below its text, so it gives way first,
+    with an ellipsis. The actions box lets its children join the grid.
+  */
+  @media (min-width: 1024px) {
+    .strip {
+      display: grid;
+      grid-template-columns:
+        auto auto auto auto minmax(0, 1fr) auto auto auto
+        minmax(0, max-content) auto;
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 0;
+      min-block-size: 0;
+      padding-inline: 20px;
+      padding-block: 0;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .strip .actions,
+    .strip .device {
+      display: contents;
+    }
+
+    .strip > *,
+    .strip .actions > *,
+    .strip .device > :global(*) {
+      grid-row: 1;
+    }
+
+    .strip .brand {
+      grid-column: 1;
+      align-self: center;
+      min-block-size: 0;
+    }
+
+    /* 8px either side of the dot, as in the full footer; 16 between everything else. */
+    .strip .link,
+    .strip > a,
+    .strip > code,
+    .strip > span {
+      margin-inline-start: 8px;
+    }
+
+    .strip .link {
+      grid-column: 2;
+    }
+
+    .strip .dot {
+      grid-column: 3;
+    }
+
+    .strip .device > :global(button) {
+      grid-column: 4;
+    }
+
+    .strip .break {
+      display: none;
+    }
+
+    .strip > a:nth-of-type(1) {
+      grid-column: 6;
+    }
+
+    .strip > a:nth-of-type(2) {
+      grid-column: 7;
+    }
+
+    .strip > a:nth-of-type(3) {
+      grid-column: 8;
+    }
+
+    .strip > code {
+      grid-column: 9;
+      min-inline-size: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .strip > span {
+      grid-column: 10;
+    }
+
+    /* A panel opens on its own row beneath the line: the strip grows while it is open, as the full footer does. */
+    .strip .help,
+    .strip .device > :global(div) {
+      grid-row: 2;
+      grid-column: 1 / -1;
+      white-space: normal;
+    }
+  }
+
+  /* The strip's controls are its line's height at a fine pointer; a coarse pointer keeps the site's 44px floor. */
+  @media (min-width: 1024px) and (pointer: fine) {
+    .strip .link,
+    .strip > a,
+    .strip .device > :global(button) {
+      min-block-size: var(--strip-h);
+    }
   }
 </style>

@@ -1,5 +1,5 @@
 /**
- * The shell, seven tests: one frame with six regions - header, context bar,
+ * The shell, eight tests: one frame with six regions - header, context bar,
  * rail, centre, inspector, footer - mounted once in +layout.svelte and filled
  * through shell.svelte.ts. EVERY PROPORTION ASSERTED HERE IS IMPORTED FROM
  * layout.ts, never retyped. Rendered as well as scanned: svelte/server's
@@ -7,6 +7,8 @@
  * pair (test 4). Test 5 reads the frame's resolved custom properties against
  * layout.ts and scans every shell <style> for px literals; a matching literal
  * spelled some other way is not caught. Orientation is untested here (13-05-SUMMARY).
+ * Test 8 is change 25b's app pages: a fitting route has no context bar, its zones
+ * on a line of the header's, and the footer's strip with every licence link.
  * Decided at 13-05 / 13.1-05 (13-CONTEXT D-01, D-03, D-05); see .planning/phases/13-gui-overhaul/13-05-SUMMARY.md
  *
  * Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -31,7 +33,9 @@ import {
   CONNECTION_SLOT,
   CONTEXT_H,
   FOOTER_H,
+  FOOTER_STRIP_H,
   GRID_FITS_INSPECTOR,
+  HEADER_CONTEXT_PAD,
   HEADER_H,
   INSPECTOR_COMPACT_MAX,
   INSPECTOR_COMPACT_MIN,
@@ -961,5 +965,76 @@ describe("the shell: one frame, six regions, one set of numbers (src/lib/ui/shel
     expect(decls.get("container-type"), "a container for the room rule").toBe(
       "inline-size",
     );
+  });
+
+  it("8. on an app page (a route that declares fit) the context bar leaves: its status and right zones are a line of the header's after the connection zone, and the footer is its strip with every licence link (change 25b)", () => {
+    // BENCH-2026-09-16.txt section 25b: "Footer off the app pages, Drop the
+    // duplicate breadcrumb". The switch is the fill's `fit`; a content page
+    // keeps the bar and the full footer (test 1 draws one).
+    const app = renderLayout({
+      variant: "app",
+      section: "playground",
+      fit: true,
+      breadcrumb: ["PLAYGROUND", "ORBIT"],
+      device: "ready",
+      page: 2,
+    });
+    expect(count(app, "<section"), "no context bar on an app page").toBe(0);
+    expect(count(app, 'data-testid="shell-context"')).toBe(0);
+    expect(app, "and no breadcrumb").not.toContain('data-zone="breadcrumb"');
+    // The two zones, once, inside the header, after Clear and the connection
+    // control in the document (the tab order reads the row first).
+    const headerEnd = app.indexOf("</header>");
+    const line = app.indexOf('data-testid="shell-header-context"');
+    expect(line, "the header carries the line").toBeGreaterThan(-1);
+    expect(line).toBeLessThan(headerEnd);
+    expect(line).toBeGreaterThan(app.indexOf('data-testid="device-slot"'));
+    expect(count(app, 'data-zone="status"')).toBe(1);
+    expect(count(app, 'data-zone="destination"')).toBe(1);
+    expect(app.indexOf('data-zone="destination"')).toBeLessThan(headerEnd);
+    expect(app, "nothing to apply: the sentence").toContain(
+      "Preview without hardware",
+    );
+    expect(app, "the device clause rides along").toContain(
+      'data-testid="status-device"',
+    );
+    expect(app).toContain(`--context-pad-top: ${HEADER_CONTEXT_PAD.top}px`);
+    expect(
+      HEADER_CONTEXT_PAD.top * 2 + 44,
+      "the row's 44px controls sit where the 76px band centres them",
+    ).toBe(HEADER_H);
+
+    // The footer: its strip, every link and the build id still there - the
+    // source is one click away on every page (GPLv3 section 6(d)).
+    expect(count(app, "<footer"), "one footer").toBe(1);
+    expect(app).toContain('data-shape="strip"');
+    expect(app).toContain(`--strip-h: ${FOOTER_STRIP_H}px`);
+    for (const needle of [
+      'href="/LICENSE"',
+      'href="/THIRD-PARTY.md"',
+      'data-testid="commit-sha"',
+      'data-testid="footer-help"',
+      'data-testid="device-actions"',
+      "HANGAR / by intech studio",
+    ]) {
+      expect(app, needle).toContain(needle);
+    }
+    expect(app).toMatch(/href="\/source-[0-9a-f]+\.tar\.gz"/);
+
+    // A content page: the bar, no header line, the full footer.
+    const content = renderLayout({
+      variant: "app",
+      section: "playground",
+      breadcrumb: ["PLAYGROUND", "CONFIGURATIONS"],
+      status: "Browse. Preview. Make it yours.",
+    });
+    expect(count(content, 'data-testid="shell-context"')).toBe(1);
+    expect(count(content, 'data-testid="shell-header-context"')).toBe(0);
+    expect(content).toContain('data-shape="full"');
+
+    // The strip's one variable, read and never written as a literal.
+    const footer = styleOf(`${SHELL_DIR}/Footer.svelte`);
+    expect(footer).toContain("var(--strip-h)");
+    expect(footer).not.toMatch(new RegExp(`(?<![0-9.])${FOOTER_STRIP_H}px`));
   });
 });
