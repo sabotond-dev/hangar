@@ -10,12 +10,21 @@
 // leaves the column for the top layer and stays inside the viewport. On the stacked page (below 1024)
 // the page scrolls and the plate with its caption fits the viewport's height.
 //
+// CHANGE 25b (2026-09-28, section 25's tail: "Footer off the app pages, Drop the duplicate
+// breadcrumb"): on those two routes there is no context bar - its status and right zones are a line
+// of the header's, under Clear and the connection control, the row itself where the 76px band
+// centres it - and the footer is one strip, every link on one line in 12px, the build id the part
+// that gives way. Measured at 1280 x 720 and at 1024 x 768, the narrowest desktop. And on every
+// page the licence, the notices and the source archive are on screen, one click away (GPLv3 6(d)).
+//
 // Chromium only: the geometry is CSS.
 //
 // Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 import { expect, test, type Page } from "@playwright/test";
 import {
   CENTRE_PAD,
+  FOOTER_STRIP_H,
+  HEADER_H,
   PLATE_ASIDE_GAP,
   PLATE_ASIDE_MIN,
   PLATE_CAPTION_H,
@@ -311,4 +320,162 @@ test("on the stacked page (844 x 390) the page scrolls and each plate, with its 
     sandbox.plate.h + EDITOR_ROWS,
     `the Sandbox's plate ${sandbox.plate.h} and its rows fit 390 less the centre's padding`,
   ).toBeLessThanOrEqual(390 - 2 * CENTRE_PAD + 0.5);
+});
+
+/** The app pages' chrome (change 25b), read off the page. */
+function chromeOf(page: Page) {
+  return page.evaluate(() => {
+    const box = (el: Element | null): Box | null => {
+      if (el === null) return null;
+      const b = el.getBoundingClientRect();
+      return {
+        x: b.x,
+        y: b.y,
+        w: b.width,
+        h: b.height,
+        r: b.right,
+        b: b.bottom,
+      };
+    };
+    const one = (selector: string) => document.querySelector(selector);
+    const footer = one('[data-testid="shell-footer"]') as HTMLElement;
+    const lineItems = [
+      one('[data-testid="shell-footer"] .brand'),
+      one('[data-testid="footer-help"]'),
+      one('[data-testid="device-actions"]'),
+      one('[data-testid="shell-footer"] a[href="/LICENSE"]'),
+      one('[data-testid="shell-footer"] a[href="/THIRD-PARTY.md"]'),
+      one('[data-testid="shell-footer"] a[download]'),
+      one('[data-testid="commit-sha"]'),
+    ].map((el) => ({
+      text: (el?.textContent ?? "").trim(),
+      box: box(el),
+      clipped: el === null || el.scrollWidth > el.clientWidth + 0.5,
+      size: el === null ? 0 : parseFloat(getComputedStyle(el).fontSize),
+    }));
+    return {
+      bars: document.querySelectorAll('[data-testid="shell-context"]').length,
+      header: box(one('[data-testid="shell-header"]')),
+      mark: box(one('[data-testid="shell-wordmark"]')),
+      connection: box(one('[data-testid="shell-connection"]')),
+      line: box(one('[data-testid="shell-header-context"]')),
+      zone: box(one('[data-testid="shell-header"] [data-zone="destination"]')),
+      footer: box(footer),
+      shape: footer.dataset.shape,
+      lineItems,
+    };
+  });
+}
+
+for (const [width, height] of [
+  [1280, 720],
+  [1024, 768],
+] as const) {
+  test(`at ${width} x ${height} the card workspace and the Sandbox have no context bar: its zones are the header's line under the connection zone, the row where the band centres it, and the footer is one strip with every link whole (change 25b)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    const arrivals: [string, () => Promise<void>][] = [
+      ["/playground/orbit/", () => openCard(page, "orbit")],
+      [
+        "/sandbox/?new",
+        async () => {
+          await page.goto("/sandbox/?new");
+          await expect(page.getByTestId("sandbox")).toBeVisible();
+        },
+      ],
+    ];
+    for (const [route, arrived] of arrivals) {
+      await arrived();
+      await expect(page.getByTestId("shell-header-context")).toBeVisible();
+      const c = await chromeOf(page);
+      const { header, mark, connection, line, zone, footer } = c;
+      if (!header || !mark || !connection || !line || !zone || !footer) {
+        throw new Error(`${route}: a chrome region is missing`);
+      }
+      expect(c.bars, `${route}: no context bar`).toBe(0);
+      // The row: the wordmark centred where the 76px band centres it.
+      expect(
+        Math.abs(mark.y + mark.h / 2 - HEADER_H / 2),
+        `${route}: the wordmark's centre is at ${mark.y + mark.h / 2}`,
+      ).toBeLessThanOrEqual(1);
+      // The line: under the connection zone, inside the header, its right zone at the zone's right edge.
+      expect(
+        line.y,
+        `${route}: the line starts at ${line.y}, the row ends at ${connection.b}`,
+      ).toBeGreaterThanOrEqual(connection.b - 0.5);
+      expect(line.b).toBeLessThanOrEqual(header.b + 0.5);
+      expect(
+        Math.abs(zone.r - connection.r),
+        `${route}: the preview line ends at ${zone.r}, the connection zone at ${connection.r}`,
+      ).toBeLessThanOrEqual(1);
+      await expect(
+        page.getByTestId("shell-header").locator('[data-zone="destination"]'),
+      ).toHaveText("Preview without hardware");
+      // The footer: the strip, at the viewport's foot, one line tall.
+      expect(c.shape).toBe("strip");
+      expect(Math.round(footer.b), `${route}: the strip's foot`).toBe(height);
+      expect(
+        footer.h,
+        `${route}: the strip is ${footer.h} tall`,
+      ).toBeLessThanOrEqual(FOOTER_STRIP_H + 1 + 0.5);
+      // Every item on the one line, in order, none over the next, 12px, and whole but the build id.
+      const items = c.lineItems;
+      for (const item of items) {
+        if (!item.box) throw new Error(`${route}: a footer item is missing`);
+        expect(
+          item.box.y,
+          `${route}: ${item.text} is on the line`,
+        ).toBeGreaterThanOrEqual(footer.y - 0.5);
+        expect(item.box.b).toBeLessThanOrEqual(footer.b + 0.5);
+        expect(
+          item.box.r,
+          `${route}: ${item.text} ends at ${item.box.r}`,
+        ).toBeLessThanOrEqual(width + 0.5);
+        expect(item.size, `${route}: ${item.text} at 12px`).toBe(12);
+      }
+      for (let i = 1; i < items.length; i++) {
+        const a = items[i - 1].box;
+        const b = items[i].box;
+        if (!a || !b) continue;
+        expect(
+          b.x,
+          `${route}: ${items[i].text} starts at ${b.x}, over ${items[i - 1].text} ending at ${a.r}`,
+        ).toBeGreaterThanOrEqual(a.r - 0.5);
+      }
+      for (const item of items.slice(0, -1)) {
+        expect(item.clipped, `${route}: ${item.text} is whole`).toBe(false);
+      }
+    }
+  });
+}
+
+test("on every page the licence, the notices and the source archive are on screen and one click away (GPLv3 section 6(d)), the archive named by the build id", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  for (const route of [
+    "/",
+    "/playground/",
+    "/playground/orbit/",
+    "/sandbox/?new",
+    "/my-configs/",
+  ]) {
+    await page.goto(route);
+    const footer = page.getByTestId("shell-footer");
+    await expect(footer).toBeVisible();
+    const sha = (await page.getByTestId("commit-sha").textContent())?.trim();
+    expect(sha, `${route}: the build id`).toMatch(/^[0-9a-f]{7,40}$/);
+    const links = [
+      footer.getByRole("link", { name: "GPLv3" }),
+      footer.getByRole("link", { name: "Third-party notices" }),
+      footer.getByRole("link", { name: "Source" }),
+    ];
+    for (const link of links) {
+      await expect(link, `${route}: on screen`).toBeInViewport();
+    }
+    await expect(links[0]).toHaveAttribute("href", "/LICENSE");
+    await expect(links[1]).toHaveAttribute("href", "/THIRD-PARTY.md");
+    await expect(links[2]).toHaveAttribute("href", `/source-${sha}.tar.gz`);
+  }
 });

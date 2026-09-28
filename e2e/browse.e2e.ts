@@ -1705,7 +1705,7 @@ test.describe("the app frame fits the screen", () => {
       await coldGoto(page, route);
       await arrived();
       await expect(page.getByTestId("shell-frame")).toBeVisible();
-      // Fonts and two frames, so the footer's two rows have their height.
+      // Fonts and two frames, so the footer has its height (two rows; one strip on the Sandbox and the workspace since change 25b).
       await page.evaluate(
         () =>
           new Promise<void>((resolve) => {

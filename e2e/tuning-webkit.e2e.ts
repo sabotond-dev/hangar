@@ -648,9 +648,10 @@ test.describe("the whole site except install, on a phone engine", () => {
       CLEAR_REASONS.incapable,
     );
     expect(await page.getByTestId("store-on-zona").count()).toBe(0);
-    await expect(page.locator('[data-zone="destination"]')).toContainText(
-      "Preview",
-    );
+    // The preview-only line is the header's since change 25b (the bar left the app pages).
+    await expect(
+      page.getByTestId("shell-header").locator('[data-zone="destination"]'),
+    ).toContainText("Preview");
     const copyForThis = failureCopy("no-web-serial", undefined, "Connect ZONA");
     const slot = page.getByTestId("device-slot");
     await expect(slot).toHaveAttribute("data-slot", "S0a");

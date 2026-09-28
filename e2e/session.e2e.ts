@@ -1387,9 +1387,10 @@ test.describe("the shipped header on a browser with no Web Serial", () => {
     );
     expect(await page.getByTestId("destination").count()).toBe(0);
     expect(await page.getByTestId("store-on-zona").count()).toBe(0);
-    await expect(page.locator('[data-zone="destination"]')).toContainText(
-      "Preview",
-    );
+    // The preview-only line is the header's since change 25b (the bar left the app pages).
+    await expect(
+      page.getByTestId("shell-header").locator('[data-zone="destination"]'),
+    ).toContainText("Preview");
     expect(await page.locator("body").innerText()).not.toContain("Chromium");
 
     // The header a large share of visitors will see, on the record.

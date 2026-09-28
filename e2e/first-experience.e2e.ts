@@ -465,13 +465,14 @@ test.describe("a configuration's page on a browser that cannot install", () => {
     await page.keyboard.press("Escape");
     await expect(drawer).toHaveCount(0);
 
-    // No zone without a module (13.1-06): no Store (no Apply since 2026-09-16), and the bar's
-    // preview-only line in their place. Put back is on no screen (D-07).
+    // No zone without a module (13.1-06): no Store (no Apply since 2026-09-16), and the
+    // preview-only line in their place - the header's line since change 25b, the bar gone from
+    // the app pages. Put back is on no screen (D-07).
     expect(await page.getByTestId("destination").count()).toBe(0);
     expect(await page.getByTestId("store-on-zona").count()).toBe(0);
-    await expect(page.locator('[data-zone="destination"]')).toContainText(
-      "Preview",
-    );
+    await expect(
+      page.getByTestId("shell-header").locator('[data-zone="destination"]'),
+    ).toContainText("Preview");
     await expect(page.getByTestId("put-back")).toHaveCount(0);
 
     expect(consoleErrors).toEqual([]);

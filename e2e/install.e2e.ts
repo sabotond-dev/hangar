@@ -1352,7 +1352,9 @@ const keepControl = (page: Page) => page.getByTestId("store-on-zona");
 /** Store on ZONA's reason: KEEP_REASONS' sentence while disabled, hidden (and empty) while live. */
 const storeLine = (page: Page) => page.getByTestId("store-on-zona-line");
 /** The bar's device clause: every success caption, the busy label through a write (device-clause.ts). */
-const statusDevice = (page: Page) => page.getByTestId("status-device");
+/** The device clause: the header's line on the workspace since change 25b (the context bar's before). */
+const statusDevice = (page: Page) =>
+  page.getByTestId("shell-header").getByTestId("status-device");
 /** The zone's failure block: a write's title, detail and steps under the row (install-failure). */
 const failureBlock = (page: Page) => page.getByTestId("install-failure");
 const clearControl = (page: Page) => page.getByTestId("clear");
@@ -2226,8 +2228,8 @@ test.describe("the install flow on the real page, with a ZONA that answers from 
     expect(await bare.getByTestId("store-on-zona").count()).toBe(0);
     expect(await bare.getByTestId("put-back").count()).toBe(0);
     await expect(
-      bare.locator('[data-zone="destination"]'),
-      "the bar's right zone carries its preview-only line where the zone would be",
+      bare.getByTestId("shell-header").locator('[data-zone="destination"]'),
+      "the header's line (the bar's right zone until change 25b) carries its preview-only line where the zone would be",
     ).toContainText("Preview");
     // No confirmation exists to be hidden here either.
     expect(await noConfirmOnScreen(bare)).toBe(true);
@@ -2983,9 +2985,10 @@ test.describe("the install controls on the engine that can never install", () =>
     expect(HONESTY_INCAPABLE).toContain("can’t write to a ZONA");
     expect(await page.getByTestId("destination").count()).toBe(0);
     expect(await page.getByTestId("store-on-zona").count()).toBe(0);
-    await expect(page.locator('[data-zone="destination"]')).toContainText(
-      "Preview",
-    );
+    // The preview-only line is the header's since change 25b (the bar left the app pages).
+    await expect(
+      page.getByTestId("shell-header").locator('[data-zone="destination"]'),
+    ).toContainText("Preview");
     expect(await page.getByTestId("put-back").count()).toBe(0);
     // The header's disclosure names the browsers that can, and no engine
     // (the column's connect-status carried the same sentence until 13.1-06).
