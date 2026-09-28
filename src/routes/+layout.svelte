@@ -80,8 +80,18 @@
    */
   const fill = $derived(shell.fill ?? declared());
 
-  /** The app pages (change 25b): a fitting centre, so the bar's zones move into the header and the footer is its strip. */
-  const fitted = $derived(fill?.variant === "app" && fill.fit === true);
+  /**
+   * The app pages (change 25b): a fitting centre, so the bar's zones move into the header and the
+   * footer is its strip. Read off the route's DECLARED shape first: the data changes as the
+   * navigation starts, while the leaving page empties its fill in the middle of the flush that
+   * mounts the next one - off the fill, the header and the bar changed one flush late and
+   * /playground/'s onMount restored its scroll against the card's chrome, 45px short. The fill
+   * answers only where no shape is declared (shell.spec.ts renders without a request).
+   */
+  const fitted = $derived.by(() => {
+    const shape = declared() ?? fill;
+    return shape?.variant === "app" && shape.fit === true;
+  });
 </script>
 
 {#snippet clear()}
