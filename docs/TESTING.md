@@ -8870,3 +8870,103 @@ whole; (4) the names give way to 120px before the switches wrap, and the Sandbox
 every surface - clamps to one line, not two; (5) the open MIDI monitor takes two parts of the height to the plate's
 three, its panel scrolling; (6) the caps stay (600, 571); (7) `MidiMonitor.svelte`, `PlayMonitor.svelte` and
 `ContextMenu.svelte` moved beyond the named files. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
+
+## 2026-09-28 change 25b - the app pages give the context bar and the footer's height to the plate
+
+`BENCH-2026-09-16.txt` section 25, the Done paragraph "25b". Outside the GSD cycle, no plan file. No push, no device,
+no deploy; `src/vendor/`, `library.ts`, every catalog entry, `sequence.ts`, the manifest, `pad-sim.ts`,
+`firmware-oracle.spec.ts` and the Sandbox runtime Lua untouched; no `border-radius`. Commits, each `git commit --only`
+on its paths: `93f2708` feat(shell) the header's line and the footer's strip; `3a07d04` test(e2e); `0e8ca9f` fix(shell)
+the chrome switches with the declared shape; `bfaf826` chore(gate) `QUICK_TESTS` 1139; `9f75977` fix(shell) the class
+`in-header`; `87a040f` chore(gate) the records `gate/change-25b.*` (before, at `7d41bff`, clean) and
+`gate/change-25b-after.*` (at `9f75977`, clean); then this section and the Done paragraph.
+
+**The switch** is the route's `fit` (change 25), read off the route's DECLARED shape (`+page.ts` data) and the fill
+only where nothing is declared. On the card workspace and in the Sandbox: no context bar; its status zone (the dotted
+line - the Sandbox's draft clause, the device clause) and its right zone (the destination - Target, Store on ZONA, its
+reason, refusal, switching and still-writing lines and a failure's block - or "Preview without hardware") render
+through `ContextBar.svelte`'s new `placement="header"` as a line of the header's, right-aligned under Clear and the
+connection control and after them in the document (tab order reads the row first). The row does not move: the header
+pads 16 above the 44px controls (where the 76px band centres them) and 10 under the line (`HEADER_CONTEXT_PAD`). The
+footer is one strip (`FOOTER_STRIP_H` 32, 33 with its rule): a one-row grid - HANGAR / by intech studio, Help &
+shortcuts · Device actions, the slack, GPLv3, Third-party notices, Source, the build id, the dirty note - in the licence
+row's 12px; only the build id's track can shrink below its text, so it gives way first with an ellipsis. The five
+GPLv3 lines are byte-identical (shell.spec.ts test 4): the source stays one click away on every page, section 6(d). A
+panel (Help, Device actions) opens on a row beneath the strip. Content pages - the Playground index, My configs, the
+intro, the /dev/ bench - keep the bar and the full footer.
+
+**Measured, the plate's edge in px** (the served build on 4174, chromium; before = `7d41bff`, after = `9f75977`, all 52
+views equal to the same run at `93f2708`'s tree; every desktop centre `scrollHeight == clientHeight`, the document the
+viewport, no header child over another):
+
+    viewport     ORBIT      ORBIT,open  AURORA     PINWHEEL+Mirror | Sandbox empty  Edit       Play+lines  Play+Mirror
+    1920x1080    518 -> 600  324 -> 404  580 -> 600  481 -> 583     |   556 -> 571    556 -> 571  556 -> 571  508 -> 571
+    1440x900     314 -> 447  201 -> 281  376 -> 509  277 -> 379     |   376 -> 485    376 -> 509  376 -> 485  328 -> 430
+    1366x768     182 -> 315  122 -> 202  244 -> 377  145 -> 247     |   244 -> 377    244 -> 377  244 -> 377  196 -> 298
+    1280x720     134 -> 267   93 -> 173  196 -> 329   97 -> 199     |   196 -> 326    196 -> 329  196 -> 326  129 -> 231
+    1024x768     182 -> 315  122 -> 202  244 -> 372   62 -> 164     |   127 -> 127    157 -> 290  127 -> 127   46 -> 127
+    393x852      361 -> 361  361 -> 361  361 -> 361  361 -> 361     |   361 -> 361    361 -> 361  361 -> 361  361 -> 361
+
+The chrome: header 76 + bar 59 (61 connected) + footer 121 = 256 (258) before; header 90 (123 with a ZONA's
+destination) + strip 33 = 123 (156) after - 133px back idle, 102 connected. At 1024 x 768 the Sandbox's empty and
+Play plates stay 127: width-bound (the aside beside the plate in a 311px column), not height-bound. At 393 x 852 the
+plate is width-bound (361) and the page scrolls; the header is 192 (252 with a destination) against 165 + the bar's 73
+(190) before. The screenshots, before and after, every view above plus the Help panel open at 1280 and 1024 and the
+Playground index and the intro (content pages, unchanged): outside the tree, `shots/before/`, `shots/after/` and
+`shots/final/` in the session's scratchpad.
+
+**The regression found and fixed on the way** (`0e8ca9f`): with the switch read off the FILL, returning from a card to
+/playground/ by "All configs" restored the browse scroll 45px short (browse.e2e.ts:1404, red alone twice): the leaving
+card empties its fill in the middle of the flush that mounts /playground/, the footer and the centre (after the page in
+the effect tree) were already the content shape while the header's line and the missing bar (before it) were one flush
+late, and onMount wrote 577 into a centre 509 tall. Read off the declared data the chrome switches as the navigation
+starts; measured after: 577 into 464 with the bar drawn.
+
+**Tests.** `src/lib/ui/shell.spec.ts` test 8 (rendered): an app page has no `<section>`, no breadcrumb zone, the two
+zones once inside the header after the device slot, the preview sentence and the device clause, `--context-pad-top`
+from layout.ts, the strip with every licence link, Help and Device actions; a content page the bar and the full footer;
+the strip's height a variable, never a literal. `e2e/layout.e2e.ts` +3 titles: at 1280 x 720 and 1024 x 768, on ORBIT
+and a fresh Sandbox, no bar, the wordmark's centre at 38, the line under the connection zone and inside the header,
+the preview line's right edge at the zone's, the strip at the viewport's foot and at most 33 tall, its seven items on
+the line in order, none over the next, 12px, all whole but the build id; and on /, /playground/, a card, the Sandbox
+and My configs the three licence links in the viewport, the archive named by the build id. Pins moved where the
+element moved: the preview-only reads in `first-experience`, `session`, `tuning-webkit` and `install` (two) scope to
+`shell-header`; `install`'s `statusDevice` helper reads the header's clause; `browse.e2e.ts` a comment. 13.1's 720
+frame title (`browse.e2e.ts:1672`) unchanged and green.
+
+**Counts, carried + delta** (carried = `7d41bff`'s): quick 101 / 1138 + 1 todo -> **101 / 1139 + 1 todo** (+1, test
+8), green twice at `--maxWorkers=2` at `0e8ca9f` and in the gate at `9f75977`; `QUICK_TESTS` 1138 -> **1139**; check
+**692**, 0 errors, 0 warnings; lint clean; e2e runs 128 -> **131** (+3, all `layout.e2e.ts`); vitest titles
+1139 -> 1140. Chunks by files on a fresh detached wrangler dev on 4173, HTTP 000 after each, at `9f75977`: c3 (`tuning`,
+`tuning-webkit`, `rack-grid`, `layout`) **36 passed** on the second run - the first died with wrangler's own empty
+`[ERROR]` in its log and every title after it `ERR_CONNECTION_REFUSED` (9 reds, the same at `0e8ca9f`, the same cure);
+c4 **26**; c5 **11**; c1 **36**; c2 **21 / 1**, the red `:1186` of the recorded `/playground/` hydration family, green
+alone (at `0e8ca9f` `:299` and `:343`, each green alone; `:1404` green in the chunk after the fix). At `3a07d04`, with
+about 1 GB free, c1 read 33 / 3 and c5 10 / 1 (timeouts; `radius` found `/dev/install/` unrendered), each green alone
+and both chunks whole on the rerun. 5173 untouched (not running).
+
+**The gate** (`--before change-25b` at `7d41bff`; `--after change-25b --against change-25b --check 692` at
+`9f75977`): **the wire byte-identical** - set `193d352f…`, full `bbb8a19b…`, Sandbox set `651664f8…`; copy exports
+`48ba2b07…` equal; testids 357 `12ca66ac…` -> **359** `bd078c2f…` (`header-context`, `shell-header-context`); the census
+`bc47c87f…` -> `de694146…` (3,604 -> 3,608 literals: `app` 18 -> 19, `bar` 3 -> 5, `header` 1 -> 5, `strip` 3 -> 4,
+`context`, `header-context`, `in-header`, `shell-header-context` new) - the script exits there by design; past it,
+read off the record: **utilities 44 -> 44** (0 appeared, 0 disappeared, the markup-named five intact - the first
+`--after`, at `bfaf826`, read six: the placement's class was `inline`, a Tailwind utility name, renamed `in-header` in
+`9f75977`), scoped CSS `37263da0…` -> `a3d8bd43…`, raw CSS `70a965e4…` -> `acfa3db4…`, normalised JS `f015bce8…` ->
+`07e003c6…`, OG 27 files / 159,169 B / `9becd682…` equal, the four fixtures equal, comment lines 5 files moved, `src/`
+6 modified / 0 added / 0 deleted.
+
+**Departures from the brief:** (1) the bar's zones are a SECOND LINE of the header, under Clear and the connection
+control, not on the row beside them: the row has no room below the wide band (at 1280 the nav ends at 709 and Clear +
+the connection control take about 240; the Sandbox's idle pair needs about 330, a connected destination about 630),
+and a measured one-line / two-line switch (a ResizeObserver on the header, against Clear's own room rule) was weighed
+and refused; the cost is 14px idle over a one-row header; (2) below 1024 (the page scrolls) the app pages keep the full
+footer - one line cannot hold the links at 393; (3) the strip's controls are 32px tall at a fine pointer, not the
+house 44 (WCAG 2.5.8's 24 is met); under a coarse pointer the 44px floor holds and the strip grows to it; (4) a panel
+opens on a row beneath the strip, which grows while it is open (the plate gives way, as it did to the full footer),
+rather than floating over the page; (5) the switch reads the declared data (the fix above); (6) the destination's
+bottom padding is 0 in the header (8 above the row, the header's 10 below the line); (7) the Sandbox's rail has no
+"All configs" link - there the current SANDBOX nav item and the eyebrow carry the place; (8) `ContextBar.svelte`
+draws both placements so the testids stay single-sourced; (9) the first stop-by-port script matched its own command
+line and ended two of this session's own bash shells (no other process); rewritten to stop the wrangler tree and the
+port's listener. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.

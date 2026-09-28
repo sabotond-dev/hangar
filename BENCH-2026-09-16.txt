@@ -5045,3 +5045,72 @@ configs, the intro). The 60 px breadcrumb bar leaves the app pages (the eyebrow 
 and the rail's "All configs" carry the place); where the bar holds a control ("Preview without
 hardware", the device clause) it moves into the header. The title block (lede, the quote line,
 the monitor bar) stays as it is.
+
+**Done - change 25b, 2026-09-28 (the app pages give the bar and the footer's height to the plate).** Outside the GSD
+cycle, no plan file; no push, no device, no deploy. Commits: `93f2708` feat(shell) - the header's line and the
+footer's strip; `3a07d04` test(e2e); `0e8ca9f` fix(shell) - the chrome switches with the route's declared shape;
+`bfaf826` chore(gate) - `QUICK_TESTS` 1139; `9f75977` fix(shell) - the class `in-header`; `87a040f` chore(gate) - the
+records `gate/change-25b.*` (at `7d41bff`) and `gate/change-25b-after.*` (at `9f75977`), both on the clean tree; then
+this paragraph with `docs/TESTING.md`'s "2026-09-28 change 25b". Every commit `git commit --only` on its paths.
+
+**The switch** is change 25's `fit`, read off the route's declared data: the card workspace and the Sandbox. The
+content pages (the Playground index, My configs, the intro) keep the bar and the full footer, unchanged.
+
+**The breadcrumb bar leaves the app pages.** The eyebrow above the title (EXPLORE / SEQUENCING, SANDBOX / MY
+PERFORMANCE) and, on a card, the rail's "All configs" carry the place (the Sandbox's rail has no such link; there the
+current SANDBOX nav item does). What the bar held moved into the header, whole, as a line of its own right-aligned
+under Clear and the connection control, in their register (13px, the quiet ink):
+  - on a card: "Preview without hardware" while no module has reported a page; with one, the destination - Target
+    (the page select), Store on ZONA, and the lines under them (Store's reason, the over-budget refusal, the switching
+    and unverified lines, "Still writing", a failure's block); the dotted device clause ("ZONA connected", "Stored on
+    ZONA · Page 3", the uncertain titles) whenever the install store has a phase to state;
+  - in the Sandbox: the same, and the draft clause ("Draft saved locally", or the refusal to store) before the device
+    clause on the dotted line.
+Same components, same testids; only the breadcrumb itself is gone. The row does not move - the wordmark, the nav and
+the two controls sit where the 76px band centres them. The line takes the row's width beneath because the row has no
+room for it below the wide band (at 1280 the nav ends at 709; the Sandbox's idle pair needs about 330px, a connected
+destination about 630); it costs 14px idle over a one-row header, against the bar's 59.
+
+**The footer on the app pages is one strip, 32px plus its rule**: HANGAR / by intech studio, Help & shortcuts ·
+Device actions at the left; GPLv3, Third-party notices, Source and the build id at the right; the licence row's 12px;
+the build id the only part that gives way (an ellipsis: whole at 1280; cut at 1024 in these builds, beside the
+dirty-build note). Every link is kept: the licence links are a GPLv3 obligation (section 6(d): the corresponding
+source one click away on every page that ships the code), and `e2e/layout.e2e.ts` now asserts GPLv3, the notices and the source archive on screen on /, /playground/, a
+card, the Sandbox and My configs. Help or Device actions opens its panel on a row beneath the strip. Below 1024 the
+page scrolls and the footer is the full one.
+
+**Measured, the plate's edge in px, before -> after** (the served build, chromium; every desktop centre's scrollHeight
+equals its clientHeight, the document the viewport, nothing over anything):
+
+    viewport     ORBIT      ORBIT,open  AURORA     PINWHEEL+Mirror | Sandbox empty  Edit       Play+lines  Play+Mirror
+    1920x1080    518 -> 600  324 -> 404  580 -> 600  481 -> 583     |   556 -> 571    556 -> 571  556 -> 571  508 -> 571
+    1440x900     314 -> 447  201 -> 281  376 -> 509  277 -> 379     |   376 -> 485    376 -> 509  376 -> 485  328 -> 430
+    1366x768     182 -> 315  122 -> 202  244 -> 377  145 -> 247     |   244 -> 377    244 -> 377  244 -> 377  196 -> 298
+    1280x720     134 -> 267   93 -> 173  196 -> 329   97 -> 199     |   196 -> 326    196 -> 329  196 -> 326  129 -> 231
+    1024x768     182 -> 315  122 -> 202  244 -> 372   62 -> 164     |   127 -> 127    157 -> 290  127 -> 127   46 -> 127
+    393x852      361 -> 361  361 -> 361  361 -> 361  361 -> 361     |   361 -> 361    361 -> 361  361 -> 361  361 -> 361
+
+The chrome was 256px (258 with a ZONA), now 123 (156): 133px back idle, 102 connected. ORBIT at 1280 x 720 is 267, was
+134. At 1024 x 768 the Sandbox's empty and Play plates stay 127 - held by the width (the aside beside the plate in a
+311px column), not the height. Screenshots before and after, every view above plus the Help panel open and two content
+pages: outside the tree, in the session's scratchpad.
+
+**Found on the way and fixed** (`0e8ca9f`): read off the fill, the chrome changed one flush late when a card handed
+back to /playground/, which restored its scroll against the card's chrome and landed 45px short (browse.e2e.ts:1404).
+Read off the declared data, it switches as the navigation starts.
+
+**Counts, carried + delta** (carried = `7d41bff`'s): quick 101 / 1138 + 1 todo -> **101 / 1139 + 1 todo** (+1,
+shell.spec.ts test 8), green twice at `--maxWorkers=2`; `QUICK_TESTS` 1138 -> **1139**; check **692**, 0 errors, 0
+warnings; lint clean; e2e runs 128 -> **131** (+3, `e2e/layout.e2e.ts`). By files on a fresh wrangler dev on 4173 at
+`9f75977`: c3 **36** (the first run lost its server to a wrangler error, rerun whole), c4 **26**, c5 **11**, c1
+**36**, c2 **21 / 1** (the red `:1186`, the recorded hydration family, green alone). **The gate:** the wire set
+`193d352f…`, full `bbb8a19b…` and Sandbox set `651664f8…` byte-identical; copy exports equal; testids 357 -> 359
+(`header-context`, `shell-header-context`); **utilities 44 -> 44**, none appeared or disappeared; the census moved by
+eight literals and the script exits there by design; scoped CSS `37263da0…` -> `a3d8bd43…`; OG and fixtures equal;
+`src/` 6 modified, 0 added.
+
+**Departures from the brief:** the zones on a second header line rather than on the row; the full footer below 1024;
+the strip's controls 32px at a fine pointer (44 under a coarse one, where the strip grows); panels open beneath the
+strip rather than floating; the switch read off the declared data; the Sandbox has no rail "All configs"; e2e pins
+moved only where the element moved (five preview-line reads and install's device-clause helper scoped to the header).
+CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
