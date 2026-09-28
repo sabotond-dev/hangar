@@ -7,6 +7,7 @@
   Absent on the preset-backed entries, not present and empty: the vendored
   pad-sim.ts records no send, and D-14 Q4b chose Lua entries only for v1 over
   adding a log to src/vendor/. Mounted inside {#if listed.preview === "lua"} only.
+  The section carries `open` while expanded: the hook the workspace's fitting column sizes it by (change 25).
   Decided at 13-10 (D-14 Q4b); see .planning/phases/13-gui-overhaul/13-10-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -115,7 +116,12 @@
   onDestroy(stop);
 </script>
 
-<section class="monitor" data-testid="midi-monitor" aria-labelledby={titleId}>
+<section
+  class="monitor"
+  class:open
+  data-testid="midi-monitor"
+  aria-labelledby={titleId}
+>
   <button
     class="bar"
     type="button"

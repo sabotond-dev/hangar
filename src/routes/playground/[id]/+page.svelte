@@ -92,7 +92,11 @@
   import PadFrame from "$lib/ui/PadFrame.svelte";
   import TuningRegion from "$lib/ui/TuningRegion.svelte";
   import Rail, { type RailRow } from "$lib/ui/shell/Rail.svelte";
-  import { SURFACE_MAX } from "$lib/ui/shell/layout";
+  import {
+    PLATE_CAPTION_H,
+    PLATE_CAPTION_MIN_W,
+    SURFACE_MAX,
+  } from "$lib/ui/shell/layout";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
   import type { PageData } from "./$types";
 
@@ -594,6 +598,7 @@
     fillShell({
       variant: "app",
       section: "playground",
+      fit: true,
       breadcrumb: data.shell.breadcrumb,
       device: install.phase,
       page: install.snapshotPage,
@@ -718,13 +723,19 @@
   data-mode={mode}
   data-mirror={mirror.state}
   style:--surface-max="{SURFACE_MAX}px"
+  style:--caption-h="{PLATE_CAPTION_H}px"
+  style:--caption-min="{PLATE_CAPTION_MIN_W}px"
 >
   {#if listed}
     {#key listed.id}
       <header class="top">
         <p class="eyebrow type-micro">{EXPLORE} / {category}</p>
         <div class="title-row">
-          <h1 class="name type-page-title" data-testid="workspace-name">
+          <h1
+            class="name type-page-title"
+            data-testid="workspace-name"
+            title={listed.name}
+          >
             {listed.name}
           </h1>
           <!--
@@ -763,55 +774,68 @@
             <MirrorToggle />
           </div>
         </div>
-        <p class="sentence">{typographic(listed.description)}</p>
+        <p class="sentence" title={typographic(listed.description)}>
+          {typographic(listed.description)}
+        </p>
       </header>
 
-      <!--
-        The pointer target is the wrapper, not the canvas (a picture, role="img"); there is no keyboard
-        gesture for a pad, so the static-element rule is suppressed rather than satisfied with a false role.
-      -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div
-        class="surface"
-        class:play={mode === "play" && !mirroring}
-        data-testid="workspace-surface"
-        data-unavailable={unavailable || undefined}
-        onpointerdown={onDown}
-        onpointermove={onMove}
-        onpointerup={onUp}
-        onpointercancel={onUp}
-        onlostpointercapture={onUp}
-      >
-        <PadFrame entry={listed} hero>
-          <PadCanvas entry={listed} hero onready={collect} />
-        </PadFrame>
-      </div>
+      <!-- The plate's region (change 25): the height the rows leave, the plate square inside it, its caption under it. -->
+      <div class="stage">
+        <!--
+          The pointer target is the wrapper, not the canvas (a picture, role="img"); there is no keyboard
+          gesture for a pad, so the static-element rule is suppressed rather than satisfied with a false role.
+        -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="surface"
+          class:play={mode === "play" && !mirroring}
+          data-testid="workspace-surface"
+          data-unavailable={unavailable || undefined}
+          onpointerdown={onDown}
+          onpointermove={onMove}
+          onpointerup={onUp}
+          onpointercancel={onUp}
+          onlostpointercapture={onUp}
+        >
+          <PadFrame entry={listed} hero>
+            <PadCanvas entry={listed} hero onready={collect} />
+          </PadFrame>
+        </div>
 
-      <div class="under">
-        <span class="matrix type-micro">{MATRIX_LINE}</span>
-        {#if mirroring}
-          <span class="coords numerals" data-testid="mirror-status"
-            >{mirrorStatus(
-              session.identity?.activePage,
-              mirror.lit,
-              mirror.silent,
-            )}</span
-          >
-        {:else}
-          <span class="coords numerals" data-testid="workspace-coordinates"
-            >{coordinateLine(point.x, point.y)}</span
-          >
-        {/if}
+        <div class="under">
+          <span class="matrix type-micro">{MATRIX_LINE}</span>
+          {#if mirroring}
+            <span class="coords numerals" data-testid="mirror-status"
+              >{mirrorStatus(
+                session.identity?.activePage,
+                mirror.lit,
+                mirror.silent,
+              )}</span
+            >
+          {:else}
+            <span class="coords numerals" data-testid="workspace-coordinates"
+              >{coordinateLine(point.x, point.y)}</span
+            >
+          {/if}
+        </div>
       </div>
 
       {#if mirroring}
-        <p class="quiet type-helper" data-testid="mirror-note">
+        <p
+          class="quiet type-helper"
+          data-testid="mirror-note"
+          title={MIRROR_CANNOT}
+        >
           {MIRROR_CANNOT}
         </p>
       {/if}
 
       {#if listed.quiet}
-        <p class="quiet type-helper" data-testid="workspace-quiet">
+        <p
+          class="quiet type-helper"
+          data-testid="workspace-quiet"
+          title={listed.quiet}
+        >
           {listed.quiet}
         </p>
       {/if}
@@ -872,12 +896,27 @@
     flex-wrap: wrap;
   }
 
+  /*
+    The name holds one line (change 25): a long one ends in an ellipsis, the whole name its title and the
+    breadcrumb's. It gives way before the switches do: down to 120px before they wrap onto a row of their own.
+  */
   .name {
+    flex: 1 1 0;
     margin: 0;
+    min-inline-size: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--color-ink);
   }
 
+  /* The lede holds two lines at most (change 25), the rest behind an ellipsis and in the title. */
   .sentence {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
     margin: 0;
     font-family: var(--font-sans);
     font-size: 17px;
@@ -923,11 +962,29 @@
     outline-offset: 4px;
   }
 
-  /* The surface: the PDF's square, capped at layout.ts's SURFACE_MAX. */
+  /*
+    The plate's region (change 25; layout.ts, THE CENTRE FITS THE SCREEN): the plate and its caption,
+    16px apart. --plate is the plate's edge. Here, the stacked page's: the width, SURFACE_MAX, and the
+    viewport's height less the caption and the centre's padding, so the plate is whole on screen when
+    scrolled to. The desktop's is below, off the region's own box.
+  */
+  .stage {
+    --plate: min(
+      100%,
+      var(--surface-max),
+      100dvh - 2 * var(--centre-pad) - 16px - var(--caption-h)
+    );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* The surface: the PDF's square at the stage's edge. */
   .surface {
-    inline-size: min(100%, var(--surface-max));
+    flex: none;
+    inline-size: var(--plate);
     aspect-ratio: 1;
-    margin-inline: auto;
     touch-action: none;
   }
 
@@ -935,26 +992,52 @@
     cursor: crosshair;
   }
 
+  /*
+    The plate's caption: one line, as wide as the plate and never under PLATE_CAPTION_MIN_W while the stage
+    has it. The readout stays whole at the right; the label
+    gives way first, to an ellipsis, and steps aside when the caption is narrower than the two need (the
+    label's 198px, the gap and the widest readout's 95).
+  */
   .under {
     display: flex;
-    justify-content: space-between;
+    flex: none;
     align-items: baseline;
     gap: 16px;
-    inline-size: min(100%, var(--surface-max));
-    margin-inline: auto;
+    inline-size: max(var(--plate), min(100%, var(--caption-min)));
+    block-size: var(--caption-h);
+    overflow: hidden;
+    white-space: nowrap;
+    container-type: inline-size;
   }
 
   .matrix {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: var(--color-ink-quiet);
+  }
+
+  @container (max-width: 309.98px) {
+    .matrix {
+      display: none;
+    }
   }
 
   /* The readout: machine text, tabular, never jittering as a finger moves. */
   .coords {
+    flex: none;
+    margin-inline-start: auto;
     font-size: 12px;
     color: var(--color-ink-quiet);
   }
 
+  /* A note under the plate: two lines at most (change 25), the rest in its title. */
   .quiet {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
     margin: 0;
     text-align: center;
     color: var(--color-ink-quiet);
@@ -1013,5 +1096,49 @@
   .inspector-action:disabled {
     color: var(--color-ink-quiet);
     cursor: not-allowed;
+  }
+
+  /*
+    The desktop fits (change 25): the workspace is the centre's one flex child, its rows keep their
+    height and the stage takes the rest. The stage is a size container, so --plate reads its own box -
+    the width, the height less the caption, SURFACE_MAX - and its ceiling is the plate its width allows
+    plus the caption, so a plate held by its width leaves the slack under the last row, not inside the
+    stage. The open MIDI monitor takes two parts of the height to the stage's three, its panel - the
+    controls and the log - scrolling inside that; closed, it is its 44px bar and the stage takes it all.
+  */
+  @media (min-width: 1024px) {
+    .workspace {
+      flex: 1 1 0;
+      min-block-size: 0;
+      inline-size: 100%;
+      container-type: inline-size;
+    }
+
+    .stage {
+      --plate: min(
+        100cqi,
+        100cqb - 16px - var(--caption-h),
+        var(--surface-max)
+      );
+      flex: 3 1 0;
+      min-block-size: 0;
+      max-block-size: calc(
+        min(100cqi, var(--surface-max)) + 16px + var(--caption-h)
+      );
+      container-type: size;
+    }
+
+    .monitor-slot > :global(.monitor.open) {
+      display: flex;
+      flex: 2 1 0;
+      flex-direction: column;
+      min-block-size: 0;
+    }
+
+    .monitor-slot > :global(.monitor.open) > :global(.panel) {
+      flex: 1 1 0;
+      min-block-size: 0;
+      overflow-y: auto;
+    }
   }
 </style>

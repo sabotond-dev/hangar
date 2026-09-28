@@ -4,7 +4,8 @@
 // would never visit /playground/anything. One page per CATALOG entry, read as LISTING / ROUTED from
 // src/lib/catalog/listing.ts (D-07); Trackpad included (D-11). ROUTED has exactly one declaration,
 // because four files need it. The shell's shape travels as data (13-07's pattern): the breadcrumb
-// is `PLAYGROUND / <NAME>` upper-cased (D-05); the rail and the inspector arrive with the page's effect.
+// is `PLAYGROUND / <NAME>` upper-cased (D-05) and the centre fits (`fit`, change 25); the rail and the
+// inspector arrive with the page's effect.
 // This module imports the LIGHT catalog module only - listing.ts imports nothing at runtime - because
 // whatever it imports lands in the client bundle; config-shape.spec.ts tests 13 and 14 hold that line.
 //
@@ -32,6 +33,7 @@ export function load({ params }: { params: { id: string } }) {
     shell: {
       variant: "app" as const,
       section: "playground" as const,
+      fit: true,
       breadcrumb:
         listed === undefined
           ? ["PLAYGROUND"]
