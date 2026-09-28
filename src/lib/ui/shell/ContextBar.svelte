@@ -104,7 +104,7 @@
 {/snippet}
 
 {#if placement === "header"}
-  <div class="inline" data-testid="header-context">
+  <div class="in-header" data-testid="header-context">
     {@render zones()}
   </div>
 {:else}
@@ -215,7 +215,7 @@
     register - the dotted line at 13px beside the preview sentence or the destination, as Clear's
     and the connection control's words are. Header.svelte gives the line a row of its own beneath them.
   */
-  .inline {
+  .in-header {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -223,21 +223,21 @@
     min-inline-size: 0;
   }
 
-  .inline .status {
+  .in-header .status {
     font-size: 13px;
   }
 
   /* The destination's row sits on the header's line with the zone's 8px above it and none below: the header's own padding closes the band. */
-  .inline .destination > :global(.destination) {
+  .in-header .destination > :global(.destination) {
     padding-block-end: 0;
   }
 
   /* With the destination, the dotted line keeps to the row's middle while the zone's lines grow beneath it. */
-  .inline:has(.destination > :global(.destination)) {
+  .in-header:has(.destination > :global(.destination)) {
     align-items: flex-start;
   }
 
-  .inline:has(.destination > :global(.destination)) .status {
+  .in-header:has(.destination > :global(.destination)) .status {
     min-block-size: 44px;
     margin-block-start: 8px;
   }
@@ -260,13 +260,13 @@
     }
 
     /* In the header, the line wraps its two zones as the bar did, from the left. */
-    .inline {
+    .in-header {
       flex-wrap: wrap;
       justify-content: flex-start;
       row-gap: 8px;
     }
 
-    .inline:has(.destination > :global(.destination)) .status {
+    .in-header:has(.destination > :global(.destination)) .status {
       min-block-size: 0;
       margin-block-start: 0;
     }
