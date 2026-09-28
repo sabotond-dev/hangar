@@ -8,6 +8,7 @@
   // 13.1-05). The frame's numbers are layout.ts's as custom properties; the three breakpoints are
   // literals in the queries, held equal to BREAKPOINTS by shell.spec.ts test 5. The site root is a
   // 100dvh column (announcer, shell, footer) whose frame height is derived, never a calc (A.4).
+  // A route that declares `fit` (change 25: the card workspace, the Sandbox) gets a centre that never scrolls.
   // The static imports of the session and the install store are the chunk guard's two allowed cases (config-shape.spec.ts test 13).
   // Decided at 13-05 / 13-11 / 13.1-01 / 13.1-05 (13.1-CONTEXT D-01, D-04); see .planning/phases/13.1-bench-corrections-four/13.1-05-SUMMARY.md
   import "../app.css";
@@ -145,7 +146,11 @@
           <div class="rail-col" data-testid="shell-rail-column">
             {#if fill.rail}{@render fill.rail()}{/if}
           </div>
-          <main class="centre" data-testid="shell-centre">
+          <main
+            class="centre"
+            class:fit={fill.fit === true}
+            data-testid="shell-centre"
+          >
             {@render children()}
           </main>
           {#if fill.tools}
@@ -236,6 +241,17 @@
   }
 
   /*
+    A centre that fits (change 25; layout.ts, THE CENTRE FITS THE SCREEN): the card workspace and the
+    Sandbox. A column of the frame's height that never scrolls; the route's root is its one flex child
+    and sizes the plate from what its rows leave, so nothing is cut off at the edge.
+  */
+  .centre.fit {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /*
     The intro's centre (13.1-01, D-01): a flex child of the 100dvh column, clipped at its edge, a size
     container so Intro.svelte reads its height in cq units; first-experience.e2e.ts proves the fit at four viewports.
   */
@@ -296,8 +312,14 @@
       border-block-start: 1px solid var(--color-divider);
     }
 
-    .centre {
+    .centre,
+    .centre.fit {
       overflow: visible;
+    }
+
+    /* The stacked page scrolls, so a fitting centre is a plain block again; its plate fits the viewport (change 25). */
+    .centre.fit {
+      display: block;
     }
 
     /* The stacked page flows and may scroll (13-07's stack; D-01 is about the desktop). */

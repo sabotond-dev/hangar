@@ -77,6 +77,13 @@ export interface ShellFill {
   tools?: Snippet;
   /** The intro header's secondary link (page 1's Quick guide). 13-07's. */
   secondary?: Snippet;
+  /**
+   * The centre fits the frame and never scrolls (change 25): the card
+   * workspace and the Sandbox, whose plate takes the height the rows around
+   * it leave (layout.ts, THE CENTRE FITS THE SCREEN). Travels as data too, so
+   * the prerendered frame already has it. Absent: the centre scrolls its body.
+   */
+  fit?: boolean;
 }
 
 let current = $state.raw<ShellFill | undefined>(undefined);
@@ -109,7 +116,7 @@ export function fillShell(fill: ShellFill): () => void {
  * `{#if fill}` is evaluated before the page's script runs at all, because
  * the page renders as the layout's children. So a route that wants its
  * frame in the PRERENDERED document declares the shape as data from its
- * +page.ts (`{ shell: { variant, section?, breadcrumb?, status? } }`), and
+ * +page.ts (`{ shell: { variant, section?, breadcrumb?, status?, fit? } }`), and
  * the layout reads it here when no effect has filled the shell yet. Strings
  * travel as data - the breadcrumb and a sentence status, so the prerendered
  * context bar carries its words (13-08); snippets cannot, and arrive with
@@ -131,10 +138,12 @@ export function shellFromData(data: unknown): ShellFill | undefined {
       ? (crumbs as string[])
       : undefined;
   const status = (declared as { status?: unknown }).status;
+  const fit = (declared as { fit?: unknown }).fit;
   return {
     variant,
     section: known?.id,
     breadcrumb,
     status: typeof status === "string" ? status : undefined,
+    fit: fit === true ? true : undefined,
   };
 }

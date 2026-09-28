@@ -166,6 +166,47 @@ export const SANDBOX_LOCK_ICON = 12;
 /** Section 7's 24px centre padding; the PDF measures 24-34. */
 export const CENTRE_PAD = 24;
 
+/**
+ * THE CENTRE FITS THE SCREEN (change 25, 2026-09-28: "the middle panel
+ * (whether in Sandbox or Playground) where the ZONA lives should not be
+ * scrollable but fit the screen always"). On the card workspace and in the
+ * Sandbox the centre is a column of the frame's height that never scrolls
+ * (+layout.svelte's .centre.fit, declared by the route as `fit`). The rows
+ * around the plate keep their own height, long lines clamped; the plate
+ * takes what is left, square: its edge is the smallest of the width it is
+ * given, the height left once its own caption rows are taken, and its cap
+ * (SURFACE_MAX on a card, SANDBOX_PLATE in the Sandbox). The region the
+ * plate sits in is a size container, so the edge is exact CSS - min() over
+ * container units, no measuring script. The canvas needs no repaint at a new
+ * edge (a 9 x 9 backing store upscaled pixelated) and neither does the
+ * Sandbox's SVG (a viewBox). Below the compact band the page scrolls and the
+ * edge is also held under the viewport's height less its caption rows and
+ * the centre's padding, so the whole plate is on screen when scrolled to.
+ */
+
+/** The caption row under the plate (the matrix line and the readout, or the element count): one line, this tall. */
+export const PLATE_CAPTION_H = 18;
+
+/**
+ * The caption's floor, and the Sandbox status line's: as wide as the plate,
+ * but never narrower than this while the column has it, so a short plate
+ * still reads its whole readout and a status line of words. 310 is the
+ * matrix label's 198px, the 16px gap and the widest readout's 95; below it
+ * the label steps aside (the caption's container query holds the same figure).
+ */
+export const PLATE_CAPTION_MIN_W = 310;
+
+/**
+ * The Sandbox's aside - the Play monitor, or the empty surface's instruction
+ * and starters - sits BESIDE the plate while the centre fits, at least this
+ * wide and at most PLATE_ASIDE_MAX, PLATE_ASIDE_GAP from it. Under the plate
+ * it left a Play plate of a few pixels at 1280 x 720 (the monitor alone is
+ * about 180 tall in a 416px column); beside it, the plate keeps the height.
+ */
+export const PLATE_ASIDE_MIN = 160;
+export const PLATE_ASIDE_MAX = 320;
+export const PLATE_ASIDE_GAP = 24;
+
 /** Section 12 and 14: 44px effective targets at (pointer: coarse). */
 export const COARSE_TARGET = 44;
 
