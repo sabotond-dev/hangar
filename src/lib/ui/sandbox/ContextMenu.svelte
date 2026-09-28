@@ -39,9 +39,36 @@
   let open = $state<string | undefined>(undefined);
 
   /** Past the middle the menu grows toward the other edge, so it stays on the plate. */
-  const flipX = $derived(x > 0.55);
-  const flipY = $derived(y > 0.55);
-  const pct = (f: number) => `${(f * 100).toFixed(2)}%`;
+  const FLIP_AT = 0.55;
+  const flipX = $derived(x > FLIP_AT);
+
+  /** The least distance kept between the menu and the viewport's edge, in px. */
+  const EDGE = 8;
+
+  /**
+   * THE MENU LEAVES THE PLATE'S COLUMN (change 25). The centre no longer scrolls, and a menu of ten
+   * 44px rows is taller than the plate the column leaves at 1280 x 720, so a menu inside the column
+   * would be cut off with no way to reach its last rows. The root is a manual popover - the top layer,
+   * above every clip - placed in viewport pixels: the point x, y of the plate (its DOM parent), grown
+   * toward the far edge past the middle as before, then held inside the viewport.
+   */
+  function place(menu: HTMLDivElement, fx: number, fy: number): void {
+    const plate = menu.parentElement;
+    if (plate === null) return;
+    const box = plate.getBoundingClientRect();
+    const w = menu.offsetWidth;
+    const h = menu.offsetHeight;
+    const px = box.left + fx * box.width;
+    const py = box.top + fy * box.height;
+    const within = (at: number, size: number, room: number): number =>
+      Math.max(EDGE, Math.min(at, room - size - EDGE));
+    menu.style.left = `${within(fx > FLIP_AT ? px - w : px, w, window.innerWidth)}px`;
+    menu.style.top = `${within(fy > FLIP_AT ? py - h : py, h, window.innerHeight)}px`;
+  }
+
+  $effect(() => {
+    if (root !== null) place(root, x, y);
+  });
 
   /** The enabled menuitems of one menu element, in order. */
   function itemsOf(menu: HTMLElement): HTMLButtonElement[] {
@@ -56,8 +83,10 @@
     itemsOf(menu)[0]?.focus();
   }
 
-  /** The root takes focus on its first item the moment it mounts. */
+  /** The root enters the top layer, and takes focus on its first item, the moment it mounts. */
   function mounted(node: HTMLDivElement): void {
+    if ("showPopover" in node) node.showPopover();
+    place(node, x, y);
     focusFirst(node);
   }
 
@@ -157,16 +186,13 @@
 
 <div
   bind:this={root}
-  class="menu"
+  class="menu root"
   class:flip-x={flipX}
   role="menu"
   tabindex="-1"
   aria-label={MENU_NAME}
   data-testid="surface-menu"
-  style:left={flipX ? undefined : pct(x)}
-  style:right={flipX ? pct(1 - x) : undefined}
-  style:top={flipY ? undefined : pct(y)}
-  style:bottom={flipY ? pct(1 - y) : undefined}
+  popover="manual"
   use:mounted
   {onkeydown}
   onpointerdown={(event) => event.stopPropagation()}
@@ -245,6 +271,16 @@
     padding-block: 4px;
     border: 1px solid var(--color-boundary);
     background: var(--color-panel);
+  }
+
+  /* The root in the top layer (change 25): fixed at the pixels place() writes, the popover's own box undone. */
+  .root {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding-inline: 0;
+    overflow: visible;
+    color: inherit;
   }
 
   /* A submenu opens beside its parent row, to the right, or to the left when the menu grew leftward. */
