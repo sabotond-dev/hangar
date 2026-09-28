@@ -4954,3 +4954,80 @@ is sized from the space left after its fixed rows (the smaller of the column's w
 remaining height, so it stays square), and every row around it keeps its size. The side panels
 (the rail, the inspector) keep their own scrolling. On a phone-width stacked layout, where the
 page itself scrolls, the plate fits the viewport's width and height the same way.
+
+**Done - change 25, 2026-09-28 (the centre panel fits the screen, never scrolls).** Outside the GSD cycle, no plan
+file; no push, no device, no deploy. Commits: `7d63547` feat(shell) - the `fit` shape and the numbers; `7cf1af0`
+feat(playground) - the card; `e2d226d` feat(sandbox) - the Sandbox; `6b8c71d` fix(sandbox) - the plate's menu in the
+top layer; `82a7e04` test(e2e) - `e2e/layout.e2e.ts`; `f7b4159` chore(gate) - the records `gate/change-25.*` (at
+`663651d`) and `gate/change-25-after.*` (at `82a7e04`), both on the clean tree; then this paragraph with
+`docs/TESTING.md`'s "2026-09-28 change 25". Every commit `git commit --only` on this change's paths.
+
+**The sizing rule** (written once in `layout.ts`, THE CENTRE FITS THE SCREEN). The card workspace and the Sandbox
+declare `fit` (as data, so the prerendered frame has it, and in the fill); the shell's centre is then a flex column of
+the frame's height with `overflow: hidden`. The rows keep their height; the plate's region takes the rest as a size
+container, and the plate is square at the smallest of the region's width, its height less the plate's own caption
+rows, and its cap - exact CSS, `min()` over container units, no ResizeObserver; neither the canvas (9 x 9, upscaled
+pixelated) nor the Sandbox's SVG (a viewBox) needs a repaint. On a card: `min(width, height - 16 - 18, 600)`, the
+stage's ceiling the plate its width allows plus the caption, so a plate held by its width leaves the slack under the
+last row. In the Sandbox, the editor alone: `min(width, height - 75.7, 571)` (the caption 12 + 18, the status line 8 +
+two lines). **One move beyond the brief's letter:** the Play monitor, and the empty surface's instruction and
+starters, stand BESIDE the plate on the desktop - the editor `min(height - 75.7, 571, width - 160 - 24)` wide, the
+aside 160 to 320, never taller than the region, scrolling inside itself. Under the plate the monitor alone was about
+180px of the 416px column at 1280 x 720 and left a Play plate of a few pixels. The open MIDI monitor on a card takes
+two parts of the height to the plate's three, its panel scrolling. The caps stay (600 card, 571 Sandbox).
+
+**The clamps.** The card's name and the surface's name: one line with an ellipsis, the full name as the title (and
+in the breadcrumb and eyebrow); they give way to 120px before the switches wrap. The card's lede: two lines. The
+Sandbox's sub-line (the same sentence on every surface): one line; its mode, Mirror status and Mirror note lines: two.
+The card's Mirror note and quiet line: two. The Sandbox's status line: two, at a fixed height. Every clamped line
+carries its full text as the title. The caption under the plate is one fixed 18px line, as wide as the plate but never
+under 310px while the column has it; the readout (coordinates, the Mirror status, the element count) stays whole at
+the right and the matrix label gives way first, then steps aside below 310. The side columns keep their own scrolling.
+
+**The plate's menu** (a fix the change needed): its ten rows are 450px, taller than the plate's column at 1280 x 720,
+and a column that no longer scrolls cut it off. It is a manual popover in the top layer, placed in viewport pixels at
+the same point with the same flip past 0.55 and held 8px inside the viewport: whole at every size measured.
+
+**The stacked layout** (below 1024): the page scrolls, as before; the centre is a plain block and the plate is also
+held under the viewport's height less twice the centre's 24px padding and its caption rows (34 on a card, 75.7 in the
+Sandbox), so scrolled to, the whole plate and its caption are on screen. At 393 x 852 the plate is 361 (width-bound,
+unchanged) and runs from 8 to 369 of 852 when scrolled to; at 844 x 390 it is held by the height (proved in e2e).
+
+**Measured, the plate's edge in px** (the served build, chromium; the centre's scrollHeight equals its clientHeight in
+all 45 desktop views, the document equals the viewport, no two rows overlap):
+
+    viewport    ORBIT  ORBIT,open  AURORA  PINWHEEL+Mirror | Sandbox empty  Edit  Play+lines  Play+Mirror
+    1920x1080     518        324     580              481 |           556   556         556          508
+    1440x900      314        201     376              277 |           376   376         376          328
+    1366x768      182        122     244              145 |           244   244         244          196
+    1280x720      134         93     196               97 |           196   196         196          129
+    1024x768      182        122     244               62 |           127   157         127           46
+    393x852       361        361     361              361 |           361   361         361          361
+
+Before, every desktop centre scrolled (ORBIT at 1280 x 720 930 / 464; the Sandbox in Play with lines 1034 / 464) with
+the plate at its cap. The short screens pay: at 1280 x 720 ORBIT's plate is 134 (the two-line lede, the monitor bar
+and the fidelity line take the rest) and at 1024 x 768 with Mirror the Sandbox's is 46 (the header holds five lines
+and three rows of switches in a 311px column). The levers left are the user's to pull: the eyebrow repeats the
+breadcrumb, the footer is 121px, the lede could hold one line. Screenshots, before and after, at 1920 x 1080, 1440 x
+900, 1280 x 720, 1366 x 768, 1024 x 768 and 393 x 852 (ORBIT shut and open, AURORA, PINWHEEL with Mirror through the
+fake ZONA, the Sandbox empty, in Edit, with its menu, in Play with and without lines, in Play with Mirror): outside
+the tree, in the session's scratchpad.
+
+**Proved.** `e2e/layout.e2e.ts`, five titles: at 1280 x 720 and 1920 x 1080 on both routes, the centre and the
+document within their height, the plate square, inside the column and within 1px of the rule's edge for its measured
+region, no row over another, the Play monitor 24px beside the plate and inside the region, the menu inside the
+viewport; and the stacked plate at 844 x 390. No existing pin moved. **Counts, carried + delta** (carried =
+`663651d`'s): quick 101 / 1138 + 1 todo -> **101 / 1138 + 1 todo** (+0), green twice at `--maxWorkers=2`;
+`QUICK_TESTS` stays 1138; check **692**, 0 errors, 0 warnings; lint clean; e2e runs 123 -> **128** (+5); by files on
+a fresh wrangler dev on 4173: c3 with `layout.e2e.ts` **33**, c4 **26**, c5 **11**, c1 **36**, all passed; c2, run
+for 13.1's frame title (green), 20 / 2 twice, the reds the recorded `/playground/` hydration family, each green alone;
+no server died; 5173 untouched. **The gate:** the wire set `193d352f…`, full `bbb8a19b…` and Sandbox set `651664f8…`
+byte-identical; copy exports and the 357 testids equal; **utilities 44 -> 44**, none appeared or disappeared; the
+census moved by six literals (`stage`, `menu`, `menu root`, `manual`, `showPopover`, `${}px`) and the script exits
+there by design; scoped CSS `c673a834…` -> `37263da0…`; OG and fixtures equal; `src/` 11 modified, 0 added.
+
+**Departures from the brief:** the aside beside the plate (above); the menu into the top layer; the caption's 310
+floor and the label stepping aside; the Sandbox's sub-line at one line; the names' 120px floor; the open monitor's
+3 : 2 share; `MidiMonitor.svelte`, `PlayMonitor.svelte` and `ContextMenu.svelte` moved beyond the named files; the
+Sandbox's handles and delete icon, drawn in the SVG's user units, scale with the plate as they always did and are
+small on the short screens. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.

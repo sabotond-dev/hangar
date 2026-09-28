@@ -8797,3 +8797,76 @@ JS `7fb4d159…` -> `b646d019…`; `src/` 16 modified / 0 added. **The wire, eve
 `193d352f…`, full `bbb8a19b…`, Sandbox set `651664f8…` - no Lua moved. The script exits 1 at the census by design. The
 before record's quick term read `quick exit 1` (the fresh worktree had no build, and radius.spec.ts layer B refuses to
 pass on none); run by hand on that worktree once built: 101 / 1129 + 1 todo, green.
+
+## 2026-09-28 change 25 - the centre panel fits the screen, never scrolls
+
+`BENCH-2026-09-16.txt` section 25, the Done paragraph "change 25". Outside the GSD cycle, no plan file. No push, no
+device, no deploy; `src/vendor/`, `library.ts`, every catalog entry, `sequence.ts`, the manifest, `pad-sim.ts`,
+`firmware-oracle.spec.ts` and the Sandbox runtime and emitter untouched. Commits, each `git commit --only` on its
+paths: `7d63547` feat(shell) the `fit` shape and the numbers; `7cf1af0` feat(playground) the card; `e2d226d`
+feat(sandbox) the Sandbox; `6b8c71d` fix(sandbox) the plate's menu in the top layer; `82a7e04` test(e2e)
+`e2e/layout.e2e.ts`; `f7b4159` chore(gate) the records `gate/change-25.*` (before, at `663651d`, clean) and
+`gate/change-25-after.*` (at `82a7e04`, clean); then this section and the Done paragraph.
+
+**The rule** (layout.ts, THE CENTRE FITS THE SCREEN). A route declares `fit` (as data and in its fill); the shell's
+`main.centre.fit` is a flex column of the frame's height with `overflow: hidden`. The route's root is its one flex
+child; its rows keep their height and the plate's region takes the rest as a size container, so the plate's edge is
+`min()` over container units - no ResizeObserver, no repaint (the card's canvas is a 9 x 9 backing store upscaled
+`pixelated`, the Sandbox's plate an SVG viewBox). Card: `min(100cqi, 100cqb - 16 - 18, SURFACE_MAX)`, the stage's
+ceiling the plate its width allows plus the caption. Sandbox, the editor alone: `min(100cqi, 100cqb - 75.7, 571)`
+(the caption 12 + 18, the status 8 + two 13px lines at 1.45); with the Play monitor or the empty surface's block, the
+two side by side - the editor `min(region height - 75.7, 571, region width - 160 - 24)` wide (never under 160), the
+aside 160 to 320, never taller than the region, scrolling inside itself. Stacked page (below 1024): the page scrolls
+and the edge is also held under `100dvh - 2 x 24 -` the caption rows.
+
+**Measured** on the served build (vite preview on 4174), chromium, the centre's `scrollHeight / clientHeight` and the
+plate's edge in px; before, every desktop centre scrolled (ORBIT at 1280 x 720 930 / 464, the monitor open 1335 /
+464, the Sandbox in Edit 860 / 464, in Play with lines 1034 / 464) with the plate at its cap (600 card, 571 Sandbox,
+510 at 1280, 372 / 311 at 1024). After, 45 of 45 desktop views read `scrollHeight == clientHeight` and the document
+equals the viewport, no two rows overlap, and the plate's menu (450px) is inside the viewport at every size:
+
+| viewport  | ORBIT | ORBIT, monitor open | AURORA | PINWHEEL, Mirror | Sandbox empty | Edit | Play, lines | Play, Mirror |
+| --------- | ----: | ------------------: | -----: | ---------------: | ------------: | ---: | ----------: | -----------: |
+| 1920x1080 |   518 |                 324 |    580 |              481 |           556 |  556 |         556 |          508 |
+| 1440x900  |   314 |                 201 |    376 |              277 |           376 |  376 |         376 |          328 |
+| 1366x768  |   182 |                 122 |    244 |              145 |           244 |  244 |         244 |          196 |
+| 1280x720  |   134 |                  93 |    196 |               97 |           196 |  196 |         196 |          129 |
+| 1024x768  |   182 |                 122 |    244 |               62 |           127 |  157 |         127 |           46 |
+| 393x852   |   361 |                 361 |    361 |              361 |           361 |  361 |         361 |          361 |
+
+At 393 x 852 the page scrolls (as before) and every plate, scrolled to, runs from 8 to 369 of 852. Mirror was reached
+through the fake ZONA (`e2e/fake-serial.ts`, `installZona`) in a throwaway spec, never committed.
+
+**Tests.** `e2e/layout.e2e.ts`, five titles (chromium): at 1280 x 720 and 1920 x 1080 the card (ORBIT shut and open,
+AURORA) and the Sandbox (empty, Edit, the menu, Play with lines) - the centre's and the document's scrollHeight within
+their clientHeight, the plate square, inside the column and within 1px of the rule's edge for its measured region, no
+row over another, the Play monitor 24px after the editor and inside the region, the menu inside the viewport; and at
+844 x 390 the stacked plate with its caption rows inside the viewport. No existing pin moved: the Sandbox walks read
+the plate's box, and the SVG's user units (`571 / 9`) do not change with its edge.
+
+**Counts, carried + delta** (carried = `663651d`'s): quick 101 / 1138 + 1 todo -> **101 / 1138 + 1 todo** (+0), green
+twice at `--maxWorkers=2`; `QUICK_TESTS` stays 1138; check **692**, 0 errors, 0 warnings; lint clean; e2e runs 123 ->
+**128** (+5, all `layout.e2e.ts`), vitest titles 1139 equal; chunks by files on a fresh detached wrangler dev on 4173,
+HTTP 000 after each: c3 (`tuning`, `tuning-webkit`, `rack-grid`, `layout`) **33 passed**, c4 **26 passed**, c5 **11
+passed**, c1 **36 passed**; c2 (not in the brief, run for 13.1's frame check `browse.e2e.ts:1672`, green both times)
+20 passed / 2 failed twice, each red a `/playground/` toolbar title of the recorded hydration family (`:299`, `:343`,
+`:1404`), each green alone. No server died. 5173 untouched (not running).
+
+**The gate** (`--before change-25` at `663651d`; `--after change-25 --against change-25 --check 692` at `82a7e04`):
+**the wire byte-identical** - set `193d352f…`, full `bbb8a19b…`, Sandbox set `651664f8…`; copy exports `48ba2b07…`
+equal; testids 357 `12ca66ac…` equal; the census `bb6d4c3f…` -> `bc47c87f…` (3,600 -> 3,604 literals: `stage` 4 -> 5,
+`menu` 4 -> 3, `menu root`, `manual`, `showPopover` and `${}px` x2 new) - the script exits there by design; past it,
+read off the record: **utilities 44 -> 44** (0 appeared, 0 disappeared, the markup-named five intact), scoped CSS
+`c673a834…` -> `37263da0…`, raw CSS `9b60d8a3…` -> `70a965e4…`, normalised JS `b646d019…` -> `f015bce8…`, OG 27
+files / 159,169 B / `9becd682…` equal, the four fixtures equal, comment lines 11 files moved, `src/` 11 modified / 0
+added / 0 deleted.
+
+**Departures from the brief:** (1) the Sandbox's Play monitor and the empty surface's block stand BESIDE the plate on
+the desktop, not under it (under, the monitor alone is about 180px of a 416px column and left a Play plate of a few
+pixels at 1280 x 720); (2) the plate's menu is a manual popover in the top layer (`ContextMenu.svelte`), since the
+column no longer scrolls to reach its last rows; (3) the caption is a fixed 18px line, never narrower than 310px while
+the column has it, the matrix label giving way and stepping aside below 310 (a container query) so the readout stays
+whole; (4) the names give way to 120px before the switches wrap, and the Sandbox's sub-line - the same sentence on
+every surface - clamps to one line, not two; (5) the open MIDI monitor takes two parts of the height to the plate's
+three, its panel scrolling; (6) the caps stay (600, 571); (7) `MidiMonitor.svelte`, `PlayMonitor.svelte` and
+`ContextMenu.svelte` moved beyond the named files. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
