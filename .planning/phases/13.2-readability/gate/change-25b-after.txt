@@ -1,0 +1,83 @@
+# 13.2 gate --after change-25b --against change-25b --check 692
+HEAD 9f75977 (9f75977e0bedd453b1bdda727c355c7175d64f71); dirty (src e2e scripts docs) 0; free memory 2.29 GB; 2026-09-28T10:24:17Z
+before-record HEAD 7d41bffcb59ce7e6135fea5e1fc13cbc6a92b9fa
+
+## the wire
+18057 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9
+
+## the strings
+222 files; 3608 distinct literals (8773 occurrences); 9 copy modules; 359 data-testids
+literal census sha256 de6941467eb088bbe1266116bbd6154ecb8b0af5bf1504ad592dbc91794a252b
+copy exports   sha256 48ba2b0752e8e72be500013a5a541cbd1156ed598d7e41c0b7f2b53a71bc5586
+data-testids   sha256 bd078c2f483d7caf9fbc267daa74e818e03f4ca7536e0d520ec9b51f4a97ee81
+- 18 -> 19	"app"
+- 3 -> 5	"bar"
+- 1 -> 5	"header"
+- 3 -> 4	"strip"
++ 0 -> 1	"context"
++ 0 -> 1	"header-context"
++ 0 -> 1	"in-header"
++ 0 -> 1	"shell-header-context"
+
+## the comment lines
+223 files; 62058 lines, 41078 code, 16275 comment, 4705 blank, 4820 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/ui/shell/ContextBar.svelte | 214 | 275 | 27 | 40 | 15 | 18 |
+| src/lib/ui/shell/Footer.svelte | 173 | 289 | 22 | 38 | 14 | 19 |
+| src/lib/ui/shell/Header.svelte | 128 | 164 | 23 | 33 | 14 | 18 |
+| src/lib/ui/shell/layout.ts | 315 | 340 | 172 | 190 | 17 | 17 |
+| src/routes/+layout.svelte | 363 | 394 | 68 | 78 | 12 | 13 |
+| **totals (223 -> 223 files)** | 61789 | 62058 | 16208 | 16275 | 4807 | 4820 |
+
+5 file(s) moved
+
+## check and lint
+check: 1790591103994 COMPLETED 692 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 101 files, 1139 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 9f75977
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: acfa3db4a6a5c3761a93942608eee99952879d4ec27cf550e1d0424f6252968f (15 stylesheets)
+15 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 acfa3db4a6a5c3761a93942608eee99952879d4ec27cf550e1d0424f6252968f
+SCOPED CSS sha256 a3d8bd438687526103551ac54ff2d9c9791bab1dbe581ad694de91fb01b30579
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 07e003c6634be0a96a253e1e2cf2459dc248310b4d756558f68baaa0bdd1e881 (74 files)
+
+## the titles
+TITLES sha256 f9b221c1418fd98cef895f27a90793c13d3a7e1911c1a29bb8bfde348c7ced1a (1140 vitest titles incl. todo, 131 playwright runs)
+
+## src/ against the before-record's HEAD 7d41bffcb59ce7e6135fea5e1fc13cbc6a92b9fa
+git diff --name-status: 6 modified, 0 added, 0 deleted, 0 renamed
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-25b
+wire: equal (set 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b, full bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1)
+sandbox set: equal (651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9)
+FAIL: the literal census (bc47c87fd9e8b6db2cd56fc539e5f7095d5dcca4b6c6ae37a05c65522f9b08ac -> de6941467eb088bbe1266116bbd6154ecb8b0af5bf1504ad592dbc91794a252b; the -/+ lines above name every literal whose count moved)
