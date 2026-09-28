@@ -4940,3 +4940,17 @@ Timer's first call, so a DAW already playing at a Store needs a Stop and a play;
 Setup has 4 free - it would need another cut). (c) A later Start seeds the food walk with the steps counted so far, so
 each Start plays a different game; say if every Start should replay the shelf's first game instead. (d) Changes 1
 to 23's questions still stand.
+
+25. The centre panel fits the screen, never scrolls (2026-09-28)
+--------------------------------------------------------------------------------
+
+> One change across all HANGAR: the middle panel (whether in Sandbox or Playground) where the ZONA
+> lives should not be scrollable but fit the screen always
+
+Recorded: on the card workspace and in the Sandbox the centre column (the plate, the card or
+surface name row and its lede, the Configure / Play / Mirror switches, the plate's status and
+coordinate lines, the MIDI monitor bar) always fits the shell's height with no scroll: the plate
+is sized from the space left after its fixed rows (the smaller of the column's width and the
+remaining height, so it stays square), and every row around it keeps its size. The side panels
+(the rail, the inspector) keep their own scrolling. On a phone-width stacked layout, where the
+page itself scrolls, the plate fits the viewport's width and height the same way.
