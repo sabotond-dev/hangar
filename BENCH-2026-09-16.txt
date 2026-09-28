@@ -5031,3 +5031,17 @@ floor and the label stepping aside; the Sandbox's sub-line at one line; the name
 3 : 2 share; `MidiMonitor.svelte`, `PlayMonitor.svelte` and `ContextMenu.svelte` moved beyond the named files; the
 Sandbox's handles and delete icon, drawn in the SVG's user units, scale with the plate as they always did and are
 small on the short screens. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
+
+Change 25b, recorded 2026-09-28: at 1280x720 the fitted plate is 134 px (ORBIT) - the chrome eats
+the height (header 75, breadcrumb bar 60, footer 121). Asked which space to take back:
+
+> Footer off the app pages, Drop the duplicate breadcrumb
+
+Recorded: on the app pages (the card workspace and the Sandbox) the 121 px footer becomes a thin
+strip (~32 px, one line: HANGAR / by intech studio, GPLv3, Third-party notices, Source, the build
+id, Help & shortcuts, Device actions) - or leaves those pages entirely with its links reachable
+from the header's menu; the full footer stays on the content pages (the Playground index, My
+configs, the intro). The 60 px breadcrumb bar leaves the app pages (the eyebrow above the title
+and the rail's "All configs" carry the place); where the bar holds a control ("Preview without
+hardware", the device clause) it moves into the header. The title block (lede, the quote line,
+the monitor bar) stays as it is.
