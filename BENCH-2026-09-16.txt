@@ -5114,3 +5114,38 @@ the strip's controls 32px at a fine pointer (44 under a coarse one, where the st
 strip rather than floating; the switch read off the declared data; the Sandbox has no rail "All configs"; e2e pins
 moved only where the element moved (five preview-line reads and install's device-clause helper scoped to the header).
 CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
+
+26. The Quick guide (2026-09-30)
+--------------------------------------------------------------------------------
+
+> plan and make the quick guide section for HANGAR
+
+Read before planning: the intro's header carries a "Quick guide" link (13-07/13-09) pointing at
+`#quick-guide` on the intro page - a placeholder; ROADMAP.md:596 names the Quick guide as the user's
+next ask after 13.1; the Android install limit was to be noted there (Chrome Android exposes only
+Bluetooth serial - browse and Sandbox work, install does not). The printed ZONA quickstart card
+(Plug in / Configure / Control) is the register to echo.
+
+Recorded - the plan: a Quick guide page at `/guide/` (a content page: full footer, prerendered,
+every section an anchor for deep links), reached from the intro's "Quick guide" link, a "Quick
+guide" link in the header's nav on every page, and the Help & shortcuts panel. Eight short
+sections, each a heading, two to five sentences or steps in the D-05 register, and one small
+drawn illustration where it helps (the 9x9 plate, a control as it looks in the app):
+1. Connect your ZONA - USB-C; Chrome, Edge or desktop Firefox 151+; close Grid Editor first (one
+   app holds the port); Connect ZONA and the browser's port prompt; what works where (Safari, iOS
+   and Android browse and build but cannot install - Android exposes Bluetooth serial only).
+2. Try a configuration - the Playground; every card runs the firmware's own code; Play to try it
+   with the mouse or a finger.
+3. Tune it - the rack (Look, Feel, Sound, MIDI, Sync); typed values snap to the nearest step;
+   colours; reset and lock; Randomize.
+4. Store it on your ZONA - Target page 1 to 4; Store on ZONA (clears the page, writes, stores to
+   flash, proves it by reading back); the utility button on the side switches pages; Clear.
+5. Build your own - the Sandbox: add with F B X K L, drag to move, handles to resize, Play; per
+   element MIDI; Latch; extra messages; the ? cheat-sheet.
+6. Play with your DAW - per-output Type, Channel, Number; Receive (the DAW moves the element);
+   Sync External with Start / Stop; Division.
+7. Save, share, export - My configs, Save copy, Share snapshot, Export as a file, Export for Grid
+   Editor (drop the file into grid-userdata/configs).
+8. If something goes wrong - the port is busy, Store refused, no MIDI arriving, getting the
+   factory page back (Clear), the utility button not switching pages after an old Sandbox store.
+Queued now (Opus).
