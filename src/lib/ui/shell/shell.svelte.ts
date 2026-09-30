@@ -18,11 +18,15 @@ import { resolve } from "$app/paths";
 import type { ResolvedPathname } from "$app/types";
 import type { InstallPhase } from "$lib/device/install.svelte";
 
-/** The three sections of the primary nav (Bible section 4). */
-export type Section = "playground" | "sandbox" | "my-configs";
+/**
+ * The three sections of the primary nav (Bible section 4), and the Quick guide
+ * (change 26): a page of its own that the header links from its secondary
+ * position rather than the nav, so a route can still say it is current.
+ */
+export type Section = "playground" | "sandbox" | "my-configs" | "guide";
 
 export interface NavItem {
-  id: Section;
+  id: Exclude<Section, "guide">;
   /** The PDF's own label, uppercase because it is a short navigation label (D-05). */
   label: string;
   href: ResolvedPathname;
@@ -40,6 +44,13 @@ export const SECTIONS: readonly NavItem[] = [
   { id: "sandbox", label: "SANDBOX", href: resolve("/sandbox/") },
   { id: "my-configs", label: "MY CONFIGS", href: resolve("/my-configs/") },
 ];
+
+/**
+ * The Quick guide's address (change 26, BENCH-2026-09-16.txt section 26):
+ * the header's secondary link on every app page, the intro's link, the Help
+ * panel's and the contextual deep links all read it.
+ */
+export const GUIDE_HREF: ResolvedPathname = resolve("/guide/");
 
 export interface ShellFill {
   variant: "intro" | "app";
@@ -131,7 +142,10 @@ export function shellFromData(data: unknown): ShellFill | undefined {
   const variant = (declared as { variant?: unknown }).variant;
   if (variant !== "intro" && variant !== "app") return undefined;
   const section = (declared as { section?: unknown }).section;
-  const known = SECTIONS.find((item) => item.id === section);
+  const known =
+    section === "guide"
+      ? { id: "guide" as const }
+      : SECTIONS.find((item) => item.id === section);
   const crumbs = (declared as { breadcrumb?: unknown }).breadcrumb;
   const breadcrumb =
     Array.isArray(crumbs) && crumbs.every((c) => typeof c === "string")
