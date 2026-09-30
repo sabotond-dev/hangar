@@ -1,0 +1,274 @@
+# 13.2 gate --after change-26 --against change-26 --check 703
+HEAD 1146c7b (1146c7b3d5a700510222564afc06a267f7ac1b26); dirty (src e2e scripts docs) 0; free memory 1.58 GB; 2026-09-30T08:50:07Z
+before-record HEAD a0fec6cada5c766d7aefd3cf287cc34611005455
+
+## the wire
+18057 strings from 22 Lua entries + 5 presets + library + defaults + Sandbox page 3
+WIRE SET 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE FULL bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1
+1178 Sandbox strings from 62 fixtures (runtime.spec.ts and emit.spec.ts) through landSurface, emitSurface under 2, 3 and 5 slots, and at the picker corner
+WIRE SANDBOX SET 651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9
+
+## the strings
+230 files; 3716 distinct literals (9037 occurrences); 10 copy modules; 371 data-testids
+literal census sha256 146e0211b640ee3b20f6ddc48e3f9d279f87eb25c5e6d283d5d7a075002c2e27
+copy exports   sha256 90515f8b974defe43f0e19974e077b65108cf3d7ceda029f3c7b1befe7447f9d
+data-testids   sha256 69cb09addd0415f8e128bedede974c38a6a1ed639a88889009f0648bcd13baa3
+- 1 -> 2	" · on ZONA"
+- 1 -> 0	"#quick-guide"
+- 3 -> 4	"${}/og/${}.png"
+- 3 -> 4	"1200"
+- 3 -> 4	"630"
+- 1 -> 2	"Another program is holding the port"
+- 1 -> 2	"Blank"
+- 1 -> 2	"Button"
+- 2 -> 3	"Fader"
+- 4 -> 5	"HANGAR"
+- 1 -> 2	"Knob"
+- 3 -> 4	"Note"
+- 1 -> 2	"Nothing is written to your ZONA without a click. Browsing and previewing never touch it."
+- 1 -> 2	"Quick guide"
+- 10 -> 12	"S0a"
+- 9 -> 10	"S0b"
+- 10 -> 12	"S6"
+- 1 -> 2	"XY pad"
+- 19 -> 23	"app"
+- 13 -> 14	"body"
+- 3 -> 5	"box"
+- 1 -> 2	"build"
+- 118 -> 119	"button"
+- 1 -> 2	"cell"
+- 4 -> 6	"chevron"
+- 3 -> 4	"connect"
+- 27 -> 28	"connected"
+- 6 -> 7	"description"
+- 1 -> 5	"drawing"
+- 9 -> 10	"eyebrow type-micro"
+- 1 -> 2	"face"
+- 4 -> 6	"frame"
+- 1 -> 2	"ground"
+- 2 -> 3	"headline type-page-title"
+- 3 -> 4	"image/png"
+- 3 -> 7	"img"
+- 1 -> 2	"items"
+- 5 -> 6	"key"
+- 3 -> 8	"keys"
+- 16 -> 17	"label"
+- 1 -> 2	"lede"
+- 1 -> 2	"level"
+- 12 -> 14	"line"
+- 1 -> 5	"list"
+- 3 -> 4	"og:description"
+- 3 -> 4	"og:image"
+- 3 -> 4	"og:image:alt"
+- 3 -> 4	"og:image:height"
+- 3 -> 4	"og:image:type"
+- 3 -> 4	"og:image:width"
+- 3 -> 4	"og:site_name"
+- 3 -> 4	"og:title"
+- 3 -> 4	"og:type"
+- 3 -> 4	"og:url"
+- 8 -> 10	"output"
+- 2 -> 6	"page"
+- 1 -> 5	"plate"
+- 10 -> 11	"quiet"
+- 5 -> 11	"rail"
+- 25 -> 26	"row"
+- 13 -> 14	"rows"
+- 4 -> 5	"side numerals"
+- 7 -> 13	"steps"
+- 13 -> 18	"store"
+- 2 -> 3	"summary"
+- 3 -> 4	"summary_large_image"
+- 18 -> 37	"text"
+- 4 -> 5	"title type-micro"
+- 9 -> 10	"top"
+- 89 -> 92	"true"
+- 2 -> 3	"try"
+- 3 -> 4	"twitter:card"
++ 0 -> 1	"${}/guide/"
++ 0 -> 1	"/guide/"
++ 0 -> 1	"A Sandbox surface has no link: Export as a file saves it, and Import config on My configs opens it again in any browser."
++ 0 -> 1	"A Sandbox surface with a fader, a button and an XY pad."
++ 0 -> 1	"A card that keeps time has a Sync section: External follows your DAW’s MIDI clock from its Start to its Stop, and Division sets the step to an 8th, a 16th or a 32nd. The preview in the browser has no clock and runs at the card’s own tempo."
++ 0 -> 1	"A card’s settings sit in up to five sections, Look, Feel, Sound, MIDI and Sync, and it shows only the ones it uses."
++ 0 -> 1	"A fader, a button and an XY pad on the 9 × 9 surface."
++ 0 -> 1	"A page stored from the Sandbox before 27 September 2026 lost its page switch. Store that page again or Clear it, and the button steps through the pages again."
++ 0 -> 1	"An output block’s head: Ring 1, with the line Note · Ch 1 · C4 · Receive."
++ 0 -> 1	"Build your own"
++ 0 -> 1	"C4"
++ 0 -> 1	"Check that ZONA is on as a MIDI input in your DAW, and that the output’s Channel is the channel your DAW listens on."
++ 0 -> 1	"Click Connect ZONA at the top right and pick your ZONA in the browser’s list. Firefox asks first whether this site may use serial ports; allow it and the list appears."
++ 0 -> 1	"Click Store on ZONA. HANGAR returns the page to its firmware default, writes this configuration, stores it and reads it back; Stored on ZONA · Page 1 means the page read back as it was sent."
++ 0 -> 1	"Connect your ZONA"
++ 0 -> 1	"Connect your ZONA and open a card, or your surface in the Sandbox. Target and Store on ZONA appear at the top right."
++ 0 -> 1	"Connect your ZONA, try and tune a configuration, store it, build your own surface and play it with your DAW."
++ 0 -> 1	"Drag an element to move it and drag its handles to resize it. The arrow keys move the selection one cell, and [Shift] with an arrow resizes it."
++ 0 -> 1	"Eight short sections, from the cable to your DAW."
++ 0 -> 1	"Every output has a Type and a Channel, and most have a Number. Turn on Receive and the element takes the value when your DAW sends that message."
++ 0 -> 1	"Export for Grid Editor saves a profile file. Drop it into the Editor’s grid-userdata/configs folder and it opens there."
++ 0 -> 1	"From the cable to your DAW in eight short sections. Browsing, tuning and building work without a ZONA; storing needs one connected."
++ 0 -> 1	"GETTING STARTED"
++ 0 -> 1	"HOW HANGAR WORKS"
++ 0 -> 1	"How to connect, in the Quick guide"
++ 0 -> 1	"If something goes wrong"
++ 0 -> 1	"More fixes in the Quick guide"
++ 0 -> 1	"More on building in the Quick guide"
++ 0 -> 1	"No MIDI reaches your DAW"
++ 0 -> 1	"ON THIS PAGE"
++ 0 -> 1	"On this page"
++ 0 -> 1	"One line sums up each output: its Type, Channel and Number, and whether it receives."
++ 0 -> 1	"Open the Playground and pick a card. Every pad here runs the firmware’s own code, so you can see what a configuration does before your ZONA is anywhere near."
++ 0 -> 1	"Open the Quick guide"
++ 0 -> 1	"Open the Sandbox, press a key to arm an element, then click a cell to place it:"
++ 0 -> 1	"Pick a page under Target. It lists the pages your ZONA reports, and your ZONA switches to the one you pick."
++ 0 -> 1	"Pick the page under Target and click Clear. It returns the page to its firmware default and stores it."
++ 0 -> 1	"Play with your DAW"
++ 0 -> 1	"Plug your ZONA into the computer with a USB-C cable that carries data. A charge-only cable fits the socket and leaves the browser’s list empty."
++ 0 -> 1	"QUICK GUIDE"
++ 0 -> 1	"Quick guide — HANGAR"
++ 0 -> 1	"Quit Grid Editor completely from its tray icon and close any other HANGAR tab. Then unplug your ZONA, plug it back in, reload the page and connect again."
++ 0 -> 1	"Quit Grid Editor from its tray icon and close any other HANGAR tab. Only one program can hold the port at a time."
++ 0 -> 1	"Reset beside a setting puts it back, and Reset settings puts them all back. Randomize changes every setting you haven’t locked and never a MIDI setting; Undo randomize takes it back."
++ 0 -> 1	"Ring 1"
++ 0 -> 1	"Save copy keeps this version in My configs, in this browser."
++ 0 -> 1	"Save, share, export"
++ 0 -> 1	"Select an element to shape it in the inspector: its MIDI output, Latch, which keeps a finger on the element it landed on, and up to three extra messages."
++ 0 -> 1	"Share snapshot copies a link that opens the card with your settings."
++ 0 -> 1	"Step a value or type one; a typed value snaps to the nearest step the setting offers. Edit color opens a picker with a red, a green and a blue rail, and Brightness under Look sets the whole light output from 1 to 255."
++ 0 -> 1	"Store it on your ZONA"
++ 0 -> 1	"Store on ZONA is greyed out"
++ 0 -> 1	"Storing works in Chrome, Edge and desktop Firefox 151 and newer. Safari, every browser on iOS and Chrome on Android can browse, tune and build here but can’t store: Chrome on Android reaches only Bluetooth serial ports, not a ZONA on a cable."
++ 0 -> 1	"Switch the card to Play and touch the surface with the mouse or a finger; in Configure the surface ignores a touch."
++ 0 -> 1	"Switch to Play to touch the surface as you would the pad, and press [?] for every shortcut."
++ 0 -> 1	"Target and Store on ZONA, under the connection control."
++ 0 -> 1	"The browser’s list is empty"
++ 0 -> 1	"The controls at the top right with a ZONA connected: Clear, ZONA connected, then Target set to Page 1 and Store on ZONA."
++ 0 -> 1	"The line under it says why: connect your ZONA, change something to store it again, or remove an element when a surface is too full for a ZONA page."
++ 0 -> 1	"The utility button doesn’t change pages"
++ 0 -> 1	"The utility button on the side of your ZONA steps to the next page. Clear returns the Target page to its firmware default and stores it; your browser draft stays as it is."
++ 0 -> 1	"The utility button sits on the side opposite the USB-C socket."
++ 0 -> 1	"Try a configuration"
++ 0 -> 1	"Try a different USB cable: a charge-only cable is the most common reason. Plug your ZONA straight into the computer rather than through a hub or a dock."
++ 0 -> 1	"Tune it"
++ 0 -> 1	"You want the factory page back"
++ 0 -> 1	"Your ZONA sends its MIDI over the same USB cable: pick ZONA as a MIDI input in your DAW, and as an output when the DAW should move things back."
++ 0 -> 1	"ZONA from above: the USB-C cable on one side, the utility button on the opposite side."
++ 0 -> 5	"answers"
++ 0 -> 1	"article"
++ 0 -> 1	"box choice"
++ 0 -> 1	"box strong"
++ 0 -> 1	"cable"
++ 0 -> 1	"caption type-helper"
++ 0 -> 2	"cross"
++ 0 -> 1	"daw"
++ 0 -> 2	"details-guide"
++ 0 -> 1	"figure"
++ 0 -> 1	"figure-output"
++ 0 -> 1	"figure-plate"
++ 0 -> 1	"figure-store"
++ 0 -> 1	"figure-zona"
++ 0 -> 1	"foot type-helper"
++ 0 -> 2	"grid-line"
++ 0 -> 12	"guide"
++ 0 -> 1	"guide-figure"
++ 0 -> 1	"guide-keys"
++ 0 -> 1	"guide-link"
++ 0 -> 1	"guide-section"
++ 0 -> 1	"header-quick-guide"
++ 0 -> 1	"help-guide"
++ 0 -> 1	"help-quick-guide"
++ 0 -> 1	"key-row"
++ 0 -> 2	"leader"
++ 0 -> 1	"name type-micro"
++ 0 -> 1	"part"
++ 0 -> 1	"part-title type-panel-title"
++ 0 -> 1	"plug"
++ 0 -> 1	"point"
++ 0 -> 1	"region button"
++ 0 -> 1	"region fader"
++ 0 -> 1	"region pad"
++ 0 -> 1	"save"
++ 0 -> 1	"shortcut-sheet-guide"
++ 0 -> 1	"strong"
++ 0 -> 1	"toc"
++ 0 -> 1	"troubleshooting"
++ 0 -> 1	"tune"
++ 0 -> 4	"zona"
+
+## the comment lines
+231 files; 63401 lines, 42119 code, 16453 comment, 4829 blank, 4919 header
+
+| file | lines before | after | comment before | after | header before | after |
+|---|--:|--:|--:|--:|--:|--:|
+| src/lib/guide/copy.ts (new) | - | 319 | - | 44 | - | 17 |
+| src/lib/ui/DeviceDetails.svelte | 368 | 400 | 40 | 45 | 14 | 17 |
+| src/lib/ui/guide/Contents.svelte (new) | - | 117 | - | 16 | - | 11 |
+| src/lib/ui/guide/OutputFigure.svelte (new) | - | 77 | - | 12 | - | 9 |
+| src/lib/ui/guide/PlateFigure.svelte (new) | - | 133 | - | 16 | - | 9 |
+| src/lib/ui/guide/StoreFigure.svelte (new) | - | 113 | - | 15 | - | 10 |
+| src/lib/ui/guide/ZonaFigure.svelte (new) | - | 84 | - | 12 | - | 8 |
+| src/lib/ui/sandbox/ShortcutSheet.svelte | 226 | 264 | 18 | 20 | 9 | 10 |
+| src/lib/ui/shell/Footer.svelte | 289 | 309 | 38 | 39 | 19 | 19 |
+| src/lib/ui/shell/Header.svelte | 164 | 220 | 33 | 46 | 18 | 24 |
+| src/lib/ui/shell/shell.svelte.ts | 150 | 164 | 73 | 82 | 15 | 15 |
+| src/routes/+page.svelte | 104 | 106 | 22 | 23 | 13 | 14 |
+| src/routes/guide/+page.svelte (new) | - | 316 | - | 24 | - | 16 |
+| src/routes/guide/+page.ts (new) | - | 22 | - | 8 | - | 8 |
+| **totals (223 -> 231 files)** | 62058 | 63401 | 16275 | 16453 | 4820 | 4919 |
+
+14 file(s) moved
+
+## check and lint
+check: 1790758267450 COMPLETED 703 FILES 0 ERRORS 0 WARNINGS 0 FILES_WITH_PROBLEMS
+lint exit 0
+
+## the quick suite (--maxWorkers=2, JSON reporter for the titles)
+check-counts: observed 102 files, 1145 tests passed, 1 todo (todo is reported, never asserted)
+check-counts: matches the expected counts
+quick exit 0
+
+## the build
+build exit 0; stamp 1146c7b
+
+## the fixtures
+git status --porcelain over the fixture paths: (empty)
+hash-object 290ff266c962b95a47814bb3e3825db5a7a69d01 src/lib/catalog/frames.json
+hash-object 3a1d71dabfb6f056b625863bb269ad1967b2065d src/lib/fidelity/golden-frames.json
+hash-object eca808d23b1e57b6e34db93523dfa89300b21ca6 src/lib/fidelity/preset-baseline.json
+hash-object 8b78c396d7d72ca8609e0cb0522451143c7a039b src/lib/transport/fixtures/synthetic-zona.json
+OG 27 files, 159169 B, sha256 9becd682f1342b9ec629271887a370f510c8210341081c7afaa54a2f5e575e15
+
+## the built CSS
+cat build/_app/immutable/assets/*.css | sha256sum: 776a921efc869d6c02eec24793858df468c29db93a5c0d565781a20320d7bc7c (17 stylesheets)
+17 stylesheets under build/_app/immutable/assets/
+RAW CSS sha256 776a921efc869d6c02eec24793858df468c29db93a5c0d565781a20320d7bc7c
+SCOPED CSS sha256 a9ca333d5364311feaf0f35aa38fc5a33128ebf8d68ba0e2e9efa26c30dc37b1
+UTILITIES 44 classes, 5 named by markup: block grid outline ring sr-only
+UTILITIES DELTA 44 -> 44: 0 disappeared, 0 appeared
+MARKUP-NAMED intact: block grid outline ring sr-only
+
+## the normalised built JS
+NORMALISED JS sha256 41c82950a78cac3c777fc797c70fc2a2551bbaa780f02deb9e96755210143b7d (81 files)
+
+## the titles
+TITLES sha256 df9c9b92aed00026e6a173930a49b294259350aff4335c7eef22cb7e710781ae (1146 vitest titles incl. todo, 137 playwright runs)
+
+## src/ against the before-record's HEAD a0fec6cada5c766d7aefd3cf287cc34611005455
+git diff --name-status: 6 modified, 9 added, 0 deleted, 0 renamed
+  A	src/lib/guide/copy.spec.ts
+  A	src/lib/guide/copy.ts
+  A	src/lib/ui/guide/Contents.svelte
+  A	src/lib/ui/guide/OutputFigure.svelte
+  A	src/lib/ui/guide/PlateFigure.svelte
+  A	src/lib/ui/guide/StoreFigure.svelte
+  A	src/lib/ui/guide/ZonaFigure.svelte
+  A	src/routes/guide/+page.svelte
+  A	src/routes/guide/+page.ts
+git diff --stat over src/vendor, the manifest, Knob.svelte, ColourPicker.svelte: (empty)
+
+## comparison against change-26
+wire: equal (set 193d352f208851c6921d30ea928687f288dd09b5ec370c3c3fd1c68ebaca4d3b, full bbb8a19b2959cd78963d1036d7330951760135c15bc4e8f125056cea89d5a3a1)
+sandbox set: equal (651664f8e7688f8c0074dcf052fa7d5d77ce83d327310cbe6a52cc7af80108b9)
+FAIL: the literal census (de6941467eb088bbe1266116bbd6154ecb8b0af5bf1504ad592dbc91794a252b -> 146e0211b640ee3b20f6ddc48e3f9d279f87eb25c5e6d283d5d7a075002c2e27; the -/+ lines above name every literal whose count moved)
