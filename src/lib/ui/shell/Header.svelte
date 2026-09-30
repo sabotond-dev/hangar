@@ -12,6 +12,12 @@
   (ContextBar.svelte's header placement, handed over by the layout) take a line of their own
   under the row, right-aligned beneath Clear and the connection control, after them in the
   document so the tab order reads the row first; the row itself does not move.
+  The Quick guide (change 26): on the app pages a quiet "Quick guide" link opens the connection
+  zone, at its start, before Clear - the header's secondary position, the intro's link in the
+  app's register. Not a fourth nav item: at 1024 the row is full (the nav ends at 709, the zone
+  holds Clear and the control in 247px) and up to about 1410 a fourth item would take the room
+  Clear's caption reads. It draws only where the zone holds it beside the pair (a container
+  query on the zone, the room rule Clear uses), and it is current on /guide/.
   Decided at 13-05 / 13.1-05 (13.1-CONTEXT D-04); see .planning/phases/13.1-bench-corrections-four/13.1-05-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -19,10 +25,11 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { resolve } from "$app/paths";
+  import { GUIDE_LINK } from "$lib/guide/copy";
   import Wordmark from "../Wordmark.svelte";
   import Nav from "./Nav.svelte";
   import { CONNECTION_SLOT, HEADER_CONTEXT_PAD, HEADER_H } from "./layout";
-  import type { Section } from "./shell.svelte";
+  import { GUIDE_HREF, type Section } from "./shell.svelte";
 
   let {
     variant = "app",
@@ -71,6 +78,14 @@
 
   <!-- The connection zone: the user's Clear, then the PDF's 218 x 37 box, both filled by the layout. -->
   <div class="connection" data-testid="shell-connection">
+    {#if variant === "app"}
+      <a
+        class="guide-link"
+        href={GUIDE_HREF}
+        data-testid="header-quick-guide"
+        aria-current={section === "guide" ? "page" : undefined}>{GUIDE_LINK}</a
+      >
+    {/if}
     {#if clear}{@render clear()}{/if}
     {#if connection}{@render connection()}{/if}
   </div>
@@ -130,6 +145,47 @@
     min-inline-size: var(--connection-w);
     min-block-size: var(--connection-h);
     container-type: inline-size;
+  }
+
+  /*
+    The Quick guide (change 26): at the zone's start, the slack between it and the pair; quiet ink,
+    the intro's link size. Drawn only where the zone holds it beside Clear and the control
+    (Clear 68 + 12 + the control 147 + 12 + the link, measured at 1024 and 375), and able to give
+    way with an ellipsis rather than push the pair. Current on /guide/: the action colour and
+    the 2px line under it, the nav's two signals.
+  */
+  .guide-link {
+    display: none;
+    align-items: center;
+    flex: 0 1 auto;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    margin-inline-end: auto;
+    overflow: hidden;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--color-ink-quiet);
+  }
+
+  .guide-link:hover {
+    color: var(--color-ink);
+  }
+
+  .guide-link[aria-current] {
+    color: var(--color-action);
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+
+  @container (min-width: 330px) {
+    .guide-link {
+      display: inline-flex;
+    }
   }
 
   /*

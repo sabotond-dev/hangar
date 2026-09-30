@@ -6,7 +6,7 @@
   the targets is a route, __BUILD_DIRTY__ a separate constant so a dirty SHA never
   points at an archive that does not exist (shell.spec.ts holds the five lines).
   Help & shortcuts is a disclosure (aria-expanded, aria-controls, closed) with the
-  motion control under it. Prop: deviceActions, the layout's snippet (absent: no
+  motion control under it and, since change 26, the Quick guide's link above that. Prop: deviceActions, the layout's snippet (absent: no
   dead label); it renders its label and its panel row, which wraps beneath the pair.
   strip (change 25b): on the app pages the same elements in the same order draw ONE LINE -
   the brand, Help & shortcuts · Device actions, then the licence row at the right - in the
@@ -19,7 +19,9 @@
 -->
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { HELP_GUIDE_LINK } from "$lib/guide/copy";
   import MotionControl from "../MotionControl.svelte";
+  import { GUIDE_HREF } from "./shell.svelte";
   import { FOOTER_H, FOOTER_STRIP_H } from "./layout";
 
   let {
@@ -66,13 +68,16 @@
     {/if}
   </div>
 
-  <!-- The Help & shortcuts panel: the motion control (13-04 parked it in the layout's footer; 13-05 moved it). -->
+  <!-- The Help & shortcuts panel: the Quick guide (change 26), then the motion control (13-04 parked it in the layout's footer; 13-05 moved it). -->
   <div
     class="help"
     id={helpId}
     hidden={!helpOpen}
     data-testid="footer-help-panel"
   >
+    <p class="help-guide">
+      <a href={GUIDE_HREF} data-testid="help-quick-guide">{HELP_GUIDE_LINK}</a>
+    </p>
     <MotionControl />
   </div>
 
@@ -153,6 +158,21 @@
 
   .help[hidden] {
     display: none;
+  }
+
+  /* The panel's link: the footer's ink, underlined as its links are, a 44px box at every pointer. */
+  .help-guide {
+    margin: 0;
+  }
+
+  .help-guide a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* The licence row: after the break, the five verbatim elements flow as one quieter line. */

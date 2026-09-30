@@ -6,7 +6,8 @@
   and the flag is written after the read, so a mount that threw marks nothing. The OG head block keeps
   its thirteen tags, the SITE_ORIGIN join and ogAlt; the image and the alt are the hero's. The shell's
   intro variant (wordmark, Quick guide, the connection slot; no nav, no context bar, no rail, no
-  inspector) travels as data through +page.ts; the Quick guide snippet points at the page's own strip.
+  inspector) travels as data through +page.ts; the Quick guide snippet points at /guide/ since change 26
+  (the page's own strip until then).
   Decided at 13-07 (13-CONTEXT D-09, D-14 Q2); see .planning/phases/13-gui-overhaul/13-07-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -14,12 +15,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { FRONT_DOOR_HERO } from "$lib/catalog/front-door";
+  import { GUIDE_LINK } from "$lib/guide/copy";
   import { SITE_ORIGIN } from "$lib/share/url";
   import { markIntroSeen } from "$lib/store/intro";
   import { ogAlt } from "$lib/tune/copy";
   import Intro from "$lib/ui/intro/Intro.svelte";
   import { introCardFor, type IntroCard } from "$lib/ui/intro/card";
-  import { fillShell } from "$lib/ui/shell/shell.svelte";
+  import { GUIDE_HREF, fillShell } from "$lib/ui/shell/shell.svelte";
 
   /* Visitor-facing copy, in one block. The description is the PDF's page 1. */
   const TITLE = "HANGAR";
@@ -65,8 +67,8 @@
 </script>
 
 {#snippet secondary()}
-  <a class="quick-guide type-base" href="#quick-guide" data-testid="quick-guide"
-    >Quick guide</a
+  <a class="quick-guide type-base" href={GUIDE_HREF} data-testid="quick-guide"
+    >{GUIDE_LINK}</a
   >
 {/snippet}
 

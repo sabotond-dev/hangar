@@ -8,6 +8,9 @@
   no trap, no backdrop; the container is a programmatic focus target only. DISCONNECT
   ZONA and FORGET THIS ZONA are a real disabled under the writeLock the install store
   raises while it writes (Z-15); the slot never shows an install state. Strings: session-copy.
+  Change 26: where no ZONA can connect here (S0a, S0b) the drawer ends on a link to the Quick
+  guide's Connect section, and after a failed connection (S6) on one to its troubleshooting;
+  the link's words are src/lib/guide/copy.ts's, the recovery above it unchanged.
   Decided at 06-13 / 13-11; see .planning/phases/13-gui-overhaul/13-11-SUMMARY.md
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
@@ -35,7 +38,9 @@
     multiModuleLine,
     slotStateOf,
   } from "$lib/device/session-copy";
+  import { DEVICE_GUIDE_CONNECT, DEVICE_GUIDE_TROUBLE } from "$lib/guide/copy";
   import { OPENER_SELECTOR } from "./device-drawer.svelte";
+  import { GUIDE_HREF } from "./shell/shell.svelte";
   import FailureBlock from "./FailureBlock.svelte";
 
   let {
@@ -250,6 +255,19 @@
         >
       {/if}
     {/if}
+
+    <!-- The Quick guide (change 26): its Connect section where this browser cannot connect, its troubleshooting after a failure. -->
+    {#if slot === "S0a" || slot === "S0b"}
+      <a class="guide" href="{GUIDE_HREF}#connect" data-testid="details-guide"
+        >{DEVICE_GUIDE_CONNECT}</a
+      >
+    {:else if slot === "S6"}
+      <a
+        class="guide"
+        href="{GUIDE_HREF}#troubleshooting"
+        data-testid="details-guide">{DEVICE_GUIDE_TROUBLE}</a
+      >
+    {/if}
   </div>
 {/if}
 
@@ -279,6 +297,20 @@
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-ink);
+  }
+
+  /* The Quick guide's link: Body's size, underlined, a 44px box at every pointer. */
+  .guide {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* The snapshot line and the lock's reason: Body, one rung quieter. */

@@ -3,7 +3,8 @@
   Sandbox answers, from shortcuts.ts's groups - the keys as they read on this platform (Cmd and
   Option on a Mac) and what each does. Opens on ? and the toolbar's ? box; Escape, the Close box
   or a press on the scrim closes it; focus lands on Close and Tab stays inside. Props: mac,
-  onclose. No state of its own. Square (D-01).
+  onclose. No state of its own. Square (D-01). Its foot links the Quick guide's Build section
+  (change 26), so Tab now cycles two stops, Close and the link, and wraps at either end.
 
   Copyright (C) 2026 Botond Sandor. Licensed under the GNU GPL v3 or later.
 -->
@@ -15,7 +16,9 @@
     SHORTCUTS_LEDE,
     SHORTCUTS_TITLE,
   } from "$lib/sandbox/copy";
+  import { SHEET_GUIDE_LINK } from "$lib/guide/copy";
   import { SHORTCUT_GROUPS, keysWord } from "$lib/sandbox/shortcuts";
+  import { GUIDE_HREF } from "../shell/shell.svelte";
 
   let {
     mac = false,
@@ -36,7 +39,7 @@
     node.focus();
   }
 
-  /** Escape closes; Tab stays inside (the sheet's focusable set is its Close box). */
+  /** Escape closes; Tab stays inside, wrapping from the last stop to the first and back (Close and the guide's link). */
   function onkeydown(event: KeyboardEvent): void {
     event.stopPropagation();
     if (event.key === "Escape") {
@@ -45,10 +48,25 @@
       return;
     }
     if (event.key === "Tab" && sheet !== null) {
-      const focusable = sheet.querySelectorAll<HTMLElement>(
-        "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
-      );
-      if (focusable.length <= 1) event.preventDefault();
+      const focusable = [
+        ...sheet.querySelectorAll<HTMLElement>(
+          "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+        ),
+      ];
+      if (focusable.length <= 1) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const at = document.activeElement;
+      if (event.shiftKey && (at === first || !sheet.contains(at))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (at === last || !sheet.contains(at))) {
+        event.preventDefault();
+        first.focus();
+      }
     }
   }
 
@@ -106,6 +124,11 @@
         </tbody>
       {/each}
     </table>
+    <p class="foot type-helper">
+      <a href="{GUIDE_HREF}#build" data-testid="shortcut-sheet-guide"
+        >{SHEET_GUIDE_LINK}</a
+      >
+    </p>
   </div>
 </div>
 
@@ -221,5 +244,20 @@
 
   .or {
     color: var(--color-ink-quiet);
+  }
+
+  /* The foot: the Quick guide's Build section, one quiet line under the table, a 44px box. */
+  .foot {
+    margin: 16px 0 0;
+  }
+
+  .foot a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 </style>
