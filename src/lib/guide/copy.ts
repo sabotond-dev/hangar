@@ -73,6 +73,9 @@ export const FIGURE_CAPTIONS: Readonly<Record<FigureKind, string>> = {
     "One line sums up each output: its Type, Channel and Number, and whether it receives.",
 };
 
+/** The Store figure's Target: the page's mark as DestinationZone.svelte draws it after the page the module reports. */
+export const FIGURE_ON_ZONA = " · on ZONA";
+
 /** The output figure's block: its name and the four parts its summary line is built from (inspector-copy's outputSummary). */
 export const FIGURE_OUTPUT_NAME = "Ring 1";
 export const FIGURE_OUTPUT_PARTS = {

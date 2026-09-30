@@ -4,7 +4,9 @@
   centre that scrolls. The eyebrow, the one h1 and the lede; the contents (a named nav: in the
   rail from the compact band up, in the article under the lede below it); then the eight
   sections, each an h2 with an id for a deep link (/guide/#store), two to five sentences or a
-  numbered list, a key drawn as a kbd in the house mono. Every word is src/lib/guide/copy.ts's.
+  numbered list, a key drawn as a kbd in the house mono; four carry a small drawing under a quiet
+  caption (src/lib/ui/guide/: ZONA and its cable, the Store controls, the Sandbox's plate, an
+  output's head - inline SVG and spans, no image file). Every word is src/lib/guide/copy.ts's.
   Light on purpose: nothing here imports the simulator, the Lua VM, the catalog's engines or the
   protocol, so the page fetches no .wasm (guide.e2e.ts holds that). The shape travels as data
   (+page.ts); the rail's contents arrive with the effect. The head is the intro's: thirteen tags,
@@ -15,6 +17,7 @@
 <script lang="ts">
   import { FRONT_DOOR_HERO } from "$lib/catalog/front-door";
   import {
+    FIGURE_CAPTIONS,
     GUIDE_BREADCRUMB,
     GUIDE_DESCRIPTION,
     GUIDE_EYEBROW,
@@ -28,6 +31,10 @@
   import { SITE_ORIGIN } from "$lib/share/url";
   import { ogAlt } from "$lib/tune/copy";
   import Contents from "$lib/ui/guide/Contents.svelte";
+  import OutputFigure from "$lib/ui/guide/OutputFigure.svelte";
+  import PlateFigure from "$lib/ui/guide/PlateFigure.svelte";
+  import StoreFigure from "$lib/ui/guide/StoreFigure.svelte";
+  import ZonaFigure from "$lib/ui/guide/ZonaFigure.svelte";
   import { fillShell } from "$lib/ui/shell/shell.svelte";
 
   /* The head, the intro's thirteen tags; the picture is the hero's, the one surface a visitor sees first. */
@@ -131,6 +138,26 @@
           </dl>
         {/if}
       {/each}
+      {#if section.figure}
+        <figure
+          class="figure"
+          data-testid="guide-figure"
+          data-figure={section.figure}
+        >
+          {#if section.figure === "zona"}
+            <ZonaFigure />
+          {:else if section.figure === "store"}
+            <StoreFigure />
+          {:else if section.figure === "plate"}
+            <PlateFigure />
+          {:else}
+            <OutputFigure />
+          {/if}
+          <figcaption class="caption type-helper">
+            {FIGURE_CAPTIONS[section.figure]}
+          </figcaption>
+        </figure>
+      {/if}
     </section>
   {/each}
 </article>
@@ -260,6 +287,16 @@
 
   .answers dd {
     margin: 0;
+  }
+
+  /* An illustration: the drawing, then its quiet caption; no frame of its own. */
+  .figure {
+    margin: 24px 0 8px;
+  }
+
+  .caption {
+    margin-block-start: 8px;
+    color: var(--color-ink-quiet);
   }
 
   /* A key: the shortcut sheet's chip - a square box in the house mono. */
