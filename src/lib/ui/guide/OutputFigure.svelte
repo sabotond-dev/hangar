@@ -18,32 +18,40 @@
   const SUMMARY = outputSummary(FIGURE_OUTPUT_PARTS);
 </script>
 
-<div
-  class="drawing"
-  role="img"
-  aria-label={FIGURE_NAMES.output}
-  data-testid="figure-output"
->
-  <span class="name type-micro">{FIGURE_OUTPUT_NAME}</span>
-  <span class="summary">{SUMMARY}</span>
-  <svg class="chevron" viewBox="0 0 20 20" aria-hidden="true">
-    <polyline points="8,6 12,10 8,14" />
-  </svg>
+<!-- The panel's decorative rule on a frame of its own: the picture inside carries the role. -->
+<div class="frame">
+  <div
+    class="drawing"
+    role="img"
+    aria-label={FIGURE_NAMES.output}
+    data-testid="figure-output"
+  >
+    <span class="name type-micro">{FIGURE_OUTPUT_NAME}</span>
+    <span class="summary">{SUMMARY}</span>
+    <svg class="chevron" viewBox="0 0 20 20" aria-hidden="true">
+      <polyline points="8,6 12,10 8,14" />
+    </svg>
+  </div>
 </div>
 
 <style>
-  /* The fold's grid: the name, the summary, the chevron's 44px box; on the inspector's panel. */
+  /* The inspector's panel under a decorative rule. */
+  .frame {
+    box-sizing: border-box;
+    max-inline-size: 440px;
+    border: 1px solid var(--color-divider);
+    background: var(--color-panel);
+  }
+
+  /* The fold's grid: the name, the summary, the chevron's 44px box. */
   .drawing {
     display: grid;
     grid-template-columns: 96px minmax(0, 1fr) 44px;
     column-gap: 8px;
     align-items: center;
     box-sizing: border-box;
-    max-inline-size: 440px;
     min-block-size: 44px;
     padding: 8px 8px 8px 16px;
-    border: 1px solid var(--color-divider);
-    background: var(--color-panel);
     color: var(--color-ink);
   }
 

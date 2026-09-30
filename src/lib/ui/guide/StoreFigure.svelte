@@ -16,43 +16,51 @@
   import DeviceMark from "../DeviceMark.svelte";
 </script>
 
-<div
-  class="drawing"
-  role="img"
-  aria-label={FIGURE_NAMES.store}
-  data-testid="figure-store"
->
-  <div class="line">
-    <span class="box strong">{CLEAR_LABEL}</span>
-    <span class="box">
-      <DeviceMark shape="connected" />
-      <span class="strong">{CONNECTED_LABEL}</span>
-    </span>
-  </div>
-  <div class="line">
-    <span class="quiet">{TARGET_LABEL}</span>
-    <span class="box choice"
-      >{pageName(0)}{FIGURE_ON_ZONA}
-      <svg class="chevron" viewBox="0 0 20 20" aria-hidden="true">
-        <polyline points="6,8 10,12 14,8" />
-      </svg>
-    </span>
-    <span class="box">{KEEP_LABEL}</span>
+<!-- The header's rule on a frame of its own: the picture inside carries the role. -->
+<div class="frame">
+  <div
+    class="drawing"
+    role="img"
+    aria-label={FIGURE_NAMES.store}
+    data-testid="figure-store"
+  >
+    <div class="line">
+      <span class="box strong">{CLEAR_LABEL}</span>
+      <span class="box">
+        <DeviceMark shape="connected" />
+        <span class="strong">{CONNECTED_LABEL}</span>
+      </span>
+    </div>
+    <div class="line">
+      <span class="quiet">{TARGET_LABEL}</span>
+      <span class="box choice"
+        >{pageName(0)}{FIGURE_ON_ZONA}
+        <svg class="chevron" viewBox="0 0 20 20" aria-hidden="true">
+          <polyline points="6,8 10,12 14,8" />
+        </svg>
+      </span>
+      <span class="box">{KEEP_LABEL}</span>
+    </div>
   </div>
 </div>
 
 <style>
-  /* The two rows, right-aligned as the header sets them, on the workspace ground with the header's rule beneath. */
+  /* The workspace ground with the header's rule beneath. */
+  .frame {
+    box-sizing: border-box;
+    max-inline-size: 440px;
+    border-block-end: 1px solid var(--color-divider);
+    background: var(--color-workspace);
+  }
+
+  /* The two rows, right-aligned as the header sets them. */
   .drawing {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 12px;
     box-sizing: border-box;
-    max-inline-size: 440px;
     padding: 16px 20px;
-    border-block-end: 1px solid var(--color-divider);
-    background: var(--color-workspace);
     font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.2;
