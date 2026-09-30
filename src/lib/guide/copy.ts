@@ -170,7 +170,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     blocks: [
       {
         kind: "text",
-        text: "A card’s settings sit in up to five sections: Look, Feel, Sound, MIDI and Sync. It shows only the ones it uses.",
+        text: "A card’s settings sit in up to five sections, Look, Feel, Sound, MIDI and Sync, and it shows only the ones it uses.",
       },
       {
         kind: "text",
@@ -221,7 +221,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       },
       {
         kind: "text",
-        text: "Switch to Play to touch the surface as you would the pad. Press [?] for every shortcut.",
+        text: "Switch to Play to touch the surface as you would the pad, and press [?] for every shortcut.",
       },
     ],
   },
@@ -232,7 +232,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     blocks: [
       {
         kind: "text",
-        text: "Your ZONA sends its MIDI over the same USB cable. Pick ZONA as a MIDI input in your DAW, and as an output when the DAW should move things back.",
+        text: "Your ZONA sends its MIDI over the same USB cable: pick ZONA as a MIDI input in your DAW, and as an output when the DAW should move things back.",
       },
       {
         kind: "text",
