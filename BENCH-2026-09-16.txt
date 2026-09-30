@@ -5149,3 +5149,109 @@ drawn illustration where it helps (the 9x9 plate, a control as it looks in the a
 8. If something goes wrong - the port is busy, Store refused, no MIDI arriving, getting the
    factory page back (Clear), the utility button not switching pages after an old Sandbox store.
 Queued now (Opus).
+
+**Done - change 26, 2026-09-30 (the Quick guide at /guide/; nothing asked, every decision recorded).** Outside the GSD
+cycle, no plan file; no push, no device, no deploy. Commits, each `git commit --only` on its paths: `b10fba3`
+feat(guide) the route and its content; `bbc5a05` feat(guide) the four drawings; `b05aff2` fix(guide) the drawings'
+rule off the picture; `e456be2` feat(shell) the links; `f746256` fix(guide) three sections at five sentences;
+`63c68cb` test(guide) `copy.spec.ts`; `f7556a0` test(e2e) `e2e/guide.e2e.ts`; `6a39451` chore(gate) `QUICK_FILES` 102,
+`QUICK_TESTS` 1145; `1146c7b` fix(guide) the output drawing's whole line at 393; `4b11156` chore(gate) the records
+`gate/change-26.*` (at `a0fec6c`) and `gate/change-26-after.*` (at `1146c7b`), both on the clean tree; then this
+paragraph with `docs/TESTING.md`'s "2026-09-30 change 26".
+
+**The page as built.** `src/routes/guide/` (`+page.ts`: `prerender = true` and the shape as data - a content page:
+the breadcrumb bar QUICK GUIDE / GETTING STARTED with "Eight short sections, from the cable to your DAW.", the full
+footer), title "Quick guide — HANGAR". The eyebrow HOW HANGAR WORKS, the one h1 "Quick guide", the lede "From the cable
+to your DAW in eight short sections. Browsing, tuning and building work without a ZONA; storing needs one connected.",
+the contents, then eight sections, each an h2 with its anchor:
+  1. `#connect` Connect your ZONA - three steps (a USB-C cable that carries data; quit Grid Editor from its tray icon
+     and close other HANGAR tabs; Connect ZONA and the browser's list, Firefox's first prompt), where storing works and
+     where it cannot, and "Nothing is written to your ZONA without a click." Drawing: ZONA and its cable.
+  2. `#try` Try a configuration - the Playground, "Every pad here runs the firmware's own code", Play to touch the
+     surface (Configure ignores a touch).
+  3. `#tune` Tune it - the five sections (a card shows the ones it uses), typed values snap, Edit color's three rails,
+     Brightness 1 to 255, Reset / Reset settings, Randomize never touching MIDI or a locked setting, Undo randomize.
+  4. `#store` Store it on your ZONA - three steps (Target and Store on ZONA appear; Target lists the pages your ZONA
+     reports and switches it; Store returns the page to its default, writes, stores, reads back, and "Stored on ZONA ·
+     Page 1" means it matched), the utility button steps pages, Clear. Drawing: the controls as the header sets them.
+  5. `#build` Build your own - the five add keys as kbd (F Fader, B Button, X XY pad, K Knob, L Blank), drag and
+     handles, arrows and Shift+arrow, the inspector's MIDI output, Latch and up to three extra messages, Play, [?].
+     Drawing: a plate with a fader, a button and an XY pad.
+  6. `#daw` Play with your DAW - MIDI over the same cable, Type / Channel / Number, Receive, Sync External from Start to
+     Stop, Division 8th / 16th / 32nd, the preview's own tempo. Drawing: an output block's head.
+  7. `#save` Save, share, export - Save copy, Share snapshot, Export for Grid Editor (grid-userdata/configs), a
+     surface's Export as a file and Import config.
+  8. `#troubleshooting` If something goes wrong - six problems with their fix: the port held, the empty list, Store
+     greyed out, no MIDI in the DAW, the factory page back, the utility button not changing pages.
+Every string is `src/lib/guide/copy.ts`'s (imports nothing); a key is written `[F]` and drawn as a kbd in the house mono.
+The contents (`src/lib/ui/guide/Contents.svelte`, a nav named "On this page", the rail's row register with the numbers
+01-08) sit in the rail from 1024 up - beside the article and never scrolling with it, so no positioning utility was
+needed - and in the article under the lede below 1024; one placement is drawn at a time. Reading column 680px.
+
+**The links.** The intro's "Quick guide" -> `/guide/` (it pointed at the page's own steps strip); a "Quick guide" link in
+the header of every app page, current on /guide/; "Open the Quick guide" in the Help & shortcuts panel; the Sandbox's
+shortcut sheet's foot -> `/guide/#build`; the connection control's drawer -> `/guide/#connect` where the browser cannot
+connect (S0a, S0b) and `/guide/#troubleshooting` after a failed connection (S6). **Not a nav item - the header's
+secondary position, measured:** the nav ends at 709 from 1024 up and the connection zone is 247px at 1024 (Clear 68,
+the gap, the control 147); a fourth item (~112 + 40) would leave the zone under its 218 floor at 1024 and, up to about
+1410, under the 480 Clear's reason caption needs (at 1280 the caption would leave the row). The link sits in the
+zone's slack before Clear, drawn by a container query where the zone holds it: from about 1107, on the app pages' own
+connection row at 768-1023, and on phones (at 393 and 375 left of Clear on its row). Not drawn at 1024-1106 or on the
+content pages at 768-1023; there the Help panel carries it. The header's height, Clear's and the control's boxes and
+Clear's caption are equal before and after at ten widths from 1920 to 375 on four routes. **The install failure blocks
+have no help slot** (`FailureBlock.svelte`: "no control, no tab stop" by design): no link was added and their wording
+is untouched. "Preview without hardware" was left a sentence; the connect help is the drawer's link.
+
+**The illustrations** (`src/lib/ui/guide/`): ZonaFigure (inline SVG: ZONA from above, the 9 x 9 face, the cable into
+one side, the utility button on the opposite side under an action-coloured leader; no text, no light); StoreFigure
+(spans in the controls' boxes - Clear, ZONA connected with DeviceMark's dot, Target "Page 1 · on ZONA", Store on ZONA -
+every word the controls' own modules'); PlateFigure (SVG: the grid, a 2 x 7 fader with its level, a 2 x 2 button, a
+5 x 5 XY pad with its point); OutputFigure (the fold head: RING 1 and `outputSummary()`'s "Note · Ch 1 · C4 ·
+Receive"). Each a `role="img"` with a name and a quiet caption; no image file, no radius, tokens only. **Light:** the
+route imports the copy, the shell, `front-door.ts`, `share/url.ts`, `tune/copy.ts` and these components, whose other
+imports are zero-import copy modules and `DeviceMark.svelte` - no simulator, Lua VM or protocol; `guide.e2e.ts` sees no
+`.wasm` on a warm load, a cold deep link and at 393. The link preview reuses the hero's existing picture (the site
+renders OG images per configuration only), so OG is unchanged.
+
+**Where the brief and the tree differed, and the tree was followed:** (1) "Target page 1 to 4" - the Target lists the
+pages the module enumerates (`page-target.ts`, Bible section 9: never assume four); (2) "install" - the site's verb is
+Store (Apply left 2026-09-16), so "storing works in..."; (3) the browsers are `transport.ts`'s: Chrome, Edge, desktop
+Firefox 151+; Safari, every iOS browser and Chrome on Android (Bluetooth serial only) - Opera and Firefox on Android are
+not named because the tree does not name them; (4) Store "clears the page" - it returns the page to its firmware
+default (install-copy's A-48 wording, never "clears"), writes, stores, and the read-back decides, not the
+acknowledgement; (5) "no MIDI arriving" - the tree's channel fields read 1 to 16 on every card since 17B, so the old
+"a Lua card counts from 0" line was not written (the cue survives only as the description of a zero-based run, and
+none ships); (6) Share snapshot is a card's alone - a Sandbox surface has no link (`NO_LINK_EXPLANATION`), said so;
+(7) Division is 8th / 16th / 32nd on the five cards that name it; GHOST's clock knob is "Clocks a point" and the
+sentence names Division only; (8) the add keys follow the shortcut sheet's order, F B X K L (the palette lists Fader,
+Button, Knob, XY pad, Blank); (9) the utility-button trouble names the date change 22 fixed it (27 September 2026)
+and the way out (store again or Clear). **One claim rests outside the tree:** that the DAW receives ZONA's MIDI over
+the same USB cable and sees it as a MIDI input and output - a property of the hardware the brief's list assumes.
+
+**Found on the way and fixed:** the shortcut sheet's Tab trap let focus leave once the sheet had two stops (it
+prevented Tab only with one); it now wraps. The class `contents` (a Tailwind utility, display: contents) was caught
+before the first commit and renamed `toc`. A divider rule on the `role="img"` pictures read as a control boundary
+(identity.spec.ts test 5) and moved to a frame. At 393 the output drawing clipped "Receive"; its name column now sizes
+to its word. The session's first stop-by-port script matched its own shell's command line (the pitfall 25b recorded)
+and ended one bash call; rewritten to stop only the listener on 4174 and its node / cmd parents.
+
+**Screenshots, looked at before this paragraph** (the served build on 4174): the whole page at 1440 (rail contents
+beside a 680px column, four drawings, the header's link current) and at 393 (one column, the header's link on the
+connection row, the contents under the lede, nothing wider than 393), the four drawings at 393, the header at 1280, the
+Sandbox's Help panel and shortcut sheet - outside the tree, `shots/change-26/` in the session's scratchpad.
+
+**Counts, carried + delta** (carried = `a0fec6c`'s): quick 101 / 1139 + 1 todo -> **102 / 1145 + 1 todo** (+6,
+`copy.spec.ts`), green twice at `--maxWorkers=2` and in the gate; `QUICK_TESTS` 1139 -> **1145**; check 692 -> **703**,
+0 errors, 0 warnings; lint clean; e2e runs 131 -> **137** (+6, `guide.e2e.ts`). Chunks by files on a fresh wrangler
+dev on 4173: guide **6** and c5 **11** at `1146c7b`; c3 **36**, c4 **26**, c1 **36** (not asked; the drawer and the
+header moved) and c2 **20 / 2** - the reds `:299` and `:343`, the recorded hydration family, each green alone - on a
+build of the same `src/` less the output drawing's grid. **The gate:** the wire set `193d352f…`, full `bbb8a19b…` and
+Sandbox set `651664f8…` byte-identical; **utilities 44 -> 44**; OG and fixtures equal; copy exports 9 -> 10 modules (the
+nine untouched); testids 359 -> 371 (+12, named in TESTING.md); the census moved by the guide's own literals and the
+script exits there by design; scoped CSS `a3d8bd43…` -> `a9ca333d…`; `src/` 6 modified, 9 added.
+
+**Departures from the brief:** the header's link in its secondary position at every width rather than a nav item (the
+measurement above), not drawn at 1024-1106 or on the content pages at 768-1023; the connect deep link from the drawer
+rather than from "Preview without hardware"; no link in the install failure blocks (no help slot); the contents in the
+rail on the desktop rather than a positioned column in the article; the preview image reused, not generated; a drawer
+link to #troubleshooting in S6 beyond the brief. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.

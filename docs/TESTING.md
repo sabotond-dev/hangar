@@ -8970,3 +8970,90 @@ bottom padding is 0 in the header (8 above the row, the header's 10 below the li
 draws both placements so the testids stay single-sourced; (9) the first stop-by-port script matched its own command
 line and ended two of this session's own bash shells (no other process); rewritten to stop the wrangler tree and the
 port's listener. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
+
+## 2026-09-30 change 26 - the Quick guide at /guide/
+
+`BENCH-2026-09-16.txt` section 26, the Done paragraph. Outside the GSD cycle, no plan file. No push, no device, no
+deploy; `src/vendor/`, `library.ts`, every catalog entry, `sequence.ts`, the manifest, `pad-sim.ts`,
+`firmware-oracle.spec.ts` and the Sandbox runtime Lua untouched; no `border-radius`. Commits, each `git commit --only`
+on its paths (new paths `git add` by name first): `b10fba3` feat(guide) the route and its content; `bbc5a05`
+feat(guide) the four drawings; `b05aff2` fix(guide) the drawings' decorative rule off the `role="img"` picture;
+`e456be2` feat(shell) the links; `f746256` fix(guide) three sections at five sentences; `63c68cb` test(guide)
+`copy.spec.ts`; `f7556a0` test(e2e) `e2e/guide.e2e.ts`; `6a39451` chore(gate) `QUICK_FILES` 102, `QUICK_TESTS` 1145;
+`1146c7b` fix(guide) the output drawing's whole line at 393; `4b11156` chore(gate) the records `gate/change-26.*`
+(before, at `a0fec6c`, clean) and `gate/change-26-after.*` (at `1146c7b`, clean); then this section and the Done
+paragraph.
+
+**The page.** A content page in the shell, declared as data (`+page.ts`: `variant: "app"`, `section: "guide"`, the
+breadcrumb QUICK GUIDE / GETTING STARTED, the sentence), prerendered: the breadcrumb bar and the full footer, the centre
+scrolling its body. One h1, eight `section`s each an `h2` with an `id` (`connect`, `try`, `tune`, `store`, `build`,
+`daw`, `save`, `troubleshooting`), a reading column of 680px. The contents are one named nav (`aria-label="On this
+page"`) drawn in the rail's register (`src/lib/ui/guide/Contents.svelte`): in the rail from 1024 up (beside the article,
+never scrolling with it - no positioning trick needed), in the article under the lede below 1024, each placement
+`display: none` where the other draws, so one set is in the tree at a time. Every word is `src/lib/guide/copy.ts`'s,
+which imports nothing; a key is written `[F]` and drawn as a `kbd` in the house mono.
+
+**Light.** The route imports the copy, the shell, `front-door.ts` (the hero's id for the link preview), `share/url.ts`,
+`tune/copy.ts` (`ogAlt`) and the five guide components, whose only other imports are zero-import copy modules
+(`install-copy`, `session-copy`, `page-target`, `inspector-copy`) and `DeviceMark.svelte`: no simulator, no Lua VM, no
+protocol. `guide.e2e.ts` asserts no `.wasm` response on a warm load, a cold deep link and at 393.
+
+**The links.** The intro's "Quick guide" (its header's secondary snippet) -> `/guide/`. The header on every app page:
+"Quick guide" at the start of the connection zone, current (`aria-current="page"`, the action colour and a 2px line)
+on /guide/ - the header's secondary position, not a fourth nav item (measured below). The Help & shortcuts panel:
+"Open the Quick guide". The Sandbox's shortcut sheet, at its foot: "More on building in the Quick guide" ->
+`/guide/#build` (the sheet's Tab now wraps between Close and the link). The connection control's drawer: "How to
+connect, in the Quick guide" -> `/guide/#connect` in S0a and S0b, "More fixes in the Quick guide" ->
+`/guide/#troubleshooting` in S6. The install failure blocks (`FailureBlock.svelte`) have no help slot - "no control,
+no tab stop" by design - and were left as they are.
+
+**The header, measured** (the served build, chromium, before this change): the nav ends at 709 at every width from
+1024 up; the connection zone is 247px at 1024 (Clear 68 + 12 + the control 147 = 227 in it); Clear's caption needs a
+480px zone. A fourth nav item ("QUICK GUIDE", about 112 + 40) ends the nav at about 861: at 1024 the zone would be under
+its 218 floor, and up to about 1410 the zone would drop under 480 and Clear's reason caption would leave the row. The
+link in the zone's slack: 79px (757-836 at 1280), drawn by `@container (min-width: 330px)` on the zone - from about 1107
+wide, on the app pages' own connection row at 768-1023, and on phones (393: 20-99 beside Clear at 146); not drawn at
+1024-1106, nor on the content pages at 768-1023, where the Help panel carries it. After: the header's height, Clear's
+and the control's boxes and Clear's caption equal before and after at 1920, 1440, 1280, 1200, 1100, 1024, 900, 768, 393
+and 375 on /playground/, the Sandbox, /guide/ and /.
+
+**Tests.** `src/lib/guide/copy.spec.ts`, six: every export non-empty; D-05 (no "!", no simply / just / easy, the real
+apostrophe, the fifteen headings in sentence case, the uppercase labels short); the eight ids in order, each section at
+most five sentences of prose, lists at most five, answers at most six, the four figures where the brief put them;
+`ADD_KEYS` equal to `shortcuts.ts`'s five arm rows and `KIND_LABELS`, every bracketed key on the sheet; `inlineParts`;
+every claim held to the module that says it. Mutated (L -> M, a "!") and red, restored and green. `e2e/guide.e2e.ts`,
+six (chromium): one h1, the eight h2 with ids, the rail's contents scrolling to each (reverse order), the header's link
+current and the nav marking nothing, a 2px focus ring on a Tabbed row, no `.wasm`; a cold `/guide/#store` landing and
+the head's picture served as `image/png`; at 393 the article's contents under the lede, the rail's hidden, `scrollWidth
+<= clientWidth`; the intro's, the header's and the Help panel's links reaching /guide/; the sheet's Tab wrap and its
+link landing on #build; with no `navigator.serial` the drawer's link landing on #connect.
+
+**Counts, carried + delta** (carried = `a0fec6c`'s): quick 101 / 1139 + 1 todo -> **102 / 1145 + 1 todo** (+1 file,
++6 tests), green twice at `--maxWorkers=2` and in the gate; `QUICK_TESTS` 1139 -> **1145**; check 692 -> **703**, 0
+errors, 0 warnings; lint clean; e2e runs 131 -> **137** (+6, `guide.e2e.ts`); vitest titles 1140 -> 1146. Chunks by
+files on a fresh wrangler dev on 4173, HTTP 000 after each: guide **6** (at `1146c7b`); c5 **11** (at `1146c7b`; at
+`6a39451` with a build stamped `63c68cb` - same `src/` - artifacts' stamp check was the one red, as it should be); c3
+**36**; c4 **26**; c2 **20 / 2**, the reds `:299` and `:343` of the recorded hydration family, each green alone; c1
+(not asked; the drawer and the header moved) **36**. 5173 not running, untouched.
+
+**The gate** (`--before change-26` at `a0fec6c`; `--after change-26 --against change-26 --check 703` at `1146c7b`,
+both on the clean tree): **the wire byte-identical** - set `193d352f…`, full `bbb8a19b…`, Sandbox set `651664f8…`;
+**utilities 44 -> 44**, 0 appeared, 0 disappeared, the markup-named five intact (checked after every build of the
+change, not only in the gate - `contents`, a Tailwind utility, was caught as the nav's first class name before any
+commit and renamed `toc`); OG 27 files / 159,169 B / `9becd682…` equal (no image generated: the guide's preview is the
+hero's existing picture); the four fixtures equal; copy exports `48ba2b07…` (9 modules) -> `90515f8b…` (10: the nine
+untouched, `guide/copy.ts` added); testids 359 `bd078c2f…` -> **371** `69cb09ad…` (+12: `guide`, `guide-section`,
+`guide-keys`, `guide-figure`, `figure-zona`, `figure-store`, `figure-plate`, `figure-output`, `header-quick-guide`,
+`help-quick-guide`, `shortcut-sheet-guide`, `details-guide`; `guide-contents` and `guide-contents-rail` sit in a
+ternary the census does not read); the census `de694146…` -> `146e0211…` (3,608 -> 3,716 literals: the guide's own
+words and classes, `#quick-guide` 1 -> 0) and the script exits there by design; past it, read off the record: scoped
+CSS `a3d8bd43…` -> `a9ca333d…`, raw CSS `acfa3db4…` -> `776a921e…` (15 -> 17 stylesheets), normalised JS `07e003c6…`
+(74 files) -> `41c82950…` (81), titles 1140 + 131 -> 1146 + 137, check 703, lint, quick and build green; `src/` 6
+modified, 9 added, 0 deleted, 0 renamed (the script's "A only for src/test-support/source.ts" is the readability
+phase's rule, which a new page cannot meet - stated, not waived silently); the refuse-list paths empty. The c2, c3, c4
+and c1 chunks ran on a build of `63c68cb`'s `src/`, which differs from `1146c7b` by the output drawing's grid alone (a
+rule on /guide/ only); guide and c5 ran at `1146c7b`.
+
+**Screenshots** (the served build on 4174): the whole page at 1440 and 393, the viewports, the four drawings at 393,
+the header at 1280, the Help panel and the shortcut sheet in the Sandbox - outside the tree, `shots/change-26/` in the
+session's scratchpad.
