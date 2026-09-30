@@ -43,11 +43,11 @@
     background: var(--color-panel);
   }
 
-  /* The fold's grid: the name, the summary, the chevron's 44px box. */
+  /* The fold's grid: the name at its own width (the whole summary fits at 393), the summary, the chevron's 44px box. */
   .drawing {
     display: grid;
-    grid-template-columns: 96px minmax(0, 1fr) 44px;
-    column-gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) 44px;
+    column-gap: 16px;
     align-items: center;
     box-sizing: border-box;
     min-block-size: 44px;
