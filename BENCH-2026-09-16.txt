@@ -5255,3 +5255,29 @@ measurement above), not drawn at 1024-1106 or on the content pages at 768-1023; 
 rather than from "Preview without hardware"; no link in the install failure blocks (no help slot); the contents in the
 rail on the desktop rather than a positioned column in the article; the preview image reused, not generated; a drawer
 link to #troubleshooting in S6 beyond the brief. CAT-04 stays `[ ]`; STATE / ROADMAP / REQUIREMENTS untouched.
+
+27. The production ZONA (RP2350) - HANGAR cannot connect (2026-11-04)
+--------------------------------------------------------------------------------
+
+> I just plugged n the production ready ZONA. This is what the customers will receive, the final
+> product. It received many changes internally, as well a Raspberry 2350 from the older ESP32-S3
+> chip. Let's start with the main problem I have:
+> Hangar webapp cannot connect to ZONA anymore.
+
+Read on this machine, read-only (no byte sent to the module):
+- Windows enumerates the unit as USB VID 0x2E8A (Raspberry Pi) / PID 0x1145 - a composite device:
+  "USB Serial Device (COM5)" (MI_00), "Intech Grid MIDI" (MI_02), HID (MI_04). grid-fw's
+  `rp2350/main/grid_rp2350_usb.c:13-15` confirms the pair ("assigned to this product by the
+  Raspberry Pi Foundation's PID program").
+- HANGAR's filter is `ZONA_USB = { 0x303a, 0x8123 }` (Espressif, the ESP32-S3 prototype;
+  `src/lib/protocol/usb.ts`), given to `requestPort` and used by `isZonaPort` - the production unit
+  is never offered in the browser's port list. BLOCK 1.
+- Its heartbeat (class 010) reads TYPE 01, HWCFG 0xA6 = 166, firmware 1.5.6. HANGAR's pinned
+  `@intechstudio/grid-protocol@1.20260825.1135` knows ZONA only as 161 (RevH, `ZONA_HWCFG`), so
+  `module_type_from_hwcfg(166)` is undefined and the session refuses the module as "not a ZONA".
+  BLOCK 2. npm's latest, `1.20261030.1031`, carries `ZONA_RevI = "166"`.
+- The serial stream interleaves firmware debug text ("CDC TX dropped: 18647") between frames.
+- A 3-second capture of the stream is saved for the fixture:
+  `C:\Users\sabot\AppData\Local\Temp\claude\f104970f4ace8c19\9e0a83a0-9e73-4b17-922e-5ea9c879910b\scratchpad\zona-revI-capture.bin`.
+Recorded: HANGAR supports both the prototype (ESP32-S3, 0x303A:0x8123, hwcfg 161) and the
+production ZONA (RP2350, 0x2E8A:0x1145, hwcfg 166). Fixed as change 27 (Opus).
