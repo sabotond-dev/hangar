@@ -13,11 +13,12 @@ import type { GridTransport } from "./transport";
 /**
  * Ask the user for a ZONA and open it. `requestPort()` MUST be the first statement in the click handler,
  * nothing awaited before it: transient activation EXPIRES (about 4.9 seconds), and an awaited dynamic
- * import on a cold cache can outlast it, so the page loads its modules in `onMount`. The filter is
- * CONN-07's application identity only; the bootloader product id is never listed.
+ * import on a cold cache can outlast it, so the page loads its modules in `onMount`. The filters are
+ * CONN-07's application identities only (the prototype's and the production one's, change 27); no
+ * bootloader identity is ever listed.
  */
 export async function openZonaPort(): Promise<SerialPort> {
-  const port = await navigator.serial.requestPort({ filters: [ZONA_USB] });
+  const port = await navigator.serial.requestPort({ filters: [...ZONA_USB] });
   // MDN's default read buffer is 255 bytes, and a factory Setup config comes
   // back as a 690-byte REPORT; without this it arrives as three chunks and
   // every framing assertion measures the buffer rather than the wire.

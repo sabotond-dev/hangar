@@ -18,7 +18,7 @@ import {
   TERMINATOR,
   ZONA_HWCFG,
 } from "$lib/protocol";
-import { ZONA_USB } from "$lib/protocol/usb";
+import { ZONA_USB_PROTOTYPE } from "$lib/protocol/usb";
 import type { Capture, GridTransport } from "$lib/transport";
 import { FakeTransport } from "$lib/transport";
 import { heartbeatFrame } from "../transport/fixtures/synthetic";
@@ -166,7 +166,7 @@ function fakePort(opts: FakePortOptions = {}) {
   const order: (keyof PortCalls)[] = [];
   let readable: object | null = null;
   const port: Record<string, unknown> = {
-    getInfo: () => opts.info ?? { ...ZONA_USB },
+    getInfo: () => opts.info ?? { ...ZONA_USB_PROTOTYPE },
     open: async () => {
       calls.open++;
       order.push("open");

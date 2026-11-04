@@ -53,7 +53,7 @@ import {
   moduleKeyOf,
   retryBackoffMs,
 } from "$lib/protocol";
-import { ZONA_USB } from "$lib/protocol/usb";
+import { ZONA_USB_PROTOTYPE } from "$lib/protocol/usb";
 import {
   type CaptureStep,
   FakeTransport,
@@ -298,7 +298,7 @@ function record<T extends object, K extends keyof T & string>(
 function fakePort(): SerialPort {
   let readable: object | null = null;
   const port: Record<string, unknown> = {
-    getInfo: () => ({ ...ZONA_USB }),
+    getInfo: () => ({ ...ZONA_USB_PROTOTYPE }),
     open: async () => {
       readable = {};
     },

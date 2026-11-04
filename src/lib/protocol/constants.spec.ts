@@ -261,11 +261,23 @@ describe("protocol constants", () => {
     expect(entry.revision).toBe("RevH");
   });
 
-  it("filters the picker to the product identity and never the bootloader", () => {
-    expect(ZONA_USB).toEqual({ usbVendorId: 0x303a, usbProductId: 0x8123 });
-    // 0x8122 is the bootloader identity. HANGAR must not be able to reach a
-    // module in DFU, so it is never offered to the picker.
-    expect(ZONA_USB.usbProductId).not.toBe(0x8122);
+  it("filters the picker to the product identities and never a bootloader", () => {
+    // The ESP32-S3 prototype and the production RP2350 unit (change 27).
+    expect(ZONA_USB).toEqual([
+      { usbVendorId: 0x303a, usbProductId: 0x8123 },
+      { usbVendorId: 0x2e8a, usbProductId: 0x1145 },
+    ]);
+    // 0x303A:0x8122 and the RP2350's BOOTSEL 0x2E8A:0x000F are bootloader
+    // identities. HANGAR must not be able to reach a module in DFU, so neither
+    // is ever offered to the picker.
+    expect(ZONA_USB).not.toContainEqual({
+      usbVendorId: 0x303a,
+      usbProductId: 0x8122,
+    });
+    expect(ZONA_USB).not.toContainEqual({
+      usbVendorId: 0x2e8a,
+      usbProductId: 0x000f,
+    });
   });
 
   it("carries the version triple the CONFIG descriptors send", () => {

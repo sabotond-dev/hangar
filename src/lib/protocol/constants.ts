@@ -17,16 +17,56 @@ import {
   ElementType,
   EventType,
   EventTypeToNumber,
+  ModuleType,
   grid,
 } from "@intechstudio/grid-protocol";
 
-// CONN-07's USB filter moved to ./usb, a module with no imports, so a header
-// component can name it on the first paint of `/` without pulling the pinned
+// CONN-07's USB filters moved to ./usb, a module with no imports, so a header
+// component can name them on the first paint of `/` without pulling the pinned
 // package in. Re-exported here so $lib/protocol's surface is unchanged (06-03).
-export { ZONA_USB } from "./usb";
+export {
+  ZONA_USB,
+  ZONA_USB_PRODUCTION,
+  ZONA_USB_PROTOTYPE,
+  isZonaUsb,
+} from "./usb";
 
-/** Identity is confirmed from the heartbeat's HWCFG, not from the USB filter. */
+/**
+ * Identity is confirmed from the heartbeat's HWCFG, not from the USB filter.
+ * 161 is the ESP32-S3 prototype (RevH), what every capture and fixture reports.
+ */
 export const ZONA_HWCFG = 161;
+/**
+ * The production unit's HWCFG (RevI, 166, the RP2350; change 27). HANGAR's own
+ * number: the pinned 1.20260825.1135 does not name it (grid-protocol
+ * 1.20261030.1031 does, `GRID_MODULE_ZONA_RevI = "166"`), and the unit's
+ * heartbeat reports it. The pin is kept; same firmware, only the identity moved.
+ */
+export const ZONA_HWCFG_REVI = 166;
+
+/** Every HWCFG that is a ZONA, with the revision name the package uses for it. */
+export const ZONA_REVISIONS: ReadonlyMap<number, string> = new Map([
+  [ZONA_HWCFG, "RevH"],
+  [ZONA_HWCFG_REVI, "RevI"],
+]);
+export const ZONA_HWCFGS: ReadonlySet<number> = new Set(ZONA_REVISIONS.keys());
+
+/**
+ * THE ONE RULE FOR "IS A ZONA" (change 27): identity is confirmed from the
+ * heartbeat's HWCFG, never from the USB filter, and this is the only place
+ * that decides it - sequence.ts's fold names the module and identify()
+ * accepts it through this and nothing else.
+ */
+export function isZonaHwcfg(hwcfg: number): boolean {
+  return ZONA_HWCFGS.has(hwcfg);
+}
+
+/** The module type a heartbeat's HWCFG names: ZONA by the rule above, anything else as the pinned package names it. */
+export function moduleTypeOf(hwcfg: number): string | undefined {
+  return isZonaHwcfg(hwcfg)
+    ? ModuleType.ZONA
+    : (grid.module_type_from_hwcfg(hwcfg) as string | undefined);
+}
 
 /** One entry per event an element declares. */
 export interface ElementEvent {

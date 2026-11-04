@@ -5281,3 +5281,5 @@ Read on this machine, read-only (no byte sent to the module):
   `C:\Users\sabot\AppData\Local\Temp\claude\f104970f4ace8c19\9e0a83a0-9e73-4b17-922e-5ea9c879910b\scratchpad\zona-revI-capture.bin`.
 Recorded: HANGAR supports both the prototype (ESP32-S3, 0x303A:0x8123, hwcfg 161) and the
 production ZONA (RP2350, 0x2E8A:0x1145, hwcfg 166). Fixed as change 27 (Opus).
+
+**Done - change 27, 2026-11-04 (code only; the user is testing on the production ZONA).** `ZONA_USB` (`src/lib/protocol/usb.ts`, still import-free) lists the prototype 0x303A:0x8123 and the production RP2350 0x2E8A:0x1145, passed whole to `requestPort({ filters })` and matched by `isZonaPort` / `grantedZonaPorts` (bootloaders 0x8122 and BOOTSEL 0x2E8A:0x000F never listed); a ZONA is decided in one place, `isZonaHwcfg` over the local set {161, 166} in `src/lib/protocol/constants.ts`, which `identify()` and the fold use; the grid-protocol pin stays 1.20260825.1135; only the specs that pinned the single USB pair were updated; no new tests, no fixture, no e2e, no gate run.

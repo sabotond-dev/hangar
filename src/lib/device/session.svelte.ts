@@ -488,7 +488,7 @@ export class DeviceSession {
 
     let picking: Promise<SerialPort>;
     try {
-      picking = serial.requestPort({ filters: [ZONA_USB] });
+      picking = serial.requestPort({ filters: [...ZONA_USB] });
     } catch (err) {
       this.#refuse(err);
       this.#busy = false;

@@ -12,7 +12,7 @@ import {
   TERMINATOR,
   TOUCH_EVENTS,
   ZONA_HWCFG,
-  ZONA_USB,
+  ZONA_USB_PROTOTYPE,
   type DecodedClass,
   type GridRequest,
   decodeFrame,
@@ -227,8 +227,8 @@ function buildSyntheticCapture(): Capture {
   });
 
   rec.setIdentity({
-    usbVendorId: ZONA_USB.usbVendorId,
-    usbProductId: ZONA_USB.usbProductId,
+    usbVendorId: ZONA_USB_PROTOTYPE.usbVendorId,
+    usbProductId: ZONA_USB_PROTOTYPE.usbProductId,
     sx: 0,
     sy: 0,
     rot: 0,

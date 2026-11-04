@@ -16,14 +16,16 @@ import {
   EVENT_TIMER,
   EVENT_UTILITY,
   IDENTIFY_WINDOW_MS,
-  ZONA_HWCFG,
+  ZONA_REVISIONS,
   type DecodedClass,
   type FetchedEvent,
   canWriteBack,
   fetchConfig,
   fetchSerialNumber,
   hostHeartbeat,
+  isZonaHwcfg,
   moduleKeyOf,
+  moduleTypeOf,
   sendConfig,
   storePage,
   systemSlotString,
@@ -128,8 +130,8 @@ export function absorbFrame(
       sy,
       rot: Number(brc.ROT),
       hwcfg,
-      moduleType: grid.module_type_from_hwcfg(hwcfg) as string | undefined,
-      revision: entry?.revision,
+      moduleType: moduleTypeOf(hwcfg),
+      revision: ZONA_REVISIONS.get(hwcfg) ?? entry?.revision,
       heartbeatType: Number(p.TYPE),
       firmware: {
         major: Number(p.VMAJOR),
@@ -161,7 +163,7 @@ export function identify(state: IdentifyState): Identity | undefined {
   if (state.activePage === undefined) return undefined;
   const modules = [...state.seen.values()];
   const zona = modules.find(
-    (m) => m.heartbeatType === 1 && m.hwcfg === ZONA_HWCFG,
+    (m) => m.heartbeatType === 1 && isZonaHwcfg(m.hwcfg),
   );
   if (!zona) return undefined;
   const otherModules = modules.filter((m) => m !== zona);

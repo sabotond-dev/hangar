@@ -113,7 +113,7 @@
     // FIRST statement, nothing awaited before it: transient activation EXPIRES (about 4.9 s in current
     // engines), so an await here makes the picker reject. No browser-family word here (the acceptance grep counts comments).
     const picked = await navigator.serial
-      .requestPort({ filters: [P!.ZONA_USB] })
+      .requestPort({ filters: [...P!.ZONA_USB] })
       .catch((err: unknown) => {
         // A closed chooser is a NotFoundError, not a fault, and the copy says so.
         showRefusal(err);
@@ -232,9 +232,11 @@
     }
     identity = found;
     const info = port.getInfo();
+    // A port the filters admitted reports its ids; since change 27 two identities pass, so a missing id
+    // is recorded as 0 (not reported) rather than as one of them.
     record.setIdentity({
-      usbVendorId: info.usbVendorId ?? protocol.ZONA_USB.usbVendorId,
-      usbProductId: info.usbProductId ?? protocol.ZONA_USB.usbProductId,
+      usbVendorId: info.usbVendorId ?? 0,
+      usbProductId: info.usbProductId ?? 0,
       sx: found.zona.sx,
       sy: found.zona.sy,
       rot: found.zona.rot,
